@@ -1,0 +1,512 @@
+<title>Thai Industrial Property — Design System</title>
+<style>
+  /* ============================================================
+     Tokens — mirror of green-brand.css (§08_full). Components read
+     ONLY via var(). Light default → dark via media + [data-theme].
+     ============================================================ */
+  :root {
+    --brand-50:#C3FED5; --brand-100:#2DFB91; --brand-200:#25D87C; --brand-300:#1EBA6A;
+    --brand-400:#189E59; --brand-500:#128449; --brand-600:#0D6C3B; --brand-700:#09582F;
+    --brand-800:#043F20; --brand-900:#022310; --brand-950:#011507;
+
+    --surface-base:#F9F8F5; --surface-alt:#F3F0EC; --surface-card:#FFFFFF; --surface-muted:#ECE8E1;
+    --surface-brand-subtle:#C3FED5; --surface-brand-soft:#E8FFF0;
+    --text-primary:#28251D; --text-secondary:#5F5A52; --text-muted:#7A7974; --text-inverse:#FFFFFF; --text-brand:#0D6C3B;
+    --border-subtle:#D4D1CA; --border-default:#C9C5BD; --border-brand:#0D6C3B;
+
+    --action-primary:#0D6C3B; --action-primary-hover:#09582F; --action-primary-active:#043F20;
+    --action-secondary:#128449; --action-disabled-bg:#ECE8E1; --action-disabled-text:#A6A29A;
+
+    --success:#0D6C3B; --success-subtle:#DCFAE6; --success-text:#09582F;
+    --warning:#B45309; --warning-subtle:#FDF0D5; --warning-text:#7C4210;
+    --error:#C02626;   --error-subtle:#FCE4E4;   --error-text:#8F1D1D;
+    --info:#1C5FB8;    --info-subtle:#DCEAFB;    --info-text:#17457F;
+
+    --shadow-xs:0 1px 2px rgba(0,0,0,.04); --shadow-sm:0 2px 6px rgba(0,0,0,.06);
+    --shadow-md:0 6px 16px rgba(0,0,0,.08); --shadow-lg:0 12px 28px rgba(0,0,0,.10); --shadow-xl:0 20px 44px rgba(0,0,0,.14);
+    --focus-ring:0 0 0 3px rgba(9,88,47,.45); --focus-ring-contrast:0 0 0 2px #fff,0 0 0 4px #09582F; --focus-ring-error:0 0 0 3px rgba(192,38,38,.28);
+
+    --chart-1:#157F43; --chart-2:#2A6FB8; --chart-3:#C68400; --chart-4:#C8433B;
+    --chart-5:#8A3DA0; --chart-6:#0E9AA8; --chart-7:#E0692A; --chart-8:#D14FA0;
+    --chart-grid:#E7E4DD; --chart-axis:#C9C5BD;
+
+    --page:#F3F0EC;
+    --font:'Noto Sans Thai','Inter','Segoe UI',system-ui,sans-serif;
+    --mono:'JetBrains Mono','SFMono-Regular',Menlo,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --surface-base:#011507; --surface-alt:#043F20; --surface-card:#022310; --surface-muted:#09582F;
+      --surface-brand-soft:#043F20;
+      --text-primary:#F9F8F5; --text-secondary:#C9C5BD; --text-muted:#8E8B84; --text-brand:#25D87C;
+      --border-subtle:rgba(255,255,255,.12); --border-default:rgba(255,255,255,.20); --border-brand:#25D87C;
+      --action-primary:#189E59; --action-primary-hover:#1EBA6A; --action-primary-active:#22A45C;
+      --chart-1:#22A45C; --chart-2:#4E8FD8; --chart-3:#BC8810; --chart-4:#E26B62;
+      --chart-5:#B072D6; --chart-6:#159FAD; --chart-7:#D26C34; --chart-8:#D663A6;
+      --chart-grid:rgba(255,255,255,.10); --chart-axis:rgba(255,255,255,.20);
+      --shadow-sm:0 2px 6px rgba(0,0,0,.4); --shadow-md:0 6px 16px rgba(0,0,0,.5); --shadow-lg:0 12px 28px rgba(0,0,0,.6);
+      --page:#000; --surface-card-shadow:none;
+    }
+  }
+  :root[data-theme="dark"]{
+    --surface-base:#011507; --surface-alt:#043F20; --surface-card:#022310; --surface-muted:#09582F;
+    --surface-brand-soft:#043F20;
+    --text-primary:#F9F8F5; --text-secondary:#C9C5BD; --text-muted:#8E8B84; --text-brand:#25D87C;
+    --border-subtle:rgba(255,255,255,.12); --border-default:rgba(255,255,255,.20); --border-brand:#25D87C;
+    --action-primary:#189E59; --action-primary-hover:#1EBA6A; --action-primary-active:#22A45C;
+    --chart-1:#22A45C; --chart-2:#4E8FD8; --chart-3:#BC8810; --chart-4:#E26B62;
+    --chart-5:#B072D6; --chart-6:#159FAD; --chart-7:#D26C34; --chart-8:#D663A6;
+    --chart-grid:rgba(255,255,255,.10); --chart-axis:rgba(255,255,255,.20);
+    --shadow-sm:0 2px 6px rgba(0,0,0,.4); --shadow-md:0 6px 16px rgba(0,0,0,.5); --shadow-lg:0 12px 28px rgba(0,0,0,.6);
+    --page:#000;
+  }
+
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  .ds{
+    font-family:var(--font); background:var(--page); color:var(--text-primary);
+    line-height:1.5; -webkit-font-smoothing:antialiased;
+    transition:background .2s ease,color .2s ease;
+  }
+  .wrap{max-width:1120px; margin:0 auto; padding:0 24px;}
+  h1,h2,h3,h4{text-wrap:balance; margin:0;}
+  code,.mono{font-family:var(--mono); font-variant-numeric:tabular-nums;}
+  a{color:var(--text-brand);}
+
+  /* header */
+  header.top{
+    position:sticky; top:0; z-index:200; background:color-mix(in srgb,var(--surface-base) 88%, transparent);
+    backdrop-filter:blur(8px); border-bottom:1px solid var(--border-subtle);
+  }
+  .top .wrap{display:flex; align-items:center; gap:16px; height:60px;}
+  .brandmark{display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing:-.01em;}
+  .brandmark .dot{width:22px;height:22px;border-radius:6px;background:var(--action-primary);box-shadow:var(--shadow-sm);}
+  .top nav{display:flex; gap:4px; margin-left:auto; flex-wrap:wrap;}
+  .top nav a{
+    color:var(--text-secondary); text-decoration:none; font-size:13px; padding:6px 10px; border-radius:9999px;
+  }
+  .top nav a:hover{background:var(--surface-muted); color:var(--text-primary);}
+  .toggle{
+    border:1px solid var(--border-default); background:var(--surface-card); color:var(--text-primary);
+    height:36px; padding:0 14px; border-radius:9999px; font:inherit; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:7px;
+  }
+  .toggle:hover{border-color:var(--border-brand);}
+  .toggle:focus-visible{outline:none; box-shadow:var(--focus-ring);}
+
+  /* hero */
+  .hero{padding:56px 0 40px;}
+  .eyebrow{font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-brand); font-weight:600;}
+  .hero h1{font-size:clamp(30px,5vw,46px); line-height:1.08; margin:14px 0 12px; letter-spacing:-.02em;}
+  .hero p{max-width:60ch; color:var(--text-secondary); font-size:17px; margin:0;}
+  .meta{display:flex; gap:8px; flex-wrap:wrap; margin-top:22px;}
+  .pill{font-size:12px; padding:5px 11px; border-radius:9999px; background:var(--surface-brand-subtle); color:var(--success-text); font-weight:600;}
+  .pill.n{background:var(--surface-muted); color:var(--text-secondary);}
+
+  section{padding:40px 0; border-top:1px solid var(--border-subtle);}
+  .sec-head{display:flex; align-items:baseline; gap:12px; margin-bottom:24px;}
+  .sec-head h2{font-size:24px; letter-spacing:-.01em;}
+  .sec-head .ref{font-size:12px; color:var(--text-muted); margin-left:auto;}
+  .lead{color:var(--text-secondary); max-width:64ch; margin:-14px 0 24px; font-size:15px;}
+
+  .grid{display:grid; gap:16px;}
+  .cols-2{grid-template-columns:repeat(2,1fr);}
+  .cols-3{grid-template-columns:repeat(3,1fr);}
+  .cols-4{grid-template-columns:repeat(4,1fr);}
+  @media(max-width:820px){.cols-3,.cols-4{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:520px){.cols-2,.cols-3,.cols-4{grid-template-columns:1fr;}}
+
+  /* color ramp */
+  .ramp{display:grid; grid-template-columns:repeat(11,1fr); border-radius:12px; overflow:hidden; border:1px solid var(--border-subtle);}
+  .ramp .sw{aspect-ratio:1/1.5; display:flex; align-items:flex-end; padding:8px; font-size:10px; font-weight:600;}
+  @media(max-width:820px){.ramp{grid-template-columns:repeat(6,1fr);} .ramp .sw{aspect-ratio:1/1;}}
+
+  .swatch{border:1px solid var(--border-subtle); border-radius:12px; overflow:hidden; background:var(--surface-card);}
+  .swatch .cap{height:76px; display:flex; align-items:flex-end; padding:10px;}
+  .swatch .body{padding:10px 12px;}
+  .swatch .name{font-size:13px; font-weight:600;}
+  .swatch .hex{font-size:12px; color:var(--text-muted);}
+
+  .card{background:var(--surface-card); border:1px solid var(--border-subtle); border-radius:12px; padding:20px; box-shadow:var(--shadow-sm);}
+
+  /* type */
+  .type-row{display:flex; align-items:baseline; gap:20px; padding:12px 0; border-bottom:1px solid var(--border-subtle);}
+  .type-row:last-child{border-bottom:none;}
+  .type-row .tag{width:120px; flex:none; color:var(--text-muted); font-size:12px;}
+  .type-row .sample{color:var(--text-primary);}
+
+  /* scale bars */
+  .scale-row{display:flex; align-items:center; gap:14px; padding:7px 0;}
+  .scale-row .k{width:88px; flex:none; font-size:13px; color:var(--text-secondary);}
+  .scale-row .v{width:56px; flex:none; font-size:12px; color:var(--text-muted); text-align:right;}
+  .scale-row .bar{height:16px; background:var(--action-primary); border-radius:4px;}
+
+  .radii{display:flex; gap:16px; flex-wrap:wrap;}
+  .radii .r{width:84px; height:84px; background:var(--surface-brand-subtle); border:1px solid var(--border-brand); display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--success-text);}
+
+  .shadows{display:grid; grid-template-columns:repeat(5,1fr); gap:16px;}
+  @media(max-width:820px){.shadows{grid-template-columns:repeat(2,1fr);}}
+  .shadows .s{background:var(--surface-card); border:1px solid var(--border-subtle); border-radius:12px; height:84px; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--text-secondary);}
+
+  /* buttons */
+  .btn{font:inherit; font-weight:600; font-size:15px; border-radius:8px; height:40px; padding:0 20px; border:1px solid transparent; cursor:pointer; display:inline-flex; align-items:center; gap:8px; transition:background .15s,box-shadow .15s;}
+  .btn:focus-visible{outline:none;}
+  .btn-primary{background:var(--action-primary); color:#fff;}
+  .btn-primary:hover{background:var(--action-primary-hover);}
+  .btn-primary:active{background:var(--action-primary-active);}
+  .btn-primary:focus-visible{box-shadow:var(--focus-ring-contrast);}
+  .btn-secondary{background:var(--action-secondary); color:#fff;}
+  .btn-outline{background:transparent; color:var(--text-brand); border-color:var(--border-brand);}
+  .btn-outline:hover{background:var(--surface-brand-subtle);}
+  .btn-ghost{background:transparent; color:var(--text-primary);}
+  .btn-ghost:hover{background:var(--surface-muted);}
+  .btn-danger{background:var(--error); color:#fff;}
+  .btn-disabled{background:var(--action-disabled-bg); color:var(--action-disabled-text); cursor:not-allowed;}
+  .btn-sm{height:32px; padding:0 16px; font-size:14px;}
+  .btn-lg{height:48px; padding:0 24px;}
+  .btn-row{display:flex; gap:12px; flex-wrap:wrap; align-items:center;}
+
+  /* input */
+  .field{display:flex; flex-direction:column; gap:6px;}
+  .field label{font-size:13px; font-weight:600; color:var(--text-primary);}
+  .input{height:40px; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-card); color:var(--text-primary); padding:0 16px; font:inherit; font-size:15px;}
+  .input::placeholder{color:var(--text-muted);}
+  .input:focus{outline:none; border-color:var(--border-brand); box-shadow:var(--focus-ring);}
+  .input.is-focus{border-color:var(--border-brand); box-shadow:var(--focus-ring);}
+  .input.is-error{border-color:var(--error); box-shadow:var(--focus-ring-error);}
+  .help{font-size:13px; color:var(--text-muted);}
+  .help.err{color:var(--error-text);}
+
+  /* badges & chips */
+  .badge{display:inline-flex; align-items:center; gap:5px; height:22px; padding:0 8px; border-radius:6px; font-size:12px; font-weight:600;}
+  .b-neutral{background:var(--surface-muted); color:var(--text-secondary);}
+  .b-brand{background:var(--surface-brand-subtle); color:var(--success-text);}
+  .b-success{background:var(--success-subtle); color:var(--success-text);}
+  .b-warning{background:var(--warning-subtle); color:var(--warning-text);}
+  .b-error{background:var(--error-subtle); color:var(--error-text);}
+  .b-info{background:var(--info-subtle); color:var(--info-text);}
+  .chip{display:inline-flex; align-items:center; gap:7px; height:28px; padding:0 12px; border-radius:9999px; font-size:13px; font-weight:600;}
+  .chip .d{width:8px;height:8px;border-radius:50%;}
+  .chip-sel{background:var(--action-primary); color:#fff;}
+  .chip-out{background:transparent; border:1px solid var(--border-brand); color:var(--text-brand);}
+
+  /* status pairs */
+  .statrow{display:flex; align-items:center; gap:10px; padding:8px 0;}
+  .statrow .sw{width:40px;height:40px;border-radius:8px;flex:none;}
+  .statrow .txt{font-size:14px;}
+  .statrow .ratio{margin-left:auto; font-size:12px; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+
+  /* alert */
+  .alert{display:flex; gap:10px; padding:12px 14px; border-radius:8px; font-size:14px; border:1px solid; align-items:flex-start;}
+  .al-success{background:var(--success-subtle); color:var(--success-text); border-color:var(--success);}
+  .al-warning{background:var(--warning-subtle); color:var(--warning-text); border-color:var(--warning);}
+  .al-error{background:var(--error-subtle); color:var(--error-text); border-color:var(--error);}
+  .al-info{background:var(--info-subtle); color:var(--info-text); border-color:var(--info);}
+  .ico{flex:none; width:18px; height:18px; margin-top:1px;}
+
+  /* chart */
+  .cat-row{display:flex; gap:0; border-radius:8px; overflow:hidden; border:1px solid var(--border-subtle);}
+  .cat-row .c{flex:1; height:44px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:700;}
+  .strip{height:28px; border-radius:8px; border:1px solid var(--border-subtle);}
+  .barchart{display:flex; align-items:flex-end; gap:14px; height:150px; padding:14px; border:1px solid var(--border-subtle); border-radius:12px; background:var(--surface-card); position:relative;}
+  .barchart .col{flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; height:100%; justify-content:flex-end;}
+  .barchart .bk{width:100%; border-radius:4px 4px 0 0;}
+  .barchart .lb{font-size:11px; color:var(--text-muted);}
+  .legend{display:flex; gap:16px; flex-wrap:wrap; margin-top:12px; font-size:13px; color:var(--text-secondary);}
+  .legend span{display:inline-flex; align-items:center; gap:6px;}
+  .legend i{width:11px;height:11px;border-radius:3px; display:inline-block;}
+
+  /* listing card demo */
+  .lcard{background:var(--surface-card); border:1px solid var(--border-subtle); border-radius:12px; overflow:hidden; box-shadow:var(--shadow-sm); max-width:340px;}
+  .lcard .img{height:170px; background:linear-gradient(135deg,#2d3a30,#0d1f14); position:relative;}
+  .lcard .img .badges{position:absolute; top:10px; left:10px; display:flex; gap:6px;}
+  .lcard .img .pc{position:absolute; bottom:10px; right:10px; background:rgba(0,0,0,.55); color:#fff; font-size:11px; padding:3px 8px; border-radius:9999px;}
+  .lcard .bd{padding:14px 16px; display:flex; flex-direction:column; gap:8px;}
+  .lcard .code{font-family:var(--mono); font-size:11px; color:var(--text-muted);}
+  .lcard h4{font-size:16px; line-height:1.3;}
+  .lcard .loc{font-size:13px; color:var(--text-secondary); display:flex; align-items:center; gap:6px;}
+  .lcard .specs{display:flex; gap:16px; font-size:13px; color:var(--text-secondary); border-top:1px solid var(--border-subtle); padding-top:10px;}
+  .lcard .specs b{color:var(--text-primary); font-weight:600;}
+  .lcard .price{display:flex; align-items:baseline; gap:8px; margin-top:2px;}
+  .lcard .price .p{font-size:19px; font-weight:700; color:var(--text-primary);}
+  .lcard .price .u{font-size:13px; color:var(--text-muted);}
+
+  .tabs{display:flex; gap:4px; border-bottom:1px solid var(--border-subtle);}
+  .tab{padding:9px 16px; font-size:14px; font-weight:500; color:var(--text-secondary); border-bottom:2px solid transparent; cursor:pointer;}
+  .tab.active{color:var(--text-brand); border-bottom-color:var(--action-primary);}
+
+  footer.ft{padding:36px 0 60px; border-top:1px solid var(--border-subtle); color:var(--text-muted); font-size:13px;}
+  footer.ft code{background:var(--surface-muted); padding:2px 6px; border-radius:5px; color:var(--text-secondary);}
+  .filelist{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none !important;}}
+</style>
+
+<div class="ds">
+  <header class="top">
+    <div class="wrap">
+      <div class="brandmark"><span class="dot"></span> Thai Industrial Property</div>
+      <nav>
+        <a href="#color">สี</a>
+        <a href="#type">ตัวอักษร</a>
+        <a href="#scale">Scale</a>
+        <a href="#chart">Chart</a>
+        <a href="#components">Components</a>
+      </nav>
+      <button class="toggle" id="tt" aria-label="สลับธีมสว่าง/มืด">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <span id="ttlabel">ธีม</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="hero">
+      <div class="eyebrow">Design System · Green Revision v1.1</div>
+      <h1>ระบบดีไซน์ Green-first สำหรับแพลตฟอร์มนายหน้าอสังหาฯ อุตสาหกรรม</h1>
+      <p>Token, palette และ component ที่ผ่านการ validate จริง — practical, trustworthy, industrial ทั้งโหมดสว่างและมืด กด <b>ธีม</b> มุมขวาบนเพื่อสลับ ทุกสีบนหน้านี้อ่านจาก token เดียวกับที่โค้ดใช้</p>
+      <div class="meta">
+        <span class="pill">✓ WCAG AA (contrast คำนวณจริง)</span>
+        <span class="pill">✓ CVD-safe chart palette</span>
+        <span class="pill n">Noto Sans Thai / Inter</span>
+        <span class="pill n">Light + Dark</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- COLOR -->
+  <section id="color"><div class="wrap">
+    <div class="sec-head"><h2>สี · Color</h2><span class="ref">08_full §2 · green-brand-tokens.json</span></div>
+
+    <h3 style="font-size:15px;margin-bottom:12px;color:var(--text-secondary)">Brand green scale (50 → 950)</h3>
+    <div class="ramp">
+      <div class="sw" style="background:#C3FED5;color:#043F20">50</div>
+      <div class="sw" style="background:#2DFB91;color:#043F20">100</div>
+      <div class="sw" style="background:#25D87C;color:#043F20">200</div>
+      <div class="sw" style="background:#1EBA6A;color:#022310">300</div>
+      <div class="sw" style="background:#189E59;color:#fff">400</div>
+      <div class="sw" style="background:#128449;color:#fff">500</div>
+      <div class="sw" style="background:#0D6C3B;color:#fff">600</div>
+      <div class="sw" style="background:#09582F;color:#fff">700</div>
+      <div class="sw" style="background:#043F20;color:#C3FED5">800</div>
+      <div class="sw" style="background:#022310;color:#C3FED5">900</div>
+      <div class="sw" style="background:#011507;color:#C3FED5">950</div>
+    </div>
+    <p class="help" style="margin-top:10px">Primary = <b>600 #0D6C3B</b> · hover 700 · active 800. โทน 100–300 เป็นเขียวสด — ใช้เป็นพื้น badge เท่านั้น ห้ามเป็น text/ปุ่ม (contrast ต่ำ)</p>
+
+    <h3 style="font-size:15px;margin:28px 0 12px;color:var(--text-secondary)">Semantic — surface / text / border (theme-aware)</h3>
+    <div class="grid cols-4">
+      <div class="swatch"><div class="cap" style="background:var(--surface-base)"></div><div class="body"><div class="name">surface.base</div><div class="hex">พื้นหน้าเว็บ</div></div></div>
+      <div class="swatch"><div class="cap" style="background:var(--surface-card);border-bottom:1px solid var(--border-subtle)"></div><div class="body"><div class="name">surface.card</div><div class="hex">พื้นการ์ด</div></div></div>
+      <div class="swatch"><div class="cap" style="background:var(--surface-muted)"></div><div class="body"><div class="name">surface.muted</div><div class="hex">พื้นรอง</div></div></div>
+      <div class="swatch"><div class="cap" style="background:var(--surface-brand-subtle)"></div><div class="body"><div class="name">brand.subtle</div><div class="hex">tint เขียว</div></div></div>
+      <div class="swatch"><div class="cap" style="background:var(--text-primary)"></div><div class="body"><div class="name">text.primary</div><div class="hex">หัวข้อ/เนื้อหา</div></div></div>
+      <div class="swatch"><div class="cap" style="background:var(--text-secondary)"></div><div class="body"><div class="name">text.secondary</div><div class="hex">metadata</div></div></div>
+      <div class="swatch"><div class="cap" style="background:var(--text-muted)"></div><div class="body"><div class="name">text.muted</div><div class="hex">helper (large)</div></div></div>
+      <div class="swatch"><div class="cap" style="background:var(--action-primary)"></div><div class="body"><div class="name">action.primary</div><div class="hex">CTA</div></div></div>
+    </div>
+
+    <h3 style="font-size:15px;margin:28px 0 12px;color:var(--text-secondary)">Status — success / warning / error / info <span style="font-weight:400;color:var(--text-muted)">(ทุกคู่ผ่าน AA)</span></h3>
+    <div class="grid cols-2">
+      <div class="card" style="padding:14px 18px">
+        <div class="statrow"><span class="sw" style="background:var(--success)"></span><span class="txt">Success · <span class="mono">#0D6C3B</span></span><span class="ratio">6.51:1</span></div>
+        <div class="statrow"><span class="sw" style="background:var(--warning)"></span><span class="txt">Warning · <span class="mono">#B45309</span></span><span class="ratio">5.02:1</span></div>
+        <div class="statrow"><span class="sw" style="background:var(--error)"></span><span class="txt">Error · <span class="mono">#C02626</span></span><span class="ratio">5.92:1</span></div>
+        <div class="statrow"><span class="sw" style="background:var(--info)"></span><span class="txt">Info · <span class="mono">#1C5FB8</span></span><span class="ratio">6.22:1</span></div>
+      </div>
+      <div class="card" style="display:flex;flex-direction:column;gap:10px">
+        <div class="alert al-success"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>บันทึกประกาศเรียบร้อยแล้ว</div>
+        <div class="alert al-warning"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>ทรัพย์นี้ยังไม่ได้ตรวจสอบสถานะว่าง</div>
+        <div class="alert al-error"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>กรอกอย่างน้อย 1 ช่องทางติดต่อ</div>
+        <div class="alert al-info"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>ราคาไม่การันตี ต้องยืนยันกับทีมงานอีกครั้ง</div>
+      </div>
+    </div>
+  </div></section>
+
+  <!-- TYPE -->
+  <section id="type"><div class="wrap">
+    <div class="sec-head"><h2>ตัวอักษร · Typography</h2><span class="ref">08_full §3 · Noto Sans Thai + Inter</span></div>
+    <div class="card">
+      <div class="type-row"><span class="tag">5xl · 48 / bold</span><span class="sample" style="font-size:48px;font-weight:700;line-height:1.1">โกดังให้เช่า</span></div>
+      <div class="type-row"><span class="tag">3xl · 30 / semibold</span><span class="sample" style="font-size:30px;font-weight:600">Warehouse for rent</span></div>
+      <div class="type-row"><span class="tag">xl · 20 / semibold</span><span class="sample" style="font-size:20px;font-weight:600">หัวข้อ section / key stats</span></div>
+      <div class="type-row"><span class="tag">md · 16 / regular</span><span class="sample" style="font-size:16px">Body default — เนื้อหาหลักอ่านสบายทั้งไทยและอังกฤษ readable body copy.</span></div>
+      <div class="type-row"><span class="tag">sm · 14 / regular</span><span class="sample" style="font-size:14px;color:var(--text-secondary)">Metadata, filter labels, ข้อความรอง</span></div>
+      <div class="type-row"><span class="tag">xs · 12 / medium</span><span class="sample mono" style="font-size:12px;color:var(--text-muted)">JKP-SPK0042 · timestamps · badge labels</span></div>
+    </div>
+  </div></section>
+
+  <!-- SCALE -->
+  <section id="scale"><div class="wrap">
+    <div class="sec-head"><h2>Spacing · Radius · Shadow</h2><span class="ref">08_full §4–6</span></div>
+    <div class="grid cols-2">
+      <div class="card">
+        <h3 style="font-size:14px;margin-bottom:14px;color:var(--text-secondary)">Spacing (4px base)</h3>
+        <div class="scale-row"><span class="k">space.1</span><span class="v">4px</span><span class="bar" style="width:4px"></span></div>
+        <div class="scale-row"><span class="k">space.2</span><span class="v">8px</span><span class="bar" style="width:8px"></span></div>
+        <div class="scale-row"><span class="k">space.4</span><span class="v">16px</span><span class="bar" style="width:16px"></span></div>
+        <div class="scale-row"><span class="k">space.6</span><span class="v">24px</span><span class="bar" style="width:24px"></span></div>
+        <div class="scale-row"><span class="k">space.8</span><span class="v">32px</span><span class="bar" style="width:32px"></span></div>
+        <div class="scale-row"><span class="k">space.12</span><span class="v">48px</span><span class="bar" style="width:48px"></span></div>
+        <div class="scale-row"><span class="k">space.16</span><span class="v">64px</span><span class="bar" style="width:64px"></span></div>
+        <div class="scale-row"><span class="k">space.20</span><span class="v">80px</span><span class="bar" style="width:80px"></span></div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:16px">
+          <h3 style="font-size:14px;margin-bottom:14px;color:var(--text-secondary)">Radius</h3>
+          <div class="radii">
+            <div class="r" style="border-radius:4px">xs 4</div>
+            <div class="r" style="border-radius:8px">md 8</div>
+            <div class="r" style="border-radius:12px">lg 12</div>
+            <div class="r" style="border-radius:16px">xl 16</div>
+            <div class="r" style="border-radius:9999px">full</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3 style="font-size:14px;margin-bottom:14px;color:var(--text-secondary)">Shadow (subtle, industrial)</h3>
+          <div class="shadows">
+            <div class="s" style="box-shadow:var(--shadow-xs)">xs</div>
+            <div class="s" style="box-shadow:var(--shadow-sm)">sm</div>
+            <div class="s" style="box-shadow:var(--shadow-md)">md</div>
+            <div class="s" style="box-shadow:var(--shadow-lg)">lg</div>
+            <div class="s" style="box-shadow:var(--shadow-xl)">xl</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div></section>
+
+  <!-- CHART -->
+  <section id="chart"><div class="wrap">
+    <div class="sec-head"><h2>Chart / Data-viz palette</h2><span class="ref">08_full §17 · validated CVD + contrast</span></div>
+    <p class="lead">Palette สำหรับ admin dashboard — validate ด้วยเครื่องมือจริง (Machado-2009 CVD ΔE, OKLCH band, contrast) ทั้ง light/dark สลับธีมดูสีชุด dark ได้</p>
+    <div class="grid cols-2">
+      <div>
+        <h3 style="font-size:14px;margin-bottom:10px;color:var(--text-secondary)">Categorical (เรียงตายตัว · adjacent ΔE 22.4)</h3>
+        <div class="cat-row">
+          <div class="c" style="background:var(--chart-1)">1</div><div class="c" style="background:var(--chart-2)">2</div>
+          <div class="c" style="background:var(--chart-3)">3</div><div class="c" style="background:var(--chart-4)">4</div>
+          <div class="c" style="background:var(--chart-5)">5</div><div class="c" style="background:var(--chart-6)">6</div>
+          <div class="c" style="background:var(--chart-7)">7</div><div class="c" style="background:var(--chart-8)">8</div>
+        </div>
+        <h3 style="font-size:14px;margin:20px 0 10px;color:var(--text-secondary)">Sequential (green, light→dark)</h3>
+        <div class="strip" style="background:linear-gradient(90deg,#E6F6EC,#C4E9D0,#97D6AE,#5FBB84,#2E9C61,#157F43,#0D6C3B,#09582F)"></div>
+        <h3 style="font-size:14px;margin:20px 0 10px;color:var(--text-secondary)">Diverging (red ↔ green)</h3>
+        <div class="strip" style="background:linear-gradient(90deg,#A32C28,#C8433B,#E39A93,#ECEBE7,#93CFAB,#45A56E,#0D6C3B)"></div>
+      </div>
+      <div>
+        <h3 style="font-size:14px;margin-bottom:10px;color:var(--text-secondary)">ตัวอย่าง: leads ต่อเดือน</h3>
+        <div class="barchart">
+          <div class="col"><div class="bk" style="height:52%;background:var(--chart-1)"></div><span class="lb">ม.ค.</span></div>
+          <div class="col"><div class="bk" style="height:68%;background:var(--chart-1)"></div><span class="lb">ก.พ.</span></div>
+          <div class="col"><div class="bk" style="height:44%;background:var(--chart-1)"></div><span class="lb">มี.ค.</span></div>
+          <div class="col"><div class="bk" style="height:82%;background:var(--chart-1)"></div><span class="lb">เม.ย.</span></div>
+          <div class="col"><div class="bk" style="height:71%;background:var(--chart-1)"></div><span class="lb">พ.ค.</span></div>
+          <div class="col"><div class="bk" style="height:95%;background:var(--chart-1)"></div><span class="lb">มิ.ย.</span></div>
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--chart-1)"></i>Warehouse</span>
+          <span><i style="background:var(--chart-2)"></i>Factory</span>
+          <span><i style="background:var(--chart-3)"></i>Land</span>
+          <span><i style="background:var(--chart-4)"></i>Mixed</span>
+        </div>
+      </div>
+    </div>
+  </div></section>
+
+  <!-- COMPONENTS -->
+  <section id="components"><div class="wrap">
+    <div class="sec-head"><h2>Components</h2><span class="ref">16_component_specs.md</span></div>
+
+    <h3 style="font-size:15px;margin-bottom:14px;color:var(--text-secondary)">Buttons</h3>
+    <div class="card" style="display:flex;flex-direction:column;gap:16px">
+      <div class="btn-row">
+        <button class="btn btn-primary">ส่งความต้องการ</button>
+        <button class="btn btn-secondary">บันทึก</button>
+        <button class="btn btn-outline">ดูรายละเอียด</button>
+        <button class="btn btn-ghost">ยกเลิก</button>
+        <button class="btn btn-danger">ลบประกาศ</button>
+        <button class="btn btn-disabled" disabled>ปิดใช้งาน</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary btn-sm">sm</button>
+        <button class="btn btn-primary">md</button>
+        <button class="btn btn-primary btn-lg">lg</button>
+        <span class="help">โฟกัสที่ปุ่มด้วยคีย์บอร์ด (Tab) เพื่อดู focus ring แบบ white-offset</span>
+      </div>
+    </div>
+
+    <div class="grid cols-2" style="margin-top:16px">
+      <div>
+        <h3 style="font-size:15px;margin-bottom:14px;color:var(--text-secondary)">Inputs</h3>
+        <div class="card" style="display:flex;flex-direction:column;gap:16px">
+          <div class="field"><label for="i1">ชื่อบริษัท</label><input class="input" id="i1" placeholder="เช่น บจก. ตัวอย่าง โลจิสติกส์"></div>
+          <div class="field"><label>อีเมล <span style="color:var(--text-muted);font-weight:400">(focus)</span></label><input class="input is-focus" value="contact@example.co.th"></div>
+          <div class="field"><label>เบอร์โทร <span style="color:var(--error-text);font-weight:400">(error)</span></label><input class="input is-error" value="08"><span class="help err">กรุณากรอกเบอร์โทรให้ครบ 10 หลัก</span></div>
+        </div>
+      </div>
+      <div>
+        <h3 style="font-size:15px;margin-bottom:14px;color:var(--text-secondary)">Badges · Chips · Tabs</h3>
+        <div class="card" style="display:flex;flex-direction:column;gap:16px">
+          <div class="btn-row">
+            <span class="badge b-brand">Featured</span>
+            <span class="badge b-neutral">Warehouse</span>
+            <span class="badge b-info">Free Zone</span>
+            <span class="badge b-success">● Published</span>
+            <span class="badge b-warning">● Pending</span>
+            <span class="badge b-error">● Unavailable</span>
+          </div>
+          <div class="btn-row">
+            <span class="chip chip-sel">เช่า <svg class="ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
+            <span class="chip chip-out">สมุทรปราการ</span>
+            <span class="chip chip-out">3,000+ ตร.ม.</span>
+          </div>
+          <div class="tabs">
+            <div class="tab active">ข้อมูลหลัก</div>
+            <div class="tab">Specs</div>
+            <div class="tab">Media</div>
+            <div class="tab">แปลภาษา</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="font-size:15px;margin:24px 0 14px;color:var(--text-secondary)">ListingCard <span style="font-weight:400;color:var(--text-muted)">— component สำคัญที่สุด (16 §B1)</span></h3>
+    <div class="lcard">
+      <div class="img">
+        <div class="badges"><span class="badge b-neutral" style="background:rgba(0,0,0,.55);color:#fff">Warehouse</span><span class="badge b-brand">Featured</span></div>
+        <span class="pc">📷 12</span>
+      </div>
+      <div class="bd">
+        <span class="code">JKP-SPK0042</span>
+        <h4>โกดังให้เช่าพร้อมสำนักงาน ถนนบางนา–ตราด กม.23</h4>
+        <div class="loc"><svg class="ico" style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg> ต.บางเสาธง อ.บางเสาธง จ.สมุทรปราการ</div>
+        <div class="specs"><span>พื้นที่ <b>3,000 ตร.ม.</b></span><span>สูง <b>10 ม.</b></span><span>ไฟ <b>500 kVA</b></span></div>
+        <div class="price"><span class="p">฿250,000</span><span class="u">/ เดือน</span></div>
+      </div>
+    </div>
+  </div></section>
+
+  <div class="wrap">
+    <footer class="ft">
+      <div>Source of truth: <code>08_design_tokens_normalized_green_revision_full.md</code> · specs: <code>16_component_specs.md</code></div>
+      <div class="filelist">
+        <code>green-brand-tokens.json</code><code>green-brand-tailwind.config.js</code><code>green-brand.css</code><code>green-brand-theme.tsx</code>
+      </div>
+      <div style="margin-top:14px">ทุกสีบนหน้านี้อ่านจาก CSS variable ชุดเดียวกับ token จริง — สลับธีมเพื่อเห็น light/dark ที่ validate มาแล้วทั้งคู่</div>
+    </footer>
+  </div>
+</div>
+
+<script>
+  (function(){
+    var root=document.documentElement, btn=document.getElementById('tt'), lab=document.getElementById('ttlabel');
+    function current(){
+      var a=root.getAttribute('data-theme');
+      if(a) return a;
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light';
+    }
+    function apply(m){ root.setAttribute('data-theme',m); lab.textContent = m==='dark'?'มืด':'สว่าง'; }
+    apply(current());
+    btn.addEventListener('click',function(){ apply(current()==='dark'?'light':'dark'); });
+  })();
+</script>

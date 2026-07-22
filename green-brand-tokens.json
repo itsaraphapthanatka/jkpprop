@@ -1,0 +1,182 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "$meta": {
+    "name": "Industrial Property Platform — Green Brand Tokens",
+    "version": "1.1.0",
+    "source": "08_design_tokens_normalized_green_revision_full.md",
+    "palette": "Fun-Green-11-kigen-design.svg",
+    "note": "Canonical, platform-agnostic design tokens. Regenerate tailwind/css/theme from this file."
+  },
+  "color": {
+    "brand": {
+      "50": "#C3FED5",
+      "100": "#2DFB91",
+      "200": "#25D87C",
+      "300": "#1EBA6A",
+      "400": "#189E59",
+      "500": "#128449",
+      "600": "#0D6C3B",
+      "700": "#09582F",
+      "800": "#043F20",
+      "900": "#022310",
+      "950": "#011507",
+      "primary": "#0D6C3B",
+      "primaryHover": "#09582F",
+      "primaryActive": "#043F20",
+      "primarySoft": "#C3FED5",
+      "secondary": "#128449",
+      "emphasis": "#2DFB91"
+    },
+    "surface": {
+      "base": "#F9F8F5",
+      "alt": "#F3F0EC",
+      "card": "#FFFFFF",
+      "muted": "#ECE8E1",
+      "brandSubtle": "#C3FED5",
+      "brandSoft": "#E8FFF0",
+      "brandStrong": "#043F20",
+      "brandDeep": "#022310",
+      "brandDeepest": "#011507"
+    },
+    "text": {
+      "primary": "#28251D",
+      "secondary": "#5F5A52",
+      "muted": "#7A7974",
+      "inverse": "#FFFFFF",
+      "brand": "#0D6C3B"
+    },
+    "border": {
+      "subtle": "#D4D1CA",
+      "default": "#C9C5BD",
+      "brand": "#0D6C3B",
+      "inverse": "rgba(255,255,255,0.18)"
+    },
+    "action": {
+      "primary":   { "bg": "#0D6C3B", "bgHover": "#09582F", "bgActive": "#043F20", "text": "#FFFFFF", "border": "#0D6C3B" },
+      "secondary": { "bg": "#128449", "bgHover": "#0D6C3B", "text": "#FFFFFF", "border": "#128449" },
+      "tertiary":  { "bg": "transparent", "text": "#0D6C3B", "border": "#0D6C3B" },
+      "disabled":  { "bg": "#ECE8E1", "text": "#A6A29A" }
+    },
+    "status": {
+      "success": { "solid": "#0D6C3B", "textOn": "#FFFFFF", "subtle": "#DCFAE6", "text": "#09582F", "border": "#0D6C3B" },
+      "warning": { "solid": "#B45309", "textOn": "#FFFFFF", "subtle": "#FDF0D5", "text": "#7C4210", "border": "#B45309" },
+      "error":   { "solid": "#C02626", "textOn": "#FFFFFF", "subtle": "#FCE4E4", "text": "#8F1D1D", "border": "#C02626" },
+      "info":    { "solid": "#1C5FB8", "textOn": "#FFFFFF", "subtle": "#DCEAFB", "text": "#17457F", "border": "#1C5FB8" }
+    },
+    "scrim": "rgba(2,35,16,0.48)"
+  },
+  "font": {
+    "family": {
+      "primary": "'Noto Sans Thai', 'Inter', 'Segoe UI', sans-serif",
+      "secondary": "'Noto Sans Thai', 'Inter', 'Segoe UI', sans-serif",
+      "mono": "'JetBrains Mono', 'SFMono-Regular', 'Menlo', monospace"
+    },
+    "weight": { "regular": 400, "medium": 500, "semibold": 600, "bold": 700 },
+    "size": {
+      "xs": "12px", "sm": "14px", "md": "16px", "lg": "18px", "xl": "20px",
+      "2xl": "24px", "3xl": "30px", "4xl": "36px", "5xl": "48px"
+    },
+    "lineHeight": { "tight": 1.2, "snug": 1.35, "normal": 1.5, "relaxed": 1.65 }
+  },
+  "space": {
+    "0": "0px", "1": "4px", "2": "8px", "3": "12px", "4": "16px", "5": "20px",
+    "6": "24px", "8": "32px", "10": "40px", "12": "48px", "16": "64px",
+    "20": "80px", "24": "96px", "32": "128px"
+  },
+  "radius": {
+    "none": "0px", "xs": "4px", "sm": "6px", "md": "8px", "lg": "12px",
+    "xl": "16px", "2xl": "20px", "full": "9999px"
+  },
+  "shadow": {
+    "xs": "0 1px 2px rgba(0,0,0,0.04)",
+    "sm": "0 2px 6px rgba(0,0,0,0.06)",
+    "md": "0 6px 16px rgba(0,0,0,0.08)",
+    "lg": "0 12px 28px rgba(0,0,0,0.10)",
+    "xl": "0 20px 44px rgba(0,0,0,0.14)"
+  },
+  "border": {
+    "width": { "hairline": "1px", "strong": "2px" }
+  },
+  "breakpoint": {
+    "xs": "360px", "sm": "640px", "md": "768px", "lg": "1024px", "xl": "1280px", "2xl": "1440px"
+  },
+  "layout": {
+    "container": { "narrow": "640px", "content": "960px", "wide": "1200px", "full": "1440px" },
+    "gutter": { "mobile": "16px", "tablet": "24px", "desktop": "32px" },
+    "gridGap": { "sm": "12px", "md": "16px", "lg": "24px", "xl": "32px" },
+    "section": { "compact": "48px", "default": "64px", "relaxed": "80px", "hero": "96px" }
+  },
+  "motion": {
+    "duration": { "fast": "120ms", "base": "180ms", "slow": "260ms" },
+    "easing": { "standard": "ease", "emphasis": "cubic-bezier(0.2, 0, 0, 1)" }
+  },
+  "state": {
+    "hoverOverlay": "rgba(13,108,59,0.06)",
+    "selectedOverlay": "rgba(13,108,59,0.12)",
+    "disabledOpacity": 0.48,
+    "focus": {
+      "ringColor": "#09582F",
+      "ring": "0 0 0 3px rgba(9,88,47,0.45)",
+      "ringContrast": "0 0 0 2px #FFFFFF, 0 0 0 4px #09582F"
+    }
+  },
+  "z": {
+    "base": 0, "raised": 10, "sticky": 100, "header": 200, "dropdown": 300,
+    "drawer": 400, "modal": 500, "popover": 600, "toast": 700, "tooltip": 800
+  },
+  "icon": {
+    "library": "lucide-react",
+    "size": { "xs": "14px", "sm": "16px", "md": "20px", "lg": "24px", "xl": "32px" },
+    "stroke": { "default": 1.5, "bold": 2 },
+    "color": { "default": "currentColor", "muted": "#7A7974", "brand": "#0D6C3B", "inverse": "#FFFFFF" }
+  },
+  "component": {
+    "button": { "height": { "sm": "32px", "md": "40px", "lg": "48px" }, "radius": "8px", "paddingX": { "sm": "16px", "md": "20px", "lg": "24px" } },
+    "input": { "height": { "md": "40px", "lg": "48px" }, "paddingX": "16px", "radius": "8px", "errorRing": "0 0 0 3px rgba(192,38,38,0.28)" },
+    "card": { "radius": "12px", "padding": "24px" },
+    "chip": { "height": "28px", "paddingX": "12px", "radius": "9999px" },
+    "badge": { "height": "22px", "paddingX": "8px", "radius": "6px" },
+    "table": { "rowHeight": "48px", "cellPaddingX": "16px" },
+    "tab": { "height": "40px", "paddingX": "16px" },
+    "modal": { "radius": "16px", "padding": "24px" },
+    "drawer": { "width": { "sm": "320px", "md": "400px" } },
+    "toast": { "radius": "8px", "padding": "16px", "maxWidth": "380px" },
+    "tooltip": { "bg": "#28251D", "text": "#FFFFFF", "radius": "6px" }
+  },
+  "dark": {
+    "surface": { "base": "#011507", "card": "#022310", "alt": "#043F20", "muted": "#09582F" },
+    "text": { "primary": "#F9F8F5", "secondary": "#C9C5BD", "muted": "#8E8B84", "brand": "#25D87C" },
+    "border": { "subtle": "rgba(255,255,255,0.12)", "default": "rgba(255,255,255,0.20)" },
+    "action": { "primary": { "bg": "#189E59", "text": "#011507", "hover": "#1EBA6A" } }
+  },
+  "chart": {
+    "$note": "Data-viz palette. Categorical order is FIXED — never cycle. Validated (CVD/OKLCH/contrast) light+dark. See 08_full §17.",
+    "categorical": {
+      "light": ["#157F43", "#2A6FB8", "#C68400", "#C8433B", "#8A3DA0", "#0E9AA8", "#E0692A", "#D14FA0"],
+      "dark":  ["#22A45C", "#4E8FD8", "#BC8810", "#E26B62", "#B072D6", "#159FAD", "#D26C34", "#D663A6"]
+    },
+    "sequential": {
+      "hue": "green",
+      "steps": {
+        "100": "#E6F6EC", "200": "#C4E9D0", "300": "#97D6AE", "400": "#5FBB84",
+        "500": "#2E9C61", "600": "#157F43", "700": "#0D6C3B", "800": "#09582F"
+      },
+      "ordinalLightStart": "300"
+    },
+    "diverging": {
+      "poles": "red-green",
+      "neg": ["#A32C28", "#C8433B", "#E39A93"],
+      "mid": { "light": "#ECEBE7", "dark": "#333F37" },
+      "pos": ["#93CFAB", "#45A56E", "#0D6C3B"]
+    },
+    "status": { "good": "#0D6C3B", "warning": "#B45309", "serious": "#C2410C", "critical": "#C02626" },
+    "chrome": {
+      "surface":  { "light": "#FFFFFF", "dark": "#022310" },
+      "gridline": { "light": "#E7E4DD", "dark": "rgba(255,255,255,0.10)" },
+      "axis":     { "light": "#C9C5BD", "dark": "rgba(255,255,255,0.20)" },
+      "inkPrimary":   { "light": "#28251D", "dark": "#F9F8F5" },
+      "inkSecondary": { "light": "#5F5A52", "dark": "#C9C5BD" },
+      "inkMuted":     { "light": "#7A7974", "dark": "#8E8B84" }
+    }
+  }
+}

@@ -1,0 +1,198 @@
+/* =============================================================
+   Industrial Property Platform — Green Brand CSS Variables
+   Source of truth: 08_design_tokens_normalized_green_revision_full.md
+   Generated 1:1 from green-brand-tokens.json — keep in sync.
+
+   - :root                     → light theme (default)
+   - [data-theme="dark"]       → dark theme overrides
+   Raw scale + non-color tokens are theme-independent.
+   ============================================================= */
+
+:root {
+  /* --- Brand green scale (theme-independent) --- */
+  --color-brand-50:  #C3FED5;
+  --color-brand-100: #2DFB91;
+  --color-brand-200: #25D87C;
+  --color-brand-300: #1EBA6A;
+  --color-brand-400: #189E59;
+  --color-brand-500: #128449;
+  --color-brand-600: #0D6C3B;
+  --color-brand-700: #09582F;
+  --color-brand-800: #043F20;
+  --color-brand-900: #022310;
+  --color-brand-950: #011507;
+
+  --color-brand-primary:        #0D6C3B;
+  --color-brand-primary-hover:  #09582F;
+  --color-brand-primary-active: #043F20;
+  --color-brand-primary-soft:   #C3FED5;
+  --color-brand-secondary:      #128449;
+  --color-brand-emphasis:       #2DFB91;
+
+  /* --- Semantic surfaces (LIGHT) --- */
+  --color-surface-base:         #F9F8F5;
+  --color-surface-alt:          #F3F0EC;
+  --color-surface-card:         #FFFFFF;
+  --color-surface-muted:        #ECE8E1;
+  --color-surface-brand-subtle: #C3FED5;
+  --color-surface-brand-soft:   #E8FFF0;
+  --color-surface-brand-strong: #043F20;
+  --color-surface-brand-deep:   #022310;
+
+  /* --- Text (LIGHT) --- */
+  --color-text-primary:   #28251D;
+  --color-text-secondary: #5F5A52;
+  --color-text-muted:     #7A7974;
+  --color-text-inverse:   #FFFFFF;
+  --color-text-brand:     #0D6C3B;
+
+  /* --- Borders (LIGHT) --- */
+  --color-border-subtle:  #D4D1CA;
+  --color-border-default: #C9C5BD;
+  --color-border-brand:   #0D6C3B;
+
+  /* --- Actions --- */
+  --action-primary-bg:        #0D6C3B;
+  --action-primary-bg-hover:  #09582F;
+  --action-primary-bg-active: #043F20;
+  --action-primary-text:      #FFFFFF;
+  --action-secondary-bg:      #128449;
+  --action-secondary-text:    #FFFFFF;
+  --action-tertiary-text:     #0D6C3B;
+  --action-disabled-bg:       #ECE8E1;
+  --action-disabled-text:     #A6A29A;
+
+  /* --- Status (semantic, theme-independent) --- */
+  --status-success-solid:  #0D6C3B; --status-success-on: #FFFFFF; --status-success-subtle: #DCFAE6; --status-success-text: #09582F;
+  --status-warning-solid:  #B45309; --status-warning-on: #FFFFFF; --status-warning-subtle: #FDF0D5; --status-warning-text: #7C4210;
+  --status-error-solid:    #C02626; --status-error-on:   #FFFFFF; --status-error-subtle:   #FCE4E4; --status-error-text:   #8F1D1D;
+  --status-info-solid:     #1C5FB8; --status-info-on:    #FFFFFF; --status-info-subtle:    #DCEAFB; --status-info-text:    #17457F;
+
+  --scrim-overlay: rgba(2,35,16,0.48);
+
+  /* --- Typography --- */
+  --font-primary: 'Noto Sans Thai', 'Inter', 'Segoe UI', sans-serif;
+  --font-mono:    'JetBrains Mono', 'SFMono-Regular', 'Menlo', monospace;
+  --fw-regular: 400; --fw-medium: 500; --fw-semibold: 600; --fw-bold: 700;
+  --fs-xs: 12px; --fs-sm: 14px; --fs-md: 16px; --fs-lg: 18px; --fs-xl: 20px;
+  --fs-2xl: 24px; --fs-3xl: 30px; --fs-4xl: 36px; --fs-5xl: 48px;
+  --lh-tight: 1.2; --lh-snug: 1.35; --lh-normal: 1.5; --lh-relaxed: 1.65;
+
+  /* --- Spacing --- */
+  --space-0: 0px; --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-12: 48px;
+  --space-16: 64px; --space-20: 80px; --space-24: 96px; --space-32: 128px;
+
+  /* --- Radius --- */
+  --radius-none: 0px; --radius-xs: 4px; --radius-sm: 6px; --radius-md: 8px;
+  --radius-lg: 12px; --radius-xl: 16px; --radius-2xl: 20px; --radius-full: 9999px;
+
+  /* --- Shadow --- */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-sm: 0 2px 6px rgba(0,0,0,0.06);
+  --shadow-md: 0 6px 16px rgba(0,0,0,0.08);
+  --shadow-lg: 0 12px 28px rgba(0,0,0,0.10);
+  --shadow-xl: 0 20px 44px rgba(0,0,0,0.14);
+
+  /* --- Border widths --- */
+  --border-hairline: 1px; --border-strong: 2px;
+
+  /* --- Layout / containers --- */
+  --container-narrow: 640px; --container-content: 960px; --container-wide: 1200px; --container-full: 1440px;
+  --gutter-mobile: 16px; --gutter-tablet: 24px; --gutter-desktop: 32px;
+  --grid-gap-sm: 12px; --grid-gap-md: 16px; --grid-gap-lg: 24px; --grid-gap-xl: 32px;
+  --section-compact: 48px; --section-default: 64px; --section-relaxed: 80px; --section-hero: 96px;
+
+  /* --- Motion --- */
+  --dur-fast: 120ms; --dur-base: 180ms; --dur-slow: 260ms;
+  --ease-standard: ease; --ease-emphasis: cubic-bezier(0.2, 0, 0, 1);
+
+  /* --- State / focus --- */
+  --state-hover-overlay: rgba(13,108,59,0.06);
+  --state-selected-overlay: rgba(13,108,59,0.12);
+  --state-disabled-opacity: 0.48;
+  --focus-ring-color: #09582F;
+  --focus-ring: 0 0 0 3px rgba(9,88,47,0.45);
+  --focus-ring-contrast: 0 0 0 2px #FFFFFF, 0 0 0 4px #09582F;
+  --focus-ring-error: 0 0 0 3px rgba(192,38,38,0.28);
+
+  /* --- Z-index --- */
+  --z-base: 0; --z-raised: 10; --z-sticky: 100; --z-header: 200; --z-dropdown: 300;
+  --z-drawer: 400; --z-modal: 500; --z-popover: 600; --z-toast: 700; --z-tooltip: 800;
+
+  /* --- Icon --- */
+  --icon-xs: 14px; --icon-sm: 16px; --icon-md: 20px; --icon-lg: 24px; --icon-xl: 32px;
+  --icon-stroke: 1.5; --icon-stroke-bold: 2;
+
+  /* --- Chart / data-viz palette (LIGHT). Categorical order is FIXED — never cycle. --- */
+  --chart-cat-1: #157F43; --chart-cat-2: #2A6FB8; --chart-cat-3: #C68400; --chart-cat-4: #C8433B;
+  --chart-cat-5: #8A3DA0; --chart-cat-6: #0E9AA8; --chart-cat-7: #E0692A; --chart-cat-8: #D14FA0;
+  --chart-seq-100: #E6F6EC; --chart-seq-200: #C4E9D0; --chart-seq-300: #97D6AE; --chart-seq-400: #5FBB84;
+  --chart-seq-500: #2E9C61; --chart-seq-600: #157F43; --chart-seq-700: #0D6C3B; --chart-seq-800: #09582F;
+  --chart-div-neg3: #A32C28; --chart-div-neg2: #C8433B; --chart-div-neg1: #E39A93;
+  --chart-div-mid: #ECEBE7;
+  --chart-div-pos1: #93CFAB; --chart-div-pos2: #45A56E; --chart-div-pos3: #0D6C3B;
+  --chart-status-good: #0D6C3B; --chart-status-warning: #B45309; --chart-status-serious: #C2410C; --chart-status-critical: #C02626;
+  --chart-surface: #FFFFFF; --chart-gridline: #E7E4DD; --chart-axis: #C9C5BD;
+  --chart-ink-primary: #28251D; --chart-ink-secondary: #5F5A52; --chart-ink-muted: #7A7974;
+
+  color-scheme: light;
+}
+
+/* =============================================================
+   DARK THEME  — apply via <html data-theme="dark"> or .dark
+   Only theme-dependent tokens are overridden.
+   ============================================================= */
+:root[data-theme="dark"],
+.dark {
+  --color-surface-base:  #011507;
+  --color-surface-alt:   #043F20;
+  --color-surface-card:  #022310;
+  --color-surface-muted: #09582F;
+
+  --color-text-primary:   #F9F8F5;
+  --color-text-secondary: #C9C5BD;
+  --color-text-muted:     #8E8B84;
+  --color-text-brand:     #25D87C;
+
+  --color-border-subtle:  rgba(255,255,255,0.12);
+  --color-border-default: rgba(255,255,255,0.20);
+
+  --action-primary-bg:       #189E59;
+  --action-primary-bg-hover: #1EBA6A;
+  --action-primary-text:     #011507;
+
+  /* Chart palette (DARK) — categorical stepped for dark surface, validated */
+  --chart-cat-1: #22A45C; --chart-cat-2: #4E8FD8; --chart-cat-3: #BC8810; --chart-cat-4: #E26B62;
+  --chart-cat-5: #B072D6; --chart-cat-6: #159FAD; --chart-cat-7: #D26C34; --chart-cat-8: #D663A6;
+  --chart-div-mid: #333F37;
+  --chart-surface: #022310; --chart-gridline: rgba(255,255,255,0.10); --chart-axis: rgba(255,255,255,0.20);
+  --chart-ink-primary: #F9F8F5; --chart-ink-secondary: #C9C5BD; --chart-ink-muted: #8E8B84;
+
+  color-scheme: dark;
+}
+
+/* Respect OS preference when no explicit data-theme is set */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-surface-base:  #011507;
+    --color-surface-alt:   #043F20;
+    --color-surface-card:  #022310;
+    --color-surface-muted: #09582F;
+    --color-text-primary:   #F9F8F5;
+    --color-text-secondary: #C9C5BD;
+    --color-text-muted:     #8E8B84;
+    --color-text-brand:     #25D87C;
+    --color-border-subtle:  rgba(255,255,255,0.12);
+    --color-border-default: rgba(255,255,255,0.20);
+    --action-primary-bg:       #189E59;
+    --action-primary-bg-hover: #1EBA6A;
+    --action-primary-text:     #011507;
+    --chart-cat-1: #22A45C; --chart-cat-2: #4E8FD8; --chart-cat-3: #BC8810; --chart-cat-4: #E26B62;
+    --chart-cat-5: #B072D6; --chart-cat-6: #159FAD; --chart-cat-7: #D26C34; --chart-cat-8: #D663A6;
+    --chart-div-mid: #333F37;
+    --chart-surface: #022310; --chart-gridline: rgba(255,255,255,0.10); --chart-axis: rgba(255,255,255,0.20);
+    --chart-ink-primary: #F9F8F5; --chart-ink-secondary: #C9C5BD; --chart-ink-muted: #8E8B84;
+    color-scheme: dark;
+  }
+}

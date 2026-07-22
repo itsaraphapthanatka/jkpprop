@@ -1,0 +1,111 @@
+/* =============================================================
+   JKP Property — Design Tokens (CSS variables)
+   SOURCE OF TRUTH: JKP_Property_Handoff.md  ("Design Tokens" section)
+   Per user directive (2026-07-22): this project follows the HANDOFF
+   design system ONLY. This supersedes the green-first canonical set
+   (08_design_tokens_normalized_green_revision_full.md / green-brand-*).
+
+   Values marked (derived) are NOT specified in the handoff and are
+   filled minimally in the handoff's spirit — flagged for review.
+   Light-first: the handoff defines no full dark theme (near-black is
+   used only as footer/sidebar SURFACES, below).
+   ============================================================= */
+
+:root {
+  /* --- Brand colors (handoff) --- */
+  --color-neon-green: #2DFB91;      /* CTA on dark bg, active badge */
+  --color-green-600:  #0D6C3B;      /* PRIMARY action on light, success */
+  --color-accent:     #034956;      /* deep teal — eyebrow, link, price, icon emphasis */
+  --color-pine:       #273c33;      /* active state, modal button, admin tab active */
+  --color-gold:       #D9A62B;      /* phone, sort, warning/recommend */
+  --color-purple:     #7A3FB0;      /* admin only — settings / field builder */
+  --color-danger:     #C0392B;      /* delete, cancel, unavailable */
+
+  /* Emerald gradient (CTA cards, banners) */
+  --gradient-emerald: linear-gradient(135deg, #0B7A45 0%, #0A5C39 50%, #043F20 100%);
+
+  /* Near-black surfaces */
+  --color-footer:  #04140C;         /* footer background */
+  --color-sidebar: #0A0E0C;         /* admin sidebar */
+
+  /* --- Neutrals / surfaces (public) --- */
+  --color-surface-base:  #F9F8F5;   /* --bg */
+  --color-surface-alt:   #F3F0EC;   /* --bg2 */
+  --color-surface-card:  #FFFFFF;   /* --surface */
+  --color-surface-tint:  #EEF4F3;   /* --tint (teal-tinted highlight) */
+  --color-surface-muted: #ECE8E1;   /* (derived) hover/muted fill */
+
+  /* --- Text --- */
+  --color-text-primary:   #28251D;  /* --text */
+  --color-text-secondary: #5F5A52;  /* --muted */
+  --color-text-muted:     #7A7974;  /* --muted2 */
+  --color-text-muted3:    #9B968D;  /* --muted3 */
+  --color-text-inverse:   #FFFFFF;
+  --color-text-brand:     #0D6C3B;
+  --color-text-accent:    #034956;  /* teal links / eyebrow / price */
+
+  /* --- Borders --- */
+  --color-border-default: #E7E3DC;  /* --border */
+  --color-border-subtle:  #EFECE6;  /* (derived) lighter divider */
+  --color-border-brand:   #0D6C3B;
+
+  /* --- Actions --- */
+  --action-primary-bg:        #0D6C3B;
+  --action-primary-bg-hover:  #0A5C39;
+  --action-primary-bg-active: #043F20;
+  --action-primary-text:      #FFFFFF;
+  --action-disabled-bg:       #ECE8E1;  /* (derived) */
+  --action-disabled-text:     #9B968D;  /* (derived) */
+
+  /* --- Status (success/warning from handoff; info derived from teal) --- */
+  --status-success-solid:  #0D6C3B; --status-success-on: #FFFFFF; --status-success-subtle: #E6F4EC; --status-success-text: #0A5C39;
+  --status-warning-solid:  #D9A62B; --status-warning-on: #28251D; --status-warning-subtle: #FBF1D8; --status-warning-text: #8A6410;
+  --status-error-solid:    #C0392B; --status-error-on:   #FFFFFF; --status-error-subtle:   #FBE7E4; --status-error-text:   #8F251B;
+  --status-info-solid:     #034956; --status-info-on:    #FFFFFF; --status-info-subtle:    #E3F0F1; --status-info-text:    #023741; /* (derived) */
+
+  --scrim-overlay: rgba(2,14,8,0.55);   /* handoff modal/drawer backdrop */
+
+  /* --- Typography (handoff) --- */
+  --font-primary: 'Noto Sans Thai', 'Inter', 'Segoe UI', sans-serif;
+  --font-mono:    'JetBrains Mono', 'SFMono-Regular', 'Menlo', monospace;
+  --fw-regular: 400; --fw-medium: 500; --fw-semibold: 600; --fw-bold: 700; --fw-extrabold: 800;
+  --fs-eyebrow: 13px; --fs-body-sm: 15px; --fs-body: 16px; --fs-price: 21px;
+  --fs-h3: 22px; --fs-h2: 34px; --fs-h1: 44px;
+  --ls-eyebrow: 0.08em;
+
+  /* --- Spacing (handoff scale 4/8/16/24/44/88) --- */
+  --space-1: 4px; --space-2: 8px; --space-4: 16px; --space-6: 24px; --space-11: 44px; --space-22: 88px;
+
+  /* --- Radius (handoff: sm 10-12, md 16-18, lg 20-24, full pill) --- */
+  --radius-xs: 8px; --radius-sm: 12px; --radius-md: 16px; --radius-lg: 20px; --radius-xl: 24px; --radius-full: 9999px;
+
+  /* --- Shadow (derived — handoff describes "subtle utilitarian shadows" + card hover) --- */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.10);
+  --shadow-lg: 0 16px 40px rgba(0,0,0,0.14);
+  --shadow-glow: 0 6px 18px rgba(13,108,59,0.28);   /* button hover glow (handoff) */
+
+  /* --- Borders widths (handoff: cards 1.5px) --- */
+  --border-hairline: 1px; --border-card: 1.5px; --border-strong: 2px;
+
+  /* --- Motion (handoff) --- */
+  --dur-fast: 200ms; --dur-base: 300ms; --dur-slow: 350ms;
+  --ease-standard: ease; --ease-emphasis: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --lift-hover: -2px;            /* hover-lift translateY */
+  --reveal-offset: 28px;         /* scroll-reveal translateY */
+
+  /* --- Focus ring (derived from brand green) --- */
+  --focus-ring: 0 0 0 3px rgba(13,108,59,0.40);
+  --focus-ring-contrast: 0 0 0 2px #FFFFFF, 0 0 0 4px #0D6C3B;
+  --focus-ring-error: 0 0 0 3px rgba(192,57,43,0.28);
+
+  /* --- Z-index (derived — structural) --- */
+  --z-base: 0; --z-raised: 10; --z-sticky: 100; --z-header: 200; --z-dropdown: 300;
+  --z-drawer: 400; --z-modal: 500; --z-popover: 600; --z-toast: 700; --z-tooltip: 800;
+
+  /* --- Icon (handoff: stroke 1.7, 24px) --- */
+  --icon-sm: 16px; --icon-md: 20px; --icon-lg: 24px; --icon-stroke: 1.7;
+
+  color-scheme: light;
+}

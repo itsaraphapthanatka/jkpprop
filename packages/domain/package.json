@@ -1,0 +1,12 @@
+{
+  "name": "@jkp/domain",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Domain enums (STATUS_ENUMS), state-machine guards and shared formatters.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./enums": "./src/enums.ts",
+    "./lead-state-machine": "./src/lead-state-machine.ts",
+    "./format": "./src/format.ts"
+  }
+}
