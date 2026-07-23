@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#043F20"/><g transform="translate(50 50)"><circle r="20" fill="none" stroke="#2DFB91" stroke-width="4"/><path d="M-8 0l6 6 12-12" fill="none" stroke="#2DFB91" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g><text x="50" y="82" fill="#2DFB91" font-family="sans-serif" font-size="10" font-weight="bold" text-anchor="middle">REQ</text></svg></template>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  @keyframes spin{to{transform:rotate(360deg);}}
+  *{box-sizing:border-box;}
+  :root{--bg:#F6F5F1;--surface:#FFFFFF;--tint:#EEF4F3;--text:#28251D;--muted:#5F5A52;--muted2:#7A7974;--muted3:#9B968D;--border:#E7E3DC;--accent:#034956;--sidebar:#0A0E0C;}
+  body{margin:0;font-family:'Noto Sans Thai','Inter',system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  a{text-decoration:none;color:inherit;}
+  svg{stroke-linecap:round !important;stroke-linejoin:round !important;}
+  code{font-family:'JetBrains Mono',monospace;}
+  .scroll::-webkit-scrollbar{width:8px;height:8px;}
+  .scroll::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:8px;}
+  @media (max-width:1100px){ #admin-sidebar{display:none !important;} #admin-main{margin-left:0 !important;} #req-split{grid-template-columns:1fr !important;} }
+  @media (max-width:1100px){
+    #admin-sidebar{display:flex !important;position:static !important;width:100% !important;height:auto !important;flex-direction:row !important;align-items:center !important;overflow-x:auto !important;overflow-y:hidden !important;padding:8px 10px !important;gap:4px;}
+    #admin-sidebar > div:first-child{display:none !important;}
+    #admin-sidebar > div:last-child{display:none !important;}
+    #admin-sidebar nav{flex-direction:row !important;padding:0 !important;gap:4px;overflow:visible !important;}
+    #admin-sidebar nav > div{display:none !important;}
+    #admin-sidebar nav a{height:38px !important;padding:0 12px !important;white-space:nowrap;flex-shrink:0;}
+    #admin-main{margin-left:0 !important;}
+  }
+</style>
+</helmet>
+
+<div style="width:100%;min-height:100vh;background:var(--bg);">
+  <aside id="admin-sidebar" style="position:fixed;top:0;left:0;bottom:0;width:248px;background:var(--sidebar);display:flex;flex-direction:column;z-index:100;">
+    <div style="padding:22px 20px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.08);">
+      <img src="assets/jkp-logo-white.png" alt="JKP" style="height:30px;width:auto;">
+      <span style="font-size:11px;font-weight:700;color:#5E6B63;border-left:1px solid rgba(255,255,255,.14);padding-left:9px;">CMS</span>
+    </div>
+    <nav class="scroll" style="flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:2px;">
+      <sc-for list="{{ nav }}" as="n" hint-placeholder-count="11">
+        <sc-if value="{{ n.isGroup }}" hint-placeholder-val="{{ false }}"><div style="padding:14px 12px 6px;font-size:10.5px;font-weight:700;letter-spacing:.08em;color:#4E5A52;text-transform:uppercase;">{{ n.label }}</div></sc-if>
+        <sc-if value="{{ n.isLink }}" hint-placeholder-val="{{ true }}">
+          <a href="{{ n.href }}" style="{{ n.style }}"><span style="display:flex;width:18px;height:18px;flex-shrink:0;" dangerouslySetInnerHTML="{{ n.icon }}"></span><span style="flex:1;">{{ n.label }}</span><sc-if value="{{ n.badge }}" hint-placeholder-val="{{ false }}"><span style="height:18px;min-width:18px;padding:0 6px;border-radius:9999px;background:#2DFB91;color:#04140C;font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center;">{{ n.badge }}</span></sc-if></a>
+        </sc-if>
+      </sc-for>
+    </nav>
+    <div style="padding:14px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px;">
+      <div style="width:36px;height:36px;border-radius:9999px;background:#273c33;color:#2DFB91;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;">ก</div>
+      <div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">กิตติพงษ์ พรหมทอง</div><div style="font-size:11px;color:#5E6B63;">Super admin</div></div>
+    </div>
+  </aside>
+
+  <div id="admin-main" style="margin-left:248px;min-height:100vh;display:flex;flex-direction:column;">
+    <header style="position:sticky;top:0;z-index:50;background:rgba(246,245,241,.85);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+      <div><div style="font-size:12px;color:var(--muted2);"><a href="AdminLeads.dc.html" style="color:var(--muted2);">Leads</a> / Requirement</div><h1 style="margin:2px 0 0;font-size:20px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:10px;">REQ-1042 <code style="font-size:12px;font-weight:700;color:{{ statusColor }};background:{{ statusBg }};padding:2px 8px;border-radius:6px;">{{ statusLabel }}</code></h1></div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <sc-if value="{{ isCancelled }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:6px;height:40px;padding:0 16px;border-radius:9999px;background:#F9E4E1;color:#C0392B;font-size:13px;font-weight:700;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M15 9l-6 6M9 9l6 6"></path></svg>ยกเลิกแล้ว</span></sc-if>
+        <sc-if value="{{ isActive }}" hint-placeholder-val="{{ true }}"><div onClick="{{ openCancel }}" style="display:flex;align-items:center;gap:7px;height:40px;padding:0 16px;border-radius:9999px;background:var(--surface);border:1px solid #E4C4C0;color:#C0392B;font-size:13px;font-weight:700;cursor:pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>Cancel requirement</div></sc-if>
+      </div>
+    </header>
+
+    <main class="scroll" style="flex:1;padding:24px 28px 60px;">
+      <sc-if value="{{ isCancelled }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#FBEEEC;border:1px solid #E4C4C0;border-radius:16px;padding:18px 22px;margin-bottom:20px;display:flex;align-items:flex-start;gap:14px;">
+          <div style="width:40px;height:40px;border-radius:11px;background:#F4D4CF;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M15 9l-6 6M9 9l6 6"></path></svg></div>
+          <div style="flex:1;"><div style="font-size:14.5px;font-weight:800;color:#C0392B;">Requirement นี้ถูกยกเลิกแล้ว</div><div style="margin-top:3px;font-size:12.5px;color:var(--muted);">เหตุผล: <b style="color:var(--text);">{{ cancelReasonLabel }}</b> · ยกเลิกโดย อารยา · วันนี้ · Lead ถูกเปลี่ยนสถานะเป็น "lost" อัตโนมัติ</div></div>
+          <div onClick="{{ reopen }}" style="height:38px;padding:0 16px;border-radius:9999px;border:1.5px solid #C0392B;color:#C0392B;font-size:12.5px;font-weight:700;display:flex;align-items:center;cursor:pointer;flex-shrink:0;">เปิดใช้ใหม่</div>
+        </div>
+      </sc-if>
+      <!-- FLOW B RAIL -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px 26px;margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;"><div style="font-size:14px;font-weight:800;color:var(--text);">Flow B — Requirement → Shortlist</div><span style="font-size:12px;color:var(--muted2);">เช็คว่าง <b style="color:var(--accent);">ก่อน</b>สร้าง shortlist (FR-AVL-04)</span></div>
+        <div style="display:flex;align-items:center;">
+          <sc-for list="{{ steps }}" as="s" hint-placeholder-count="5">
+            <div style="display:flex;align-items:center;flex:1;">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0;">
+                <div style="{{ s.circle }}"><sc-if value="{{ s.done }}" hint-placeholder-val="{{ false }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"></path></svg></sc-if><sc-if value="{{ s.current }}" hint-placeholder-val="{{ false }}"><span style="width:8px;height:8px;border-radius:9999px;background:#fff;"></span></sc-if><sc-if value="{{ s.pending }}" hint-placeholder-val="{{ true }}"><span style="font-size:12px;font-weight:800;color:var(--muted3);">{{ s.num }}</span></sc-if></div>
+                <span style="font-size:11.5px;font-weight:600;color:{{ s.labelColor }};white-space:nowrap;">{{ s.label }}</span>
+              </div>
+              <sc-if value="{{ s.line }}" hint-placeholder-val="{{ true }}"><div style="flex:1;height:2px;background:{{ s.lineColor }};margin:0 8px;margin-bottom:26px;"></div></sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div id="req-split" style="display:grid;grid-template-columns:1.1fr .9fr;gap:20px;align-items:start;">
+        <!-- LEFT: requirement + criteria -->
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;"><div style="font-size:15px;font-weight:800;color:var(--text);">ความต้องการของลูกค้า</div><a href="AdminLeads.dc.html" style="font-size:12.5px;font-weight:700;color:var(--accent);">บ. ไทยโลจิสติกส์ →</a></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+              <sc-for list="{{ reqFields }}" as="f" hint-placeholder-count="6">
+                <div style="background:var(--bg);border-radius:12px;padding:13px 15px;"><div style="font-size:11.5px;color:var(--muted2);">{{ f.k }}</div><div style="margin-top:3px;font-size:14px;font-weight:700;color:var(--text);">{{ f.v }}</div></div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- Special criteria checklist -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px;">
+            <div style="font-size:15px;font-weight:800;color:var(--text);">เกณฑ์พิเศษที่ต้องตรวจเทียบ</div>
+            <div style="margin-top:4px;font-size:12px;color:var(--muted2);margin-bottom:16px;">ตรวจทุกข้อก่อนคัดทรัพย์เข้า shortlist</div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <sc-for list="{{ criteria }}" as="c" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:var(--bg);">
+                  <div style="width:24px;height:24px;border-radius:7px;background:{{ c.iconBg }};display:flex;align-items:center;justify-content:center;flex-shrink:0;" dangerouslySetInnerHTML="{{ c.icon }}"></div>
+                  <div style="flex:1;"><span style="font-size:13px;font-weight:600;color:var(--text);">{{ c.label }}</span></div>
+                  <span style="{{ c.tagStyle }}">{{ c.tag }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: availability gate + action -->
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div style="background:linear-gradient(135deg,#043F20 0%,#022310 100%);border-radius:16px;padding:22px;color:#fff;">
+            <div style="display:flex;align-items:center;gap:10px;"><div style="width:38px;height:38px;border-radius:11px;background:rgba(45,251,145,.16);display:flex;align-items:center;justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" stroke-width="1.9"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path></svg></div><div><div style="font-size:15px;font-weight:800;">Availability Gate</div><div style="font-size:11.5px;color:#C3FED5;">เพิ่มเข้า shortlist ได้เฉพาะทรัพย์ที่ว่าง</div></div></div>
+            <div style="margin-top:16px;display:flex;flex-direction:column;gap:10px;">
+              <sc-for list="{{ availChecks }}" as="a" hint-placeholder-count="3">
+                <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;">
+                  <div style="flex:1;min-width:0;"><code style="font-size:12px;font-weight:700;color:#fff;">{{ a.code }}</code><div style="font-size:11.5px;color:#B9C2BD;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ a.title }}</div></div>
+                  <span style="{{ a.style }}">{{ a.result }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="margin-top:14px;display:flex;gap:10px;">
+              <div onClick="{{ openRecheck }}" style="flex:1;height:44px;border-radius:11px;background:#2DFB91;color:#022310;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#022310" stroke-width="2.2"><path d="M12 5v14M5 12h14"></path></svg>เช็คทรัพย์ใหม่</div>
+            </div>
+          </div>
+
+          <a href="AdminShortlist.dc.html" style="background:var(--surface);border:1.5px solid #0D6C3B;border-radius:16px;padding:20px 22px;display:flex;align-items:center;gap:14px;transition:transform .2s,box-shadow .2s;" style-hover="transform:translateY(-2px);box-shadow:0 12px 26px rgba(13,108,59,.18);">
+            <div style="width:44px;height:44px;border-radius:12px;background:#0D6C3B;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path></svg></div>
+            <div style="flex:1;"><div style="font-size:14.5px;font-weight:800;color:var(--text);">สร้าง Shortlist</div><div style="font-size:12px;color:var(--muted);">2 ทรัพย์ผ่านเงื่อนไขว่าง พร้อมคัด</div></div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+          </a>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 22px;">
+            <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:12px;">พื้นที่ที่ต้องการ (priority)</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <sc-for list="{{ locations }}" as="l" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:11px;"><span style="width:22px;height:22px;border-radius:7px;background:var(--tint);color:var(--accent);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;">{{ l.rank }}</span><span style="font-size:13px;color:var(--text);">{{ l.name }}</span></div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CANCEL DIALOG -->
+      <sc-if value="{{ recheckOpen }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeRecheck }}" style="position:fixed;inset:0;z-index:800;background:rgba(2,14,8,.55);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:20px;">
+          <div onClick="{{ stopProp }}" style="width:100%;max-width:480px;background:var(--surface);border-radius:20px;box-shadow:0 40px 80px rgba(0,0,0,.4);overflow:hidden;">
+            <div style="padding:22px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;"><div style="width:42px;height:42px;border-radius:12px;background:#E8F3EC;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" stroke-width="1.9"><path d="M3 12a9 9 0 109-9 9 9 0 00-6.4 2.6L3 8"></path><path d="M3 3v5h5"></path></svg></div><div style="flex:1;"><div style="font-size:16px;font-weight:800;color:var(--text);">เช็คทรัพย์ที่ว่างใหม่</div><div style="font-size:12px;color:var(--muted2);">สแกนทรัพย์ที่ตรงเกณฑ์ + สอบถามสถานะว่างกับเจ้าของ</div></div></div>
+            <div style="padding:22px 24px;">
+              <sc-if value="{{ scanning }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:14px;padding:20px 0;">
+                  <div style="width:52px;height:52px;border-radius:9999px;border:3px solid var(--tint);border-top-color:#0D6C3B;animation:spin 0.8s linear infinite;"></div>
+                  <div style="font-size:13.5px;font-weight:700;color:var(--text);">กำลังสแกน 246 ทรัพย์…</div>
+                  <div style="font-size:12px;color:var(--muted3);">เทียบขนาด/งบ/ทำเล + เช็ค valid_until</div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ scanDone }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;gap:9px;padding:12px 14px;border-radius:11px;background:#E8F3EC;margin-bottom:14px;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" stroke-width="2.4"><path d="M20 6L9 17l-5-5"></path></svg><span style="font-size:12.5px;font-weight:700;color:#0D6C3B;">พบทรัพย์ที่ว่างเพิ่ม 1 รายการ · ตรงเกณฑ์ทั้งหมด</span></div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                  <sc-for list="{{ recheckResults }}" as="r" hint-placeholder-count="2">
+                    <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:var(--bg);border:1px solid var(--border);">
+                      <div style="flex:1;min-width:0;"><code style="font-size:12px;font-weight:700;color:#0D6C3B;">{{ r.code }}</code><div style="font-size:11.5px;color:var(--muted);">{{ r.title }}</div></div>
+                      <sc-if value="{{ r.isNew }}" hint-placeholder-val="{{ false }}"><span style="height:22px;padding:0 10px;border-radius:9999px;background:#2DFB91;color:#022310;font-size:10.5px;font-weight:800;display:inline-flex;align-items:center;">ว่าง · ใหม่</span></sc-if>
+                      <sc-if value="{{ r.existing }}" hint-placeholder-val="{{ false }}"><span style="height:22px;padding:0 10px;border-radius:9999px;background:var(--tint);color:var(--muted2);font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;">มีอยู่แล้ว</span></sc-if>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+            <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:12px;">
+              <div onClick="{{ closeRecheck }}" style="height:44px;padding:0 22px;border-radius:9999px;border:1.5px solid var(--border);display:flex;align-items:center;font-size:13.5px;font-weight:700;color:var(--text);cursor:pointer;">ปิด</div>
+              <sc-if value="{{ scanDone }}" hint-placeholder-val="{{ false }}"><div onClick="{{ addFound }}" style="height:44px;padding:0 24px;border-radius:9999px;background:#0D6C3B;color:#fff;display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:700;cursor:pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="M12 5v14M5 12h14"></path></svg>เพิ่มเข้า Gate</div></sc-if>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- CANCEL DIALOG -->
+      <sc-if value="{{ cancelOpen }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeCancel }}" style="position:fixed;inset:0;z-index:800;background:rgba(2,14,8,.55);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:20px;">
+          <div onClick="{{ stopProp }}" style="width:100%;max-width:460px;background:var(--surface);border-radius:20px;box-shadow:0 40px 80px rgba(0,0,0,.4);padding:28px;">
+            <div style="display:flex;align-items:center;gap:12px;"><div style="width:44px;height:44px;border-radius:12px;background:#F9E4E1;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h16.9a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"></path><path d="M12 9v4M12 17h.01"></path></svg></div><div><div style="font-size:17px;font-weight:800;color:var(--text);">ยกเลิก Requirement</div><div style="font-size:12.5px;color:var(--muted);">ต้องระบุเหตุผลและข้อที่เป็นเหตุ</div></div></div>
+            <div style="margin-top:20px;"><label style="font-size:12.5px;font-weight:700;color:var(--muted);">ข้อ requirement ที่เป็นเหตุ *</label>
+              <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+                <sc-for list="{{ cancelReasons }}" as="r" hint-placeholder-count="6"><div onClick="{{ r.select }}" style="{{ r.style }}">{{ r.label }}</div></sc-for>
+              </div>
+            </div>
+            <div style="margin-top:18px;"><label style="font-size:12.5px;font-weight:700;color:var(--muted);">เหตุผลเพิ่มเติม *</label><textarea placeholder="อธิบายเหตุผลการยกเลิก…" style="margin-top:8px;width:100%;height:90px;padding:12px 14px;border-radius:12px;border:1px solid var(--border);font-family:inherit;font-size:13px;resize:none;outline:none;background:var(--bg);"></textarea></div>
+            <div style="margin-top:20px;display:flex;gap:12px;justify-content:flex-end;">
+              <div onClick="{{ closeCancel }}" style="height:44px;padding:0 22px;border-radius:9999px;border:1.5px solid var(--border);display:flex;align-items:center;font-size:13.5px;font-weight:700;color:var(--text);cursor:pointer;">ไม่ยกเลิก</div>
+              <div onClick="{{ confirmCancel }}" style="height:44px;padding:0 24px;border-radius:9999px;background:#C0392B;color:#fff;display:flex;align-items:center;font-size:13.5px;font-weight:700;cursor:pointer;">ยืนยันยกเลิก</div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { cancelOpen: false, cancelReason: 'budget', cancelled: false, recheckOpen: false, scanning: false, scanDone: false, addedFound: false };
+  renderVals() {
+    const done = (label, num) => ({ label, num, done:true, current:false, pending:false, line:true, circle:'width:34px;height:34px;border-radius:9999px;background:#0D6C3B;display:flex;align-items:center;justify-content:center;', labelColor:'#0D6C3B', lineColor:'#0D6C3B' });
+    const curr = (label, num) => ({ label, num, done:false, current:true, pending:false, line:true, circle:'width:34px;height:34px;border-radius:9999px;background:#273c33;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 4px rgba(39,60,51,.15);', labelColor:'#273c33', lineColor:'var(--border)' });
+    const pend = (label, num, last) => ({ label, num, done:false, current:false, pending:true, line:!last, circle:'width:34px;height:34px;border-radius:9999px;background:var(--bg);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;', labelColor:'var(--muted3)', lineColor:'var(--border)' });
+    const ci = (p,c) => ({ __html:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="'+c+'" stroke-width="2">'+p+'</svg>' });
+    const tag = (label, bg, fg) => 'height:22px;padding:0 10px;border-radius:9999px;background:'+bg+';color:'+fg+';font-size:11px;font-weight:700;display:inline-flex;align-items:center;';
+    const S = this.state;
+    const reasons = [['budget','งบประมาณ'],['size','ขนาด'],['area','พื้นที่'],['license','ใบอนุญาต'],['timeline','ระยะเวลา'],['other','อื่น ๆ']];
+    const cancelled = S.cancelled;
+    const stepsActive = [ done('Submitted','1'), done('Confirmed','2'), curr('เช็คเกณฑ์ + ว่าง','3'), pend('สร้าง Shortlist','4'), pend('ส่งลูกค้า','5', true) ];
+    const cancelStep = (label,num,last)=>({ label, num, done:false, current:false, pending:true, line:!last, circle:'width:34px;height:34px;border-radius:9999px;background:#FBEEEC;border:1.5px solid #E4C4C0;display:flex;align-items:center;justify-content:center;', labelColor:'#C77',lineColor:'var(--border)' });
+    const stepsCancelled = [ done('Submitted','1'), done('Confirmed','2'), cancelStep('ยกเลิกแล้ว','3',true) ];
+    const reasonLabel = (reasons.find(r=>r[0]===S.cancelReason)||['','—'])[1];
+    return {
+      nav: this.navItems('Requirements'),
+      isCancelled: cancelled, isActive: !cancelled,
+      statusLabel: cancelled ? 'cancelled' : 'confirmed',
+      statusColor: cancelled ? '#C0392B' : '#0D6C3B',
+      statusBg: cancelled ? '#F9E4E1' : '#E8F3EC',
+      cancelReasonLabel: reasonLabel,
+      steps: cancelled ? stepsCancelled : stepsActive,
+      reqFields: [
+        { k:'ต้องการ', v:'เช่าโกดัง' }, { k:'ประเภทการใช้งาน', v:'คลังสินค้า/โลจิสติกส์' },
+        { k:'ขนาด', v:'2,000 – 3,500 ตร.ม.' }, { k:'งบเช่า', v:'฿150,000 – 250,000/ด.' },
+        { k:'ต้องการ ร.ง.4', v:'ใช่' }, { k:'ย้ายเข้า', v:'1 ก.ย. 2026' },
+      ],
+      criteria: [
+        { label:'ขอใบ ร.ง.4 ได้', tag:'ต้องมี', tagStyle:tag('#E8F3EC','#0D6C3B'), iconBg:'#E8F3EC', icon:ci('<path d="M20 6L9 17l-5-5"></path>','#0D6C3B') },
+        { label:'ใกล้ท่าเรือ / สนามบิน', tag:'ใกล้ท่าเรือ', tagStyle:tag('#EEF4F3','#034956'), iconBg:'#EEF4F3', icon:ci('<path d="M20 6L9 17l-5-5"></path>','#034956') },
+        { label:'มลภาวะ (ประเภทกิจการ)', tag:'ไม่มีปัญหา', tagStyle:tag('#E8F3EC','#0D6C3B'), iconBg:'#E8F3EC', icon:ci('<path d="M20 6L9 17l-5-5"></path>','#0D6C3B') },
+        { label:'ขนาด + งบ ตรงเงื่อนไข', tag:'ตรวจแล้ว', tagStyle:tag('#E8F3EC','#0D6C3B'), iconBg:'#E8F3EC', icon:ci('<path d="M20 6L9 17l-5-5"></path>','#0D6C3B') },
+      ],
+      availChecks: [
+        { code:'JKP-SPK0042', title:'โกดังพร้อมสำนักงาน 2,700 ตร.ม.', result:'ว่าง', style:'height:22px;padding:0 10px;border-radius:9999px;background:#2DFB91;color:#022310;font-size:11px;font-weight:800;display:inline-flex;align-items:center;flex-shrink:0;' },
+        { code:'JKP-SKN0015', title:'โกดังให้เช่า มหาชัย 1,800 ตร.ม.', result:'ว่าง', style:'height:22px;padding:0 10px;border-radius:9999px;background:#2DFB91;color:#022310;font-size:11px;font-weight:800;display:inline-flex;align-items:center;flex-shrink:0;' },
+        { code:'JKP-CBI0007', title:'คลังสินค้าแหลมฉบัง 5,000 ตร.ม.', result:'ไม่ว่าง', style:'height:22px;padding:0 10px;border-radius:9999px;background:rgba(255,255,255,.1);color:#F3B0A8;font-size:11px;font-weight:700;display:inline-flex;align-items:center;flex-shrink:0;' },
+      ].concat(S.addedFound ? [{ code:'JKP-RYG0224', title:'โรงงาน/คลังสินค้า 3,600 ตร.ม. มะขามคู่ (เพิ่มใหม่)', result:'ว่าง', style:'height:22px;padding:0 10px;border-radius:9999px;background:#2DFB91;color:#022310;font-size:11px;font-weight:800;display:inline-flex;align-items:center;flex-shrink:0;' }] : []),
+      locations: [
+        { rank:'1', name:'สมุทรปราการ (บางพลี, บางเสาธง)' },
+        { rank:'2', name:'ชลบุรี (ศรีราชา)' },
+        { rank:'3', name:'ฉะเชิงเทรา (บางปะกง)' },
+      ],
+      cancelOpen: S.cancelOpen,
+      openCancel: () => this.setState({ cancelOpen: true }),
+      closeCancel: () => this.setState({ cancelOpen: false }),
+      confirmCancel: () => this.setState({ cancelOpen: false, cancelled: true }),
+      reopen: () => this.setState({ cancelled: false }),
+      recheckOpen: S.recheckOpen, scanning: S.scanning, scanDone: S.scanDone,
+      openRecheck: () => { this.setState({ recheckOpen:true, scanning:true, scanDone:false }); clearTimeout(this._sc); this._sc = setTimeout(()=>this.setState({ scanning:false, scanDone:true }), 1600); },
+      closeRecheck: () => this.setState({ recheckOpen:false }),
+      addFound: () => this.setState({ recheckOpen:false, addedFound:true }),
+      recheckResults: [
+        { code:'JKP-RYG0224', title:'โรงงาน/คลังสินค้า 3,600 ตร.ม. มะขามคู่, ระยอง', isNew:true, existing:false },
+        { code:'JKP-SPK0042', title:'โกดังพร้อมสำนักงาน 2,700 ตร.ม.', isNew:false, existing:true },
+      ],
+      stopProp: (e) => e.stopPropagation(),
+      cancelReasons: reasons.map(([k,label]) => ({ label, select: () => this.setState({ cancelReason: k }),
+        style: 'height:34px;padding:0 15px;border-radius:9999px;font-size:12.5px;font-weight:700;cursor:pointer;border:1.5px solid '+(S.cancelReason===k?'#C0392B':'var(--border)')+';background:'+(S.cancelReason===k?'#F9E4E1':'transparent')+';color:'+(S.cancelReason===k?'#C0392B':'var(--text)')+';display:flex;align-items:center;' })),
+    };
+  }
+  navItems(active){ const mk=(label,icon,href,badge)=>{const on=label===active;return{isLink:true,isGroup:false,label,href,badge:badge||'',icon:{__html:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="'+(on?'#2DFB91':'#9AA39D')+'" stroke-width="1.8">'+icon+'</svg>'},style:'display:flex;align-items:center;gap:11px;height:40px;padding:0 12px;border-radius:11px;font-size:13.5px;font-weight:'+(on?'700':'500')+';color:'+(on?'#fff':'#AEB8B1')+';background:'+(on?'rgba(45,251,145,.12)':'transparent')+';transition:background .15s;'};};const grp=(label)=>({isGroup:true,isLink:false,label});return[mk('Dashboard','<rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect>','AdminDashboard.dc.html'),grp('ทรัพย์'),mk('Properties','<path d="M3 21V8l9-5 9 5v13"></path><path d="M3 21h18"></path><path d="M7 21v-8h10v8"></path>','AdminProperties.dc.html'),mk('Listings','<rect x="3" y="4" width="18" height="4" rx="1"></rect><rect x="3" y="10" width="18" height="4" rx="1"></rect><rect x="3" y="16" width="18" height="4" rx="1"></rect>','AdminListings.dc.html'),grp('งานขาย'),mk('Leads','<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path><circle cx="9" cy="7" r="4"></circle>','AdminLeads.dc.html','18'),mk('Requirements','<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><path d="M14 2v6h6"></path>','AdminRequirement.dc.html','7'),mk('Shortlists','<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>','AdminShortlist.dc.html'),mk('Visits','<rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path>','AdminVisit.dc.html'),mk('Deals','<path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"></path>','AdminDeal.dc.html'),grp('เนื้อหา & ระบบ'),mk('CMS','<path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path>','AdminCMS.dc.html'),mk('SEO / GEO','<circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20"></path>','AdminSEO.dc.html'),mk('Settings','<circle cx="12" cy="12" r="3"></circle><path d="M12 2a2 2 0 012 2 2 2 0 002 2 2 2 0 012 2 2 2 0 000 4 2 2 0 01-2 2 2 2 0 00-2 2 2 2 0 01-4 0 2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 000-4 2 2 0 012-2 2 2 0 002-2 2 2 0 012-2z"></path>','AdminSettings.dc.html')];}
+}
+</script>
+</body>
+</html>

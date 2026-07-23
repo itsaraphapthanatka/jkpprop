@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  :root{--bg:#F9F8F5;--surface:#FFFFFF;--tint:#EEF4F3;--text:#28251D;--muted:#5F5A52;--muted2:#7A7974;--muted3:#9B968D;--border:#E7E3DC;--accent:#034956;--pine:#273c33;--green:#0D6C3B;--neon:#2DFB91;}
+  body{margin:0;font-family:'Noto Sans Thai','Inter',system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.6;-webkit-font-smoothing:antialiased;}
+  a{text-decoration:none;color:inherit;}
+  svg{stroke-linecap:round !important;stroke-linejoin:round !important;}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 28px;}
+  @media (max-width:760px){ .cardgrid{grid-template-columns:1fr !important;} }
+</style>
+</helmet>
+
+<div style="width:100%;min-height:100vh;background:var(--bg);">
+  <section style="background:linear-gradient(135deg,#043F20 0%,#022310 100%);color:#fff;position:relative;overflow:hidden;">
+    <div style="position:absolute;top:-60px;right:60px;width:280px;height:280px;border-radius:9999px;background:rgba(45,251,145,.1);pointer-events:none;"></div>
+    <div class="wrap" style="padding:52px 28px 48px;position:relative;">
+      <img src="assets/jkp-logo-white.png" alt="JKP Property" style="height:42px;width:auto;display:block;margin-bottom:22px;">
+      <div style="display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 14px;border-radius:9999px;background:rgba(45,251,145,.14);border:1px solid rgba(45,251,145,.35);"><span style="width:8px;height:8px;border-radius:9999px;background:var(--neon);"></span><span style="font-size:12.5px;font-weight:700;color:var(--neon);">สารบัญดีไซน์ทั้งหมด · สำหรับตรวจสอบ</span></div>
+      <h1 style="margin:16px 0 10px;font-size:34px;font-weight:800;letter-spacing:-.01em;">JKP Property — ดีไซน์ทั้งระบบ</h1>
+      <p style="margin:0;max-width:620px;font-size:15px;color:#C3FED5;line-height:1.7;">คลิกเข้าดูได้ทุกหน้า — เว็บไซต์ (ส่วนลูกค้า) และระบบหลังบ้าน (CMS) เชื่อมโยงกันจริง แต่ละหน้ากดนำทางต่อได้ · แนะนำเริ่มที่ "ภาพรวมดีไซน์" เพื่อเข้าใจ workflow ทั้งหมด</p>
+      <a href="Design Overview.dc.html" style="margin-top:22px;display:inline-flex;align-items:center;gap:8px;height:46px;padding:0 22px;border-radius:9999px;background:var(--neon);color:#022310;font-size:14px;font-weight:800;">อ่านภาพรวมดีไซน์ + Workflow<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#022310" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></a>
+    </div>
+  </section>
+
+  <div class="wrap" style="padding:48px 28px 70px;">
+    <sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+      <div style="margin-bottom:38px;">
+        <div style="display:flex;align-items:center;gap:11px;margin-bottom:16px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:{{ g.badgeBg }};display:flex;align-items:center;justify-content:center;flex-shrink:0;" dangerouslySetInnerHTML="{{ g.icon }}"></div>
+          <div style="font-size:19px;font-weight:800;color:var(--text);">{{ g.title }}</div>
+          <div style="height:1px;flex:1;background:var(--border);"></div>
+        </div>
+        <div class="cardgrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+          <sc-for list="{{ g.items }}" as="p" hint-placeholder-count="6">
+            <a href="{{ p.href }}" style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:13px;transition:transform .2s,box-shadow .2s,border-color .2s;" style-hover="transform:translateY(-3px);box-shadow:0 12px 26px rgba(0,0,0,.07);border-color:{{ g.dot }};">
+              <div style="width:38px;height:38px;border-radius:10px;background:{{ g.badgeBg }};display:flex;align-items:center;justify-content:center;flex-shrink:0;color:{{ g.dot }};font-size:13px;font-weight:800;">{{ p.n }}</div>
+              <div style="flex:1;min-width:0;"><div style="font-size:13.5px;font-weight:700;color:var(--text);">{{ p.name }}</div><div style="font-size:11.5px;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ p.desc }}</div></div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted3)" stroke-width="2.2" style="flex-shrink:0;"><path d="M9 6l6 6-6 6"></path></svg>
+            </a>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const ic=(p,c)=>({__html:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="'+c+'" stroke-width="1.8">'+p+'</svg>'});
+    return {
+      groups: [
+        { title:'เว็บไซต์ (ส่วนลูกค้า)', badgeBg:'#EEF4F3', dot:'#034956', icon:ic('<path d="M3 21V8l9-5 9 5v13"></path><path d="M3 21h18"></path><path d="M7 21v-8h10v8"></path>','#034956'), items:[
+          { n:'1', name:'หน้าแรก', desc:'Home + ค้นหาทรัพย์', href:'Home.dc.html' },
+          { n:'2', name:'รวมทรัพย์ทั้งหมด', desc:'Listing + ตัวกรอง', href:'Listing.dc.html' },
+          { n:'3', name:'รายละเอียดทรัพย์', desc:'Property Detail', href:'PropertyDetail.dc.html' },
+          { n:'4', name:'โรงงานให้เช่า', desc:'Factory Rent', href:'FactoryRent.dc.html' },
+          { n:'5', name:'โรงงานขาย', desc:'Factory Sale', href:'FactorySale.dc.html' },
+          { n:'6', name:'โกดังให้เช่า', desc:'Warehouse Rent', href:'WarehouseRent.dc.html' },
+          { n:'7', name:'โกดังขาย', desc:'Warehouse Sale', href:'WarehouseSale.dc.html' },
+          { n:'8', name:'เกี่ยวกับเรา', desc:'About', href:'About.dc.html' },
+          { n:'9', name:'คำถามพบบ่อย', desc:'FAQ', href:'FAQ.dc.html' },
+          { n:'10', name:'ติดต่อเรา', desc:'Contact', href:'Contact.dc.html' },
+          { n:'11', name:'Shortlist ลูกค้า', desc:'ลิงก์ที่ลูกค้าเปิดดู', href:'ClientShortlist.dc.html' },
+        ]},
+        { title:'ระบบขาย (หลังบ้าน)', badgeBg:'#E8F3EC', dot:'#0D6C3B', icon:ic('<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path><circle cx="9" cy="7" r="4"></circle>','#0D6C3B'), items:[
+          { n:'1', name:'Dashboard', desc:'ภาพรวมงาน', href:'AdminDashboard.dc.html' },
+          { n:'2', name:'Leads', desc:'รายชื่อผู้สนใจ', href:'AdminLeads.dc.html' },
+          { n:'3', name:'Requirement', desc:'สรุปความต้องการ', href:'AdminRequirement.dc.html' },
+          { n:'4', name:'Shortlist', desc:'คัดทรัพย์เสนอ', href:'AdminShortlist.dc.html' },
+          { n:'5', name:'Visit', desc:'นัดเข้าชม', href:'AdminVisit.dc.html' },
+          { n:'6', name:'Deal', desc:'เจรจา/ปิดการขาย', href:'AdminDeal.dc.html' },
+        ]},
+        { title:'จัดการทรัพย์ + เนื้อหา', badgeBg:'#E8F3EC', dot:'#0D6C3B', icon:ic('<path d="M3 21V8l9-5 9 5v13"></path><path d="M7 21v-8h10v8"></path>','#0D6C3B'), items:[
+          { n:'1', name:'Properties', desc:'คลังทรัพย์', href:'AdminProperties.dc.html' },
+          { n:'2', name:'เพิ่ม/แก้ทรัพย์', desc:'Property Edit', href:'AdminPropertyEdit.dc.html' },
+          { n:'3', name:'ดูทรัพย์ (หลังบ้าน)', desc:'Property View', href:'AdminPropertyView.dc.html' },
+          { n:'4', name:'Listings', desc:'ประกาศ', href:'AdminListings.dc.html' },
+          { n:'5', name:'CMS จัดการหน้าเว็บ', desc:'Page Builder', href:'AdminPageBuilder.dc.html' },
+          { n:'6', name:'CMS บทความ', desc:'Content', href:'AdminCMS.dc.html' },
+          { n:'7', name:'Media', desc:'คลังรูป', href:'AdminMedia.dc.html' },
+        ]},
+        { title:'ตั้งค่าระบบ + บริการเสริม', badgeBg:'#F0ECF9', dot:'#7A3FB0', icon:ic('<circle cx="12" cy="12" r="3"></circle><path d="M12 2a2 2 0 012 2 2 2 0 002 2 2 2 0 012 2 2 2 0 000 4 2 2 0 01-2 2 2 2 0 00-2 2 2 2 0 01-4 0 2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 000-4 2 2 0 012-2 2 2 0 002-2 2 2 0 012-2z"></path>','#7A3FB0'), items:[
+          { n:'1', name:'Settings', desc:'ศูนย์รวมตั้งค่า', href:'AdminSettings.dc.html' },
+          { n:'2', name:'Branding & Theme', desc:'โลโก้/สี/ฟอนต์', href:'AdminBranding.dc.html' },
+          { n:'3', name:'Users & Roles', desc:'ผู้ใช้+สิทธิ์', href:'AdminUsers.dc.html' },
+          { n:'4', name:'Geography', desc:'พื้นที่/นิคม', href:'AdminGeography.dc.html' },
+          { n:'5', name:'Field Builder', desc:'สร้างฟิลด์', href:'AdminFieldBuilder.dc.html' },
+          { n:'6', name:'Audit Logs', desc:'ประวัติแก้ไข', href:'AdminAudit.dc.html' },
+          { n:'7', name:'SEO · GEO · AEO', desc:'บริการเสริม', href:'AdminSEO.dc.html' },
+          { n:'8', name:'CMS Sitemap', desc:'แผนผังระบบ', href:'CMS Sitemap.dc.html' },
+        ]},
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

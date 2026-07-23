@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  :root{--bg:#F9F8F5;--bg2:#F3F0EC;--surface:#FFFFFF;--tint:#EEF4F3;--text:#28251D;--muted:#5F5A52;--muted2:#7A7974;--muted3:#9B968D;--border:#E7E3DC;--accent:#034956;--pine:#273c33;--green:#0D6C3B;--neon:#2DFB91;--gold:#D9A62B;}
+  body{margin:0;font-family:'Noto Sans Thai','Inter',system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.6;-webkit-font-smoothing:antialiased;}
+  a{text-decoration:none;color:var(--accent);}
+  svg{stroke-linecap:round !important;stroke-linejoin:round !important;}
+  code{font-family:'JetBrains Mono',monospace;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 28px;}
+  @media (max-width:820px){ .grid2{grid-template-columns:1fr !important;} .flow-row{flex-direction:column !important;} .flow-arrow{transform:rotate(90deg);} }
+</style>
+
+</helmet>
+
+  <!-- HERO -->
+  <section style="background:linear-gradient(135deg,#043F20 0%,#022310 100%);color:#fff;position:relative;overflow:hidden;">
+    <div style="position:absolute;top:-60px;right:60px;width:280px;height:280px;border-radius:9999px;background:rgba(45,251,145,.1);pointer-events:none;"></div>
+    <div style="position:absolute;bottom:-80px;left:-40px;width:300px;height:300px;border-radius:9999px;background:rgba(45,251,145,.06);pointer-events:none;"></div>
+    <div class="wrap" style="padding:60px 28px 56px;position:relative;">
+      <img src="assets/jkp-logo-white.png" alt="JKP Property" style="height:44px;width:auto;display:block;margin-bottom:26px;">
+      <div style="display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 14px;border-radius:9999px;background:rgba(45,251,145,.14);border:1px solid rgba(45,251,145,.35);"><span style="width:8px;height:8px;border-radius:9999px;background:var(--neon);"></span><span style="font-size:12.5px;font-weight:700;color:var(--neon);">เอกสารอธิบายดีไซน์ · สำหรับพิจารณาอนุมัติ</span></div>
+      <h1 style="margin:18px 0 12px;font-size:38px;font-weight:800;letter-spacing:-.01em;line-height:1.25;">ภาพรวมระบบเว็บไซต์ + ระบบหลังบ้าน (CMS)<br>JKP Property</h1>
+      <p style="margin:0;max-width:660px;font-size:15.5px;color:#C3FED5;line-height:1.75;">เอกสารนี้อธิบายทุกหน้าที่ออกแบบไว้ พร้อมประโยชน์และวิธีใช้งานจริง — ตั้งแต่ลูกค้าเข้าเว็บ กรอกฟอร์ม จนทีมงานปิดการขาย เพื่อให้เห็นภาพใหญ่ว่าแต่ละหน้าเชื่อมต่อกันอย่างไร</p>
+      <div style="margin-top:26px;display:flex;gap:12px;flex-wrap:wrap;">
+        <sc-for list="{{ heroStats }}" as="s" hint-placeholder-count="3"><div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px 20px;"><div style="font-size:24px;font-weight:800;color:var(--neon);font-family:'JetBrains Mono',monospace;">{{ s.n }}</div><div style="font-size:12px;color:#B9C2BD;">{{ s.label }}</div></div></sc-for>
+      </div>
+    </div>
+  </section>
+
+  <!-- BIG PICTURE WORKFLOW -->
+  <section style="background:var(--surface);border-bottom:1px solid var(--border);">
+    <div class="wrap" style="padding:52px 28px;">
+      <div style="display:flex;align-items:center;gap:8px;"><span style="width:26px;height:2px;background:var(--pine);border-radius:2px;"></span><span style="font-size:13px;font-weight:700;letter-spacing:.08em;color:var(--pine);text-transform:uppercase;">ภาพใหญ่</span></div>
+      <h2 style="margin:12px 0 6px;font-size:28px;font-weight:800;">เส้นทางลูกค้า 1 คน ตั้งแต่ต้นจนปิดดีล</h2>
+      <p style="margin:0 0 32px;font-size:14.5px;color:var(--muted);max-width:640px;">ทุกหน้าไม่ได้อยู่แยกกัน แต่ส่งต่องานกันเป็นทอดๆ — ข้อมูลลูกค้าวิ่งจากเว็บไซต์เข้าระบบหลังบ้านโดยอัตโนมัติ แล้วทีมงานทำงานต่อจากจุดนั้น</p>
+      <div class="flow-row" style="display:flex;align-items:stretch;gap:0;">
+        <sc-for list="{{ bigFlow }}" as="f" hint-placeholder-count="6">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;padding:0 10px;">
+            <div style="width:60px;height:60px;border-radius:16px;background:{{ f.bg }};display:flex;align-items:center;justify-content:center;" dangerouslySetInnerHTML="{{ f.icon }}"></div>
+            <div style="margin-top:12px;font-size:11px;font-weight:700;color:{{ f.tagColor }};">{{ f.tag }}</div>
+            <div style="margin-top:3px;font-size:14px;font-weight:800;color:var(--text);">{{ f.title }}</div>
+            <div style="margin-top:5px;font-size:12px;color:var(--muted);line-height:1.55;">{{ f.desc }}</div>
+          </div>
+          <sc-if value="{{ f.arrow }}" hint-placeholder-val="{{ true }}"><div class="flow-arrow" style="display:flex;align-items:center;color:var(--muted3);padding-top:24px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></div></sc-if>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION GROUPS -->
+  <div class="wrap" style="padding:52px 28px 70px;">
+    <sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+      <div style="margin-bottom:44px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+          <div style="width:38px;height:38px;border-radius:11px;background:{{ g.badgeBg }};display:flex;align-items:center;justify-content:center;flex-shrink:0;" dangerouslySetInnerHTML="{{ g.icon }}"></div>
+          <div><div style="font-size:20px;font-weight:800;color:var(--text);">{{ g.title }}</div><div style="font-size:13px;color:var(--muted);">{{ g.sub }}</div></div>
+        </div>
+        <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px;">
+          <sc-for list="{{ g.pages }}" as="p" hint-placeholder-count="4">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px 24px;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                <span style="font-size:15px;font-weight:800;color:var(--text);">{{ p.name }}</span>
+                <sc-if value="{{ p.badge }}" hint-placeholder-val="{{ false }}"><span style="{{ p.badgeStyle }}">{{ p.badge }}</span></sc-if>
+              </div>
+              <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:4px;">ประโยชน์</div>
+              <p style="margin:0 0 12px;font-size:13.5px;color:var(--text);line-height:1.7;">{{ p.benefit }}</p>
+              <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:4px;">ใช้งานอย่างไร</div>
+              <p style="margin:0;font-size:13px;color:var(--muted);line-height:1.7;">{{ p.usage }}</p>
+              <sc-if value="{{ p.flow }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top:14px;padding:12px 14px;border-radius:11px;background:var(--tint);display:flex;align-items:flex-start;gap:9px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" style="flex-shrink:0;margin-top:2px;"><path d="M5 12h14M13 6l6 6-6 6"></path></svg><span style="font-size:12px;color:var(--accent);line-height:1.6;">{{ p.flow }}</span></div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+
+    <!-- CLOSING -->
+    <div style="background:linear-gradient(135deg,#0B7A45,#043F20);border-radius:20px;padding:34px 36px;color:#fff;text-align:center;">
+      <h2 style="margin:0 0 10px;font-size:24px;font-weight:800;">สรุป: ทุกหน้าทำงานเป็นระบบเดียวกัน</h2>
+      <p style="margin:0 auto;max-width:620px;font-size:14px;color:#C3FED5;line-height:1.75;">ลูกค้าเห็นเว็บสวยและหาทรัพย์ได้ง่าย → ข้อมูลไหลเข้าหลังบ้านอัตโนมัติ → ทีมงานดูแลต่อครบทุกขั้นจนปิดดีล → เจ้าของระบบปรับแต่งเนื้อหา/สี/ผู้ใช้เองได้ทั้งหมด และทำซ้ำให้ลูกค้ารายใหม่ได้ทันที</p>
+    </div>
+  </div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const ic = (p,c,w) => ({ __html:'<svg width="'+(w||26)+'" height="'+(w||26)+'" viewBox="0 0 24 24" fill="none" stroke="'+c+'" stroke-width="1.8">'+p+'</svg>' });
+    const P = {
+      web:'<path d="M3 21V8l9-5 9 5v13"></path><path d="M3 21h18"></path><path d="M7 21v-8h10v8"></path>',
+      form:'<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><path d="M14 2v6h6M9 13h6M9 17h4"></path>',
+      lead:'<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path><circle cx="9" cy="7" r="4"></circle>',
+      list:'<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>',
+      visit:'<rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path>',
+      deal:'<path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"></path>',
+      cms:'<path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path>',
+      cog:'<circle cx="12" cy="12" r="3"></circle><path d="M12 2a2 2 0 012 2 2 2 0 002 2 2 2 0 012 2 2 2 0 000 4 2 2 0 01-2 2 2 2 0 00-2 2 2 2 0 01-4 0 2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 000-4 2 2 0 012-2 2 2 0 002-2 2 2 0 012-2z"></path>',
+    };
+    const bg = (label,bg,fg) => ({ badge:label, badgeStyle:'height:20px;padding:0 9px;border-radius:9999px;background:'+bg+';color:'+fg+';font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;' });
+    const PUBLIC = bg('หน้าเว็บ','#EEF4F3','#034956');
+    const ADMIN = bg('หลังบ้าน','#E8F3EC','#0D6C3B');
+    const SET = bg('ตั้งค่า','#F0ECF9','#7A3FB0');
+    return {
+      heroStats: [
+        { n:'11', label:'หน้าเว็บไซต์ (ลูกค้าเห็น)' },
+        { n:'19', label:'หน้าระบบหลังบ้าน (ทีมงาน)' },
+        { n:'3', label:'ภาษา (ไทย/EN/จีน)' },
+      ],
+      bigFlow: [
+        { tag:'ขั้นที่ 1', tagColor:'#034956', title:'ลูกค้าเข้าเว็บ', desc:'ค้นหาโรงงาน/โกดังที่สนใจ', bg:'#EEF4F3', arrow:true, icon:ic(P.web,'#034956') },
+        { tag:'ขั้นที่ 2', tagColor:'#034956', title:'กรอกฟอร์ม', desc:'ส่งความต้องการ/สอบถาม', bg:'#EEF4F3', arrow:true, icon:ic(P.form,'#034956') },
+        { tag:'ขั้นที่ 3', tagColor:'#0D6C3B', title:'เข้าระบบเป็น Lead', desc:'เด้งเข้าหลังบ้านอัตโนมัติ', bg:'#E8F3EC', arrow:true, icon:ic(P.lead,'#0D6C3B') },
+        { tag:'ขั้นที่ 4', tagColor:'#0D6C3B', title:'คัดทรัพย์ + พาชม', desc:'ทีมงานเสนอ + นัดดูจริง', bg:'#E8F3EC', arrow:true, icon:ic(P.visit,'#0D6C3B') },
+        { tag:'ขั้นที่ 5', tagColor:'#273c33', title:'เจรจา + ปิดดีล', desc:'ต่อรอง เซ็นสัญญา', bg:'#DDE6E1', arrow:false, icon:ic(P.deal,'#273c33') },
+      ],
+      groups: [
+        {
+          title:'1. เว็บไซต์ (ส่วนที่ลูกค้าเห็น)', sub:'หน้าบ้าน — สร้างความประทับใจและเก็บ Lead', badgeBg:'#EEF4F3', icon:ic(P.web,'#034956',20),
+          pages: [
+            { name:'หน้าแรก (Home)', ...PUBLIC, benefit:'หน้าแรกที่สร้างความน่าเชื่อถือทันที มีช่องค้นหาทรัพย์ ทรัพย์เด่น แผนที่ทำเล และเหตุผลที่ควรเลือกเรา', usage:'ลูกค้าค้นหาทรัพย์จากช่องค้นหา หรือเลื่อนดูทรัพย์มาใหม่ กดเข้าดูรายละเอียดได้ทันที', flow:'ทุกปุ่ม "ปรึกษา/ติดต่อ" จะพาไปหน้าติดต่อ ซึ่งกลายเป็น Lead ในระบบ' },
+            { name:'หน้ารวมทรัพย์ (Listing)', ...PUBLIC, benefit:'รวมทรัพย์ทั้งหมด กรองตามประเภท/ทำเล/ราคา/ขนาด ช่วยให้ลูกค้าเจอสิ่งที่ต้องการเร็ว', usage:'เลือกตัวกรองด้านซ้าย เรียงลำดับ และเปิดดูรายละเอียดแต่ละทรัพย์', flow:'' },
+            { name:'โรงงาน/โกดัง เช่า-ขาย', ...PUBLIC, benefit:'แยกหน้าตามประเภทและดีล (เช่า/ขาย) เพื่อ SEO และให้ลูกค้าเจอตรงกลุ่ม', usage:'เข้าจากเมนูด้านบน (โรงงาน▾ / โกดัง▾) ระบบพาไปหน้าที่กรองไว้แล้ว', flow:'ทรัพย์ที่ทีมงานตั้งเป็น "เช่า" หรือ "ขาย" ในหลังบ้าน จะมาโผล่หน้านี้อัตโนมัติ' },
+            { name:'รายละเอียดทรัพย์', ...PUBLIC, benefit:'หน้าขายของแต่ละทรัพย์ — รูป สเปกครบ แผนที่ และช่องติดต่อ/ขอข้อมูล', usage:'ลูกค้าดูรูป+สเปก แล้วกดขอข้อมูลผ่าน Line/ฟอร์มได้เลย', flow:'กรอกฟอร์มขอข้อมูล → กลายเป็น Lead พร้อมระบุว่าสนใจทรัพย์ไหน' },
+            { name:'เกี่ยวกับเรา / คำถามพบบ่อย', ...PUBLIC, benefit:'สร้างความเชื่อมั่น ตอบข้อสงสัยก่อนตัดสินใจ ลดงานตอบซ้ำของทีม', usage:'ลูกค้าอ่านเรื่องราวบริษัท ทีมงาน และคำถามยอดฮิต', flow:'' },
+            { name:'ติดต่อเรา', ...PUBLIC, benefit:'จุดรวมการติดต่อ — ฟอร์ม แผนที่ เบอร์โทร อีเมล ทุกช่องทาง', usage:'ลูกค้ากรอกฟอร์มหรือกดโทร/แชทได้ทันที', flow:'ฟอร์มที่ส่งจากหน้านี้ = Lead ใหม่เข้าระบบหลังบ้านทันที' },
+          ],
+        },
+        {
+          title:'2. ระบบขาย (หัวใจของงาน)', sub:'ตั้งแต่รับ Lead จนปิดดีล — ทีมงานทำงานต่อเนื่อง', badgeBg:'#E8F3EC', icon:ic(P.lead,'#0D6C3B',20),
+          pages: [
+            { name:'Dashboard', ...ADMIN, benefit:'หน้าแรกหลังบ้าน สรุปภาพรวม — Lead ใหม่ งานค้าง นัดสัปดาห์นี้ ดีลที่เปิดอยู่', usage:'ทีมงานเปิดมาเห็นทันทีว่าต้องทำอะไรวันนี้ กดเข้างานที่เกี่ยวข้องได้เลย', flow:'' },
+            { name:'Leads (รายชื่อผู้สนใจ)', ...ADMIN, benefit:'จุดรับลูกค้าทุกคนที่กรอกฟอร์มจากเว็บ — ไม่มีหลุด เห็นสถานะทุกคน', usage:'คลิกดูแต่ละ Lead: ข้อมูลติดต่อ ความต้องการ ประวัติคุย เพิ่มโน้ต/งาน มอบหมายให้ทีม', flow:'ลูกค้ากรอกฟอร์มหน้าเว็บ → มาโผล่ที่นี่อัตโนมัติ → ทีมโทรกลับแล้วเปิด Requirement ต่อ' },
+            { name:'Requirement (สรุปความต้องการ)', ...ADMIN, benefit:'บันทึกความต้องการละเอียด + เช็คว่าทรัพย์ว่างจริงก่อนเสนอ ไม่เสียเวลาเสนอของที่ไม่ว่าง', usage:'ยืนยันเกณฑ์ → ระบบเช็คทรัพย์ที่ว่าง → กดสร้าง Shortlist', flow:'ต่อจาก Lead → เมื่อครบเงื่อนไข กดไป Shortlist' },
+            { name:'Shortlist (รายการที่คัดให้)', ...ADMIN, benefit:'คัดทรัพย์ที่ตรงที่สุดส่งให้ลูกค้าดู — ส่งเป็นลิงก์สวยๆ ไม่ต้องส่งทีละรูปทาง Line', usage:'เพิ่มทรัพย์ จัดอันดับ ใส่โน้ต แล้วกดส่งลิงก์ให้ลูกค้า', flow:'ลูกค้าเปิดลิงก์ (ดูหน้า Client Shortlist) → ให้ความเห็นกลับ → ทีมจัดนัดดู' },
+            { name:'Visit (นัดเข้าชม)', ...ADMIN, benefit:'วางแผนพาชมหลายทรัพย์ในทริปเดียว + เปิดเส้นทาง Google Maps ใช้จริงวันนัด', usage:'ยืนยันเกณฑ์ → จัดนัดกับเจ้าของ → บันทึกผลแต่ละทรัพย์ → เปิดแผนที่เส้นทาง', flow:'ต่อจาก Shortlist → หลังพาชม กดไปเจรจา (Deal)' },
+            { name:'Deal (เจรจา/ปิดการขาย)', ...ADMIN, benefit:'บันทึกการต่อรองทุกรอบ เก็บเอกสารสัญญา และปิดดีลพร้อมคิดค่าคอมฯ', usage:'บันทึก offer แต่ละรอบ → อัปโหลดสัญญา → กดปิดดีล (ล็อกตัวเลขกันแก้)', flow:'จบ Workflow — Lead เปลี่ยนสถานะเป็น "ปิดการขายสำเร็จ" อัตโนมัติ' },
+            { name:'Client Shortlist (ลูกค้าเปิดดู)', ...PUBLIC, benefit:'หน้าที่ลูกค้าเปิดจากลิงก์ (ไม่ต้องล็อกอิน) ดูทรัพย์ที่คัดให้ + ตารางเปรียบเทียบ', usage:'ลูกค้ากดสนใจ/ไม่สนใจแต่ละทรัพย์ เทียบสเปกข้างกันได้', flow:'เชื่อมกับ Shortlist ในหลังบ้าน — ความเห็นลูกค้าส่งกลับถึงทีม' },
+          ],
+        },
+        {
+          title:'3. จัดการทรัพย์ + เนื้อหา', sub:'เจ้าของระบบดูแลข้อมูลเองได้ทั้งหมด', badgeBg:'#E8F3EC', icon:ic(P.list,'#0D6C3B',20),
+          pages: [
+            { name:'Properties (คลังทรัพย์)', ...ADMIN, benefit:'ฐานข้อมูลทรัพย์กลาง 1 ทรัพย์บันทึกครั้งเดียว ใช้ได้ทั้งเช่าและขาย', usage:'เพิ่ม/แก้ทรัพย์ 5 แท็บ (ข้อมูล/สเปก/จุดเด่น/รูป/แปลภาษา) รหัสทรัพย์สร้างอัตโนมัติ', flow:'ทรัพย์ที่นี่ = แหล่งข้อมูลจริง นำไปสร้างเป็นประกาศได้หลายอัน' },
+            { name:'Listings (ประกาศ)', ...ADMIN, benefit:'ทรัพย์ 1 อันประกาศได้หลายแบบ (เช่า/ขาย แยกกัน) แต่ละอันมีราคา+สถานะของตัวเอง', usage:'สร้างประกาศจากทรัพย์ที่มี → ตั้งดีล/ราคา → เผยแพร่ ระบบพาไปหน้าเว็บที่ถูกหมวด', flow:'กด "เผยแพร่" → ประกาศไปโผล่บนหน้าเว็บกลุ่มที่ตรง (โรงงานเช่า ฯลฯ) ทันที' },
+            { name:'CMS (จัดการหน้าเว็บ)', ...ADMIN, benefit:'แก้ทุก section ของหน้าเว็บเอง — รูป หัวข้อ ข้อความ ไม่ต้องจ้างโปรแกรมเมอร์', usage:'เลือกหน้า → เลือก section → แก้ข้อความ/เปลี่ยนรูป → มี preview เห็นผลก่อนเผยแพร่', flow:'แก้ที่นี่ → หน้าเว็บจริงเปลี่ยนตาม' },
+            { name:'Media (คลังรูป)', ...ADMIN, benefit:'ที่เก็บรูปกลาง จัดหมวด ค้นหาง่าย ใช้ซ้ำได้ทุกที่', usage:'อัปโหลด/จัดหมวด แล้วเลือกไปใช้ในทรัพย์หรือหน้าเว็บ', flow:'' },
+            { name:'บทความ (Content)', ...ADMIN, benefit:'เขียนบทความ 3 ภาษาเพื่อดึงคนจาก Google และให้ AI อ้างอิง', usage:'เขียน + แปล + ใส่รูป + ตั้ง SEO แล้วเผยแพร่', flow:'' },
+          ],
+        },
+        {
+          title:'4. ตั้งค่าระบบ + บริการเสริม', sub:'ปรับแต่งระบบ ควบคุมผู้ใช้ และต่อยอด', badgeBg:'#F0ECF9', icon:ic(P.cog,'#7A3FB0',20),
+          pages: [
+            { name:'Branding & Theme', ...SET, benefit:'เปลี่ยนโลโก้/สี/ฟอนต์ทั้งเว็บได้เอง — ทำเว็บใหม่ให้ลูกค้ารายอื่นได้ใน 2 นาที', usage:'เลือกพรีเซ็ตสี หรือปรับเอง ดู preview สดก่อนบันทึก', flow:'' },
+            { name:'Users & Roles', ...SET, benefit:'คุมว่าใครทำอะไรได้ — นายหน้าเห็นเฉพาะงานตัวเอง แอดมินเห็นทั้งหมด ปลอดภัย', usage:'เชิญผู้ใช้ กำหนดบทบาท (6 แบบ) ดูตารางสิทธิ์', flow:'' },
+            { name:'Geography & Field Builder', ...SET, benefit:'จัดการตัวเลือกในระบบเอง — จังหวัด/นิคม/ประเภท/ระบบไฟฟ้า เพิ่ม-ลดได้เอง', usage:'เพิ่ม/แก้พื้นที่และฟิลด์ ตัวเลือกจะไปโผล่ในฟอร์มทรัพย์อัตโนมัติ', flow:'' },
+            { name:'Audit Logs', ...SET, benefit:'บันทึกทุกการเปลี่ยนแปลง ใครแก้อะไรเมื่อไหร่ — ตรวจสอบย้อนหลังได้', usage:'ค้นหา/กรองดูประวัติ เห็นค่าก่อน-หลังการแก้', flow:'' },
+            { name:'SEO · GEO · AEO', ...SET, benefit:'บริการเสริมดันเว็บติด Google + ให้ AI อ้างอิง (ChatGPT/Perplexity)', usage:'เปิดใช้บริการ แล้วอัปโหลด llms.txt + robots.txt เริ่มทำงานทันที', flow:'' },
+          ],
+        },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

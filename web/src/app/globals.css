@@ -1,0 +1,91 @@
+/* ============================================================
+   Ported verbatim from design/Home.dc.html <style> (tokens,
+   keyframes, media queries, parallax). Do not "improve" — this
+   is the pixel source. Hover helpers (bottom) replace the DC
+   `style-hover` feature which React does not support.
+   ============================================================ */
+* { box-sizing: border-box; }
+:root { --bg:#F9F8F5; --bg2:#F3F0EC; --surface:#FFFFFF; --tint:#EEF4F3; --text:#28251D; --muted:#5F5A52; --muted2:#7A7974; --muted3:#9B968D; --border:#E7E3DC; --accent:#034956; }
+html, body { margin: 0; }
+body { font-family: 'Noto Sans Thai','Inter',system-ui,sans-serif; color: var(--text); background: var(--bg); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+a { color: var(--accent); text-decoration: none; }
+
+@keyframes scrollDot { 0%{transform:translateY(0);opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{transform:translateY(12px);opacity:0} }
+@keyframes scrollBob { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(7px)} }
+@keyframes chevPulse { 0%,100%{opacity:.3} 50%{opacity:1} }
+.no-sb { scrollbar-width:none; -ms-overflow-style:none; }
+.no-sb::-webkit-scrollbar { display:none; }
+img, image-slot { max-width:100%; }
+svg { stroke-linecap:round !important; stroke-linejoin:round !important; }
+svg[fill="none"] { stroke-width:1.7px !important; }
+#mobile-menu-btn { display:none; }
+@media (max-width:1024px) {
+  header nav > *:not(#mobile-menu-btn) { display:none !important; }
+  #mobile-menu-btn { display:flex !important; }
+}
+@media (max-width:980px) {
+  header nav a:not([style*="border-radius: 9999px"]) { display:none !important; }
+  [style*="grid-template-columns: 0.82fr 1.18fr"] { grid-template-columns:1fr !important; }
+  [style*="grid-template-columns: 0.92fr 1.08fr"] { grid-template-columns:1fr !important; }
+  [style*="grid-template-columns: 1.08fr 0.92fr"] { grid-template-columns:1fr !important; }
+  [style*="grid-template-columns: repeat(3, 1fr)"] { grid-template-columns:repeat(2,1fr) !important; }
+  [style*="grid-template-columns: repeat(4, 1fr)"] { grid-template-columns:repeat(2,1fr) !important; }
+  [style*="grid-template-columns: 1.4fr 1fr 1fr 1.4fr"] { grid-template-columns:1fr 1fr !important; }
+  [style*="height: 52px"][style*="position: relative"] { display:none !important; }
+  [style*="height: 560px"] { height:auto !important; min-height:500px !important; }
+  [style*="calc(33.3333% - 16px)"] { flex:0 0 46% !important; }
+  [style*="padding: 52px 52px 52px 56px"] { padding:40px 32px !important; }
+  h1[style*="font-size: 44px"] { font-size:34px !important; }
+}
+@media (max-width:640px) {
+  [style*="grid-template-columns: repeat(2, 1fr)"] { grid-template-columns:1fr !important; }
+  [style*="grid-template-columns: repeat(3, 1fr)"] { grid-template-columns:1fr !important; }
+  [style*="grid-template-columns: repeat(4, 1fr)"] { grid-template-columns:1fr !important; }
+  [style*="grid-template-columns: 1.4fr 1fr 1fr 1.4fr"] { grid-template-columns:1fr !important; }
+  [style*="grid-template-columns: 0.82fr 1.18fr"] { grid-template-columns:1fr !important; }
+  [style*="grid-template-columns: 0.92fr 1.08fr"] { grid-template-columns:1fr !important; }
+  [style*="grid-template-columns: 1.08fr 0.92fr"] { grid-template-columns:1fr !important; }
+  [style*="calc(33.3333% - 16px)"] { flex:0 0 84% !important; }
+  [style*="max-width: 1200px"] { padding-left:16px !important; padding-right:16px !important; }
+  [style*="padding: 52px 52px 52px 56px"] { padding:32px 22px !important; }
+  h1[style*="font-size: 44px"] { font-size:28px !important; }
+  h2[style*="font-size: 34px"] { font-size:25px !important; }
+  h2[style*="font-size: 30px"] { font-size:23px !important; }
+  #hero-rotator { height:1.05em !important; vertical-align:-0.12em !important; }
+  #hero-rotator span { height:1.05em !important; }
+  #cta-band-grid { grid-template-columns:1fr !important; }
+}
+@keyframes pinPulse { 0%{transform:scale(.8);opacity:.9} 100%{transform:scale(2.1);opacity:0} }
+@keyframes cookieUp { 0%{transform:translateY(30px);opacity:0} 100%{transform:translateY(0);opacity:1} }
+@keyframes mesh1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(60px,-30px) scale(1.25)} }
+@keyframes mesh2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-50px,40px) scale(1.15)} }
+@keyframes lineUp { from{transform:translateY(112%)} to{transform:translateY(0)} }
+@keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+@keyframes rotWords { 0%,15%{transform:translateY(0)} 23%,38%{transform:translateY(-1.18em)} 46%,61%{transform:translateY(-2.36em)} 69%,84%{transform:translateY(-3.54em)} 92%,100%{transform:translateY(-4.72em)} }
+@keyframes ctaShine { 0%{transform:translateX(-120%) skewX(-18deg)} 100%{transform:translateX(320%) skewX(-18deg)} }
+@keyframes floatY { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-9px)} }
+@keyframes revealUp { from{opacity:0;transform:translateY(44px)} to{opacity:1;transform:none} }
+@keyframes heroPar { from{transform:translateY(0) scale(1.06)} to{transform:translateY(96px) scale(1.14)} }
+@keyframes pinBurstA { 0%{transform:scale(.4);opacity:.85} 70%{opacity:.18} 100%{transform:scale(3.4);opacity:0} }
+@keyframes pinBurstB { 0%{transform:scale(.4);opacity:.85} 70%{opacity:.18} 100%{transform:scale(3.4);opacity:0} }
+@keyframes pinDrop { 0%{transform:translate(-50%,-140%);opacity:0} 60%{transform:translate(-50%,-40%)} 100%{transform:translate(-50%,-50%);opacity:1} }
+@keyframes arrowBob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
+@keyframes mesh3 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(30px,30px) scale(1.3)} }
+@keyframes badgeSpin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+@supports (animation-timeline: view()) {
+  [data-anim] { animation: revealUp linear both; animation-timeline: view(); animation-range: entry 2% entry 42%; }
+}
+@supports (animation-timeline: scroll()) {
+  #hero-parallax { animation: heroPar linear both; animation-timeline: scroll(root); animation-range: 0 580px; will-change: transform; }
+}
+
+/* ---- Hover helpers (replace DC style-hover) ---- */
+.nav-link:hover { color: var(--accent); }
+.dd-item:hover { background: var(--tint); color: var(--accent); }
+.lang-trigger:hover { border-color: var(--accent); }
+.lang-opt:hover { background: var(--tint); }
+.contact-btn:hover { box-shadow: 0 6px 16px rgba(45,251,145,.4); }
+.search-btn:hover { transform: translateY(-1px); }
+.close-btn:hover { background: #273c33; color: #fff; }
+.mdrawer-close:hover { background: #273c33; color: #fff; }
+.scroll-indicator:hover { }

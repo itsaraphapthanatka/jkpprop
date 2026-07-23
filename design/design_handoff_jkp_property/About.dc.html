@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+  *{box-sizing:border-box;}
+  :root{--bg:#F9F8F5;--bg2:#F3F0EC;--surface:#FFFFFF;--tint:#EEF4F3;--text:#28251D;--muted:#5F5A52;--muted2:#7A7974;--muted3:#9B968D;--border:#E7E3DC;--accent:#034956;}
+  body{margin:0;font-family:'Noto Sans Thai','Inter',system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  a{text-decoration:none;color:var(--accent);}
+  a:hover{color:#023742;}
+  svg{stroke-linecap:round !important;stroke-linejoin:round !important;}
+  svg[fill="none"]{stroke-width:1.7px !important;}
+  #mobile-menu-btn{display:none;}
+  @media (max-width:1024px){
+    header nav > *:not(#mobile-menu-btn){display:none !important;}
+    #mobile-menu-btn{display:flex !important;}
+  }
+  .no-sb::-webkit-scrollbar{display:none;}
+  @media (max-width:980px){
+    #story-grid{grid-template-columns:1fr !important;}
+    #team-grid{grid-template-columns:1fr !important;}
+    #award-grid{grid-template-columns:1fr !important;}
+    footer > div:first-child{grid-template-columns:1fr 1fr !important;gap:32px !important;}
+  }
+  @media (max-width:640px){
+    header nav a:not([style*="border-radius: 9999px"]){display:none !important;}
+    footer > div:first-child{grid-template-columns:1fr !important;padding:56px 24px 32px !important;}
+    footer > div:last-child > div{flex-direction:column;gap:10px;align-items:flex-start !important;}
+    h1[style*="font-size: 34px"]{font-size:26px !important;}
+    section[style*="height: 220px"]{height:190px !important;}
+    #stats-row{flex-wrap:wrap;gap:20px !important;}
+    #logo-row{gap:20px !important;}
+  }
+</style>
+</helmet>
+
+<div style="width:100%;background:var(--bg);min-height:100vh;">
+
+  <!-- HEADER -->
+  <header style="position:sticky;top:0;z-index:200;background:rgba(249,248,245,.92);-webkit-backdrop-filter:blur(16px) saturate(1.5);backdrop-filter:blur(16px) saturate(1.5);border-bottom:1px solid var(--border);">
+    <div style="max-width:1320px;margin:0 auto;padding:0 24px;height:72px;display:flex;align-items:center;justify-content:space-between;">
+      <a href="Home.dc.html" style="display:flex;align-items:center;"><img src="assets/jkp-logo-green.png" alt="JKP Property" style="height:42px;width:auto;display:block;"></a>
+      <nav style="display:flex;align-items:center;gap:26px;">
+        <div style="position:relative;" onMouseEnter="{{ navFactory.open }}" onMouseLeave="{{ navFactory.close }}">
+          <div style="display:flex;align-items:center;gap:4px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;padding:4px 0;" style-hover="color:var(--accent);">โรงงาน
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="{{ navFactory.chevStyle }}"><path d="M6 9l6 6 6-6"></path></svg>
+          </div>
+          <sc-if value="{{ navFactory.isOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;top:100%;left:0;padding-top:10px;width:150px;">
+              <div style="background:var(--surface);border-radius:14px;box-shadow:0 20px 44px rgba(0,0,0,.18);padding:8px;">
+                <a href="FactoryRent.dc.html" style="display:block;padding:10px 12px;border-radius:10px;font-size:13.5px;font-weight:600;color:var(--text);" style-hover="background:var(--tint);color:var(--accent);">โรงงานให้เช่า</a>
+                <a href="FactorySale.dc.html" style="display:block;padding:10px 12px;border-radius:10px;font-size:13.5px;font-weight:600;color:var(--text);" style-hover="background:var(--tint);color:var(--accent);">โรงงานสำหรับขาย</a>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+        <div style="position:relative;" onMouseEnter="{{ navWarehouse.open }}" onMouseLeave="{{ navWarehouse.close }}">
+          <div style="display:flex;align-items:center;gap:4px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;padding:4px 0;" style-hover="color:var(--accent);">โกดัง
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="{{ navWarehouse.chevStyle }}"><path d="M6 9l6 6 6-6"></path></svg>
+          </div>
+          <sc-if value="{{ navWarehouse.isOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;top:100%;left:0;padding-top:10px;width:150px;">
+              <div style="background:var(--surface);border-radius:14px;box-shadow:0 20px 44px rgba(0,0,0,.18);padding:8px;">
+                <a href="WarehouseRent.dc.html" style="display:block;padding:10px 12px;border-radius:10px;font-size:13.5px;font-weight:600;color:var(--text);" style-hover="background:var(--tint);color:var(--accent);">โกดังให้เช่า</a>
+                <a href="WarehouseSale.dc.html" style="display:block;padding:10px 12px;border-radius:10px;font-size:13.5px;font-weight:600;color:var(--text);" style-hover="background:var(--tint);color:var(--accent);">โกดังสำหรับขาย</a>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+        <a href="FAQ.dc.html" style="font-size:14px;font-weight:500;color:var(--muted);" style-hover="color:var(--accent);">คำถามพบบ่อย</a>
+        <a href="About.dc.html" style="font-size:14px;font-weight:600;color:var(--accent);">เกี่ยวกับเรา</a>
+        <div style="position:relative;">
+          <div onClick="{{ toggleLang }}" style="display:flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid var(--border);border-radius:9px;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;" style-hover="border-color:var(--accent);">
+            <sc-if value="{{ langFlagTh }}"><svg width="16" height="16" viewBox="0 0 24 24" style="border-radius:2px;flex-shrink:0;"><rect width="24" height="24" fill="#F4F5F8"></rect><rect width="24" height="4" fill="#A51931"></rect><rect y="4" width="24" height="4" fill="#F4F5F8"></rect><rect y="8" width="24" height="8" fill="#2D2A4A"></rect><rect y="16" width="24" height="4" fill="#F4F5F8"></rect><rect y="20" width="24" height="4" fill="#A51931"></rect></svg></sc-if>
+            <sc-if value="{{ langFlagEn }}"><svg width="16" height="16" viewBox="0 0 24 24" style="border-radius:2px;flex-shrink:0;"><rect width="24" height="24" fill="#012169"></rect><path d="M0 0L24 24M24 0L0 24" stroke="#fff" stroke-width="3"></path><path d="M12 0V24M0 12H24" stroke="#fff" stroke-width="5"></path><path d="M12 0V24M0 12H24" stroke="#C8102E" stroke-width="2.4"></path></svg></sc-if>
+            <sc-if value="{{ langFlagZh }}"><svg width="16" height="16" viewBox="0 0 24 24" style="border-radius:2px;flex-shrink:0;"><rect width="24" height="24" fill="#EE1C25"></rect><path d="M6 5l1 3 3-1-2 2.4 2 2.4-3-1-1 3-1-3-3 1 2-2.4-2-2.4 3 1z" fill="#FFDE00"></path></svg></sc-if>
+            {{ langLabel }}
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#7A7974" stroke-width="2.5" style="{{ langChevStyle }}"><path d="M6 9l6 6 6-6"></path></svg>
+          </div>
+          <sc-if value="{{ langOpen }}" hint-placeholder-val="{{ false }}">
+            <div onClick="{{ stopProp }}" style="position:absolute;top:calc(100% + 10px);right:0;width:200px;background:var(--surface);border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.22);padding:8px;z-index:50;">
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px 10px;font-size:12.5px;font-weight:700;color:#D9A62B;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#D9A62B" stroke-width="1.8"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a13 13 0 010 18M12 3a13 13 0 000 18"></path></svg>เลือกภาษา</div>
+              <sc-for list="{{ langOptions }}" as="l" hint-placeholder-count="3">
+                <div onClick="{{ l.select }}" style="{{ l.style }}">
+                  <div dangerouslySetInnerHTML="{{ l.flagHtml }}" style="width:26px;height:26px;border-radius:6px;overflow:hidden;flex-shrink:0;display:flex;"></div>
+                  <div>
+                    <div style="font-size:14px;font-weight:700;color:var(--text);">{{ l.name }}</div>
+                    <div style="font-size:11.5px;color:var(--muted2);">{{ l.code }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+        <a href="Contact.dc.html" style="display:flex;align-items:center;gap:7px;height:40px;padding:0 20px;border-radius:9999px;background:#2DFB91;color:#022310;font-size:13px;font-weight:800;transition:transform .2s,box-shadow .2s;" style-hover="transform:translateY(-2px);box-shadow:0 8px 20px rgba(45,251,145,.4);">ติดต่อทีมงาน
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#022310" stroke-width="2.4"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg>
+        </a>
+        <div id="mobile-menu-btn" onClick="{{ toggleMobileMenu }}" style="width:40px;height:40px;border-radius:9999px;display:none;align-items:center;justify-content:center;cursor:pointer;background:var(--tint);flex-shrink:0;">
+          <div style="position:relative;width:18px;height:13px;">
+            <span style="{{ hamburgerLine1 }}"></span>
+            <span style="{{ hamburgerLine2 }}"></span>
+            <span style="{{ hamburgerLine3 }}"></span>
+          </div>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <div onClick="{{ closeMobileMenu }}" style="{{ mobileOverlayStyle }}"></div>
+  <div onClick="{{ stopPropMobile }}" style="{{ mobileDrawerStyle }}">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 20px 16px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <img src="assets/jkp-logo-green.png" alt="JKP Property" style="height:32px;width:auto;display:block;">
+      <div onClick="{{ closeMobileMenu }}" style="width:34px;height:34px;border-radius:9999px;background:var(--tint);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);transition:background .2s,color .2s;" style-hover="background:#273c33;color:#fff;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18"></path><path d="M6 6l12 12"></path></svg>
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;">
+      <div onClick="{{ mFactory.toggle }}" style="display:flex;align-items:center;justify-content:space-between;padding:15px 10px;border-radius:12px;cursor:pointer;">
+        <span style="font-size:15.5px;font-weight:700;color:var(--text);">โรงงาน</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.4" style="{{ mFactory.chevStyle }}"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+      <sc-if value="{{ mFactory.open }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:0 10px 10px 22px;display:flex;flex-direction:column;gap:2px;">
+          <a href="FactoryRent.dc.html" style="padding:10px 12px;border-radius:10px;font-size:14px;font-weight:600;color:var(--muted);">โรงงานให้เช่า</a>
+          <a href="FactorySale.dc.html" style="padding:10px 12px;border-radius:10px;font-size:14px;font-weight:600;color:var(--muted);">โรงงานสำหรับขาย</a>
+        </div>
+      </sc-if>
+      <div onClick="{{ mWarehouse.toggle }}" style="display:flex;align-items:center;justify-content:space-between;padding:15px 10px;border-radius:12px;cursor:pointer;">
+        <span style="font-size:15.5px;font-weight:700;color:var(--text);">โกดัง</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.4" style="{{ mWarehouse.chevStyle }}"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+      <sc-if value="{{ mWarehouse.open }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:0 10px 10px 22px;display:flex;flex-direction:column;gap:2px;">
+          <a href="WarehouseRent.dc.html" style="padding:10px 12px;border-radius:10px;font-size:14px;font-weight:600;color:var(--muted);">โกดังให้เช่า</a>
+          <a href="WarehouseSale.dc.html" style="padding:10px 12px;border-radius:10px;font-size:14px;font-weight:600;color:var(--muted);">โกดังสำหรับขาย</a>
+        </div>
+      </sc-if>
+      <a href="FAQ.dc.html" style="display:block;padding:15px 10px;border-radius:12px;font-size:15.5px;font-weight:700;color:var(--text);">คำถามพบบ่อย</a>
+      <a href="About.dc.html" style="display:block;padding:15px 10px;border-radius:12px;font-size:15.5px;font-weight:700;color:var(--text);">เกี่ยวกับเรา</a>
+      <div style="margin-top:12px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:8px;">
+        <sc-for list="{{ mobileLangOptions }}" as="l" hint-placeholder-count="3">
+          <div onClick="{{ l.select }}" style="{{ l.style }}">{{ l.code }}</div>
+        </sc-for>
+      </div>
+      <a href="Contact.dc.html" style="margin-top:18px;display:flex;align-items:center;justify-content:center;gap:8px;height:48px;border-radius:9999px;background:#2DFB91;color:#022310;font-size:14.5px;font-weight:800;">ติดต่อทีมงาน
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#022310" stroke-width="2.4"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <section style="position:relative;height:220px;">
+    <div style="position:absolute;inset:0;overflow:hidden;border-bottom-right-radius:72px;">
+      <image-slot id="about-hero" shape="rect" fit="cover" placeholder="ภาพเมือง/สกายไลน์" src="https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1600&q=80" credit="Photo by Denys Nevozhai on Unsplash" credit-href="https://unsplash.com/@dnevozhai"></image-slot>
+    </div>
+    <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(2,29,14,.82) 0%,rgba(2,29,14,.5) 55%,rgba(2,29,14,.28) 100%);pointer-events:none;border-bottom-right-radius:72px;"></div>
+    <div style="position:relative;z-index:2;max-width:1320px;margin:0 auto;padding:0 24px;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
+      <h1 style="margin:0;font-size:34px;font-weight:800;color:#fff;letter-spacing:-.01em;">เกี่ยวกับเรา</h1>
+      <p style="margin:10px 0 0;font-size:14.5px;color:#E8FFF0;max-width:520px;">ทีมผู้เชี่ยวชาญด้านอสังหาริมทรัพย์อุตสาหกรรมที่เชื่อถือได้ทั่วประเทศไทย</p>
+    </div>
+  </section>
+
+  <!-- BREADCRUMB -->
+  <div style="max-width:1320px;margin:0 auto;padding:16px 24px 0;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted2);">
+    <a href="Home.dc.html" style="color:var(--muted2);transition:color .2s;" style-hover="color:var(--accent);">หน้าแรก</a>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted3)" stroke-width="2"><path d="M9 6l6 6-6 6"></path></svg>
+    <span style="color:var(--text);font-weight:600;">เกี่ยวกับเรา</span>
+  </div>
+
+  <!-- STORY CARD -->
+  <section style="max-width:1320px;margin:24px auto 0;padding:0 24px;">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:44px;box-shadow:0 2px 10px rgba(0,0,0,.04);">
+      <div id="story-grid" style="display:grid;grid-template-columns:1.15fr .85fr;gap:44px;align-items:start;">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="width:26px;height:2px;background:var(--accent);border-radius:2px;"></span>
+            <span style="font-size:13px;font-weight:700;letter-spacing:.08em;color:var(--accent);text-transform:uppercase;">เกี่ยวกับเรา</span>
+          </div>
+          <h2 style="margin:10px 0 4px;font-size:30px;font-weight:800;color:var(--text);letter-spacing:-.01em;">เรื่องราวของเรา</h2>
+          <div style="font-size:13.5px;color:var(--muted2);">JKP Property &middot; Founded by ทีมผู้ก่อตั้ง</div>
+          <p style="margin:18px 0 0;font-size:14.5px;color:var(--muted);line-height:1.8;">JKP Property ก่อตั้งขึ้นเพื่อเป็นตัวกลางที่น่าเชื่อถือระหว่างนักลงทุนและเจ้าของทรัพย์อสังหาริมทรัพย์อุตสาหกรรมทั่วประเทศไทย ด้วยความเข้าใจตลาดโรงงานและโกดังอย่างลึกซึ้ง ทีมงานของเราคัดกรองทรัพย์ทุกรายการก่อนเผยแพร่ พร้อมดูแลลูกค้าตั้งแต่ค้นหาจนปิดดีลอย่างโปร่งใสและเป็นธรรม</p>
+          <div id="stats-row" style="display:flex;gap:36px;margin-top:28px;">
+            <div>
+              <div style="font-size:26px;font-weight:800;color:var(--accent);">2019</div>
+              <div style="margin-top:2px;font-size:12.5px;color:var(--muted2);">ก่อตั้ง</div>
+            </div>
+            <div>
+              <div style="font-size:26px;font-weight:800;color:var(--accent);">2,000+</div>
+              <div style="margin-top:2px;font-size:12.5px;color:var(--muted2);">ทรัพย์ในระบบ</div>
+            </div>
+            <div>
+              <div style="font-size:26px;font-weight:800;color:var(--accent);">12 ปี</div>
+              <div style="margin-top:2px;font-size:12.5px;color:var(--muted2);">ประสบการณ์ทีมงาน</div>
+            </div>
+          </div>
+          <a href="Contact.dc.html" style="margin-top:26px;display:inline-flex;align-items:center;gap:8px;height:46px;padding:0 24px;border-radius:9999px;background:#273c33;color:#fff;font-size:14px;font-weight:700;transition:transform .2s,box-shadow .2s;" style-hover="transform:translateY(-2px);box-shadow:0 10px 24px rgba(39,60,51,.4);">ติดต่อเรา
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg>
+          </a>
+        </div>
+        <div style="position:relative;border-radius:20px;overflow:hidden;box-shadow:0 20px 44px rgba(2,35,16,.15);">
+          <image-slot id="founder-photo" shape="rect" fit="cover" placeholder="รูปผู้ก่อตั้ง" src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=700&q=80" credit="Photo by LinkedIn Sales Solutions on Unsplash" credit-href="https://unsplash.com/@linkedinsalesnavigator" style="height:360px;"></image-slot>
+          <div style="position:absolute;top:14px;left:14px;display:flex;align-items:center;gap:6px;height:26px;padding:0 12px;border-radius:9999px;background:rgba(255,255,255,.92);color:var(--accent);font-size:11px;font-weight:700;transition:transform .2s;" style-hover="transform:scale(1.05);">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.4"><path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 19.3 7.2 17l.9-5.4L4.2 7.7l5.4-.8z"></path></svg>ผู้ก่อตั้ง &middot; EST. 2019</div>
+          <div style="position:absolute;bottom:0;left:0;right:0;padding:16px 18px;background:linear-gradient(180deg,rgba(2,29,14,0) 0%,rgba(2,29,14,.72) 100%);">
+            <div style="font-size:17px;font-weight:800;color:#fff;">คุณกิตติพงษ์ พรหมทอง</div>
+            <div style="font-size:12.5px;color:#DDE8E2;">Founder &middot; กรุงเทพฯ &ndash; ชลบุรี</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:36px;padding-top:32px;border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(3,1fr);gap:28px;">
+        <sc-for list="{{ pillars }}" as="p" hint-placeholder-count="3">
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--muted3);">{{ p.num }}</div>
+            <div style="margin-top:6px;font-size:15px;font-weight:700;color:var(--text);">{{ p.title }}</div>
+            <div style="margin-top:4px;font-size:13px;color:var(--muted);line-height:1.6;">{{ p.desc }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <!-- TEAM -->
+  <section style="max-width:1320px;margin:36px auto 0;padding:0 24px;">
+    <div id="team-grid" style="display:grid;grid-template-columns:.62fr 1.38fr;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:24px;overflow:hidden;">
+      <div style="position:relative;overflow:hidden;background:linear-gradient(160deg,#0A0E0C 0%,#0A0E0C 45%,#0F2318 100%);padding:40px 34px;display:flex;flex-direction:column;justify-content:center;">
+        <div style="position:absolute;top:-60px;right:-60px;width:220px;height:220px;border-radius:9999px;background:radial-gradient(circle,rgba(45,251,145,.16),rgba(45,251,145,0) 70%);pointer-events:none;"></div>
+        <div style="position:relative;display:inline-flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <span style="width:22px;height:2px;background:#2DFB91;border-radius:2px;"></span>
+          <span style="font-size:12px;font-weight:700;letter-spacing:.08em;color:#2DFB91;text-transform:uppercase;">ทีมงาน</span>
+        </div>
+        <h2 style="position:relative;margin:10px 0 0;font-size:24px;font-weight:800;color:#fff;letter-spacing:-.01em;">พบกับทีมงานของเรา</h2>
+        <p style="position:relative;margin:14px 0 0;font-size:13.5px;color:#B9C2BD;line-height:1.7;">ทีมผู้เชี่ยวชาญที่คัดเลือกด้วยความรอบคอบทุกด้าน ด้านอสังหาริมทรัพย์อุตสาหกรรมในประเทศไทย ด้วยความเข้าใจในพื้นที่และความชำนาญในการให้บริการ เรามีประสบการณ์การทำงานที่หลากหลายเพื่อสร้างความไว้วางใจให้กับลูกค้าทุกท่าน</p>
+        <div style="position:relative;display:flex;gap:10px;margin-top:22px;">
+          <div onClick="{{ teamPrev }}" style="width:40px;height:40px;border-radius:9999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;transition:all .2s;" style-hover="background:#2DFB91;color:#04140C;border-color:#2DFB91;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 6l-6 6 6 6"></path></svg></div>
+          <div onClick="{{ teamNext }}" style="width:40px;height:40px;border-radius:9999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;transition:all .2s;" style-hover="background:#2DFB91;color:#04140C;border-color:#2DFB91;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 6l6 6-6 6"></path></svg></div>
+        </div>
+      </div>
+      <div style="padding:28px;overflow:hidden;">
+        <div ref="{{ teamRowRef }}" class="no-sb" style="display:flex;gap:18px;overflow-x:auto;scroll-behavior:smooth;">
+          <sc-for list="{{ team }}" as="m" hint-placeholder-count="4">
+            <div style="flex:0 0 200px;">
+              <div style="position:relative;border-radius:16px;overflow:hidden;height:240px;">
+                <image-slot id="{{ m.slot }}" shape="rect" fit="cover" placeholder="รูปทีมงาน" src="{{ m.img }}" credit="{{ m.credit }}" credit-href="{{ m.creditHref }}"></image-slot>
+                <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(2,29,14,0) 55%,rgba(2,29,14,.55) 100%);pointer-events:none;"></div>
+              </div>
+              <div style="margin-top:10px;font-size:14px;font-weight:700;color:var(--text);">{{ m.name }}</div>
+              <div style="font-size:12.5px;color:var(--muted2);">{{ m.role }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AWARD -->
+  <section style="max-width:1320px;margin:36px auto 0;padding:0 24px;">
+    <div id="award-grid" style="display:grid;grid-template-columns:.85fr 1.15fr;gap:0;background:var(--bg2);border-radius:24px;overflow:hidden;">
+      <div style="position:relative;">
+        <image-slot id="award-photo" shape="rect" fit="cover" placeholder="รูปรับรางวัล" src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=800&q=80" credit="Photo by Ian Schneider on Unsplash" credit-href="https://unsplash.com/@goian" style="height:100%;min-height:280px;"></image-slot>
+      </div>
+      <div style="padding:40px 44px;display:flex;flex-direction:column;justify-content:center;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="width:26px;height:2px;background:var(--accent);border-radius:2px;"></span>
+          <span style="font-size:13px;font-weight:700;letter-spacing:.08em;color:var(--accent);text-transform:uppercase;">รางวัล</span>
+        </div>
+        <h2 style="margin:10px 0 0;font-size:26px;font-weight:800;color:var(--text);letter-spacing:-.01em;">เอเจนต์อสังหาริมทรัพย์อุตสาหกรรมที่ดีที่สุด</h2>
+        <p style="margin:14px 0 0;font-size:14px;color:var(--muted);line-height:1.75;">JKP Property ได้รับรางวัล The Best Agent in Industrial Property จากสมาคมอสังหาริมทรัพย์ไทย ตอกย้ำความมุ่งมั่นในการให้บริการที่มีคุณภาพและความโปร่งใสในธุรกิจอสังหาริมทรัพย์อุตสาหกรรมของไทย</p>
+        <div style="margin-top:10px;font-size:13px;font-weight:600;color:var(--accent);">Thailand Real Estate Agent Awards 2025</div>
+        <a href="#" style="margin-top:18px;display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 22px;border-radius:9999px;background:var(--text);color:#fff;font-size:13.5px;font-weight:700;width:fit-content;transition:transform .2s,box-shadow .2s;" style-hover="transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.28);">ดูรางวัลของเรา
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURED IN -->
+  <section style="max-width:1200px;margin:0 auto;padding:72px 24px;text-align:center;">
+    <div style="font-size:12.5px;font-weight:700;letter-spacing:.06em;color:var(--muted2);text-transform:uppercase;">การรับรองจากวงการ</div>
+    <h2 style="margin:8px 0 32px;font-size:26px;font-weight:800;color:var(--text);">ได้รับการนำเสนอใน</h2>
+    <div id="logo-row" style="display:flex;justify-content:center;align-items:center;gap:44px;flex-wrap:wrap;opacity:.6;">
+      <sc-for list="{{ pressLogos }}" as="pl" hint-placeholder-count="6">
+        <div style="font-size:16px;font-weight:800;color:var(--muted);letter-spacing:.01em;">{{ pl }}</div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer style="background:#000000;color:#C9C5BD;border-top-left-radius:34px;border-top-right-radius:34px;">
+    <div style="max-width:1200px;margin:0 auto;padding:96px 24px 52px;display:grid;grid-template-columns:1.4fr 1fr 1fr 1.4fr;gap:48px;">
+      <div>
+        <img src="assets/jkp-logo-white.png" alt="JKP Property" style="height:46px;width:auto;display:block;">
+        <p style="margin:16px 0 0;font-size:14px;line-height:1.7;color:#8E8B84;max-width:280px;">แพลตฟอร์มนายหน้าโรงงานและโกดังอุตสาหกรรม เชื่อมนักลงทุนกับทรัพย์ที่ผ่านการคัดกรองทั่วประเทศไทย</p>
+        <div style="margin-top:20px;display:flex;gap:10px;">
+          <a href="#" style="width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;color:#C9C5BD;transition:all .2s;" style-hover="background:#034956;color:#fff;"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M13 22v-8h2.7l.4-3H13V9c0-.9.3-1.5 1.5-1.5H16V4.8c-.3 0-1.3-.1-2.4-.1-2.4 0-4 1.4-4 4.1V11H7v3h2.6v8z"></path></svg></a>
+          <a href="#" style="width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;color:#C9C5BD;transition:all .2s;" style-hover="background:#034956;color:#fff;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"></circle></svg></a>
+          <a href="#" style="width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;color:#C9C5BD;transition:all .2s;" style-hover="background:#034956;color:#fff;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 01-9 8.4c-1.5 0-2.9-.4-4.1-1L3 20l1.2-4.8A8.3 8.3 0 013 11.5 8.5 8.5 0 0112 3a8.5 8.5 0 019 8.5z"></path></svg></a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:14px;font-weight:600;color:#fff;margin-bottom:16px;">อสังหาริมทรัพย์</div>
+        <div style="display:flex;flex-direction:column;gap:11px;font-size:14px;">
+          <a href="FactoryRent.dc.html" style="color:#C9C5BD;">โรงงานให้เช่า</a>
+          <a href="WarehouseRent.dc.html" style="color:#C9C5BD;">โกดังให้เช่า</a>
+          <a href="#" style="color:#C9C5BD;">ที่ดินอุตสาหกรรม</a>
+          <a href="FactorySale.dc.html" style="color:#C9C5BD;">โรงงานขาย</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:14px;font-weight:600;color:#fff;margin-bottom:16px;">บริษัท</div>
+        <div style="display:flex;flex-direction:column;gap:11px;font-size:14px;">
+          <a href="About.dc.html" style="color:#C9C5BD;">เกี่ยวกับเรา</a>
+          <a href="FAQ.dc.html" style="color:#C9C5BD;">คำถามพบบ่อย</a>
+          <a href="#" style="color:#C9C5BD;">บทความ</a>
+          <a href="Contact.dc.html" style="color:#C9C5BD;">ติดต่อเรา</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:14px;font-weight:600;color:#fff;margin-bottom:16px;">ข้อมูลติดต่อ</div>
+        <div style="display:flex;flex-direction:column;gap:12px;font-size:14px;color:#8E8B84;">
+          <div style="display:flex;align-items:flex-start;gap:9px;transition:color .2s;" style-hover="color:#2DFB91;"><svg style="flex-shrink:0;margin-top:2px;" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" stroke-width="2"><path d="M22 6l-10 7L2 6"></path><rect x="2" y="4" width="20" height="16" rx="2"></rect></svg>info@thaiindustrialproperty.com</div>
+          <div style="display:flex;align-items:flex-start;gap:9px;transition:color .2s;" style-hover="color:#2DFB91;"><svg style="flex-shrink:0;margin-top:2px;" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" stroke-width="2"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z"></path></svg>+66 90-000-0000</div>
+          <div style="display:flex;align-items:flex-start;gap:9px;transition:color .2s;" style-hover="color:#2DFB91;"><svg style="flex-shrink:0;margin-top:2px;" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>กรุงเทพมหานคร, ประเทศไทย</div>
+        </div>
+        <a href="Contact.dc.html" style="margin-top:20px;display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 22px;border-radius:9999px;background:#2DFB91;color:#04140C;font-size:14px;font-weight:800;transition:box-shadow .2s;" style-hover="box-shadow:0 10px 26px rgba(45,251,145,.45);">ติดต่อเรา
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg>
+        </a>
+      </div>
+    </div>
+    <div style="border-top:1px solid rgba(255,255,255,.1);">
+      <div style="max-width:1200px;margin:0 auto;padding:26px 24px;display:flex;justify-content:space-between;font-size:13px;color:#8E8B84;">
+        <div>© 2026 JKP PROPERTY. สงวนลิขสิทธิ์</div>
+        <div style="display:flex;gap:24px;"><a href="#" style="color:#8E8B84;">นโยบายความเป็นส่วนตัว</a><a href="#" style="color:#8E8B84;">ข้อกำหนดการใช้งาน</a></div>
+      </div>
+    </div>
+  </footer>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { navFactoryOpen: false, navWarehouseOpen: false, langOpen: false, lang: 'th' };
+
+  componentDidMount() { this.teamRef = null; }
+
+  renderVals() {
+    return {
+      pillars: [
+        { num:'01', title:'การสื่อสาร', desc:'สื่อสารได้ทั้งไทย อังกฤษ และจีน ไม่มีช่องว่างด้านภาษา' },
+        { num:'02', title:'ความน่าเชื่อถือ', desc:'ประสบการณ์กว่า 12 ปีในธุรกิจอสังหาริมทรัพย์อุตสาหกรรม' },
+        { num:'03', title:'ความรู้ตลาด', desc:'เข้าใจทำเลและกฎระเบียบของทุกจังหวัดในประเทศไทย' },
+      ],
+      team: this.teamData(),
+      teamRowRef: (el) => { this.teamRef = el; },
+      teamPrev: () => this.teamRef && this.teamRef.scrollBy({ left: -220, behavior: 'smooth' }),
+      teamNext: () => this.teamRef && this.teamRef.scrollBy({ left: 220, behavior: 'smooth' }),
+      pressLogos: ['BRAND INSIGHT','BIZ NEWS','MARKET WATCH','MGR ONLINE','THE STANDARD','PROPERTY TODAY'],
+      ...this.navVals(),
+      ...this.langVals(),
+      ...this.mobileVals(),
+    };
+  }
+
+  teamData() {
+    return [
+      { slot:'t1', name:'คุณปัทมนันท์ ธิติชนานันต์', role:'Sales Executive', img:'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=500&q=80', credit:'Photo by Christina Wocintechchat on Unsplash', creditHref:'https://unsplash.com/@wocintechchat' },
+      { slot:'t2', name:'คุณชนสิษฐ์ โชติกันภัย', role:'Sales Executive', img:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&q=80', credit:'Photo by LinkedIn Sales Solutions on Unsplash', creditHref:'https://unsplash.com/@linkedinsalesnavigator' },
+      { slot:'t3', name:'คุณวชิสรา ภูอาภรณ์', role:'Sales Executive', img:'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=500&q=80', credit:'Photo by Christina Wocintechchat on Unsplash', creditHref:'https://unsplash.com/@wocintechchat' },
+      { slot:'t4', name:'คุณธีรภัทร แสงทอง', role:'Property Consultant', img:'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500&q=80', credit:'Photo by LinkedIn Sales Solutions on Unsplash', creditHref:'https://unsplash.com/@linkedinsalesnavigator' },
+    ];
+  }
+
+  navVals() {
+    const S = this.state;
+    const mk = (key) => ({
+      isOpen: S[key],
+      open: () => this.setState({ [key]: true }),
+      close: () => this.setState({ [key]: false }),
+      chevStyle: { transform: S[key] ? 'rotate(180deg)' : 'none', transition:'transform .2s' },
+    });
+    return { navFactory: mk('navFactoryOpen'), navWarehouse: mk('navWarehouseOpen') };
+  }
+
+  langVals() {
+    const S = this.state;
+    const flagTh = '<svg width="26" height="26" viewBox="0 0 24 24"><rect width="24" height="24" fill="#F4F5F8"></rect><rect width="24" height="4.8" fill="#241B54"></rect><rect y="4.8" width="24" height="2.8" fill="#F4F5F8"></rect><rect y="7.6" width="24" height="8.8" fill="#A51931"></rect><rect y="16.4" width="24" height="2.8" fill="#F4F5F8"></rect><rect y="19.2" width="24" height="4.8" fill="#241B54"></rect></svg>';
+    const flagEn = '<svg width="26" height="26" viewBox="0 0 24 24"><rect width="24" height="24" fill="#012169"></rect><path d="M0 0L24 24M24 0L0 24" stroke="#fff" stroke-width="3"></path><path d="M12 0V24M0 12H24" stroke="#fff" stroke-width="5"></path><path d="M12 0V24M0 12H24" stroke="#C8102E" stroke-width="2.4"></path></svg>';
+    const flagZh = '<svg width="26" height="26" viewBox="0 0 24 24"><rect width="24" height="24" fill="#EE1C25"></rect><path d="M6 5l1 3 3-1-2 2.4 2 2.4-3-1-1 3-1-3-3 1 2-2.4-2-2.4 3 1z" fill="#FFDE00"></path></svg>';
+    const defs = [
+      { key:'th', name:'ไทย', code:'TH', flagHtml:{ __html: flagTh } },
+      { key:'en', name:'ENGLISH', code:'EN', flagHtml:{ __html: flagEn } },
+      { key:'zh', name:'中文', code:'ZH', flagHtml:{ __html: flagZh } },
+    ];
+    const cur = defs.find(d => d.key === S.lang) || defs[0];
+    const langOptions = defs.map(d => ({
+      ...d,
+      select: () => this.setState({ lang: d.key, langOpen: false }),
+      style: { display:'flex', alignItems:'center', gap:'11px', padding:'10px 10px', borderRadius:'11px', cursor:'pointer', background: S.lang===d.key?'rgba(3,73,86,.06)':'transparent' },
+    }));
+    return {
+      langOpen: S.langOpen,
+      toggleLang: () => this.setState({ langOpen: !S.langOpen }),
+      langLabel: cur.name,
+      langFlagTh: cur.key === 'th', langFlagEn: cur.key === 'en', langFlagZh: cur.key === 'zh',
+      langChevStyle: { transform: S.langOpen ? 'rotate(180deg)' : 'none', transition:'transform .2s' },
+      langOptions,
+      stopProp: (e) => e.stopPropagation(),
+    };
+  }
+
+  mobileVals() {
+    const S = this.state;
+    const open = !!S.mobileMenuOpen;
+    const mkAcc = (key) => ({
+      open: !!S[key],
+      toggle: () => this.setState({ [key]: !S[key] }),
+      chevStyle: { transform: S[key] ? 'rotate(180deg)' : 'none', transition:'transform .2s' },
+    });
+    const langDefs = [ { key:'th', code:'TH' }, { key:'en', code:'EN' }, { key:'zh', code:'ZH' } ];
+    const mobileLangOptions = langDefs.map(d => ({
+      ...d,
+      select: () => this.setState({ lang: d.key }),
+      style: { flex:1, textAlign:'center', padding:'9px 0', borderRadius:'9999px', fontSize:'12.5px', fontWeight:700, cursor:'pointer', background: (S.lang||'th')===d.key ? '#273c33' : 'var(--tint)', color: (S.lang||'th')===d.key ? '#fff' : 'var(--text)' },
+    }));
+    return {
+      mobileMenuOpen: open,
+      toggleMobileMenu: () => this.setState({ mobileMenuOpen: !open }),
+      closeMobileMenu: () => this.setState({ mobileMenuOpen: false }),
+      stopPropMobile: (e) => e.stopPropagation(),
+      mobileOverlayStyle: { position:'fixed', inset:0, zIndex:299, background:'rgba(2,14,8,.55)', backdropFilter:'blur(3px)', opacity: open?1:0, pointerEvents: open?'auto':'none', transition:'opacity .3s' },
+      mobileDrawerStyle: { position:'fixed', top:0, right:0, bottom:0, width:'84%', maxWidth:'340px', zIndex:300, background:'var(--bg)', display:'flex', flexDirection:'column', boxShadow:'-20px 0 50px rgba(0,0,0,.25)', transform: open?'translateX(0)':'translateX(100%)', transition:'transform .35s cubic-bezier(.2,.8,.3,1)' },
+      hamburgerLine1: { position:'absolute', left:0, top: open?'5.5px':'0', width:'18px', height:'2px', borderRadius:'2px', background:'var(--text)', transition:'all .3s cubic-bezier(.4,0,.2,1)', transform: open?'rotate(45deg)':'none' },
+      hamburgerLine2: { position:'absolute', left:0, top:'5.5px', width:'18px', height:'2px', borderRadius:'2px', background:'var(--text)', transition:'opacity .2s', opacity: open?0:1 },
+      hamburgerLine3: { position:'absolute', left:0, top: open?'5.5px':'11px', width:'18px', height:'2px', borderRadius:'2px', background:'var(--text)', transition:'all .3s cubic-bezier(.4,0,.2,1)', transform: open?'rotate(-45deg)':'none' },
+      mFactory: mkAcc('mFactoryOpen'),
+      mWarehouse: mkAcc('mWarehouseOpen'),
+      mobileLangOptions,
+    };
+  }
+
+}
+
+</script>
+</body>
+</html>

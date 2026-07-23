@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  :root{--bg:#F9F8F5;--bg2:#F3F0EC;--surface:#FFFFFF;--tint:#EEF4F3;--text:#28251D;--muted:#5F5A52;--muted2:#7A7974;--muted3:#9B968D;--border:#E7E3DC;--accent:#034956;}
+  body{margin:0;font-family:'Noto Sans Thai','Inter',system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  a{text-decoration:none;color:var(--accent);}
+  a:hover{color:#023742;}
+  svg{stroke-linecap:round !important;stroke-linejoin:round !important;}
+  code{font-family:'JetBrains Mono',monospace;}
+  @media (max-width:900px){ #dom-grid{grid-template-columns:1fr !important;} }
+</style>
+</helmet>
+
+<div style="width:100%;background:var(--bg);min-height:100vh;padding-bottom:80px;">
+
+  <!-- HEADER -->
+  <header style="position:sticky;top:0;z-index:200;background:rgba(249,248,245,.92);-webkit-backdrop-filter:blur(16px) saturate(1.5);backdrop-filter:blur(16px) saturate(1.5);border-bottom:1px solid var(--border);">
+    <div style="max-width:1280px;margin:0 auto;padding:0 24px;height:68px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <img src="assets/jkp-logo-green.png" alt="JKP Property" style="height:32px;width:auto;display:block;">
+        <span style="font-size:13px;font-weight:700;color:var(--muted2);border-left:1px solid var(--border);padding-left:10px;">CMS Sitemap</span>
+      </div>
+      <a href="Design System.dc.html" style="display:flex;align-items:center;gap:7px;height:38px;padding:0 16px;border-radius:9999px;background:var(--tint);color:var(--accent);font-size:13px;font-weight:700;">Design System →</a>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section style="max-width:1280px;margin:0 auto;padding:56px 24px 28px;">
+    <div style="display:inline-flex;align-items:center;gap:8px;">
+      <span style="width:26px;height:2px;background:#273c33;border-radius:2px;"></span>
+      <span style="font-size:13px;font-weight:700;letter-spacing:.08em;color:#273c33;text-transform:uppercase;">Admin Architecture</span>
+    </div>
+    <h1 style="margin:12px 0 10px;font-size:38px;font-weight:800;color:var(--text);letter-spacing:-.01em;">แผนผังระบบหลังบ้าน (CMS Sitemap)</h1>
+    <p style="margin:0;max-width:720px;font-size:15.5px;color:var(--muted);line-height:1.7;">โครงสร้างหน้าจอ Admin/Ops ทั้งหมด จัดกลุ่มตาม 5 Bounded Domains + Core Identity ตาม Requirement &amp; Functional Spec v1.1 — สีของแต่ละกล่องอ้างอิง Design Token ของแบรนด์</p>
+    <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;">
+      <sc-for list="{{ legend }}" as="lg" hint-placeholder-count="4">
+        <div style="display:flex;align-items:center;gap:7px;height:30px;padding:0 13px;border-radius:9999px;background:var(--surface);border:1px solid var(--border);font-size:12px;font-weight:600;color:var(--muted);">
+          <span style="width:11px;height:11px;border-radius:3px;background:{{ lg.color }};"></span>{{ lg.label }}
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- LOGIN + DASHBOARD ROW -->
+  <section style="max-width:1280px;margin:0 auto;padding:0 24px;">
+    <div style="display:flex;gap:16px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:220px;background:#0A0E0C;border-radius:16px;padding:22px 24px;color:#fff;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:38px;height:38px;border-radius:10px;background:rgba(45,251,145,.16);display:flex;align-items:center;justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg></div>
+          <div><div style="font-size:15px;font-weight:800;">/admin/login</div><code style="font-size:11px;color:#8FE6B6;">FR-SEC-01 · JWT</code></div>
+        </div>
+        <p style="margin:12px 0 0;font-size:12.5px;color:#B9C2BD;line-height:1.6;">Email + password · lock 5 ครั้ง/15 นาที · session httpOnly</p>
+      </div>
+      <div style="flex:2;min-width:280px;background:linear-gradient(135deg,#0B7A45 0%,#0A5C39 45%,#043F20 100%);border-radius:16px;padding:22px 24px;color:#fff;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg></div>
+          <div><div style="font-size:15px;font-weight:800;">/admin/dashboard</div><code style="font-size:11px;color:#C3FED5;">การ์ดสรุป + activity 20 ล่าสุด</code></div>
+        </div>
+        <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
+          <sc-for list="{{ dashCards }}" as="d" hint-placeholder-count="5">
+            <span style="height:26px;padding:0 11px;border-radius:9999px;background:rgba(255,255,255,.14);color:#fff;font-size:11.5px;font-weight:600;display:inline-flex;align-items:center;">{{ d }}</span>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DOMAIN GRID -->
+  <section style="max-width:1280px;margin:0 auto;padding:24px 24px 0;">
+    <div id="dom-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;">
+      <sc-for list="{{ domains }}" as="dom" hint-placeholder-count="6">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden;">
+          <div style="display:flex;align-items:center;gap:12px;padding:18px 20px;border-bottom:1px solid var(--border);background:{{ dom.headBg }};">
+            <div style="width:40px;height:40px;border-radius:11px;background:{{ dom.iconBg }};display:flex;align-items:center;justify-content:center;flex-shrink:0;" dangerouslySetInnerHTML="{{ dom.icon }}"></div>
+            <div>
+              <div style="font-size:15.5px;font-weight:800;color:{{ dom.titleColor }};">{{ dom.title }}</div>
+              <div style="font-size:11.5px;color:{{ dom.subColor }};">{{ dom.sub }}</div>
+            </div>
+          </div>
+          <div style="padding:12px;">
+            <sc-for list="{{ dom.screens }}" as="sc" hint-placeholder-count="4">
+              <div style="display:flex;align-items:flex-start;gap:12px;padding:11px 12px;border-radius:12px;transition:background .15s;" style-hover="background:var(--tint);">
+                <div style="width:7px;height:7px;border-radius:9999px;background:{{ dom.dot }};margin-top:6px;flex-shrink:0;"></div>
+                <div style="flex:1;">
+                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <span style="font-size:13.5px;font-weight:700;color:var(--text);">{{ sc.name }}</span>
+                    <code style="font-size:10.5px;color:var(--muted3);">{{ sc.route }}</code>
+                  </div>
+                  <div style="margin-top:3px;font-size:12px;color:var(--muted);line-height:1.55;">{{ sc.desc }}</div>
+                  <div style="margin-top:6px;display:flex;gap:5px;flex-wrap:wrap;">
+                    <sc-for list="{{ sc.tags }}" as="t" hint-placeholder-count="2">
+                      <code style="height:19px;padding:0 7px;border-radius:6px;background:var(--bg2);color:var(--muted2);font-size:10px;display:inline-flex;align-items:center;">{{ t }}</code>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- LEAD PIPELINE -->
+  <section style="max-width:1280px;margin:0 auto;padding:36px 24px 0;">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:28px;">
+      <div style="font-size:16px;font-weight:800;color:var(--text);">แกนกลาง — Lead Pipeline (9 สถานะ · auto-advance เดินหน้าเท่านั้น)</div>
+      <p style="margin:6px 0 20px;font-size:13px;color:var(--muted);">ทุก flow (A–E) หมุนรอบสถานะ lead นี้ — ระบบเลื่อนสถานะอัตโนมัติตาม event</p>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <sc-for list="{{ pipeline }}" as="p" hint-placeholder-count="9">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div style="height:34px;padding:0 14px;border-radius:9999px;background:{{ p.bg }};color:{{ p.fg }};font-size:12.5px;font-weight:700;display:flex;align-items:center;">{{ p.label }}</div>
+            <sc-if value="{{ p.arrow }}" hint-placeholder-val="{{ true }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted3)" stroke-width="2.4"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg></sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <!-- FLOWS -->
+  <section style="max-width:1280px;margin:0 auto;padding:16px 24px 0;">
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;" id="flow-grid">
+      <sc-for list="{{ flows }}" as="f" hint-placeholder-count="5">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;">
+          <div style="display:flex;align-items:center;gap:8px;"><span style="width:24px;height:24px;border-radius:7px;background:#273c33;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;">{{ f.key }}</span><span style="font-size:13px;font-weight:800;color:var(--text);">{{ f.title }}</span></div>
+          <div style="margin-top:8px;font-size:11.5px;color:var(--muted);line-height:1.6;">{{ f.steps }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- CROSS-CUTTING -->
+  <section style="max-width:1280px;margin:0 auto;padding:24px 24px 0;">
+    <div style="background:#0A0E0C;border-radius:18px;padding:28px;color:#fff;">
+      <div style="font-size:16px;font-weight:800;">กติกาข้ามทุกโมดูล (Cross-cutting)</div>
+      <div style="margin-top:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px;" id="cc-grid">
+        <sc-for list="{{ crosscut }}" as="c" hint-placeholder-count="6">
+          <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:16px;">
+            <div style="font-size:13px;font-weight:700;color:#2DFB91;">{{ c.title }}</div>
+            <div style="margin-top:5px;font-size:12px;color:#B9C2BD;line-height:1.6;">{{ c.desc }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const ic = (p) => ({ __html: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="color:inherit;">'+p+'</svg>' });
+    return {
+      legend: [
+        { color:'#034956', label:'Core / Identity' },
+        { color:'#273c33', label:'Property & Listing' },
+        { color:'#0D6C3B', label:'CRM & Ops' },
+        { color:'#D9A62B', label:'CMS & GEO' },
+      ],
+      dashCards: ['Leads ใหม่ (7 วัน)', 'Requirements รอ review', 'Shortlists รอส่ง', 'Visits สัปดาห์นี้', 'Deals เปิดอยู่'],
+      domains: [
+        {
+          title:'Core Identity', sub:'Users · Roles · Agents · Audit', headBg:'#EEF4F3', titleColor:'#034956', subColor:'#5F8891', dot:'#034956',
+          iconBg:'#034956', icon:{ __html:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"></path></svg>' },
+          screens: [
+            { name:'Users & Roles', route:'/admin/settings/users', desc:'CRUD users + หลาย role · ปิดใช้งานแทนลบ · RBAC 6 roles', tags:['FR-SEC-02','audit'] },
+            { name:'Audit Logs', route:'/admin/settings/audit', desc:'ทุก mutation: user · entity · action · before/after JSON', tags:['FR-SEC-03'] },
+          ],
+        },
+        {
+          title:'Geography & Taxonomy', sub:'พื้นที่ · นิคม · ประเภททรัพย์', headBg:'#EEF4F3', titleColor:'#034956', subColor:'#5F8891', dot:'#034956',
+          iconBg:'#034956', icon:{ __html:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>' },
+          screens: [
+            { name:'พื้นที่ 3 ระดับ', route:'/admin/settings/geo', desc:'จังหวัด → อำเภอ → ตำบล (3 ภาษา) — ใช้ cascade ทุกฟอร์ม', tags:['provinces','districts'] },
+            { name:'นิคมอุตสาหกรรม', route:'/admin/settings/zones', desc:'industrial_zones + zone type + active flag', tags:['taxonomy'] },
+            { name:'Landlord / Developer', route:'/admin/settings/parties', desc:'เจ้าของทรัพย์/ดีเวลลอปเปอร์ + ภาษาที่สะดวก', tags:['party'] },
+          ],
+        },
+        {
+          title:'Property & Listing', sub:'หัวใจระบบ · ทรัพย์ ≠ ประกาศ', headBg:'#273c33', titleColor:'#fff', subColor:'#B9C2BD', dot:'#273c33',
+          iconBg:'#2DFB91', icon:{ __html:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#04140C" stroke-width="1.8"><path d="M3 21V8l9-5 9 5v13"></path><path d="M3 21h18"></path><path d="M7 21v-8h10v8"></path></svg>' },
+          screens: [
+            { name:'Properties', route:'/admin/properties', desc:'5 tabs: หลัก / Specs / Features / Media (ลายน้ำ) / Translations · public_code auto-gen', tags:['FR-ADM-01','FR-ADM-08'] },
+            { name:'Listings', route:'/admin/listings', desc:'Index + filter + bulk publish + Export .xlsx/.csv · publish rule · price history', tags:['FR-ADM-04','FR-ADM-10'] },
+            { name:'Availability Checks', route:'…/availability-checks', desc:'บันทึกผลเช็คว่างกับ landlord + valid_until (gate ก่อน shortlist)', tags:['FR-AVL-04'] },
+          ],
+        },
+        {
+          title:'CRM / Leads', sub:'Lead → Requirement → Shortlist', headBg:'#E8F3EC', titleColor:'#0D6C3B', subColor:'#5F8871', dot:'#0D6C3B',
+          iconBg:'#0D6C3B', icon:{ __html:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z"></path></svg>' },
+          screens: [
+            { name:'Leads', route:'/admin/leads', desc:'Pipeline + timeline notes/tasks · agent เห็นเฉพาะที่ assign', tags:['FR-CRM-01','FR-CRM-04'] },
+            { name:'Requirement Detail', route:'/admin/requirements/{id}', desc:'Confirm → เกณฑ์พิเศษ → เช็คว่าง · Cancel บังคับเหตุผล+ข้อ', tags:['Flow B','FR-CRM-07'] },
+            { name:'Shortlist Builder', route:'/admin/shortlists/{id}', desc:'เพิ่มทรัพย์ published+ว่าง · rank · ส่ง client link (token) · feedback', tags:['FR-SHL','token'] },
+          ],
+        },
+        {
+          title:'Visit & Deal Ops', sub:'พาชม → เจรจา → ปิดดีล', headBg:'#E8F3EC', titleColor:'#0D6C3B', subColor:'#5F8871', dot:'#0D6C3B',
+          iconBg:'#0D6C3B', icon:{ __html:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path></svg>' },
+          screens: [
+            { name:'Visit Plans', route:'/admin/visit-plans/{id}', desc:'ยืนยัน criteria → appointments (landlord+เวลา) → บันทึกผล', tags:['Flow C','FR-VIS-07'] },
+            { name:'Negotiations', route:'/admin/negotiation-cases', desc:'offers/counter วนหลายรอบ · stage state machine', tags:['FR-DEA-01'] },
+            { name:'Deals', route:'/admin/deals', desc:'agreed amount · documents → S3 · close (freeze เงิน) · commission', tags:['FR-DEA-05'] },
+          ],
+        },
+        {
+          title:'CMS / GEO', sub:'เนื้อหา 3 ภาษา + Schema', headBg:'#FBF3E1', titleColor:'#9A741C', subColor:'#A08A5A', dot:'#D9A62B',
+          iconBg:'#D9A62B', icon:{ __html:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path></svg>' },
+          screens: [
+            { name:'Pages / Articles / FAQ', route:'/admin/cms', desc:'CRUD + tab ภาษา th/en/zh · rich text · publish workflow · slug ต่อภาษา', tags:['FR-CMS','i18n'] },
+            { name:'SEO Module', route:'/admin/seo', desc:'meta + JSON-LD ต่อ entity ต่อภาษา · preview schema · hreflang', tags:['FR-GEO-02','FR-GEO-06'] },
+            { name:'Certifications', route:'/admin/cms/certifications', desc:'โลโก้ใบรับรอง + แปล + active flag (แสดง trust bar)', tags:['FR-CMS-01'] },
+          ],
+        },
+      ],
+      pipeline: [
+        { label:'new', bg:'#EEF4F3', fg:'#034956', arrow:true },
+        { label:'qualified', bg:'#EEF4F3', fg:'#034956', arrow:true },
+        { label:'profile_received', bg:'#EEF4F3', fg:'#034956', arrow:true },
+        { label:'requirements_confirmed', bg:'#E8F3EC', fg:'#0D6C3B', arrow:true },
+        { label:'shortlisted', bg:'#E8F3EC', fg:'#0D6C3B', arrow:true },
+        { label:'visit_scheduled', bg:'#E8F3EC', fg:'#0D6C3B', arrow:true },
+        { label:'negotiating', bg:'#273c33', fg:'#fff', arrow:true },
+        { label:'won', bg:'#0D6C3B', fg:'#fff', arrow:true },
+        { label:'lost', bg:'#F3E1E1', fg:'#9A2B2B', arrow:false },
+      ],
+      flows: [
+        { key:'A', title:'Inquiry', steps:'ค้นหา → detail → ส่ง inquiry → lead ใน CRM' },
+        { key:'B', title:'Requirement', steps:'wizard → confirm → เช็คว่าง → shortlist → ส่งลูกค้า → feedback' },
+        { key:'C', title:'Visit', steps:'ยืนยัน criteria → visit plan → ยืนยัน landlord → บันทึกผล' },
+        { key:'D', title:'Deal', steps:'negotiation → offers → deal → เอกสาร → close + commission' },
+        { key:'E', title:'Content', steps:'เขียน GEO-ready → แปล 3 ภาษา → SEO/schema → publish' },
+      ],
+      crosscut: [
+        { title:'RBAC ที่ API layer', desc:'6 roles · enforce ที่ API ไม่ใช่แค่ซ่อน UI (FR-SEC-02)' },
+        { title:'Audit ทุก mutation', desc:'บันทึก before/after JSON ทุกการเปลี่ยนข้อมูล (FR-SEC-03)' },
+        { title:'ซ่อนพิกัดจริง', desc:'API ไม่ส่ง lat/long เมื่อ map_visibility ≠ exact (FR-LST-02)' },
+        { title:'SSR/SSG บังคับ', desc:'เนื้อหาครบใน HTML แรก เพื่อ GEO/AI crawler (NFR-03)' },
+        { title:'i18n ไม่ hardcode', desc:'label/error ทุกตัวมาจาก translation file (NFR-04)' },
+        { title:'Status = state machine', desc:'เปลี่ยนได้เฉพาะ transition ที่ถูกต้อง · lead เดินหน้าเท่านั้น' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

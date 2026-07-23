@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  :root{--bg:#F6F5F1;--surface:#FFFFFF;--tint:#EEF4F3;--text:#28251D;--muted:#5F5A52;--muted2:#7A7974;--muted3:#9B968D;--border:#E7E3DC;--accent:#034956;--sidebar:#0A0E0C;}
+  body{margin:0;font-family:'Noto Sans Thai','Inter',system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  a{text-decoration:none;color:inherit;}
+  svg{stroke-linecap:round !important;stroke-linejoin:round !important;}
+  code{font-family:'JetBrains Mono',monospace;}
+  .scroll::-webkit-scrollbar{width:8px;height:8px;}
+  .scroll::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:8px;}
+  @media (max-width:1000px){ #admin-sidebar{display:none !important;} #admin-main{margin-left:0 !important;} #stat-grid{grid-template-columns:repeat(2,1fr) !important;} #dash-cols{grid-template-columns:1fr !important;} }
+  @media (max-width:1100px){
+    #admin-sidebar{display:flex !important;position:static !important;width:100% !important;height:auto !important;flex-direction:row !important;align-items:center !important;overflow-x:auto !important;overflow-y:hidden !important;padding:8px 10px !important;gap:4px;}
+    #admin-sidebar > div:first-child{display:none !important;}
+    #admin-sidebar > div:last-child{display:none !important;}
+    #admin-sidebar nav{flex-direction:row !important;padding:0 !important;gap:4px;overflow:visible !important;}
+    #admin-sidebar nav > div{display:none !important;}
+    #admin-sidebar nav a{height:38px !important;padding:0 12px !important;white-space:nowrap;flex-shrink:0;}
+    #admin-main{margin-left:0 !important;}
+  }
+</style>
+</helmet>
+
+<div style="width:100%;min-height:100vh;background:var(--bg);">
+
+  <!-- SIDEBAR -->
+  <aside id="admin-sidebar" style="position:fixed;top:0;left:0;bottom:0;width:248px;background:var(--sidebar);display:flex;flex-direction:column;z-index:100;">
+    <div style="padding:22px 20px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.08);">
+      <img src="assets/jkp-logo-white.png" alt="JKP" style="height:30px;width:auto;">
+      <span style="font-size:11px;font-weight:700;color:#5E6B63;border-left:1px solid rgba(255,255,255,.14);padding-left:9px;">CMS</span>
+    </div>
+    <nav class="scroll" style="flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:2px;">
+      <sc-for list="{{ nav }}" as="n" hint-placeholder-count="11">
+        <sc-if value="{{ n.isGroup }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:14px 12px 6px;font-size:10.5px;font-weight:700;letter-spacing:.08em;color:#4E5A52;text-transform:uppercase;">{{ n.label }}</div>
+        </sc-if>
+        <sc-if value="{{ n.isLink }}" hint-placeholder-val="{{ true }}">
+          <a href="{{ n.href }}" style="{{ n.style }}">
+            <span style="display:flex;width:18px;height:18px;flex-shrink:0;" dangerouslySetInnerHTML="{{ n.icon }}"></span>
+            <span style="flex:1;">{{ n.label }}</span>
+            <sc-if value="{{ n.badge }}" hint-placeholder-val="{{ false }}"><span style="height:18px;min-width:18px;padding:0 6px;border-radius:9999px;background:#2DFB91;color:#04140C;font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center;">{{ n.badge }}</span></sc-if>
+          </a>
+        </sc-if>
+      </sc-for>
+    </nav>
+    <div style="padding:14px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px;">
+      <div style="width:36px;height:36px;border-radius:9999px;background:#273c33;color:#2DFB91;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;">ก</div>
+      <div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">กิตติพงษ์ พรหมทอง</div><div style="font-size:11px;color:#5E6B63;">Super admin</div></div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5E6B63" stroke-width="1.8" style="flex-shrink:0;"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"></path><path d="M16 17l5-5-5-5"></path><path d="M21 12H9"></path></svg>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div id="admin-main" style="margin-left:248px;min-height:100vh;display:flex;flex-direction:column;">
+    <!-- TOPBAR -->
+    <header style="position:sticky;top:0;z-index:50;background:rgba(246,245,241,.85);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+      <div>
+        <div style="font-size:12px;color:var(--muted2);">ภาพรวมระบบ</div>
+        <h1 style="margin:2px 0 0;font-size:20px;font-weight:800;color:var(--text);">Dashboard</h1>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:9999px;background:var(--surface);border:1px solid var(--border);min-width:240px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+          <input placeholder="ค้นหาทรัพย์, lead, รหัส…" style="border:0;outline:none;background:transparent;font-family:inherit;font-size:13px;color:var(--text);flex:1;min-width:0;"/>
+          <code style="font-size:10.5px;color:var(--muted3);border:1px solid var(--border);border-radius:5px;padding:1px 5px;">⌘K</code>
+        </div>
+        <div style="position:relative;width:40px;height:40px;border-radius:9999px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text)" stroke-width="1.8"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 01-3.4 0"></path></svg>
+          <span style="position:absolute;top:8px;right:9px;width:8px;height:8px;border-radius:9999px;background:#2DFB91;border:2px solid var(--surface);"></span>
+        </div>
+        <a href="AdminProperties.dc.html" style="display:flex;align-items:center;gap:7px;height:40px;padding:0 18px;border-radius:9999px;background:#0D6C3B;color:#fff;font-size:13px;font-weight:700;transition:transform .2s,box-shadow .2s;" style-hover="transform:translateY(-1px);box-shadow:0 8px 20px rgba(13,108,59,.35);">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="M12 5v14M5 12h14"></path></svg>เพิ่มทรัพย์
+        </a>
+      </div>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="scroll" style="flex:1;padding:24px 28px 60px;">
+
+      <!-- STAT CARDS -->
+      <div id="stat-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;">
+        <sc-for list="{{ stats }}" as="s" hint-placeholder-count="5">
+          <a href="{{ s.href }}" style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px;transition:transform .25s cubic-bezier(.2,.7,.3,1),box-shadow .25s;" style-hover="transform:translateY(-4px);box-shadow:0 16px 32px rgba(0,0,0,.08);">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div style="width:38px;height:38px;border-radius:11px;background:{{ s.iconBg }};display:flex;align-items:center;justify-content:center;" dangerouslySetInnerHTML="{{ s.icon }}"></div>
+              <span style="display:flex;align-items:center;gap:3px;font-size:11.5px;font-weight:700;color:{{ s.trendColor }};">{{ s.trend }}</span>
+            </div>
+            <div>
+              <div style="font-size:28px;font-weight:800;letter-spacing:-.02em;color:var(--text);">{{ s.value }}</div>
+              <div style="margin-top:2px;font-size:12.5px;color:var(--muted);">{{ s.label }}</div>
+            </div>
+          </a>
+        </sc-for>
+      </div>
+
+      <!-- TWO COLUMNS -->
+      <div id="dash-cols" style="margin-top:20px;display:grid;grid-template-columns:1.6fr 1fr;gap:20px;align-items:start;">
+
+        <!-- LEFT -->
+        <div style="display:flex;flex-direction:column;gap:20px;">
+          <!-- Pipeline funnel -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div><div style="font-size:15px;font-weight:800;color:var(--text);">Lead Pipeline</div><div style="font-size:12px;color:var(--muted2);">สถานะ lead ทั้งหมดในระบบ</div></div>
+              <a href="AdminDashboard.dc.html" style="font-size:12.5px;font-weight:700;color:var(--accent);">ดู leads ทั้งหมด →</a>
+            </div>
+            <div style="margin-top:20px;display:flex;flex-direction:column;gap:11px;">
+              <sc-for list="{{ funnel }}" as="f" hint-placeholder-count="7">
+                <div style="display:flex;align-items:center;gap:14px;">
+                  <div style="width:150px;flex-shrink:0;font-size:12.5px;font-weight:600;color:var(--text);">{{ f.label }}</div>
+                  <div style="flex:1;height:26px;border-radius:8px;background:var(--bg);overflow:hidden;position:relative;">
+                    <div style="height:100%;width:{{ f.pct }};background:{{ f.color }};border-radius:8px;transition:width .6s cubic-bezier(.2,.8,.3,1);"></div>
+                  </div>
+                  <div style="width:44px;text-align:right;font-size:13px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--text);">{{ f.count }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- Recent activity -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+              <div style="font-size:15px;font-weight:800;color:var(--text);">กิจกรรมล่าสุด</div>
+              <span style="font-size:12px;color:var(--muted2);">20 รายการล่าสุด</span>
+            </div>
+            <div style="display:flex;flex-direction:column;">
+              <sc-for list="{{ activity }}" as="a" hint-placeholder-count="6">
+                <div style="display:flex;gap:14px;padding:13px 0;border-bottom:1px solid var(--border);">
+                  <div style="width:34px;height:34px;border-radius:9999px;background:{{ a.dotBg }};display:flex;align-items:center;justify-content:center;flex-shrink:0;" dangerouslySetInnerHTML="{{ a.icon }}"></div>
+                  <div style="flex:1;">
+                    <div style="font-size:13px;color:var(--text);line-height:1.5;"><b>{{ a.who }}</b> {{ a.action }} <b>{{ a.target }}</b></div>
+                    <div style="margin-top:2px;font-size:11.5px;color:var(--muted3);">{{ a.time }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT -->
+        <div style="display:flex;flex-direction:column;gap:20px;">
+          <!-- Tasks -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <div style="font-size:15px;font-weight:800;color:var(--text);">งานของฉันวันนี้</div>
+              <span style="height:22px;padding:0 9px;border-radius:9999px;background:#FDECC8;color:#9A741C;font-size:11px;font-weight:800;display:flex;align-items:center;">{{ taskCount }} งาน</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <sc-for list="{{ tasks }}" as="t" hint-placeholder-count="4">
+                <div style="display:flex;gap:11px;align-items:flex-start;padding:11px;border-radius:12px;background:var(--bg);">
+                  <div style="width:18px;height:18px;border-radius:6px;border:1.5px solid {{ t.prioColor }};flex-shrink:0;margin-top:1px;"></div>
+                  <div style="flex:1;">
+                    <div style="font-size:13px;font-weight:600;color:var(--text);">{{ t.title }}</div>
+                    <div style="margin-top:3px;display:flex;align-items:center;gap:6px;"><span style="height:18px;padding:0 7px;border-radius:6px;background:{{ t.prioBg }};color:{{ t.prioColor }};font-size:10px;font-weight:700;display:flex;align-items:center;">{{ t.prio }}</span><span style="font-size:11px;color:var(--muted3);">{{ t.due }}</span></div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- Top listings -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px;">
+            <div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:14px;">ทรัพย์ยอดนิยม (7 วัน)</div>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <sc-for list="{{ topListings }}" as="l" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <div style="width:42px;height:42px;border-radius:10px;background:var(--tint);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--accent);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 21V8l9-5 9 5v13"></path><path d="M3 21h18"></path><path d="M7 21v-8h10v8"></path></svg></div>
+                  <div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ l.title }}</div><code style="font-size:11px;color:var(--muted3);">{{ l.code }}</code></div>
+                  <div style="text-align:right;"><div style="font-size:13px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--text);">{{ l.views }}</div><div style="font-size:10.5px;color:var(--muted3);">views</div></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const sic = (p, c) => ({ __html: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="'+c+'" stroke-width="1.9">'+p+'</svg>' });
+    return {
+      nav: this.navItems(),
+      stats: [
+        { value:'18', label:'Leads ใหม่ (7 วัน)', href:'AdminDashboard.dc.html', iconBg:'#E8F3EC', icon:sic('<path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z"></path>','#0D6C3B'), trend:'▲ 12%', trendColor:'#0D6C3B' },
+        { value:'7', label:'Requirements รอ review', href:'AdminDashboard.dc.html', iconBg:'#EEF4F3', icon:sic('<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><path d="M14 2v6h6"></path>','#034956'), trend:'▲ 3', trendColor:'#0D6C3B' },
+        { value:'5', label:'Shortlists รอส่ง', href:'AdminDashboard.dc.html', iconBg:'#EEF4F3', icon:sic('<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>','#034956'), trend:'—', trendColor:'#9B968D' },
+        { value:'12', label:'Visits สัปดาห์นี้', href:'AdminDashboard.dc.html', iconBg:'#FBF3E1', icon:sic('<rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path>','#D9A62B'), trend:'▲ 4', trendColor:'#0D6C3B' },
+        { value:'9', label:'Deals เปิดอยู่', href:'AdminListings.dc.html', iconBg:'#E8F3EC', icon:sic('<path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"></path>','#0D6C3B'), trend:'▲ 2', trendColor:'#0D6C3B' },
+      ],
+      funnel: [
+        { label:'New', count:'42', pct:'100%', color:'#034956' },
+        { label:'Qualified', count:'31', pct:'74%', color:'#0B6B4F' },
+        { label:'Profile received', count:'24', pct:'57%', color:'#0D6C3B' },
+        { label:'Requirements confirmed', count:'18', pct:'43%', color:'#1E8A4C' },
+        { label:'Shortlisted', count:'12', pct:'29%', color:'#3AAE5F' },
+        { label:'Visit scheduled', count:'8', pct:'19%', color:'#5BC97C' },
+        { label:'Negotiating → Won', count:'5', pct:'12%', color:'#2DFB91' },
+      ],
+      activity: [
+        { who:'สมชาย', action:'เผยแพร่ประกาศ', target:'JKP-SPK0042', time:'5 นาทีที่แล้ว', dotBg:'#E8F3EC', icon:this.aIcon('M5 12l5 5L20 7','#0D6C3B') },
+        { who:'ระบบ', action:'สร้าง lead ใหม่จากฟอร์ม requirement', target:'บ. ไทยโลจิสติกส์', time:'22 นาทีที่แล้ว', dotBg:'#EEF4F3', icon:this.aIcon('M12 5v14M5 12h14','#034956') },
+        { who:'อารยา', action:'ส่ง shortlist ให้', target:'บ. Sunrise Foods', time:'1 ชม.ที่แล้ว', dotBg:'#EEF4F3', icon:this.aIcon('M22 2L11 13M22 2l-7 20-4-9-9-4z','#034956') },
+        { who:'วีรพล', action:'บันทึกผลเช็คว่าง (available)', target:'JKP0118', time:'2 ชม.ที่แล้ว', dotBg:'#FBF3E1', icon:this.aIcon('M20 6L9 17l-5-5','#D9A62B') },
+        { who:'อารยา', action:'ปิดดีลสำเร็จ', target:'บ. Metro Pack', time:'เมื่อวาน 16:40', dotBg:'#E8F3EC', icon:this.aIcon('M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6','#0D6C3B') },
+        { who:'สมชาย', action:'แก้ราคาเช่า', target:'JKP-CBI0007', time:'เมื่อวาน 11:15', dotBg:'#EEF4F3', icon:this.aIcon('M12 1v22M5 8h14M5 16h14','#034956') },
+      ],
+      taskCount: '4',
+      tasks: [
+        { title:'โทรกลับ บ. ไทยโลจิสติกส์ (requirement ใหม่)', prio:'ด่วน', prioColor:'#C0392B', prioBg:'#F9E4E1', due:'ครบกำหนดวันนี้ 15:00' },
+        { title:'ยืนยันนัดชมทรัพย์กับ landlord — JKP0118', prio:'สูง', prioColor:'#D9A62B', prioBg:'#FBF3E1', due:'วันนี้ 17:00' },
+        { title:'เตรียม shortlist ส่ง บ. Sunrise Foods', prio:'ปกติ', prioColor:'#0D6C3B', prioBg:'#E8F3EC', due:'พรุ่งนี้' },
+        { title:'ตรวจเอกสารสัญญา บ. Metro Pack', prio:'ปกติ', prioColor:'#0D6C3B', prioBg:'#E8F3EC', due:'พรุ่งนี้' },
+      ],
+      topListings: [
+        { title:'โกดังพร้อมสำนักงาน 2,700 ตร.ม.', code:'JKP-SPK0042', views:'1,204' },
+        { title:'โรงงาน ร.ง.4 บางนา 3,500 ตร.ม.', code:'JKP0118', views:'986' },
+        { title:'คลังสินค้าแหลมฉบัง 5,000 ตร.ม.', code:'JKP-CBI0007', views:'742' },
+        { title:'โกดังให้เช่า วังน้อย 1,300 ตร.ม.', code:'JKP-AYA0021', views:'531' },
+      ],
+    };
+  }
+  aIcon(path, color) { return { __html: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="'+color+'" stroke-width="2">'+(path.split('M').filter(Boolean).map(s=>'<path d="M'+s+'"></path>').join(''))+'</svg>' }; }
+  navItems() {
+    const A = '#28251D';
+    const mk = (label, icon, href, active, badge) => ({
+      isLink:true, isGroup:false, label, href, badge: badge||'',
+      icon:{ __html:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="'+(active?'#2DFB91':'#9AA39D')+'" stroke-width="1.8">'+icon+'</svg>' },
+      style:'display:flex;align-items:center;gap:11px;height:40px;padding:0 12px;border-radius:11px;font-size:13.5px;font-weight:'+(active?'700':'500')+';color:'+(active?'#fff':'#AEB8B1')+';background:'+(active?'rgba(45,251,145,.12)':'transparent')+';transition:background .15s;',
+    });
+    const grp = (label) => ({ isGroup:true, isLink:false, label });
+    return [
+      mk('Dashboard','<rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect>','AdminDashboard.dc.html',true),
+      grp('ทรัพย์'),
+      mk('Properties','<path d="M3 21V8l9-5 9 5v13"></path><path d="M3 21h18"></path><path d="M7 21v-8h10v8"></path>','AdminProperties.dc.html',false),
+      mk('Listings','<rect x="3" y="4" width="18" height="4" rx="1"></rect><rect x="3" y="10" width="18" height="4" rx="1"></rect><rect x="3" y="16" width="18" height="4" rx="1"></rect>','AdminListings.dc.html',false),
+      grp('งานขาย'),
+      mk('Leads','<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path><circle cx="9" cy="7" r="4"></circle>','AdminLeads.dc.html',false,'18'),
+      mk('Requirements','<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><path d="M14 2v6h6"></path>','AdminRequirement.dc.html',false,'7'),
+      mk('Shortlists','<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>','AdminShortlist.dc.html',false),
+      mk('Visits','<rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path>','AdminVisit.dc.html',false),
+      mk('Deals','<path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"></path>','AdminDeal.dc.html',false),
+      grp('เนื้อหา & ระบบ'),
+      mk('CMS','<path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path>','AdminCMS.dc.html',false),
+      mk('SEO / GEO','<circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20"></path>','AdminSEO.dc.html',false),
+      mk('Settings','<circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path>','AdminUsers.dc.html',false),
+    ];
+  }
+}
+</script>
+</body>
+</html>

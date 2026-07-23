@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  :root{--bg:#F6F5F1;--surface:#FFFFFF;--tint:#EEF4F3;--text:#28251D;--muted:#5F5A52;--muted2:#7A7974;--muted3:#9B968D;--border:#E7E3DC;--accent:#034956;--sidebar:#0A0E0C;}
+  body{margin:0;font-family:'Noto Sans Thai','Inter',system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  a{text-decoration:none;color:inherit;}
+  svg{stroke-linecap:round !important;stroke-linejoin:round !important;}
+  code{font-family:'JetBrains Mono',monospace;}
+  input{font-family:inherit;}
+  .scroll::-webkit-scrollbar{width:8px;height:8px;}
+  .scroll::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:8px;}
+  @media (max-width:1100px){ #admin-sidebar{display:none !important;} #admin-main{margin-left:0 !important;} #deal-split{grid-template-columns:1fr !important;} }
+  @media (max-width:1100px){
+    #admin-sidebar{display:flex !important;position:static !important;width:100% !important;height:auto !important;flex-direction:row !important;align-items:center !important;overflow-x:auto !important;overflow-y:hidden !important;padding:8px 10px !important;gap:4px;}
+    #admin-sidebar > div:first-child{display:none !important;}
+    #admin-sidebar > div:last-child{display:none !important;}
+    #admin-sidebar nav{flex-direction:row !important;padding:0 !important;gap:4px;overflow:visible !important;}
+    #admin-sidebar nav > div{display:none !important;}
+    #admin-sidebar nav a{height:38px !important;padding:0 12px !important;white-space:nowrap;flex-shrink:0;}
+    #admin-main{margin-left:0 !important;}
+  }
+</style>
+</helmet>
+
+<div style="width:100%;min-height:100vh;background:var(--bg);">
+  <aside id="admin-sidebar" style="position:fixed;top:0;left:0;bottom:0;width:248px;background:var(--sidebar);display:flex;flex-direction:column;z-index:100;">
+    <div style="padding:22px 20px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.08);">
+      <img src="assets/jkp-logo-white.png" alt="JKP" style="height:30px;width:auto;">
+      <span style="font-size:11px;font-weight:700;color:#5E6B63;border-left:1px solid rgba(255,255,255,.14);padding-left:9px;">CMS</span>
+    </div>
+    <nav class="scroll" style="flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:2px;">
+      <sc-for list="{{ nav }}" as="n" hint-placeholder-count="11">
+        <sc-if value="{{ n.isGroup }}" hint-placeholder-val="{{ false }}"><div style="padding:14px 12px 6px;font-size:10.5px;font-weight:700;letter-spacing:.08em;color:#4E5A52;text-transform:uppercase;">{{ n.label }}</div></sc-if>
+        <sc-if value="{{ n.isLink }}" hint-placeholder-val="{{ true }}">
+          <a href="{{ n.href }}" style="{{ n.style }}"><span style="display:flex;width:18px;height:18px;flex-shrink:0;" dangerouslySetInnerHTML="{{ n.icon }}"></span><span style="flex:1;">{{ n.label }}</span><sc-if value="{{ n.badge }}" hint-placeholder-val="{{ false }}"><span style="height:18px;min-width:18px;padding:0 6px;border-radius:9999px;background:#2DFB91;color:#04140C;font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center;">{{ n.badge }}</span></sc-if></a>
+        </sc-if>
+      </sc-for>
+    </nav>
+    <div style="padding:14px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px;">
+      <div style="width:36px;height:36px;border-radius:9999px;background:#273c33;color:#2DFB91;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;">ก</div>
+      <div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">กิตติพงษ์ พรหมทอง</div><div style="font-size:11px;color:#5E6B63;">Super admin</div></div>
+    </div>
+  </aside>
+
+  <div id="admin-main" style="margin-left:248px;min-height:100vh;display:flex;flex-direction:column;">
+    <header style="position:sticky;top:0;z-index:50;background:rgba(246,245,241,.85);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+      <div><div style="font-size:12px;color:var(--muted2);"><a href="AdminLeads.dc.html" style="color:var(--muted2);">Leads</a> / Negotiation → Deal</div><h1 style="margin:2px 0 0;font-size:20px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:10px;">DEAL-089 <code style="{{ statusBadge }}">{{ statusLabel }}</code></h1></div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <sc-if value="{{ showClose }}" hint-placeholder-val="{{ true }}"><div onClick="{{ openClose }}" style="display:flex;align-items:center;gap:7px;height:40px;padding:0 18px;border-radius:9999px;background:#0D6C3B;color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M20 6L9 17l-5-5"></path></svg>Close deal</div></sc-if>
+        <sc-if value="{{ closed }}" hint-placeholder-val="{{ false }}"><div onClick="{{ openUnlock }}" style="display:flex;align-items:center;gap:7px;height:40px;padding:0 16px;border-radius:9999px;background:var(--surface);border:1px solid var(--border);color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.9"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 019.9-1"></path></svg>Unlock (super admin)</div></sc-if>
+      </div>
+    </header>
+
+    <main class="scroll" style="flex:1;padding:24px 28px 60px;">
+      <!-- STAGE RAIL -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px 26px;margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;"><div style="font-size:14px;font-weight:800;color:var(--text);">Flow D — Negotiation → Deal</div><span style="font-size:12px;color:var(--muted2);">lead อัปเดตอัตโนมัติเป็น <b style="color:var(--accent);">won</b> เมื่อปิดดีล</span></div>
+        <div style="display:flex;align-items:center;">
+          <sc-for list="{{ stages }}" as="s" hint-placeholder-count="6">
+            <div style="display:flex;align-items:center;flex:1;">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0;">
+                <div style="{{ s.circle }}"><sc-if value="{{ s.done }}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"></path></svg></sc-if><sc-if value="{{ s.current }}" hint-placeholder-val="{{ false }}"><span style="width:7px;height:7px;border-radius:9999px;background:#fff;"></span></sc-if><sc-if value="{{ s.pending }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;font-weight:800;color:var(--muted3);">{{ s.num }}</span></sc-if></div>
+                <span style="font-size:11px;font-weight:600;color:{{ s.labelColor }};white-space:nowrap;">{{ s.label }}</span>
+              </div>
+              <sc-if value="{{ s.line }}" hint-placeholder-val="{{ true }}"><div style="flex:1;height:2px;background:{{ s.lineColor }};margin:0 6px;margin-bottom:26px;"></div></sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div id="deal-split" style="display:grid;grid-template-columns:1.2fr .8fr;gap:20px;align-items:start;">
+        <!-- LEFT: offers + docs -->
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <!-- context -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+            <div style="width:48px;height:48px;border-radius:12px;background:var(--tint);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 21V8l9-5 9 5v13"></path><path d="M3 21h18"></path><path d="M7 21v-8h10v8"></path></svg></div>
+            <div style="flex:1;min-width:180px;"><div style="font-size:14.5px;font-weight:800;color:var(--text);">โกดังพร้อมสำนักงาน 2,700 ตร.ม.</div><code style="font-size:12px;color:#0D6C3B;font-weight:700;">JKP-SPK0042</code> <span style="font-size:12px;color:var(--muted);">· บ. ไทยโลจิสติกส์</span></div>
+            <div style="text-align:right;"><div style="font-size:11.5px;color:var(--muted2);">ตกลงที่</div><div style="font-size:20px;font-weight:800;font-family:'JetBrains Mono',monospace;color:#034956;">฿385,000<span style="font-size:12px;color:var(--muted);">/ด.</span></div></div>
+          </div>
+
+          <!-- offers timeline -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;"><div style="font-size:15px;font-weight:800;color:var(--text);">ประวัติการเจรจา (Offers)</div><div onClick="{{ toggleAddOffer }}" style="height:34px;padding:0 14px;border-radius:9999px;background:#273c33;color:#fff;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="M12 5v14M5 12h14"></path></svg>เพิ่ม offer</div></div>
+            <sc-if value="{{ addOfferOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="border:1px solid #273c33;border-radius:13px;padding:14px;margin-bottom:16px;background:var(--bg);">
+                <div style="display:flex;gap:8px;margin-bottom:10px;"><sc-for list="{{ sideOpts }}" as="s" hint-placeholder-count="2"><div onClick="{{ s.select }}" style="{{ s.style }}">{{ s.label }}</div></sc-for></div>
+                <div style="display:flex;gap:8px;"><input value="{{ offerAmount }}" onInput="{{ onAmount }}" placeholder="ราคา เช่น ฿380,000/ด." style="flex:1;height:40px;padding:0 12px;border-radius:10px;border:1px solid var(--border);font-size:12.5px;background:var(--surface);outline:none;"/><div onClick="{{ saveOffer }}" style="height:40px;padding:0 16px;border-radius:10px;background:#0D6C3B;color:#fff;font-size:12.5px;font-weight:700;display:flex;align-items:center;cursor:pointer;">เพิ่ม</div></div>
+                <input value="{{ offerTerms }}" onInput="{{ onTerms }}" placeholder="เงื่อนไข (เช่น ขอ fit-out ฟรี 1 เดือน)" style="margin-top:8px;width:100%;height:40px;padding:0 12px;border-radius:10px;border:1px solid var(--border);font-size:12.5px;background:var(--surface);outline:none;"/>
+              </div>
+            </sc-if>
+            <div style="display:flex;flex-direction:column;">
+              <sc-for list="{{ offers }}" as="o" hint-placeholder-count="4">
+                <div style="display:flex;gap:14px;padding-bottom:16px;">
+                  <div style="display:flex;flex-direction:column;align-items:center;"><div style="width:34px;height:34px;border-radius:9999px;background:{{ o.dotBg }};display:flex;align-items:center;justify-content:center;flex-shrink:0;" dangerouslySetInnerHTML="{{ o.icon }}"></div><sc-if value="{{ o.line }}" hint-placeholder-val="{{ true }}"><div style="flex:1;width:2px;background:var(--border);margin-top:4px;"></div></sc-if></div>
+                  <div style="flex:1;padding-bottom:4px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;"><span style="{{ o.sideStyle }}">{{ o.side }}</span><span style="font-size:16px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--text);">{{ o.amount }}</span></div>
+                    <div style="margin-top:5px;font-size:12.5px;color:var(--muted);line-height:1.55;">{{ o.terms }}</div>
+                    <div style="margin-top:3px;font-size:11px;color:var(--muted3);">{{ o.time }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- documents -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;"><div style="font-size:15px;font-weight:800;color:var(--text);">เอกสาร Deal</div><div style="height:34px;padding:0 14px;border-radius:9999px;background:var(--tint);color:var(--accent);font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><path d="M17 8l-5-5-5 5M12 3v12"></path></svg>อัปโหลด</div></div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <sc-for list="{{ docs }}" as="d" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:var(--bg);">
+                  <div style="width:36px;height:36px;border-radius:9px;background:{{ d.iconBg }};display:flex;align-items:center;justify-content:center;flex-shrink:0;color:{{ d.iconColor }};"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><path d="M14 2v6h6"></path></svg></div>
+                  <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;color:var(--text);">{{ d.name }}</div><div style="font-size:11.5px;color:var(--muted3);">{{ d.meta }}</div></div>
+                  <span style="{{ d.statusStyle }}">{{ d.status }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: deal summary + commission -->
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div style="{{ summaryCardStyle }}">
+            <div style="font-size:14px;font-weight:800;color:{{ summaryTitleColor }};margin-bottom:16px;">สรุปดีล</div>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <sc-for list="{{ dealSummary }}" as="q" hint-placeholder-count="5">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;"><span style="font-size:12.5px;color:{{ summaryMuted }};">{{ q.k }}</span><span style="font-size:13px;font-weight:700;color:{{ summaryVal }};">{{ q.v }}</span></div>
+              </sc-for>
+            </div>
+            <sc-if value="{{ closed }}" hint-placeholder-val="{{ false }}"><div style="margin-top:16px;padding:12px 14px;border-radius:11px;background:rgba(45,251,145,.12);border:1px solid rgba(45,251,145,.3);display:flex;align-items:center;gap:9px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg><span style="font-size:11.5px;color:#8FE6B6;font-weight:600;">ฟิลด์การเงินถูกล็อก — ปลดล็อกได้เฉพาะ super admin (ลง audit)</span></div></sc-if>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 22px;">
+            <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:14px;">ค่าคอมมิชชัน</div>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;background:var(--bg);">
+              <div style="width:38px;height:38px;border-radius:9999px;background:#273c33;color:#2DFB91;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;">อ</div>
+              <div style="flex:1;"><div style="font-size:13px;font-weight:700;color:var(--text);">อารยา (agent)</div><div style="font-size:11.5px;color:var(--muted3);">3% ของค่าเช่าปีแรก</div></div>
+              <div style="text-align:right;"><div style="font-size:14px;font-weight:800;font-family:'JetBrains Mono',monospace;color:#034956;">฿138,600</div><span style="height:19px;padding:0 8px;border-radius:9999px;background:#FBF3E1;color:#9A741C;font-size:10px;font-weight:700;display:inline-flex;align-items:center;">รอจ่าย</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CLOSE DIALOG -->
+      <sc-if value="{{ closeDialogOpen }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeDialog }}" style="position:fixed;inset:0;z-index:800;background:rgba(2,14,8,.55);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:20px;">
+          <div onClick="{{ stopProp }}" style="width:100%;max-width:440px;background:var(--surface);border-radius:20px;box-shadow:0 40px 80px rgba(0,0,0,.4);padding:28px;text-align:center;">
+            <div style="width:56px;height:56px;border-radius:9999px;background:#E8F3EC;display:flex;align-items:center;justify-content:center;margin:0 auto;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" stroke-width="2"><path d="M20 6L9 17l-5-5"></path></svg></div>
+            <h3 style="margin:16px 0 0;font-size:19px;font-weight:800;color:var(--text);">ปิดดีลนี้?</h3>
+            <p style="margin:8px 0 0;font-size:13.5px;color:var(--muted);line-height:1.6;">lead จะเปลี่ยนเป็น <b>won</b> · บันทึก commission · ฟิลด์การเงินจะถูกล็อก (แก้ได้เฉพาะ super admin)</p>
+            <div style="margin-top:20px;display:flex;gap:12px;">
+              <div onClick="{{ closeDialog }}" style="flex:1;height:46px;border-radius:9999px;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:700;color:var(--text);cursor:pointer;">ยกเลิก</div>
+              <div onClick="{{ confirmClose }}" style="flex:1;height:46px;border-radius:9999px;background:#0D6C3B;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:700;cursor:pointer;">ยืนยันปิดดีล</div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { closeDialogOpen:false, closed:false, addOfferOpen:false, offerSide:'ฝั่งลูกค้า', offerAmount:'', offerTerms:'', extraOffers:[] };
+  renderVals() {
+    const S = this.state;
+    const done=(label,num)=>({label,num,done:true,current:false,pending:false,line:true,circle:'width:32px;height:32px;border-radius:9999px;background:#0D6C3B;display:flex;align-items:center;justify-content:center;',labelColor:'#0D6C3B',lineColor:'#0D6C3B'});
+    const curr=(label,num)=>({label,num,done:false,current:true,pending:false,line:true,circle:'width:32px;height:32px;border-radius:9999px;background:#273c33;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 4px rgba(39,60,51,.15);',labelColor:'#273c33',lineColor:'var(--border)'});
+    const pend=(label,num,last)=>({label,num,done:false,current:false,pending:true,line:!last,circle:'width:32px;height:32px;border-radius:9999px;background:var(--bg);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;',labelColor:'var(--muted3)',lineColor:'var(--border)'});
+    const stages = S.closed
+      ? [done('Open','1'),done('Offer','2'),done('Counter','3'),done('Documentation','4'),done('Contract','5'),done('Closed won','6')]
+      : [done('Open','1'),done('Offer','2'),done('Counter','3'),curr('Documentation','4'),pend('Contract','5'),pend('Closed','6',true)];
+    const oi=(p,c)=>({__html:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="'+c+'" stroke-width="2">'+p+'</svg>'});
+    const sideC=(bg,fg)=>'height:22px;padding:0 11px;border-radius:9999px;background:'+bg+';color:'+fg+';font-size:11px;font-weight:700;display:inline-flex;align-items:center;';
+    const dstat=(bg,fg)=>'height:22px;padding:0 10px;border-radius:9999px;background:'+bg+';color:'+fg+';font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;flex-shrink:0;';
+    return {
+      nav: this.navItems('Deals'),
+      statusLabel: S.closed ? 'closed · won' : 'contract_review',
+      statusBadge: S.closed ? 'font-size:12px;font-weight:700;color:#fff;background:#0D6C3B;padding:2px 8px;border-radius:6px;' : 'font-size:12px;font-weight:700;color:#034956;background:#EEF4F3;padding:2px 8px;border-radius:6px;',
+      showClose: !S.closed,
+      closed: S.closed,
+      openClose: () => this.setState({ closeDialogOpen:true }),
+      closeDialog: () => this.setState({ closeDialogOpen:false }),
+      confirmClose: () => this.setState({ closeDialogOpen:false, closed:true }),
+      openUnlock: () => {},
+      closeDialogOpen: S.closeDialogOpen,
+      addOfferOpen: S.addOfferOpen,
+      toggleAddOffer: () => this.setState({ addOfferOpen: !S.addOfferOpen }),
+      offerAmount: S.offerAmount, offerTerms: S.offerTerms,
+      onAmount: (e)=>this.setState({offerAmount:e.target.value}),
+      onTerms: (e)=>this.setState({offerTerms:e.target.value}),
+      sideOpts: [['ฝั่งลูกค้า'],['ฝั่งเจ้าของ']].map(([label])=>({ label, select:()=>this.setState({offerSide:label}),
+        style:'flex:1;height:36px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;border:1.5px solid '+(S.offerSide===label?'#0D6C3B':'var(--border)')+';background:'+(S.offerSide===label?'#0D6C3B':'transparent')+';color:'+(S.offerSide===label?'#fff':'var(--text)')+';' })),
+      saveOffer: ()=>{ const a=S.offerAmount.trim(); if(!a)return; this.setState({ extraOffers:[...S.extraOffers,{side:S.offerSide,amount:a,terms:S.offerTerms.trim()||'—'}], offerAmount:'', offerTerms:'', addOfferOpen:false }); },
+      stopProp:(e)=>e.stopPropagation(),
+      stages,
+      offers: this.offerVals(oi, sideC),
+      docs: [
+        { name:'สัญญาเช่า (ฉบับร่าง).pdf', meta:'PDF · 2.4 MB · อัปโหลด 17 ก.ค.', iconBg:'#EEF4F3', iconColor:'#034956', status:'รอเซ็น', statusStyle:dstat('#FBF3E1','#9A741C') },
+        { name:'หนังสือรับรองบริษัท.pdf', meta:'PDF · 1.1 MB · อัปโหลด 16 ก.ค.', iconBg:'#E8F3EC', iconColor:'#0D6C3B', status:'ครบ', statusStyle:dstat('#E8F3EC','#0D6C3B') },
+        { name:'แผนผังพื้นที่เช่า.pdf', meta:'PDF · 3.8 MB · อัปโหลด 15 ก.ค.', iconBg:'#E8F3EC', iconColor:'#0D6C3B', status:'ครบ', statusStyle:dstat('#E8F3EC','#0D6C3B') },
+      ],
+      summaryCardStyle: S.closed ? 'background:linear-gradient(135deg,#043F20 0%,#022310 100%);border-radius:16px;padding:22px;' : 'background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px;',
+      summaryTitleColor: S.closed ? '#fff' : 'var(--text)',
+      summaryMuted: S.closed ? '#B9C2BD' : 'var(--muted)',
+      summaryVal: S.closed ? '#fff' : 'var(--text)',
+      dealSummary: [
+        { k:'ประเภท', v:'เช่า' }, { k:'ราคาที่ตกลง', v:'฿385,000 / เดือน' },
+        { k:'มูลค่าสัญญา 3 ปี', v:'฿13.86M' }, { k:'วันเซ็นสัญญา', v: S.closed?'18 ก.ค. 2026':'รอเซ็น' },
+        { k:'สถานะ', v: S.closed?'ปิดดีลแล้ว (won)':'contract review' },
+      ],
+    };
+  }
+  offerVals(oi, sideC) {
+    const base = [
+      { side:'ฝั่งลูกค้า', sideStyle:sideC('#EEF4F3','#034956'), amount:'฿350,000/ด.', terms:'เสนอเช่า 3 ปี ขอ fit-out ฟรี 2 เดือน', time:'15 ก.ค. 10:20', dotBg:'#EEF4F3', icon:oi('<path d="M12 5v14M5 12h14"></path>','#034956'), line:true },
+      { side:'ฝั่งเจ้าของ', sideStyle:sideC('#FBF3E1','#9A741C'), amount:'฿405,000/ด.', terms:'ยืนราคาตั้ง ให้ fit-out ฟรี 1 เดือน', time:'16 ก.ค. 14:05', dotBg:'#FBF3E1', icon:oi('<path d="M12 5v14M5 12h14"></path>','#9A741C'), line:true },
+      { side:'ฝั่งลูกค้า', sideStyle:sideC('#EEF4F3','#034956'), amount:'฿375,000/ด.', terms:'ขอกลางทาง + ประกัน 2 เดือน', time:'17 ก.ค. 09:30', dotBg:'#EEF4F3', icon:oi('<path d="M12 5v14M5 12h14"></path>','#034956'), line:true },
+      { side:'ตกลง', sideStyle:sideC('#E8F3EC','#0D6C3B'), amount:'฿385,000/ด.', terms:'ตกลงราคาสุดท้าย fit-out 1.5 เดือน ประกัน 2 เดือน', time:'17 ก.ค. 16:40', dotBg:'#E8F3EC', icon:oi('<path d="M20 6L9 17l-5-5"></path>','#0D6C3B'), line:false },
+    ];
+    const extra = this.state.extraOffers.map(o=>{ const own=o.side==='ฝั่งเจ้าของ';
+      return { side:o.side, sideStyle:sideC(own?'#FBF3E1':'#EEF4F3', own?'#9A741C':'#034956'), amount:o.amount, terms:o.terms, time:'เมื่อสักครู่', dotBg:own?'#FBF3E1':'#EEF4F3', icon:oi('<path d="M12 5v14M5 12h14"></path>', own?'#9A741C':'#034956'), line:false }; });
+    if (extra.length) base[base.length-1] = { ...base[base.length-1], line:true };
+    return base.concat(extra.map((e,i)=>({ ...e, line: i<extra.length-1 })));
+  }
+  navItems(active){ const mk=(label,icon,href,badge)=>{const on=label===active;return{isLink:true,isGroup:false,label,href,badge:badge||'',icon:{__html:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="'+(on?'#2DFB91':'#9AA39D')+'" stroke-width="1.8">'+icon+'</svg>'},style:'display:flex;align-items:center;gap:11px;height:40px;padding:0 12px;border-radius:11px;font-size:13.5px;font-weight:'+(on?'700':'500')+';color:'+(on?'#fff':'#AEB8B1')+';background:'+(on?'rgba(45,251,145,.12)':'transparent')+';transition:background .15s;'};};const grp=(label)=>({isGroup:true,isLink:false,label});return[mk('Dashboard','<rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect>','AdminDashboard.dc.html'),grp('ทรัพย์'),mk('Properties','<path d="M3 21V8l9-5 9 5v13"></path><path d="M3 21h18"></path><path d="M7 21v-8h10v8"></path>','AdminProperties.dc.html'),mk('Listings','<rect x="3" y="4" width="18" height="4" rx="1"></rect><rect x="3" y="10" width="18" height="4" rx="1"></rect><rect x="3" y="16" width="18" height="4" rx="1"></rect>','AdminListings.dc.html'),grp('งานขาย'),mk('Leads','<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path><circle cx="9" cy="7" r="4"></circle>','AdminLeads.dc.html','18'),mk('Requirements','<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><path d="M14 2v6h6"></path>','AdminRequirement.dc.html','7'),mk('Shortlists','<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>','AdminShortlist.dc.html'),mk('Visits','<rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path>','AdminVisit.dc.html'),mk('Deals','<path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"></path>','AdminDeal.dc.html'),grp('เนื้อหา & ระบบ'),mk('CMS','<path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path>','AdminCMS.dc.html'),mk('SEO / GEO','<circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20"></path>','AdminSEO.dc.html'),mk('Settings','<circle cx="12" cy="12" r="3"></circle><path d="M12 2a2 2 0 012 2 2 2 0 002 2 2 2 0 012 2 2 2 0 000 4 2 2 0 01-2 2 2 2 0 00-2 2 2 2 0 01-4 0 2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 000-4 2 2 0 012-2 2 2 0 002-2 2 2 0 012-2z"></path>','AdminSettings.dc.html')];}
+}
+</script>
+</body>
+</html>

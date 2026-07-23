@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  :root{--bg:#F6F5F1;--surface:#FFFFFF;--tint:#EEF4F3;--text:#28251D;--muted:#5F5A52;--muted2:#7A7974;--muted3:#9B968D;--border:#E7E3DC;--accent:#034956;--sidebar:#0A0E0C;}
+  body{margin:0;font-family:'Noto Sans Thai','Inter',system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  a{text-decoration:none;color:inherit;}
+  svg{stroke-linecap:round !important;stroke-linejoin:round !important;}
+  code{font-family:'JetBrains Mono',monospace;}
+  input{font-family:inherit;}
+  .scroll::-webkit-scrollbar{width:8px;height:8px;}
+  .scroll::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:8px;}
+  @media (max-width:1100px){ #admin-sidebar{display:none !important;} #admin-main{margin-left:0 !important;} #lead-split{grid-template-columns:1fr !important;} }
+  @media (max-width:1100px){
+    #admin-sidebar{display:flex !important;position:static !important;width:100% !important;height:auto !important;flex-direction:row !important;align-items:center !important;overflow-x:auto !important;overflow-y:hidden !important;padding:8px 10px !important;gap:4px;}
+    #admin-sidebar > div:first-child{display:none !important;}
+    #admin-sidebar > div:last-child{display:none !important;}
+    #admin-sidebar nav{flex-direction:row !important;padding:0 !important;gap:4px;overflow:visible !important;}
+    #admin-sidebar nav > div{display:none !important;}
+    #admin-sidebar nav a{height:38px !important;padding:0 12px !important;white-space:nowrap;flex-shrink:0;}
+    #admin-main{margin-left:0 !important;}
+  }
+</style>
+</helmet>
+
+<div style="width:100%;min-height:100vh;background:var(--bg);">
+  <aside id="admin-sidebar" style="position:fixed;top:0;left:0;bottom:0;width:248px;background:var(--sidebar);display:flex;flex-direction:column;z-index:100;">
+    <div style="padding:22px 20px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.08);">
+      <img src="assets/jkp-logo-white.png" alt="JKP" style="height:30px;width:auto;">
+      <span style="font-size:11px;font-weight:700;color:#5E6B63;border-left:1px solid rgba(255,255,255,.14);padding-left:9px;">CMS</span>
+    </div>
+    <nav class="scroll" style="flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:2px;">
+      <sc-for list="{{ nav }}" as="n" hint-placeholder-count="11">
+        <sc-if value="{{ n.isGroup }}" hint-placeholder-val="{{ false }}"><div style="padding:14px 12px 6px;font-size:10.5px;font-weight:700;letter-spacing:.08em;color:#4E5A52;text-transform:uppercase;">{{ n.label }}</div></sc-if>
+        <sc-if value="{{ n.isLink }}" hint-placeholder-val="{{ true }}">
+          <a href="{{ n.href }}" style="{{ n.style }}"><span style="display:flex;width:18px;height:18px;flex-shrink:0;" dangerouslySetInnerHTML="{{ n.icon }}"></span><span style="flex:1;">{{ n.label }}</span><sc-if value="{{ n.badge }}" hint-placeholder-val="{{ false }}"><span style="height:18px;min-width:18px;padding:0 6px;border-radius:9999px;background:#2DFB91;color:#04140C;font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center;">{{ n.badge }}</span></sc-if></a>
+        </sc-if>
+      </sc-for>
+    </nav>
+    <div style="padding:14px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px;">
+      <div style="width:36px;height:36px;border-radius:9999px;background:#273c33;color:#2DFB91;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;">ก</div>
+      <div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">กิตติพงษ์ พรหมทอง</div><div style="font-size:11px;color:#5E6B63;">Super admin</div></div>
+    </div>
+  </aside>
+
+  <div id="admin-main" style="margin-left:248px;min-height:100vh;display:flex;flex-direction:column;">
+    <header style="position:sticky;top:0;z-index:50;background:rgba(246,245,241,.85);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+      <div><div style="font-size:12px;color:var(--muted2);"><a href="AdminDashboard.dc.html" style="color:var(--muted2);">Dashboard</a> / งานขาย</div><h1 style="margin:2px 0 0;font-size:20px;font-weight:800;color:var(--text);">Leads</h1></div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:9999px;background:var(--surface);border:1px solid var(--border);min-width:220px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+          <input placeholder="ค้นหาชื่อ/บริษัท/อีเมล" style="border:0;outline:none;background:transparent;font-size:13px;color:var(--text);flex:1;min-width:0;"/>
+        </div>
+      </div>
+    </header>
+
+    <main class="scroll" style="flex:1;padding:24px 28px 60px;">
+      <!-- FILTER CHIPS -->
+      <div style="position:relative;display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+        <sc-if value="{{ anyOpen }}" hint-placeholder-val="{{ false }}"><div onClick="{{ closeAll }}" style="position:fixed;inset:0;z-index:20;"></div></sc-if>
+        <sc-for list="{{ filterChips }}" as="c" hint-placeholder-count="4">
+          <div style="position:relative;">
+            <div onClick="{{ c.toggle }}" style="{{ c.style }}">{{ c.label }}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{ c.chev }}" stroke-width="2.4" style="{{ c.chevStyle }}"><path d="M6 9l6 6 6-6"></path></svg></div>
+            <sc-if value="{{ c.open }}" hint-placeholder-val="{{ false }}">
+              <div onClick="{{ stopP }}" style="position:absolute;top:44px;left:0;z-index:30;width:190px;background:var(--surface);border:1px solid var(--border);border-radius:13px;box-shadow:0 18px 40px rgba(0,0,0,.16);padding:6px;">
+                <sc-for list="{{ c.options }}" as="o" hint-placeholder-count="3"><div onClick="{{ o.select }}" style="{{ o.style }}"><span>{{ o.label }}</span><sc-if value="{{ o.active }}" hint-placeholder-val="{{ false }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" stroke-width="2.6"><path d="M20 6L9 17l-5-5"></path></svg></sc-if></div></sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+
+      <div id="lead-split" style="display:grid;grid-template-columns:400px 1fr;gap:20px;align-items:start;">
+        <!-- LIST -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;">
+          <div style="padding:13px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;"><span style="font-size:13px;font-weight:800;color:var(--text);">42 leads</span><span style="font-size:12px;color:var(--muted2);">เรียง: ใหม่ล่าสุด</span></div>
+          <div class="scroll" style="max-height:660px;overflow-y:auto;">
+            <sc-for list="{{ leads }}" as="l" hint-placeholder-count="6">
+              <div onClick="{{ l.select }}" style="{{ l.rowStyle }}">
+                <div style="display:flex;align-items:center;gap:11px;">
+                  <div style="width:38px;height:38px;border-radius:9999px;background:{{ l.avBg }};color:{{ l.avFg }};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;">{{ l.initial }}</div>
+                  <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><span style="font-size:13.5px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ l.name }}</span><span style="font-size:11px;color:var(--muted3);flex-shrink:0;">{{ l.time }}</span></div>
+                    <div style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ l.company }}</div>
+                    <div style="margin-top:5px;display:flex;align-items:center;gap:6px;"><span style="{{ l.statusStyle }}">{{ l.status }}</span><span style="font-size:10.5px;color:var(--muted3);">{{ l.source }}</span></div>
+                  </div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- DETAIL -->
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <!-- header card -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+              <div style="display:flex;align-items:center;gap:14px;">
+                <div style="width:52px;height:52px;border-radius:9999px;background:#273c33;color:#2DFB91;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:800;">{{ cur.initial }}</div>
+                <div><div style="font-size:18px;font-weight:800;color:var(--text);">{{ cur.name }}</div><div style="font-size:13px;color:var(--muted);">{{ cur.company }} · {{ cur.country }}</div></div>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <div style="position:relative;">
+                  <div onClick="{{ toggleStatus }}" style="display:flex;align-items:center;gap:7px;height:38px;padding:0 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg);font-size:12.5px;font-weight:700;color:var(--text);cursor:pointer;"><span style="width:8px;height:8px;border-radius:9999px;background:#0D6C3B;"></span>{{ curStatus }}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" stroke-width="2.4" style="{{ statusChev }}"><path d="M6 9l6 6 6-6"></path></svg></div>
+                  <sc-if value="{{ statusOpen }}" hint-placeholder-val="{{ false }}"><div onClick="{{ stopP }}" style="position:absolute;top:44px;right:0;z-index:30;width:190px;background:var(--surface);border:1px solid var(--border);border-radius:13px;box-shadow:0 18px 40px rgba(0,0,0,.16);padding:6px;"><sc-for list="{{ statusOptions }}" as="o" hint-placeholder-count="6"><div onClick="{{ o.select }}" style="{{ o.style }}"><span>{{ o.label }}</span><sc-if value="{{ o.active }}" hint-placeholder-val="{{ false }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" stroke-width="2.6"><path d="M20 6L9 17l-5-5"></path></svg></sc-if></div></sc-for></div></sc-if>
+                </div>
+                <div style="position:relative;">
+                  <div onClick="{{ toggleAgent }}" style="display:flex;align-items:center;gap:7px;height:38px;padding:0 14px;border-radius:10px;background:#0D6C3B;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-4 4-6 8-6s8 2 8 6"></path></svg>มอบหมาย: {{ curAgent }}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" style="{{ agentChev }}"><path d="M6 9l6 6 6-6"></path></svg></div>
+                  <sc-if value="{{ agentOpen }}" hint-placeholder-val="{{ false }}"><div onClick="{{ stopP }}" style="position:absolute;top:44px;right:0;z-index:30;width:190px;background:var(--surface);border:1px solid var(--border);border-radius:13px;box-shadow:0 18px 40px rgba(0,0,0,.16);padding:6px;"><sc-for list="{{ agentOptions }}" as="o" hint-placeholder-count="4"><div onClick="{{ o.select }}" style="{{ o.style }}"><span>{{ o.label }}</span><sc-if value="{{ o.active }}" hint-placeholder-val="{{ false }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" stroke-width="2.6"><path d="M20 6L9 17l-5-5"></path></svg></sc-if></div></sc-for></div></sc-if>
+                </div>
+              </div>
+            </div>
+            <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+              <a href="#" style="display:flex;align-items:center;gap:7px;height:36px;padding:0 14px;border-radius:9999px;background:var(--tint);color:var(--accent);font-size:12.5px;font-weight:700;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z"></path></svg>{{ cur.phone }}</a>
+              <a href="#" style="display:flex;align-items:center;gap:7px;height:36px;padding:0 14px;border-radius:9999px;background:var(--tint);color:var(--accent);font-size:12.5px;font-weight:700;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 6l-10 7L2 6"></path><rect x="2" y="4" width="20" height="16" rx="2"></rect></svg>{{ cur.email }}</a>
+              <a href="AdminRequirement.dc.html" style="display:flex;align-items:center;gap:7px;height:36px;padding:0 16px;border-radius:9999px;background:#273c33;color:#fff;font-size:12.5px;font-weight:700;margin-left:auto;">เปิด Requirement<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></a>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <!-- requirement summary -->
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;">
+              <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:14px;">สรุปความต้องการ</div>
+              <div style="display:flex;flex-direction:column;gap:11px;">
+                <sc-for list="{{ cur.req }}" as="q" hint-placeholder-count="5">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;"><span style="font-size:12.5px;color:var(--muted);">{{ q.k }}</span><span style="font-size:12.5px;font-weight:700;color:var(--text);text-align:right;">{{ q.v }}</span></div>
+                </sc-for>
+              </div>
+              <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;">
+                <sc-for list="{{ cur.linked }}" as="lk" hint-placeholder-count="3"><span style="height:26px;padding:0 11px;border-radius:9999px;background:var(--tint);color:var(--accent);font-size:11.5px;font-weight:700;display:inline-flex;align-items:center;gap:5px;">{{ lk }}</span></sc-for>
+              </div>
+            </div>
+
+            <!-- tasks -->
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"><span style="font-size:14px;font-weight:800;color:var(--text);">งานติดตาม</span><span onClick="{{ addTask }}" style="width:26px;height:26px;border-radius:8px;background:var(--tint);color:var(--accent);display:flex;align-items:center;justify-content:center;cursor:pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"></path></svg></span></div>
+              <sc-if value="{{ taskAdding }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;gap:8px;margin-bottom:9px;"><input value="{{ taskText }}" onInput="{{ onTaskInput }}" placeholder="งานใหม่…" style="flex:1;height:38px;padding:0 12px;border-radius:10px;border:1px solid #0D6C3B;font-size:12.5px;background:var(--surface);outline:none;"/><div onClick="{{ saveTask }}" style="height:38px;padding:0 14px;border-radius:10px;background:#0D6C3B;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;cursor:pointer;">เพิ่ม</div></div>
+              </sc-if>
+              <div style="display:flex;flex-direction:column;gap:9px;">
+                <sc-for list="{{ tasks }}" as="t" hint-placeholder-count="3">
+                  <div style="display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:11px;background:var(--bg);"><div onClick="{{ t.toggle }}" style="{{ t.box }}"><sc-if value="{{ t.done }}" hint-placeholder-val="{{ false }}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4"><path d="M20 6L9 17l-5-5"></path></svg></sc-if></div><div style="flex:1;"><div style="font-size:12.5px;font-weight:600;color:var(--text);{{ t.strike }}">{{ t.title }}</div><div style="margin-top:2px;font-size:11px;color:var(--muted3);">{{ t.due }}</div></div></div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <!-- timeline -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px;">
+            <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px;">Timeline &amp; Notes</div>
+            <div style="display:flex;gap:10px;margin:12px 0 18px;">
+              <input value="{{ noteText }}" onInput="{{ onNoteInput }}" placeholder="เพิ่มบันทึก…" style="flex:1;height:42px;padding:0 14px;border-radius:11px;border:1px solid var(--border);font-size:13px;background:var(--bg);outline:none;"/>
+              <div onClick="{{ saveNote }}" style="height:42px;padding:0 18px;border-radius:11px;background:#0D6C3B;color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;cursor:pointer;">บันทึก</div>
+            </div>
+            <div style="display:flex;flex-direction:column;">
+              <sc-for list="{{ timeline }}" as="e" hint-placeholder-count="4">
+                <div style="display:flex;gap:14px;padding-bottom:16px;">
+                  <div style="display:flex;flex-direction:column;align-items:center;"><div style="width:30px;height:30px;border-radius:9999px;background:{{ e.dotBg }};display:flex;align-items:center;justify-content:center;flex-shrink:0;" dangerouslySetInnerHTML="{{ e.icon }}"></div><div style="flex:1;width:2px;background:var(--border);margin-top:4px;"></div></div>
+                  <div style="flex:1;padding-bottom:4px;"><div style="font-size:13px;color:var(--text);line-height:1.5;">{{ e.text }}</div><div style="margin-top:2px;font-size:11px;color:var(--muted3);">{{ e.by }} · {{ e.time }}</div></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { selected: 0, openChip: null, statusOpen: false, agentOpen: false, statusVal: null, agentVal: null, taskAdding: false, taskText: '', extraTasks: [], noteText: '', extraNotes: [], filters: { status:'ทั้งหมด', agent:'ทั้งหมด', source:'ทั้งหมด', date:'ทุกช่วง' } };
+  renderVals() {
+    const st = (label, bg, fg) => 'height:20px;padding:0 9px;border-radius:9999px;background:'+bg+';color:'+fg+';font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;';
+    const stMap = {
+      new: st('New','#EEF4F3','#034956'), qualified: st('Qualified','#E8F3EC','#0D6C3B'),
+      requirements_confirmed: st('Req. confirmed','#E8F3EC','#0D6C3B'), negotiating: st('Negotiating','#273c33','#fff'),
+      shortlisted: st('Shortlisted','#E8F3EC','#0D6C3B'), won: st('Won','#0D6C3B','#fff'),
+    };
+    const leadsData = [
+      { name:'บ. ไทยโลจิสติกส์', company:'คุณสมหมาย · TH', country:'ไทย', initial:'ท', avBg:'#E8F3EC', avFg:'#0D6C3B', time:'5น.', status:'new', statusK:'new', source:'requirement form', phone:'+66 81-234-5678', email:'somchai@thailog.co.th', agent:'มอบหมาย: อารยา' },
+      { name:'Sunrise Foods Ltd.', company:'Mr. Lee · CN', country:'จีน', initial:'S', avBg:'#EEF4F3', avFg:'#034956', time:'22น.', status:'qualified', statusK:'qualified', source:'contact form', phone:'+86 138-0000-1111', email:'lee@sunrise.cn', agent:'มอบหมาย: วีรพล' },
+      { name:'Metro Pack Co.', company:'คุณวิภา · TH', country:'ไทย', initial:'M', avBg:'#FBF3E1', avFg:'#9A741C', time:'1ชม.', status:'negotiating', statusK:'negotiating', source:'inquiry', phone:'+66 89-999-0000', email:'wipa@metropack.com', agent:'มอบหมาย: อารยา' },
+      { name:'Nippon Steel TH', company:'Mr. Tanaka · JP', country:'ญี่ปุ่น', initial:'N', avBg:'#EEF4F3', avFg:'#034956', time:'3ชม.', status:'shortlisted', statusK:'shortlisted', source:'requirement form', phone:'+66 2-100-2000', email:'tanaka@nsteel.co.th', agent:'มอบหมาย: วีรพล' },
+      { name:'บ. เอเชีย โกลด์', company:'คุณธนา · TH', country:'ไทย', initial:'อ', avBg:'#E8F3EC', avFg:'#0D6C3B', time:'เมื่อวาน', status:'requirements_confirmed', statusK:'requirements_confirmed', source:'contact form', phone:'+66 81-555-4444', email:'thana@asiagold.co.th', agent:'มอบหมาย: อารยา' },
+      { name:'Global Ware Inc.', company:'Ms. Chen · CN', country:'จีน', initial:'G', avBg:'#0D6C3B', avFg:'#fff', time:'2 วัน', status:'won', statusK:'won', source:'referral', phone:'+86 139-8888-7777', email:'chen@globalware.cn', agent:'มอบหมาย: วีรพล' },
+    ];
+    const leads = leadsData.map((d, i) => ({ ...d,
+      statusStyle: stMap[d.statusK] || stMap.new,
+      select: () => this.setState({ selected: i }),
+      rowStyle: 'padding:13px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;background:'+(i===this.state.selected?'var(--tint)':'transparent')+';border-left:3px solid '+(i===this.state.selected?'#0D6C3B':'transparent')+';',
+    }));
+    const cur = leadsData[this.state.selected];
+    const ti = (p,c) => ({ __html:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="'+c+'" stroke-width="2">'+p+'</svg>' });
+    const S = this.state;
+    const baseTasks = [
+      { title:'โทรกลับยืนยันความต้องการ', due:'วันนี้ 15:00', color:'#C0392B' },
+      { title:'เตรียม shortlist 5 รายการ', due:'พรุ่งนี้', color:'#D9A62B' },
+      { title:'ส่งโบรชัวร์ EN', due:'2 วัน', color:'#0D6C3B' },
+    ];
+    const allTasks = baseTasks.concat(S.extraTasks);
+    const tasks = allTasks.map((t,i)=>{ const done=!!t.done; return { ...t,
+      box:'width:16px;height:16px;border-radius:5px;flex-shrink:0;margin-top:1px;cursor:pointer;display:flex;align-items:center;justify-content:center;border:1.5px solid '+(done?'#0D6C3B':(t.color||'var(--border)'))+';background:'+(done?'#0D6C3B':'transparent')+';',
+      strike: done?'text-decoration:line-through;color:var(--muted3);':'',
+      toggle:()=>{ const ex=[...S.extraTasks]; if(i>=baseTasks.length){ const j=i-baseTasks.length; ex[j]={...ex[j],done:!ex[j].done}; this.setState({extraTasks:ex}); } else { const bd=this.state.baseDone||{}; this.setState({baseDone:{...bd}}); } },
+    }; });
+    const baseTimeline = [
+      { text:'ระบบสร้าง lead จากฟอร์ม requirement', by:'ระบบ', time:'วันนี้ 09:05', dotBg:'#EEF4F3', icon:ti('<path d="M12 5v14M5 12h14"></path>','#034956') },
+      { text:'มอบหมายให้ อารยา', by:'ops', time:'วันนี้ 09:20', dotBg:'#EEF4F3', icon:ti('<circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-4 4-6 8-6s8 2 8 6"></path>','#034956') },
+      { text:'โทรครั้งแรก — ลูกค้าสนใจโซนบางนา', by:'อารยา', time:'วันนี้ 10:40', dotBg:'#E8F3EC', icon:ti('<path d="M22 16.9v3a2 2 0 01-2.2 2A19.8 19.8 0 013 5.2 2 2 0 015 3h3a2 2 0 012 1.7l.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5l2.8.7A2 2 0 0122 16.9z"></path>','#0D6C3B') },
+      { text:'requirement confirmed → เลื่อนสถานะอัตโนมัติ', by:'ระบบ', time:'วันนี้ 11:15', dotBg:'#E8F3EC', icon:ti('<path d="M20 6L9 17l-5-5"></path>','#0D6C3B') },
+    ];
+    const noteIcon = ti('<path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"></path>','#034956');
+    const timeline = S.extraNotes.map(n=>({ text:n, by:'คุณ', time:'เมื่อสักครู่', dotBg:'#E8F3EC', icon:noteIcon })).concat(baseTimeline);
+    const curStatus = S.statusVal || { new:'New', qualified:'Qualified', requirements_confirmed:'Req. confirmed', negotiating:'Negotiating', shortlisted:'Shortlisted', won:'Won' }[cur.statusK];
+    const curAgent = S.agentVal || 'อารยา';
+    const dd = (active) => 'display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 11px;border-radius:9px;font-size:12.5px;font-weight:'+(active?700:600)+';cursor:pointer;color:'+(active?'#0D6C3B':'var(--text)')+';background:'+(active?'rgba(13,108,59,.06)':'transparent')+';';
+    const statusOptions = [['New','new'],['Qualified','qualified'],['Req. confirmed','req'],['Shortlisted','shortlisted'],['Negotiating','negotiating'],['Won','won']].map(([label])=>({ label, active:curStatus===label, select:()=>this.setState({statusVal:label, statusOpen:false}), style:dd(curStatus===label) }));
+    const agentOptions = ['อารยา','วีรพล','สมชาย','ยังไม่มอบหมาย'].map(label=>({ label, active:curAgent===label, select:()=>this.setState({agentVal:label, agentOpen:false}), style:dd(curAgent===label) }));
+    const chipDef = (key, prefix, opts) => {
+      const val = S.filters[key];
+      const active = S.openChip===key;
+      return { label: prefix+': '+val, open:active, chev: active||val!=='ทั้งหมด'&&val!=='ทุกช่วง'?'#fff':'var(--muted2)',
+        chevStyle: active?'transform:rotate(180deg);transition:transform .2s;':'transition:transform .2s;',
+        toggle:()=>this.setState({openChip: active?null:key, statusOpen:false, agentOpen:false}),
+        style:'display:flex;align-items:center;gap:6px;height:36px;padding:0 15px;border-radius:9999px;font-size:12.5px;font-weight:700;cursor:pointer;background:'+((val!=='ทั้งหมด'&&val!=='ทุกช่วง')||active?'#273c33':'var(--surface)')+';color:'+((val!=='ทั้งหมด'&&val!=='ทุกช่วง')||active?'#fff':'var(--muted)')+';border:1px solid '+((val!=='ทั้งหมด'&&val!=='ทุกช่วง')||active?'#273c33':'var(--border)')+';',
+        options: opts.map(o=>({ label:o, active:val===o, select:()=>this.setState({filters:{...S.filters,[key]:o}, openChip:null}), style:dd(val===o) })),
+      };
+    };
+    const detail = {
+      ...cur,
+      status: curStatus,
+      req: [
+        { k:'ต้องการ', v:'เช่าโกดัง' }, { k:'ขนาด', v:'2,000–3,500 ตร.ม.' },
+        { k:'งบเช่า', v:'฿150K–250K/ด.' }, { k:'ต้องการ ร.ง.4', v:'ใช่' }, { k:'พื้นที่', v:'สมุทรปราการ, ชลบุรี' },
+      ],
+      linked: ['Requirement #REQ-1042', 'Shortlist #SL-208', '2 Visits'],
+    };
+    return {
+      nav: this.navItems('Leads'),
+      leads, cur: detail,
+      curStatus, curAgent, statusOptions, agentOptions,
+      statusOpen:S.statusOpen, agentOpen:S.agentOpen,
+      statusChev: S.statusOpen?'transform:rotate(180deg);transition:transform .2s;':'transition:transform .2s;',
+      agentChev: S.agentOpen?'transform:rotate(180deg);transition:transform .2s;':'transition:transform .2s;',
+      toggleStatus:()=>this.setState({statusOpen:!S.statusOpen, agentOpen:false, openChip:null}),
+      toggleAgent:()=>this.setState({agentOpen:!S.agentOpen, statusOpen:false, openChip:null}),
+      filterChips: [
+        chipDef('status','สถานะ',['ทั้งหมด','New','Qualified','Negotiating','Won']),
+        chipDef('agent','Agent',['ทั้งหมด','อารยา','วีรพล','สมชาย']),
+        chipDef('source','Source',['ทั้งหมด','requirement form','contact form','inquiry','referral']),
+        chipDef('date','ช่วงวันที่',['ทุกช่วง','วันนี้','7 วัน','30 วัน']),
+      ],
+      anyOpen: S.openChip!==null || S.statusOpen || S.agentOpen,
+      closeAll:()=>this.setState({openChip:null, statusOpen:false, agentOpen:false}),
+      stopP:(e)=>e.stopPropagation(),
+      tasks,
+      taskAdding:S.taskAdding, taskText:S.taskText,
+      addTask:()=>this.setState({taskAdding:!S.taskAdding}),
+      onTaskInput:(e)=>this.setState({taskText:e.target.value}),
+      saveTask:()=>{ const v=S.taskText.trim(); if(!v)return; this.setState({extraTasks:[...S.extraTasks,{title:v,due:'ยังไม่กำหนด',color:'#0D6C3B'}], taskText:'', taskAdding:false}); },
+      timeline,
+      noteText:S.noteText,
+      onNoteInput:(e)=>this.setState({noteText:e.target.value}),
+      saveNote:()=>{ const v=S.noteText.trim(); if(!v)return; this.setState({extraNotes:[v,...S.extraNotes], noteText:''}); },
+    };
+  }
+  navItems(active){ const mk=(label,icon,href,badge)=>{const on=label===active;return{isLink:true,isGroup:false,label,href,badge:badge||'',icon:{__html:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="'+(on?'#2DFB91':'#9AA39D')+'" stroke-width="1.8">'+icon+'</svg>'},style:'display:flex;align-items:center;gap:11px;height:40px;padding:0 12px;border-radius:11px;font-size:13.5px;font-weight:'+(on?'700':'500')+';color:'+(on?'#fff':'#AEB8B1')+';background:'+(on?'rgba(45,251,145,.12)':'transparent')+';transition:background .15s;'};};const grp=(label)=>({isGroup:true,isLink:false,label});return[mk('Dashboard','<rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect>','AdminDashboard.dc.html'),grp('ทรัพย์'),mk('Properties','<path d="M3 21V8l9-5 9 5v13"></path><path d="M3 21h18"></path><path d="M7 21v-8h10v8"></path>','AdminProperties.dc.html'),mk('Listings','<rect x="3" y="4" width="18" height="4" rx="1"></rect><rect x="3" y="10" width="18" height="4" rx="1"></rect><rect x="3" y="16" width="18" height="4" rx="1"></rect>','AdminListings.dc.html'),grp('งานขาย'),mk('Leads','<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path><circle cx="9" cy="7" r="4"></circle>','AdminLeads.dc.html','18'),mk('Requirements','<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><path d="M14 2v6h6"></path>','AdminRequirement.dc.html','7'),mk('Shortlists','<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>','AdminShortlist.dc.html'),mk('Visits','<rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path>','AdminVisit.dc.html'),mk('Deals','<path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"></path>','AdminDeal.dc.html'),grp('เนื้อหา & ระบบ'),mk('CMS','<path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path>','AdminCMS.dc.html'),mk('SEO / GEO','<circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20"></path>','AdminSEO.dc.html'),mk('Settings','<circle cx="12" cy="12" r="3"></circle><path d="M12 2a2 2 0 012 2 2 2 0 002 2 2 2 0 012 2 2 2 0 000 4 2 2 0 01-2 2 2 2 0 00-2 2 2 2 0 01-4 0 2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 000-4 2 2 0 012-2 2 2 0 002-2 2 2 0 012-2z"></path>','AdminSettings.dc.html')];}
+}
+</script>
+</body>
+</html>

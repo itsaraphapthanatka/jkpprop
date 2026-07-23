@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  :root{--bg:#F6F5F1;--surface:#FFFFFF;--tint:#EEF4F3;--text:#28251D;--muted:#5F5A52;--muted2:#7A7974;--muted3:#9B968D;--border:#E7E3DC;--accent:#034956;--sidebar:#0A0E0C;}
+  body{margin:0;font-family:'Noto Sans Thai','Inter',system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  a{text-decoration:none;color:inherit;}
+  svg{stroke-linecap:round !important;stroke-linejoin:round !important;}
+  code{font-family:'JetBrains Mono',monospace;}
+  .scroll::-webkit-scrollbar{width:8px;height:8px;}
+  .scroll::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:8px;}
+  @media (max-width:1100px){ #admin-sidebar{display:none !important;} #admin-main{margin-left:0 !important;} }
+  @media (max-width:760px){ #up-grid{grid-template-columns:1fr !important;} }
+  @media (max-width:1100px){
+    #admin-sidebar{display:flex !important;position:static !important;width:100% !important;height:auto !important;flex-direction:row !important;align-items:center !important;overflow-x:auto !important;overflow-y:hidden !important;padding:8px 10px !important;gap:4px;}
+    #admin-sidebar > div:first-child{display:none !important;}
+    #admin-sidebar > div:last-child{display:none !important;}
+    #admin-sidebar nav{flex-direction:row !important;padding:0 !important;gap:4px;overflow:visible !important;}
+    #admin-sidebar nav > div{display:none !important;}
+    #admin-sidebar nav a{height:38px !important;padding:0 12px !important;white-space:nowrap;flex-shrink:0;}
+    #admin-main{margin-left:0 !important;}
+  }
+</style>
+</helmet>
+
+<div style="width:100%;min-height:100vh;background:var(--bg);">
+  <aside id="admin-sidebar" style="position:fixed;top:0;left:0;bottom:0;width:248px;background:var(--sidebar);display:flex;flex-direction:column;z-index:100;">
+    <div style="padding:22px 20px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.08);">
+      <img src="assets/jkp-logo-white.png" alt="JKP" style="height:30px;width:auto;">
+      <span style="font-size:11px;font-weight:700;color:#5E6B63;border-left:1px solid rgba(255,255,255,.14);padding-left:9px;">CMS</span>
+    </div>
+    <nav class="scroll" style="flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:2px;">
+      <sc-for list="{{ nav }}" as="n" hint-placeholder-count="14">
+        <sc-if value="{{ n.isGroup }}" hint-placeholder-val="{{ false }}"><div style="padding:14px 12px 6px;font-size:10.5px;font-weight:700;letter-spacing:.08em;color:#4E5A52;text-transform:uppercase;">{{ n.label }}</div></sc-if>
+        <sc-if value="{{ n.isLink }}" hint-placeholder-val="{{ true }}">
+          <a href="{{ n.href }}" style="{{ n.style }}"><span style="display:flex;width:18px;height:18px;flex-shrink:0;" dangerouslySetInnerHTML="{{ n.icon }}"></span><span style="flex:1;">{{ n.label }}</span></a>
+        </sc-if>
+      </sc-for>
+    </nav>
+    <div style="padding:14px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px;">
+      <div style="width:36px;height:36px;border-radius:9999px;background:#273c33;color:#2DFB91;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;">ก</div>
+      <div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">กิตติพงษ์ พรหมทอง</div><div style="font-size:11px;color:#5E6B63;">Super admin</div></div>
+    </div>
+  </aside>
+
+  <div id="admin-main" style="margin-left:248px;min-height:100vh;display:flex;flex-direction:column;">
+    <header style="position:sticky;top:0;z-index:50;background:rgba(246,245,241,.85);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+      <div><div style="font-size:12px;color:var(--muted2);">เนื้อหา / SEO · GEO · AEO</div><h1 style="margin:2px 0 0;font-size:20px;font-weight:800;color:var(--text);">SEO · GEO · AEO</h1></div>
+      <div style="{{ statusPillStyle }}"><span style="width:8px;height:8px;border-radius:9999px;background:{{ statusDot }};"></span><span style="font-size:12.5px;font-weight:700;color:{{ statusColor }};">{{ statusText }}</span></div>
+    </header>
+
+    <main class="scroll" style="flex:1;padding:24px 28px 60px;">
+      <div style="max-width:880px;">
+        <!-- ADD-ON BANNER -->
+        <div style="position:relative;overflow:hidden;background:linear-gradient(135deg,#043F20 0%,#022310 100%);border-radius:20px;padding:26px 28px;color:#fff;margin-bottom:20px;">
+          <div style="position:absolute;top:-40px;right:-20px;width:180px;height:180px;border-radius:9999px;background:rgba(45,251,145,.1);pointer-events:none;"></div>
+          <div style="position:relative;display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;">
+            <div style="max-width:520px;">
+              <div style="display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 12px;border-radius:9999px;background:rgba(45,251,145,.16);border:1px solid rgba(45,251,145,.35);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" stroke-width="2.2"><path d="M13 2L3 14h7l-1 8 11-14h-7z"></path></svg><span style="font-size:11px;font-weight:800;color:#2DFB91;">บริการเสริม (Add-on)</span></div>
+              <h2 style="margin:12px 0 8px;font-size:22px;font-weight:800;">SEO · GEO · AEO Booster</h2>
+              <p style="margin:0;font-size:13.5px;color:#C3FED5;line-height:1.7;">ดันเว็บให้ติดอันดับ Google และให้ AI (ChatGPT, Perplexity, Google AI) ดึงไปตอบและอ้างอิง — เนื้อหา + schema + llms.txt เสิร์ฟและอัปเดตอัตโนมัติจากระบบของเรา</p>
+            </div>
+            <div style="text-align:right;flex-shrink:0;">
+              <div style="{{ subBtnStyle }}" onClick="{{ toggleSub }}">{{ subBtnLabel }}</div>
+            </div>
+          </div>
+        </div>
+
+        <sc-if value="{{ notSubscribed }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;text-align:center;">
+            <div style="width:54px;height:54px;border-radius:9999px;background:var(--tint);display:flex;align-items:center;justify-content:center;margin:0 auto;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg></div>
+            <div style="margin-top:14px;font-size:15px;font-weight:800;color:var(--text);">ยังไม่ได้เปิดใช้บริการ</div>
+            <p style="margin:6px auto 0;max-width:400px;font-size:13px;color:var(--muted);line-height:1.7;">กด "เปิดใช้บริการ" ด้านบนเพื่อสมัคร Add-on — จากนั้นอัปโหลด llms.txt และ robots.txt เพื่อเริ่มใช้งานทันที</p>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ subscribed }}" hint-placeholder-val="{{ true }}">
+          <div style="font-size:13px;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:8px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" stroke-width="1.9"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg>อัปโหลด 2 ไฟล์นี้เพื่อเปิดใช้งานบริการ — เมื่ออัปโหลดครบ ระบบจะเริ่มทำงานทันที</div>
+          <div id="up-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <sc-for list="{{ uploads }}" as="u" hint-placeholder-count="2">
+              <div style="{{ u.cardStyle }}">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <div style="width:44px;height:44px;border-radius:12px;background:{{ u.iconBg }};display:flex;align-items:center;justify-content:center;" dangerouslySetInnerHTML="{{ u.icon }}"></div>
+                  <sc-if value="{{ u.done }}" hint-placeholder-val="{{ false }}"><span style="height:24px;padding:0 11px;border-radius:9999px;background:#E8F3EC;color:#0D6C3B;font-size:11px;font-weight:800;display:flex;align-items:center;gap:5px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" stroke-width="3"><path d="M20 6L9 17l-5-5"></path></svg>อัปโหลดแล้ว</span></sc-if>
+                </div>
+                <div style="margin-top:14px;font-size:15px;font-weight:800;color:var(--text);">{{ u.name }}</div>
+                <div style="margin-top:3px;font-size:12.5px;color:var(--muted);line-height:1.6;">{{ u.desc }}</div>
+                <sc-if value="{{ u.done }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:14px;display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:11px;background:var(--bg);border:1px solid var(--border);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><path d="M14 2v6h6"></path></svg>
+                    <div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:700;color:var(--text);">{{ u.file }}</div><div style="font-size:10.5px;color:var(--muted3);">{{ u.meta }}</div></div>
+                    <div onClick="{{ u.remove }}" style="width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted3);cursor:pointer;" style-hover="background:#F9E4E1;color:#C0392B;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg></div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ u.pending }}" hint-placeholder-val="{{ true }}">
+                  <div onClick="{{ u.upload }}" style="margin-top:14px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:22px;border:1.5px dashed var(--border);border-radius:12px;cursor:pointer;text-align:center;" style-hover="border-color:#0D6C3B;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><path d="M17 8l-5-5-5 5M12 3v12"></path></svg>
+                    <div style="font-size:12.5px;font-weight:700;color:var(--text);">ลากไฟล์มาวาง หรือคลิกเพื่อเลือก</div>
+                    <div style="font-size:11px;color:var(--muted3);">รองรับ .txt · สูงสุด 1MB</div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- ACTIVATION STATE -->
+          <sc-if value="{{ allDone }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:18px;background:linear-gradient(135deg,#0B7A45,#043F20);border-radius:16px;padding:22px 24px;display:flex;align-items:center;gap:16px;color:#fff;">
+              <div style="width:46px;height:46px;border-radius:9999px;background:rgba(45,251,145,.18);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" stroke-width="2.2"><path d="M20 6L9 17l-5-5"></path></svg></div>
+              <div style="flex:1;"><div style="font-size:15.5px;font-weight:800;">บริการทำงานแล้ว 🎉</div><div style="font-size:12.5px;color:#C3FED5;">llms.txt + robots.txt อัปโหลดครบ — AI bot และ search engine เริ่มดึงเนื้อหาของคุณได้ทันที · ระบบอัปเดตให้อัตโนมัติทุกครั้งที่แก้คอนเทนต์</div></div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ partial }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:18px;background:#FBF3E1;border:1px solid #EAD9A8;border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:12px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9A741C" stroke-width="2" style="flex-shrink:0;"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h16.9a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"></path><path d="M12 9v4M12 17h.01"></path></svg><span style="font-size:12.5px;color:#9A741C;font-weight:600;">อัปโหลดอีก 1 ไฟล์เพื่อเปิดใช้งานบริการให้สมบูรณ์</span></div>
+          </sc-if>
+        </sc-if>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { subscribed:true, up:{ llms:false, robots:false } };
+  renderVals() {
+    const S = this.state;
+    const done = S.up.llms && S.up.robots;
+    const some = S.up.llms || S.up.robots;
+    const active = S.subscribed && done;
+    const statusText = !S.subscribed ? 'ยังไม่เปิดใช้บริการ' : (active ? 'บริการทำงานอยู่' : 'รออัปโหลดไฟล์');
+    const statusColor = !S.subscribed ? '#9A741C' : (active ? '#0D6C3B' : '#9A741C');
+    const statusDot = active ? '#0D6C3B' : '#D9A62B';
+    const statusBg = active ? '#E8F3EC' : '#FBF3E1';
+    const fi = (p,c)=>({__html:'<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="'+c+'" stroke-width="1.8">'+p+'</svg>'});
+    const upDef = [
+      { key:'llms', name:'llms.txt', desc:'ไฟล์แนะนำโครงเว็บ+เนื้อหาให้ AI model อ่าน', file:'llms.txt', meta:'4.4 KB · อัปโหลดเมื่อสักครู่', iconBg:'#EEF4F3', icon:fi('<path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path>','#034956') },
+      { key:'robots', name:'robots.txt', desc:'เปิดทางให้ AI bot + search engine เข้าเว็บ', file:'robots.txt', meta:'0.4 KB · อัปโหลดเมื่อสักครู่', iconBg:'#E8F3EC', icon:fi('<circle cx="12" cy="12" r="3"></circle><path d="M12 1v6M12 17v6M4.2 4.2l4.3 4.3M15.5 15.5l4.3 4.3M1 12h6M17 12h6"></path>','#0D6C3B') },
+    ];
+    const uploads = upDef.map(u=>{ const d=S.up[u.key]; return { ...u, done:d, pending:!d,
+      cardStyle:'background:var(--surface);border:1.5px solid '+(d?'#0D6C3B':'var(--border)')+';border-radius:16px;padding:20px;',
+      upload:()=>this.setState({up:{...S.up,[u.key]:true}}),
+      remove:()=>this.setState({up:{...S.up,[u.key]:false}}),
+    }; });
+    return {
+      nav:this.navItems('SEO / GEO'),
+      statusText, statusColor, statusDot,
+      statusPillStyle:'display:flex;align-items:center;gap:7px;height:38px;padding:0 14px;border-radius:9999px;background:'+statusBg+';',
+      subscribed:S.subscribed, notSubscribed:!S.subscribed,
+      subBtnLabel: S.subscribed ? 'ยกเลิกบริการ' : 'เปิดใช้บริการ',
+      subBtnStyle: 'height:40px;padding:0 20px;border-radius:9999px;font-size:13px;font-weight:800;display:inline-flex;align-items:center;cursor:pointer;'+(S.subscribed?'background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);color:#fff;':'background:#2DFB91;color:#022310;'),
+      toggleSub:()=>this.setState({subscribed:!S.subscribed}),
+      uploads, allDone:done, partial: some && !done,
+    };
+  }
+  navItems(active){ const mk=(label,icon,href,badge)=>{const on=label===active;return{isLink:true,isGroup:false,label,href,badge:badge||'',icon:{__html:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="'+(on?'#2DFB91':'#9AA39D')+'" stroke-width="1.8">'+icon+'</svg>'},style:'display:flex;align-items:center;gap:11px;height:40px;padding:0 12px;border-radius:11px;font-size:13.5px;font-weight:'+(on?'700':'500')+';color:'+(on?'#fff':'#AEB8B1')+';background:'+(on?'rgba(45,251,145,.12)':'transparent')+';transition:background .15s;'};};const grp=(label)=>({isGroup:true,isLink:false,label});return[mk('Dashboard','<rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect>','AdminDashboard.dc.html'),grp('ทรัพย์'),mk('Properties','<path d="M3 21V8l9-5 9 5v13"></path><path d="M3 21h18"></path><path d="M7 21v-8h10v8"></path>','AdminProperties.dc.html'),mk('Listings','<rect x="3" y="4" width="18" height="4" rx="1"></rect><rect x="3" y="10" width="18" height="4" rx="1"></rect><rect x="3" y="16" width="18" height="4" rx="1"></rect>','AdminListings.dc.html'),grp('งานขาย'),mk('Leads','<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path><circle cx="9" cy="7" r="4"></circle>','AdminLeads.dc.html'),mk('Requirements','<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><path d="M14 2v6h6"></path>','AdminRequirement.dc.html'),mk('Shortlists','<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>','AdminShortlist.dc.html'),mk('Visits','<rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path>','AdminVisit.dc.html'),mk('Deals','<path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"></path>','AdminDeal.dc.html'),grp('เนื้อหา & ระบบ'),mk('CMS','<path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path>','AdminCMS.dc.html'),mk('Media','<rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path>','AdminMedia.dc.html'),mk('SEO / GEO','<circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20"></path>','AdminSEO.dc.html'),mk('Settings','<circle cx="12" cy="12" r="3"></circle><path d="M12 2a2 2 0 012 2 2 2 0 002 2 2 2 0 012 2 2 2 0 000 4 2 2 0 01-2 2 2 2 0 00-2 2 2 2 0 01-4 0 2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 000-4 2 2 0 012-2 2 2 0 002-2 2 2 0 012-2z"></path>','AdminSettings.dc.html')];}
+}
+</script>
+</body>
+</html>

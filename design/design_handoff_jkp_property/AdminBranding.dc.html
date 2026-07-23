@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  :root{--bg:#F6F5F1;--surface:#FFFFFF;--tint:#EEF4F3;--text:#28251D;--muted:#5F5A52;--muted2:#7A7974;--muted3:#9B968D;--border:#E7E3DC;--accent:#034956;--sidebar:#0A0E0C;}
+  body{margin:0;font-family:'Noto Sans Thai','Inter',system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  a{text-decoration:none;color:inherit;}
+  svg{stroke-linecap:round !important;stroke-linejoin:round !important;}
+  code{font-family:'JetBrains Mono',monospace;}
+  input{font-family:inherit;}
+  .scroll::-webkit-scrollbar{width:8px;height:8px;}
+  .scroll::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:8px;}
+  @media (max-width:1100px){ #admin-sidebar{display:none !important;} #admin-main{margin-left:0 !important;} #brand-split{grid-template-columns:1fr !important;} #brand-preview{position:static !important;} }
+  @media (max-width:1100px){
+    #admin-sidebar{display:flex !important;position:static !important;width:100% !important;height:auto !important;flex-direction:row !important;align-items:center !important;overflow-x:auto !important;overflow-y:hidden !important;padding:8px 10px !important;gap:4px;}
+    #admin-sidebar > div:first-child{display:none !important;}
+    #admin-sidebar > div:last-child{display:none !important;}
+    #admin-sidebar nav{flex-direction:row !important;padding:0 !important;gap:4px;overflow:visible !important;}
+    #admin-sidebar nav > div{display:none !important;}
+    #admin-sidebar nav a{height:38px !important;padding:0 12px !important;white-space:nowrap;flex-shrink:0;}
+    #admin-main{margin-left:0 !important;}
+  }
+</style>
+</helmet>
+
+<div style="width:100%;min-height:100vh;background:var(--bg);">
+  <aside id="admin-sidebar" style="position:fixed;top:0;left:0;bottom:0;width:248px;background:var(--sidebar);display:flex;flex-direction:column;z-index:100;">
+    <div style="padding:22px 20px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.08);">
+      <img src="assets/jkp-logo-white.png" alt="JKP" style="height:30px;width:auto;">
+      <span style="font-size:11px;font-weight:700;color:#5E6B63;border-left:1px solid rgba(255,255,255,.14);padding-left:9px;">CMS</span>
+    </div>
+    <nav class="scroll" style="flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:2px;">
+      <sc-for list="{{ nav }}" as="n" hint-placeholder-count="12">
+        <sc-if value="{{ n.isGroup }}" hint-placeholder-val="{{ false }}"><div style="padding:14px 12px 6px;font-size:10.5px;font-weight:700;letter-spacing:.08em;color:#4E5A52;text-transform:uppercase;">{{ n.label }}</div></sc-if>
+        <sc-if value="{{ n.isLink }}" hint-placeholder-val="{{ true }}">
+          <a href="{{ n.href }}" style="{{ n.style }}"><span style="display:flex;width:18px;height:18px;flex-shrink:0;" dangerouslySetInnerHTML="{{ n.icon }}"></span><span style="flex:1;">{{ n.label }}</span><sc-if value="{{ n.badge }}" hint-placeholder-val="{{ false }}"><span style="height:18px;min-width:18px;padding:0 6px;border-radius:9999px;background:#2DFB91;color:#04140C;font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center;">{{ n.badge }}</span></sc-if></a>
+        </sc-if>
+      </sc-for>
+    </nav>
+    <div style="padding:14px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px;">
+      <div style="width:36px;height:36px;border-radius:9999px;background:#273c33;color:#2DFB91;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;">ก</div>
+      <div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">กิตติพงษ์ พรหมทอง</div><div style="font-size:11px;color:#5E6B63;">Super admin</div></div>
+    </div>
+  </aside>
+
+  <div id="admin-main" style="margin-left:248px;min-height:100vh;display:flex;flex-direction:column;">
+    <header style="position:sticky;top:0;z-index:50;background:rgba(246,245,241,.85);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+      <div><div style="font-size:12px;color:var(--muted2);">Settings / Branding</div><h1 style="margin:2px 0 0;font-size:20px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:10px;">Branding &amp; Theme <span style="height:22px;padding:0 10px;border-radius:9999px;background:#EEF4F3;color:#034956;font-size:11px;font-weight:800;display:flex;align-items:center;gap:5px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#034956" stroke-width="2.4"><path d="M12 2l2 5 5 .5-4 3.5 1 5-4-2.5-4 2.5 1-5-4-3.5 5-.5z"></path></svg>Multi-tenant</span></h1></div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div onClick="{{ resetTheme }}" style="height:40px;padding:0 16px;border-radius:9999px;background:var(--surface);border:1px solid var(--border);color:var(--muted);font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px;cursor:pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M3 12a9 9 0 109-9 9 9 0 00-6.4 2.6L3 8"></path><path d="M3 3v5h5"></path></svg>รีเซ็ต</div>
+        <div style="height:40px;padding:0 18px;border-radius:9999px;background:#0D6C3B;color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px;cursor:pointer;transition:transform .2s,box-shadow .2s;" style-hover="transform:translateY(-1px);box-shadow:0 8px 20px rgba(13,108,59,.35);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M20 6L9 17l-5-5"></path></svg>บันทึกธีม</div>
+      </div>
+    </header>
+
+    <main class="scroll" style="flex:1;padding:24px 28px 60px;">
+      <div id="brand-split" style="display:grid;grid-template-columns:400px 1fr;gap:24px;align-items:start;">
+
+        <!-- CONTROLS -->
+        <div class="scroll" style="display:flex;flex-direction:column;gap:16px;">
+          <!-- preset -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;">
+            <div style="font-size:13.5px;font-weight:800;color:var(--text);margin-bottom:4px;">พรีเซ็ตธีมสำเร็จรูป</div>
+            <div style="font-size:11.5px;color:var(--muted2);margin-bottom:14px;">คลิกเปลี่ยนทั้งชุดสีในคลิกเดียว</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <sc-for list="{{ presets }}" as="p" hint-placeholder-count="4">
+                <div onClick="{{ p.select }}" style="{{ p.style }}">
+                  <div style="display:flex;gap:4px;">
+                    <span style="width:20px;height:20px;border-radius:6px;background:{{ p.primary }};"></span>
+                    <span style="width:20px;height:20px;border-radius:6px;background:{{ p.accent }};"></span>
+                    <span style="width:20px;height:20px;border-radius:6px;background:{{ p.neon }};"></span>
+                  </div>
+                  <span style="font-size:12px;font-weight:700;color:var(--text);">{{ p.name }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- brand colors -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;">
+            <div style="font-size:13.5px;font-weight:800;color:var(--text);margin-bottom:14px;">สีแบรนด์</div>
+            <div style="display:flex;flex-direction:column;gap:16px;">
+              <sc-for list="{{ colorRows }}" as="c" hint-placeholder-count="3">
+                <div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><span style="font-size:12.5px;font-weight:600;color:var(--text);">{{ c.label }}</span><code style="font-size:11px;color:var(--muted2);">{{ c.value }}</code></div>
+                  <div style="display:flex;gap:8px;">
+                    <sc-for list="{{ c.options }}" as="o" hint-placeholder-count="5">
+                      <div onClick="{{ o.select }}" style="{{ o.style }}"><sc-if value="{{ o.active }}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"></path></svg></sc-if></div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- typography -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;">
+            <div style="font-size:13.5px;font-weight:800;color:var(--text);margin-bottom:14px;">ฟอนต์</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <sc-for list="{{ fonts }}" as="f" hint-placeholder-count="3">
+                <div onClick="{{ f.select }}" style="{{ f.style }}"><div><div style="font-size:14px;font-weight:700;color:var(--text);font-family:{{ f.stack }};">{{ f.name }}</div><div style="font-size:11px;color:var(--muted2);">{{ f.sample }}</div></div><sc-if value="{{ f.active }}" hint-placeholder-val="{{ false }}"><div style="width:20px;height:20px;border-radius:9999px;background:#0D6C3B;display:flex;align-items:center;justify-content:center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"></path></svg></div></sc-if></div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- radius -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"><span style="font-size:13.5px;font-weight:800;color:var(--text);">ความโค้งมุม</span><code style="font-size:11.5px;color:var(--accent);font-weight:700;">{{ radiusLabel }}</code></div>
+            <div style="display:flex;gap:8px;">
+              <sc-for list="{{ radiusOpts }}" as="r" hint-placeholder-count="4">
+                <div onClick="{{ r.select }}" style="{{ r.style }}">{{ r.label }}</div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- logo + identity -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;">
+            <div style="font-size:13.5px;font-weight:800;color:var(--text);margin-bottom:14px;">โลโก้ &amp; ข้อมูล</div>
+            <div style="display:flex;align-items:center;gap:12px;padding:14px;border:1.5px dashed var(--border);border-radius:12px;cursor:pointer;">
+              <div style="width:44px;height:44px;border-radius:11px;background:var(--tint);display:flex;align-items:center;justify-content:center;color:var(--accent);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg></div>
+              <div style="flex:1;"><div style="font-size:12.5px;font-weight:700;color:var(--text);">ลากโลโก้มาวาง</div><div style="font-size:11px;color:var(--muted3);">PNG โปร่งใส แนะนำสูง 80px</div></div>
+            </div>
+            <input placeholder="ชื่อแบรนด์" value="JKP Property" style="margin-top:12px;width:100%;height:42px;padding:0 14px;border-radius:11px;border:1px solid var(--border);font-size:13px;background:var(--bg);outline:none;"/>
+          </div>
+        </div>
+
+        <!-- LIVE PREVIEW -->
+        <div id="brand-preview" style="position:sticky;top:88px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--muted);"><span style="width:8px;height:8px;border-radius:9999px;background:#2DFB91;"></span>ตัวอย่างสด — อัปเดตทันทีเมื่อปรับ</div>
+            <div style="display:flex;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:9999px;padding:3px;">
+              <div onClick="{{ setDesktop }}" style="{{ deviceDesktopStyle }}">เดสก์ท็อป</div>
+              <div onClick="{{ setMobile }}" style="{{ deviceMobileStyle }}">มือถือ</div>
+            </div>
+          </div>
+
+          <div style="{{ previewFrameStyle }}">
+            <!-- mini header -->
+            <div style="background:#fff;border-bottom:1px solid #ECE8E1;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;">
+              <div style="display:flex;align-items:center;gap:8px;"><div style="width:26px;height:26px;border-radius:7px;background:{{ primary }};display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:800;">J</div><span style="font-size:13px;font-weight:800;color:#28251D;font-family:{{ fontStack }};">{{ brandName }}</span></div>
+              <div style="display:flex;align-items:center;gap:14px;">
+                <sc-if value="{{ isDesktop }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;color:#5F5A52;font-family:{{ fontStack }};">โรงงาน · โกดัง · เกี่ยวกับเรา</span></sc-if>
+                <div style="height:30px;padding:0 14px;border-radius:{{ pillRadius }};background:{{ neon }};color:#04140C;font-size:11px;font-weight:800;display:flex;align-items:center;font-family:{{ fontStack }};">ติดต่อทีมงาน</div>
+              </div>
+            </div>
+            <!-- mini hero -->
+            <div style="position:relative;height:200px;background:linear-gradient(120deg,{{ primaryDark }} 0%,{{ primary }} 100%);display:flex;flex-direction:column;justify-content:center;padding:0 26px;overflow:hidden;">
+              <div style="position:absolute;top:-40px;right:-30px;width:160px;height:160px;border-radius:9999px;background:{{ neonGlow }};"></div>
+              <div style="position:relative;font-size:11px;font-weight:700;letter-spacing:.08em;color:{{ neon }};text-transform:uppercase;font-family:{{ fontStack }};">ทำเลยุทธศาสตร์</div>
+              <div style="position:relative;margin-top:6px;font-size:24px;font-weight:800;color:#fff;line-height:1.25;max-width:70%;font-family:{{ fontStack }};">ค้นหา<span style="color:{{ neon }};">โกดัง</span>ที่เหมาะกับคุณ</div>
+              <div style="position:relative;margin-top:16px;display:flex;gap:10px;">
+                <div style="height:38px;padding:0 20px;border-radius:{{ pillRadius }};background:{{ neon }};color:#04140C;font-size:12px;font-weight:800;display:flex;align-items:center;font-family:{{ fontStack }};">ค้นหาทรัพย์</div>
+                <div style="height:38px;padding:0 20px;border-radius:{{ pillRadius }};background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;font-family:{{ fontStack }};">ปรึกษาฟรี</div>
+              </div>
+            </div>
+            <!-- mini content -->
+            <div style="padding:20px 26px;background:#F9F8F5;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;"><span style="width:22px;height:2px;background:{{ accent }};border-radius:2px;"></span><span style="font-size:11px;font-weight:700;letter-spacing:.06em;color:{{ accent }};text-transform:uppercase;font-family:{{ fontStack }};">ทรัพย์มาใหม่</span></div>
+              <div style="display:grid;grid-template-columns:{{ cardCols }};gap:14px;">
+                <sc-for list="{{ previewCards }}" as="pc" hint-placeholder-count="2">
+                  <div style="background:#fff;border:1.5px solid #E7E3DC;border-radius:{{ cardRadius }};overflow:hidden;">
+                    <div style="height:90px;background:{{ pc.img }};position:relative;"><span style="position:absolute;top:8px;left:8px;height:20px;padding:0 8px;border-radius:9999px;background:rgba(255,255,255,.95);color:{{ accent }};font-size:9px;font-weight:800;display:flex;align-items:center;font-family:{{ fontStack }};">ให้เช่า</span></div>
+                    <div style="padding:12px 14px;"><div style="font-size:12px;font-weight:700;color:#28251D;font-family:{{ fontStack }};">{{ pc.title }}</div><div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;"><span style="font-size:13px;font-weight:800;color:{{ accent }};font-family:'JetBrains Mono',monospace;">{{ pc.price }}</span><div style="height:26px;padding:0 12px;border-radius:{{ pillRadius }};background:#fff;border:1px solid {{ pine }};color:{{ pine }};font-size:10px;font-weight:700;display:flex;align-items:center;font-family:{{ fontStack }};">ดูรายละเอียด</div></div></div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:14px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:12px;">
+            <div style="width:36px;height:36px;border-radius:10px;background:#EEF4F3;color:#034956;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 2l2 5 5 .5-4 3.5 1 5-4-2.5-4 2.5 1-5-4-3.5 5-.5z"></path></svg></div>
+            <div style="font-size:12px;color:var(--muted);line-height:1.55;">ธีมนี้จะใช้กับ <b style="color:var(--text);">ทั้งเว็บสาธารณะและ CMS</b> ของ tenant นี้ — clone tenant ใหม่แล้วปรับสีที่นี่ = rebrand ทั้งระบบใน 2 นาที</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { primary:'#034956', accent:'#034956', neon:'#2DFB91', pine:'#273c33', font:'noto', radius:'md', device:'desktop' };
+  renderVals() {
+    const S = this.state;
+    const primaries = ['#034956','#0D6C3B','#1E5AA8','#7A3FB0','#B0403F'];
+    const accents = ['#034956','#0D6C3B','#9A741C','#B0403F','#1E5AA8'];
+    const neons = ['#2DFB91','#3FD9A6','#FFD23F','#4FC3F7','#FF8A65'];
+    const darken = (hex) => {
+      const n = parseInt(hex.slice(1),16); let r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+      r=Math.round(r*0.45); g=Math.round(g*0.45); b=Math.round(b*0.45);
+      return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');
+    };
+    const hexA = (hex,a) => { const n=parseInt(hex.slice(1),16); return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')'; };
+    const swatch = (val, active, on) => ({ select:on, active, style:'width:36px;height:36px;border-radius:9px;background:'+val+';cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:'+(active?'0 0 0 2px #fff, 0 0 0 4px '+val:'inset 0 0 0 1px rgba(0,0,0,.08)')+';transition:box-shadow .15s;' });
+    const radiusMap = { sharp:'4px', sm:'10px', md:'16px', round:'22px' };
+    const fontMap = { noto:"'Noto Sans Thai',sans-serif", plex:"'IBM Plex Sans Thai',sans-serif", inter:"'Inter','Noto Sans Thai',sans-serif" };
+    const presets = [
+      { name:'JKP เขียว', primary:'#034956', accent:'#034956', neon:'#2DFB91', pine:'#273c33' },
+      { name:'โคบอลต์', primary:'#1E5AA8', accent:'#1E5AA8', neon:'#4FC3F7', pine:'#1B3A5C' },
+      { name:'รอยัลม่วง', primary:'#7A3FB0', accent:'#7A3FB0', neon:'#C9A0FF', pine:'#3D2159' },
+      { name:'ซันเซ็ต', primary:'#B0403F', accent:'#9A741C', neon:'#FF8A65', pine:'#5C2A29' },
+      { name:'ป่าดิบ', primary:'#0D6C3B', accent:'#0D6C3B', neon:'#8BE04E', pine:'#123924' },
+      { name:'มหาสมุทร', primary:'#0E6E7A', accent:'#0E6E7A', neon:'#38E0D0', pine:'#0A3B42' },
+      { name:'ทองคำ', primary:'#8A6A16', accent:'#9A741C', neon:'#FFD23F', pine:'#4A3A0E' },
+      { name:'กราไฟต์', primary:'#2E3338', accent:'#3E4650', neon:'#7DEFA1', pine:'#1A1D20' },
+      { name:'ชมพูกุหลาบ', primary:'#B03A6E', accent:'#B03A6E', neon:'#FF9FC4', pine:'#5C2039' },
+      { name:'อินดิโก', primary:'#3C3F9E', accent:'#3C3F9E', neon:'#A5B4FF', pine:'#22245C' },
+      { name:'ส้มเพลิง', primary:'#C2500F', accent:'#C2500F', neon:'#FFB067', pine:'#5E2707' },
+      { name:'เทอร์ควอยซ์', primary:'#0B7285', accent:'#0B7285', neon:'#5FE3F0', pine:'#073E48' },
+    ].map(p => ({ ...p, select: () => this.setState({ primary:p.primary, accent:p.accent, neon:p.neon, pine:p.pine }),
+      style:'display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:12px;cursor:pointer;border:1.5px solid '+((S.primary===p.primary&&S.neon===p.neon)?'#0D6C3B':'var(--border)')+';background:'+((S.primary===p.primary&&S.neon===p.neon)?'rgba(13,108,59,.05)':'transparent')+';' }));
+    const fontDefs = [
+      { key:'noto', name:'Noto Sans Thai', sample:'ทันสมัย อ่านง่าย (ค่าเริ่มต้น)', stack:fontMap.noto },
+      { key:'plex', name:'IBM Plex Sans Thai', sample:'โมเดิร์น มีเอกลักษณ์', stack:fontMap.plex },
+      { key:'inter', name:'Inter + Noto', sample:'สากล เหมาะ B2B', stack:fontMap.inter },
+    ].map(f => ({ ...f, active:S.font===f.key, select:()=>this.setState({font:f.key}),
+      style:'display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-radius:12px;cursor:pointer;border:1.5px solid '+(S.font===f.key?'#0D6C3B':'var(--border)')+';background:'+(S.font===f.key?'rgba(13,108,59,.05)':'var(--bg)')+';' }));
+    const radiusOpts = [['sharp','เหลี่ยม'],['sm','เล็ก'],['md','กลาง'],['round','มน']].map(([k,label])=>({ label, select:()=>this.setState({radius:k}),
+      style:'flex:1;height:38px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;border:1.5px solid '+(S.radius===k?'#0D6C3B':'var(--border)')+';background:'+(S.radius===k?'#0D6C3B':'transparent')+';color:'+(S.radius===k?'#fff':'var(--text)')+';' }));
+    return {
+      nav: this.navItems('Settings'),
+      presets,
+      colorRows: [
+        { label:'สีหลัก (Primary)', value:S.primary, options: primaries.map(v=>swatch(v, S.primary===v, ()=>this.setState({primary:v, accent:v}))) },
+        { label:'สีเน้น (Accent)', value:S.accent, options: accents.map(v=>swatch(v, S.accent===v, ()=>this.setState({accent:v}))) },
+        { label:'สี CTA (Neon)', value:S.neon, options: neons.map(v=>swatch(v, S.neon===v, ()=>this.setState({neon:v}))) },
+      ],
+      fonts: fontDefs,
+      radiusOpts, radiusLabel: radiusMap[S.radius],
+      resetTheme: () => this.setState({ primary:'#034956', accent:'#034956', neon:'#2DFB91', pine:'#273c33', font:'noto', radius:'md' }),
+      setDesktop: () => this.setState({ device:'desktop' }),
+      setMobile: () => this.setState({ device:'mobile' }),
+      isDesktop: S.device==='desktop',
+      deviceDesktopStyle:'height:28px;padding:0 14px;border-radius:9999px;font-size:11.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;background:'+(S.device==='desktop'?'#273c33':'transparent')+';color:'+(S.device==='desktop'?'#fff':'var(--muted)')+';',
+      deviceMobileStyle:'height:28px;padding:0 14px;border-radius:9999px;font-size:11.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;background:'+(S.device==='mobile'?'#273c33':'transparent')+';color:'+(S.device==='mobile'?'#fff':'var(--muted)')+';',
+      previewFrameStyle:'border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:0 20px 44px rgba(0,0,0,.1);transition:max-width .35s cubic-bezier(.2,.8,.3,1);margin:0 auto;'+(S.device==='mobile'?'max-width:390px;':'max-width:100%;'),
+      primary:S.primary, primaryDark:darken(S.primary), accent:S.accent, neon:S.neon, pine:S.pine,
+      neonGlow: hexA(S.neon,0.18),
+      fontStack: fontMap[S.font],
+      brandName: 'JKP Property',
+      pillRadius: radiusMap[S.radius]==='4px'?'6px':'9999px',
+      cardRadius: radiusMap[S.radius],
+      cardCols: S.device==='mobile'?'1fr':'1fr 1fr',
+      previewCards: [
+        { title:'โกดังพร้อมสำนักงาน 2,700 ตร.ม.', price:'฿405,000', img:'#D8DDD9' },
+        { title:'โรงงาน ร.ง.4 บางนา', price:'฿9.7M', img:'#CFD8D4' },
+      ],
+    };
+  }
+  navItems(active){ const mk=(label,icon,href,badge)=>{const on=label===active;return{isLink:true,isGroup:false,label,href,badge:badge||'',icon:{__html:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="'+(on?'#2DFB91':'#9AA39D')+'" stroke-width="1.8">'+icon+'</svg>'},style:'display:flex;align-items:center;gap:11px;height:40px;padding:0 12px;border-radius:11px;font-size:13.5px;font-weight:'+(on?'700':'500')+';color:'+(on?'#fff':'#AEB8B1')+';background:'+(on?'rgba(45,251,145,.12)':'transparent')+';transition:background .15s;'};};const grp=(label)=>({isGroup:true,isLink:false,label});return[mk('Dashboard','<rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect>','AdminDashboard.dc.html'),grp('ทรัพย์'),mk('Properties','<path d="M3 21V8l9-5 9 5v13"></path><path d="M3 21h18"></path><path d="M7 21v-8h10v8"></path>','AdminProperties.dc.html'),mk('Listings','<rect x="3" y="4" width="18" height="4" rx="1"></rect><rect x="3" y="10" width="18" height="4" rx="1"></rect><rect x="3" y="16" width="18" height="4" rx="1"></rect>','AdminListings.dc.html'),grp('งานขาย'),mk('Leads','<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path><circle cx="9" cy="7" r="4"></circle>','AdminLeads.dc.html','18'),mk('Requirements','<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><path d="M14 2v6h6"></path>','AdminRequirement.dc.html','7'),mk('Shortlists','<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>','AdminShortlist.dc.html'),mk('Visits','<rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path>','AdminVisit.dc.html'),mk('Deals','<path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"></path>','AdminDeal.dc.html'),grp('เนื้อหา & ระบบ'),mk('CMS','<path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path>','AdminCMS.dc.html'),mk('SEO / GEO','<circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20"></path>','AdminSEO.dc.html'),mk('Settings','<circle cx="12" cy="12" r="3"></circle><path d="M12 2a2 2 0 012 2 2 2 0 002 2 2 2 0 012 2 2 2 0 000 4 2 2 0 01-2 2 2 2 0 00-2 2 2 2 0 01-4 0 2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 000-4 2 2 0 012-2 2 2 0 002-2 2 2 0 012-2z"></path>','AdminSettings.dc.html')];}
+}
+</script>
+</body>
+</html>

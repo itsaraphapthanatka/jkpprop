@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  :root{--bg:#F9F8F5;--bg2:#F3F0EC;--surface:#FFFFFF;--tint:#EEF4F3;--text:#28251D;--muted:#5F5A52;--muted2:#7A7974;--muted3:#9B968D;--border:#E7E3DC;--accent:#034956;}
+  body{margin:0;font-family:'Noto Sans Thai','Inter',system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  a{text-decoration:none;color:var(--accent);}
+  a:hover{color:#023742;}
+  svg{stroke-linecap:round !important;stroke-linejoin:round !important;}
+  svg[fill="none"]{stroke-width:1.7px !important;}
+  code{font-family:'JetBrains Mono',monospace;}
+  @media (max-width:900px){ #tok-grid{grid-template-columns:repeat(2,1fr) !important;} #btn-row, #chip-row{flex-wrap:wrap;} }
+</style>
+</helmet>
+
+<div style="width:100%;background:var(--bg);min-height:100vh;">
+
+  <!-- HEADER -->
+  <header style="position:sticky;top:0;z-index:200;background:rgba(249,248,245,.92);-webkit-backdrop-filter:blur(16px) saturate(1.5);backdrop-filter:blur(16px) saturate(1.5);border-bottom:1px solid var(--border);">
+    <div style="max-width:1200px;margin:0 auto;padding:0 24px;height:72px;display:flex;align-items:center;justify-content:space-between;">
+      <a href="Home.dc.html" style="display:flex;align-items:center;gap:10px;">
+        <img src="assets/jkp-logo-green.png" alt="JKP Property" style="height:36px;width:auto;display:block;">
+        <span style="font-size:13px;font-weight:700;color:var(--muted2);border-left:1px solid var(--border);padding-left:10px;">Design System</span>
+      </a>
+      <a href="Home.dc.html" style="display:flex;align-items:center;gap:7px;height:40px;padding:0 18px;border-radius:9999px;background:var(--tint);color:var(--accent);font-size:13px;font-weight:700;">กลับไปเว็บไซต์</a>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section style="max-width:1200px;margin:0 auto;padding:64px 24px 40px;">
+    <div style="display:inline-flex;align-items:center;gap:8px;">
+      <span style="width:26px;height:2px;background:#273c33;border-radius:2px;"></span>
+      <span style="font-size:13px;font-weight:700;letter-spacing:.08em;color:#273c33;text-transform:uppercase;">JKP Property</span>
+    </div>
+    <h1 style="margin:12px 0 10px;font-size:42px;font-weight:800;color:var(--text);letter-spacing:-.01em;">Design System &amp; Tokens</h1>
+    <p style="margin:0;max-width:640px;font-size:16px;color:var(--muted);line-height:1.7;">รวบรวม Design Tokens, สีสัน, ตัวอักษร, ระยะห่าง, ไอคอน และคอมโพเนนต์หลักที่ใช้จริงในทุกหน้าของเว็บไซต์ — เพื่อให้ทุกหน้าที่สร้างต่อจากนี้มีความสม่ำเสมอกัน</p>
+  </section>
+
+  <!-- 1. BRAND COLORS -->
+  <section style="max-width:1200px;margin:0 auto;padding:0 24px 56px;">
+    <div style="font-size:13px;font-weight:700;color:var(--muted3);">01</div>
+    <h2 style="margin:6px 0 6px;font-size:26px;font-weight:800;color:var(--text);">สีแบรนด์ (Brand Colors)</h2>
+    <p style="margin:0 0 24px;font-size:14px;color:var(--muted);">โทนเขียวอุตสาหกรรมผสมเขียวนีออน ใช้เป็นสีหลักของแบรนด์ทั้งหมด</p>
+    <div id="tok-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+      <div style="border-radius:16px;overflow:hidden;border:1px solid var(--border);background:var(--surface);">
+        <div style="height:84px;background:#2DFB91;"></div>
+        <div style="padding:14px 16px;"><div style="font-size:13.5px;font-weight:800;color:var(--text);">Neon Green</div><code style="font-size:12px;color:var(--muted);">#2DFB91</code><div style="margin-top:4px;font-size:11.5px;color:var(--muted2);">ปุ่ม CTA หลักบนพื้นเข้ม, จุดเน้น</div></div>
+      </div>
+      <div style="border-radius:16px;overflow:hidden;border:1px solid var(--border);background:var(--surface);">
+        <div style="height:84px;background:#0D6C3B;"></div>
+        <div style="padding:14px 16px;"><div style="font-size:13.5px;font-weight:800;color:var(--text);">Green 600 (action)</div><code style="font-size:12px;color:var(--muted);">#0D6C3B</code><div style="margin-top:4px;font-size:11.5px;color:var(--muted2);">action.primary.bg — ปุ่มหลักบนพื้นสว่าง</div></div>
+      </div>
+      <div style="border-radius:16px;overflow:hidden;border:1px solid var(--border);background:var(--surface);">
+        <div style="height:84px;background:#034956;"></div>
+        <div style="padding:14px 16px;"><div style="font-size:13.5px;font-weight:800;color:var(--text);">Deep Teal (accent)</div><code style="font-size:12px;color:var(--muted);">#034956</code><div style="margin-top:4px;font-size:11.5px;color:var(--muted2);">--accent — eyebrow, ลิงก์, ไอคอนเน้น</div></div>
+      </div>
+      <div style="border-radius:16px;overflow:hidden;border:1px solid var(--border);background:var(--surface);">
+        <div style="height:84px;background:#273c33;"></div>
+        <div style="padding:14px 16px;"><div style="font-size:13.5px;font-weight:800;color:var(--text);">Deep Pine</div><code style="font-size:12px;color:var(--muted);">#273c33</code><div style="margin-top:4px;font-size:11.5px;color:var(--muted2);">active state ไอคอน/border, ปุ่มโมดัล</div></div>
+      </div>
+      <div style="border-radius:16px;overflow:hidden;border:1px solid var(--border);background:var(--surface);">
+        <div style="height:84px;background:#04140C;"></div>
+        <div style="padding:14px 16px;"><div style="font-size:13.5px;font-weight:800;color:var(--text);">Near Black</div><code style="font-size:12px;color:var(--muted);">#04140C / #0A0E0C</code><div style="margin-top:4px;font-size:11.5px;color:var(--muted2);">พื้น footer, panel เข้ม</div></div>
+      </div>
+      <div style="border-radius:16px;overflow:hidden;border:1px solid var(--border);background:var(--surface);">
+        <div style="height:84px;background:linear-gradient(135deg,#0B7A45 0%,#0A5C39 45%,#043F20 100%);"></div>
+        <div style="padding:14px 16px;"><div style="font-size:13.5px;font-weight:800;color:var(--text);">Emerald Gradient</div><code style="font-size:12px;color:var(--muted);">#0B7A45 → #043F20</code><div style="margin-top:4px;font-size:11.5px;color:var(--muted2);">การ์ด CTA, panel เด่น</div></div>
+      </div>
+      <div style="border-radius:16px;overflow:hidden;border:1px solid var(--border);background:var(--surface);">
+        <div style="height:84px;background:#D9A62B;"></div>
+        <div style="padding:14px 16px;"><div style="font-size:13.5px;font-weight:800;color:var(--text);">Gold Accent</div><code style="font-size:12px;color:var(--muted);">#D9A62B</code><div style="margin-top:4px;font-size:11.5px;color:var(--muted2);">โทรศัพท์/เรียงตาม/คำแนะนำ</div></div>
+      </div>
+      <div style="border-radius:16px;overflow:hidden;border:1px solid var(--border);background:var(--surface);">
+        <div style="height:84px;background:#FFFFFF;border-bottom:1px solid var(--border);"></div>
+        <div style="padding:14px 16px;"><div style="font-size:13.5px;font-weight:800;color:var(--text);">Surface / White</div><code style="font-size:12px;color:var(--muted);">#FFFFFF</code><div style="margin-top:4px;font-size:11.5px;color:var(--muted2);">พื้นการ์ด/โมดัล</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. NEUTRAL / SURFACE TOKENS -->
+  <section style="max-width:1200px;margin:0 auto;padding:0 24px 56px;">
+    <div style="font-size:13px;font-weight:700;color:var(--muted3);">02</div>
+    <h2 style="margin:6px 0 6px;font-size:26px;font-weight:800;color:var(--text);">สีกลาง (Neutrals &amp; Surfaces)</h2>
+    <p style="margin:0 0 24px;font-size:14px;color:var(--muted);">ตัวแปร CSS ที่ใช้ควบคุมพื้น/ตัวอักษร/เส้นขอบทุกหน้า — เขียนเป็น <code>var(--token)</code></p>
+    <div style="display:flex;flex-direction:column;gap:1px;border:1px solid var(--border);border-radius:16px;overflow:hidden;background:var(--border);">
+      <sc-for list="{{ neutrals }}" as="n" hint-placeholder-count="9">
+        <div style="display:grid;grid-template-columns:52px 140px 100px 1fr;align-items:center;gap:16px;padding:14px 18px;background:var(--surface);">
+          <div style="width:36px;height:36px;border-radius:9px;border:1px solid var(--border);background:{{ n.hex }};"></div>
+          <code style="font-size:13px;color:var(--text);font-weight:700;">--{{ n.name }}</code>
+          <code style="font-size:12.5px;color:var(--muted);">{{ n.hex }}</code>
+          <div style="font-size:12.5px;color:var(--muted2);">{{ n.desc }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- 3. TYPOGRAPHY -->
+  <section style="max-width:1200px;margin:0 auto;padding:0 24px 56px;">
+    <div style="font-size:13px;font-weight:700;color:var(--muted3);">03</div>
+    <h2 style="margin:6px 0 6px;font-size:26px;font-weight:800;color:var(--text);">ตัวอักษร (Typography)</h2>
+    <p style="margin:0 0 24px;font-size:14px;color:var(--muted);">ฟอนต์หลัก <b>Noto Sans Thai</b> (รองรับไทย+ละติน) น้ำหนัก 400–800 ตัวเลขราคา/โค้ดใช้ <b>JetBrains Mono</b></p>
+    <div style="display:flex;flex-direction:column;gap:22px;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:32px;">
+      <div style="display:flex;align-items:baseline;gap:20px;border-bottom:1px solid var(--border);padding-bottom:18px;"><span style="width:130px;flex-shrink:0;font-size:12px;color:var(--muted2);">Hero H1 / 44px / 700</span><span style="font-size:44px;font-weight:700;letter-spacing:-.01em;">พร้อมหาโรงงานหรือโกดัง</span></div>
+      <div style="display:flex;align-items:baseline;gap:20px;border-bottom:1px solid var(--border);padding-bottom:18px;"><span style="width:130px;flex-shrink:0;font-size:12px;color:var(--muted2);">Section H2 / 34px / 700</span><span style="font-size:34px;font-weight:700;letter-spacing:-.01em;">เหตุผลที่ลูกค้าเลือกเรา</span></div>
+      <div style="display:flex;align-items:baseline;gap:20px;border-bottom:1px solid var(--border);padding-bottom:18px;"><span style="width:130px;flex-shrink:0;font-size:12px;color:var(--muted2);">Card H3 / 22px / 800</span><span style="font-size:22px;font-weight:800;">รับคำแนะนำทำเลฟรี</span></div>
+      <div style="display:flex;align-items:baseline;gap:20px;border-bottom:1px solid var(--border);padding-bottom:18px;"><span style="width:130px;flex-shrink:0;font-size:12px;color:var(--muted2);">Body / 15–16px / 400</span><span style="font-size:15.5px;color:var(--muted);">รวมรายการโรงงานและโกดังให้เช่า–ขายทั่วประเทศ ที่ผ่านการตรวจสอบ</span></div>
+      <div style="display:flex;align-items:baseline;gap:20px;border-bottom:1px solid var(--border);padding-bottom:18px;"><span style="width:130px;flex-shrink:0;font-size:12px;color:var(--muted2);">Eyebrow / 13px / 700</span><span style="font-size:13px;font-weight:700;letter-spacing:.08em;color:#273c33;text-transform:uppercase;">ทำเลยุทธศาสตร์</span></div>
+      <div style="display:flex;align-items:baseline;gap:20px;"><span style="width:130px;flex-shrink:0;font-size:12px;color:var(--muted2);">Price / Mono 21px / 800</span><span style="font-family:'JetBrains Mono',monospace;font-size:21px;font-weight:800;color:#034956;">฿ 176,000 / เดือน</span></div>
+    </div>
+  </section>
+
+  <!-- 4. SPACING & RADIUS -->
+  <section style="max-width:1200px;margin:0 auto;padding:0 24px 56px;">
+    <div style="font-size:13px;font-weight:700;color:var(--muted3);">04</div>
+    <h2 style="margin:6px 0 6px;font-size:26px;font-weight:800;color:var(--text);">ระยะห่างและความโค้ง (Spacing &amp; Radius)</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:26px;">
+        <div style="font-size:14px;font-weight:800;margin-bottom:16px;">Spacing scale</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <sc-for list="{{ spacing }}" as="s" hint-placeholder-count="6">
+            <div style="display:flex;align-items:center;gap:14px;"><div style="width:{{ s.px }}px;height:14px;background:#2DFB91;border-radius:3px;flex-shrink:0;"></div><code style="font-size:12.5px;color:var(--muted);">{{ s.px }}px</code><span style="font-size:12px;color:var(--muted2);">{{ s.use }}</span></div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:26px;">
+        <div style="font-size:14px;font-weight:800;margin-bottom:16px;">Border radius</div>
+        <div style="display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;">
+          <sc-for list="{{ radii }}" as="r" hint-placeholder-count="4">
+            <div style="text-align:center;">
+              <div style="width:64px;height:64px;background:var(--tint);border:1.5px solid #273c33;border-radius:{{ r.px }};margin:0 auto 8px;"></div>
+              <code style="font-size:11.5px;color:var(--muted);">{{ r.label }}</code>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. ICONS -->
+  <section style="max-width:1200px;margin:0 auto;padding:0 24px 56px;">
+    <div style="font-size:13px;font-weight:700;color:var(--muted3);">05</div>
+    <h2 style="margin:6px 0 6px;font-size:26px;font-weight:800;color:var(--text);">ไอคอน (Icons)</h2>
+    <p style="margin:0 0 24px;font-size:14px;color:var(--muted);">สไตล์เส้น iOS/SF Symbols — เส้นหนา 1.7px มุม/ปลายเส้นโค้งมนทุกอัน (<code>stroke-linecap: round</code>)</p>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:26px;">
+      <sc-for list="{{ iconSet }}" as="ic" hint-placeholder-count="10">
+        <div style="width:56px;height:56px;border-radius:14px;background:var(--tint);display:flex;align-items:center;justify-content:center;color:#034956;" dangerouslySetInnerHTML="{{ ic }}"></div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- 6. BUTTONS -->
+  <section style="max-width:1200px;margin:0 auto;padding:0 24px 56px;">
+    <div style="font-size:13px;font-weight:700;color:var(--muted3);">06</div>
+    <h2 style="margin:6px 0 6px;font-size:26px;font-weight:800;color:var(--text);">ปุ่ม (Buttons)</h2>
+    <p style="margin:0 0 24px;font-size:14px;color:var(--muted);">ทุกปุ่มเป็นรูปพิลล์ (radius 9999px) มี hover ลอยขึ้น/เรืองแสงเสมอ</p>
+    <div id="btn-row" style="display:flex;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:28px;">
+      <a href="#" style="display:flex;align-items:center;gap:8px;height:48px;padding:0 26px;border-radius:9999px;background:#0D6C3B;color:#fff;font-size:14.5px;font-weight:700;transition:transform .2s,box-shadow .2s;" style-hover="transform:translateY(-2px);box-shadow:0 10px 24px rgba(13,108,59,.4);">Primary</a>
+      <a href="#" style="display:flex;align-items:center;gap:8px;height:48px;padding:0 26px;border-radius:9999px;background:#2DFB91;color:#022310;font-size:14.5px;font-weight:800;transition:transform .2s,box-shadow .2s;" style-hover="transform:translateY(-2px);box-shadow:0 10px 24px rgba(45,251,145,.4);">Neon CTA</a>
+      <a href="#" style="display:flex;align-items:center;gap:8px;height:48px;padding:0 26px;border-radius:9999px;background:#273c33;color:#fff;font-size:14.5px;font-weight:700;transition:transform .2s,box-shadow .2s;" style-hover="transform:translateY(-2px);box-shadow:0 10px 24px rgba(39,60,51,.4);">Dark</a>
+      <a href="#" style="display:flex;align-items:center;gap:8px;height:48px;padding:0 26px;border-radius:9999px;background:transparent;border:1.5px solid var(--border);color:var(--text);font-size:14.5px;font-weight:700;transition:border-color .2s,background .2s;" style-hover="border-color:#273c33;background:var(--tint);">Outline</a>
+      <a href="#" style="display:flex;align-items:center;gap:8px;height:48px;padding:0 26px;border-radius:9999px;background:#D9A62B;color:#fff;font-size:14.5px;font-weight:800;transition:transform .2s,box-shadow .2s;" style-hover="transform:translateY(-2px);box-shadow:0 10px 24px rgba(217,166,43,.4);">Gold</a>
+    </div>
+  </section>
+
+  <!-- 7. CHIPS / BADGES -->
+  <section style="max-width:1200px;margin:0 auto;padding:0 24px 56px;">
+    <div style="font-size:13px;font-weight:700;color:var(--muted3);">07</div>
+    <h2 style="margin:6px 0 6px;font-size:26px;font-weight:800;color:var(--text);">ชิปและป้าย (Chips &amp; Badges)</h2>
+    <div id="chip-row" style="display:flex;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:28px;">
+      <div style="display:flex;align-items:center;gap:6px;height:32px;padding:0 14px;border-radius:9999px;background:#2DFB91;color:#022310;font-size:12.5px;font-weight:700;">Active chip</div>
+      <div style="display:flex;align-items:center;gap:6px;height:32px;padding:0 14px;border-radius:9999px;background:var(--tint);color:var(--text);font-size:12.5px;font-weight:600;">Idle chip</div>
+      <div style="display:flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:9999px;background:#EEF4F3;color:#034956;font-size:11px;font-weight:700;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#034956" stroke-width="3"><path d="M20 6L9 17l-5-5"></path></svg>ยืนยันแล้ว</div>
+      <div style="display:flex;align-items:center;height:26px;padding:0 12px;border-radius:9999px;background:rgba(255,255,255,.94);color:#28251D;font-size:11px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.12);">● ให้เช่า</div>
+      <div style="display:flex;align-items:center;height:26px;padding:0 12px;border-radius:9999px;background:#0D6C3B;color:#fff;font-size:11px;font-weight:700;">● ขาย</div>
+    </div>
+  </section>
+
+  <!-- 8. CARDS -->
+  <section style="max-width:1200px;margin:0 auto;padding:0 24px 56px;">
+    <div style="font-size:13px;font-weight:700;color:var(--muted3);">08</div>
+    <h2 style="margin:6px 0 6px;font-size:26px;font-weight:800;color:var(--text);">การ์ด (Cards)</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;">
+      <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:18px;padding:26px;transition:transform .3s,box-shadow .3s;" style-hover="transform:translateY(-6px);box-shadow:0 20px 40px rgba(0,0,0,.1);">
+        <div style="font-size:14px;font-weight:800;">Standard card</div>
+        <div style="margin-top:6px;font-size:12.5px;color:var(--muted);">border 1.5px, radius 18px, hover ยกลอย</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#0B7A45 0%,#0A5C39 45%,#043F20 100%);border-radius:18px;padding:26px;color:#fff;">
+        <div style="font-size:14px;font-weight:800;">Dark gradient card</div>
+        <div style="margin-top:6px;font-size:12.5px;color:#C3FED5;">ใช้กับ CTA band, panel เด่น</div>
+      </div>
+      <div style="background:#04140C;border-radius:18px;padding:26px;color:#fff;">
+        <div style="font-size:26px;font-weight:800;color:#2DFB91;">640+</div>
+        <div style="margin-top:4px;font-size:12.5px;color:#B9C2BD;">Stat card สีเขียวนีออนตัดพื้นดำ</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. MOTION -->
+  <section style="max-width:1200px;margin:0 auto;padding:0 24px 72px;">
+    <div style="font-size:13px;font-weight:700;color:var(--muted3);">09</div>
+    <h2 style="margin:6px 0 6px;font-size:26px;font-weight:800;color:var(--text);">การเคลื่อนไหว (Motion)</h2>
+    <div style="display:flex;flex-direction:column;gap:1px;border:1px solid var(--border);border-radius:16px;overflow:hidden;background:var(--border);">
+      <sc-for list="{{ motionTokens }}" as="m" hint-placeholder-count="5">
+        <div style="display:grid;grid-template-columns:180px 1fr 2fr;gap:16px;padding:14px 18px;background:var(--surface);align-items:center;">
+          <code style="font-size:12.5px;font-weight:700;color:var(--text);">{{ m.name }}</code>
+          <code style="font-size:12px;color:var(--muted);">{{ m.value }}</code>
+          <div style="font-size:12.5px;color:var(--muted2);">{{ m.use }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer style="background:#000000;color:#8E8B84;border-top-left-radius:34px;border-top-right-radius:34px;">
+    <div style="max-width:1200px;margin:0 auto;padding:40px 24px;display:flex;justify-content:space-between;align-items:center;font-size:13px;">
+      <div>© 2026 JKP PROPERTY — Design System v1.0</div>
+      <a href="Home.dc.html" style="color:#2DFB91;">กลับไปหน้าแรก →</a>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      neutrals: [
+        { name:'bg', hex:'#F9F8F5', desc:'พื้นหลังหลักทั้งเว็บ' },
+        { name:'bg2', hex:'#F3F0EC', desc:'พื้นหลัง section สลับ (4 ขั้นตอน)' },
+        { name:'surface', hex:'#FFFFFF', desc:'พื้นการ์ด/โมดัล/เฮดเดอร์' },
+        { name:'tint', hex:'#EEF4F3', desc:'พื้นรอง/ไอคอนวงกลม/hover เบา' },
+        { name:'text', hex:'#28251D', desc:'ตัวอักษรหลัก' },
+        { name:'muted', hex:'#5F5A52', desc:'ตัวอักษรรอง (body/description)' },
+        { name:'muted2', hex:'#7A7974', desc:'ตัวอักษรจาง (caption/meta)' },
+        { name:'muted3', hex:'#9B968D', desc:'ตัวอักษรจางที่สุด (label เลข/breadcrumb)' },
+        { name:'border', hex:'#E7E3DC', desc:'เส้นขอบมาตรฐานทุกองค์ประกอบ' },
+        { name:'accent', hex:'#034956', desc:'สี accent หลัก (eyebrow/ลิงก์/ไอคอน)' },
+      ],
+      spacing: [
+        { px:4, use:'gap ไอคอน+ข้อความเล็ก' },
+        { px:8, use:'gap ปุ่ม/ชิป' },
+        { px:16, use:'padding การ์ดย่อย, gap grid มือถือ' },
+        { px:24, use:'padding แนวนอนมาตรฐาน (container)' },
+        { px:44, use:'gap ระหว่าง section ย่อย' },
+        { px:88, use:'padding บน/ล่าง section ใหญ่ (desktop)' },
+      ],
+      radii: [
+        { px:'10px', label:'sm · 10px' },
+        { px:'18px', label:'md · 18px' },
+        { px:'24px', label:'lg · 24px' },
+        { px:'9999px', label:'full · pill' },
+      ],
+      iconSet: this.iconSet(),
+      motionTokens: [
+        { name:'hover-lift', value:'translateY(-2px) .2s', use:'ปุ่มลอยขึ้นตอน hover' },
+        { name:'hover-glow', value:'box-shadow .2s', use:'เรืองแสงสีปุ่มตอน hover' },
+        { name:'card-hover', value:'translateY(-6/-8px) .3s cubic-bezier(.2,.7,.3,1)', use:'การ์ด listing/feature ยกลอย' },
+        { name:'reveal-up', value:'opacity+translateY(28px) .7s', use:'scroll-reveal ทีละ section' },
+        { name:'drawer-slide', value:'translateX .35s cubic-bezier(.2,.8,.3,1)', use:'เมนู hamburger มือถือเลื่อนจากขวา' },
+      ],
+    };
+  }
+  iconSet() {
+    const defs = [
+      '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z"></path><circle cx="12" cy="10" r="3"></circle>',
+      '<path d="M22 6l-10 7L2 6"></path><rect x="2" y="4" width="20" height="16" rx="2"></rect>',
+      '<path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z"></path>',
+      '<path d="M20.6 13.4L13 21a2 2 0 01-2.8 0l-7-7A2 2 0 013 12.6V4h8.6a2 2 0 011.4.6l7.6 7.6a2 2 0 010 2.8z"></path><circle cx="7.5" cy="7.5" r="1.2"></circle>',
+      '<path d="M3 21h18"></path><path d="M5 21V9l7-5 7 5v12"></path><path d="M9 21v-6h6v6"></path>',
+      '<path d="M3 21V8l9-5 9 5v13"></path><path d="M3 21h18"></path><path d="M7 21v-8h10v8"></path>',
+      '<circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path>',
+      '<path d="M6 9l6 6 6-6"></path>',
+      '<path d="M9 12l2 2 4-4"></path><path d="M21 12c0 5-3.5 7.5-8.6 8.9a1 1 0 01-.8 0C6.5 19.5 3 17 3 12V6a1 1 0 01.7-1l8-2.6a1 1 0 01.6 0l8 2.6A1 1 0 0121 6z"></path>',
+      '<circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><path d="M8.6 10.6l6.8-3.8M8.6 13.4l6.8 3.8"></path>',
+    ];
+    return defs.map(d => ({ __html: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">'+d+'</svg>' }));
+  }
+}
+</script>
+</body>
+</html>

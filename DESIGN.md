@@ -1,197 +1,180 @@
-# DESIGN.md — Design Operating Principles for the Industrial Property Platform
+# DESIGN.md — Design System & Operating Guide (JKP Property)
 
-เอกสารนี้เป็น `DESIGN.md` ฉบับปรับปรุงใหม่สำหรับใช้เป็น **design operating guide** ของโปรเจกต์ Industrial Property Platform v1 โดยสรุปหลักคิด, visual direction, design system intent, UX priorities และกติกาการตัดสินใจด้านงานออกแบบให้อยู่ในไฟล์เดียว [file:479][file:480][file:481][file:485][file:486][file:487][file:584][code_file:585].
+เอกสารนี้เป็น **design authority ฉบับ self-contained** ของโปรเจกต์ — รวม **design tokens ค่าจริง** + หลักการออกแบบ + สเปกคอมโพเนนต์ ไว้ที่เดียว เพื่อให้ทุกหน้า/คอมโพเนนต์ที่พัฒนาต่อ **ตรงกับดีไซน์จริง** และสม่ำเสมอกันทั้ง public + admin
 
-ไฟล์นี้เน้นเฉพาะกรอบคิดด้าน design เพื่อให้ทุกงานที่เกี่ยวกับ UI, UX, component system, page composition และ brand continuity ตัดสินใจไปในทิศทางเดียวกัน ภายใต้ direction ใหม่ที่เปลี่ยนจาก `gold + neutral` ไปเป็น `green + neutral` [file:584][code_file:585].
+---
+
+## 0. Source of truth (ลำดับความสำคัญด้านดีไซน์)
+
+1. **`design/Design System.dc.html`** — token reference ตัวจริง (มีตัวอย่าง live) + **`design/CLAUDE.md`** (สรุป token) = **แหล่ง token ที่ถูกต้องที่สุด**
+2. **`design/*.dc.html`** (เช่น `Home.dc.html`, `PropertyDetail.dc.html`, `Listing.dc.html`, …) = **pixel-level reference ต่อหน้า** — เปิดดู markup + ค่า inline จริงเพื่อลอก layout/spacing/copy
+3. **`design/assets/`** = asset จริง (โลโก้ green/white, `thailand-map-bg.png`, llms.txt, robots.txt)
+4. **`DESIGN.md` (ไฟล์นี้)** = สรุป token + กติกา governance (ถ้าขัดกับ `design/`, ให้ยึด `design/`)
+5. **`JKP_Property_Handoff.md`** = ภาพรวม screen/flow · **`SPEC_PACK.md`** = requirement/behavior · **`HOME_HANDOFF_CHECKLIST.md`** = สิ่งที่ยังต้องเติมเพื่อทำ Home 100%
+
+> **กฎ pixel-fidelity (สำคัญ):** โปรเจกต์นี้ต้อง **reproduce ดีไซน์ใหม่ใน `design/*.dc.html` ให้ตรง (faithful/pixel-close)** — สิ่งที่ห้ามคือ **clone เว็บ "เก่า" (legacy thaiindustrialproperty)** ไม่ใช่ห้ามลอกดีไซน์ใหม่. ดีไซน์ใน `design/` คือแบรนด์ที่อนุมัติแล้ว = เป้าหมายที่ต้องทำให้เหมือน
+>
+> **ขอบเขตไฟล์นี้:** `DESIGN.md` = **design tokens + กติกา (ระบบกลาง)** เท่านั้น. **Layout ระดับ pixel ต่อหน้าอยู่ใน `design/<Page>.dc.html`** — token ในไฟล์นี้คือ "ค่ากลาง" หน้าจริงอาจมี local override (เช่น footer Home ใช้ `#000000`) จึง **ต้อง verify กับ `design/*.dc.html` เสมอ** ก่อนเขียนโค้ดจริง. ไฟล์นี้เป็น **แหล่ง visual authority เดียว** — `AGENT.md` แค่ชี้มาที่นี่ ไม่กำหนดค่าเอง
+
+---
 
 ## 1. Design mission
-
-ภารกิจของการออกแบบในโปรเจกต์นี้ไม่ใช่การทำเว็บใหม่น่าใช้ขึ้นเฉย ๆ แต่คือการสร้าง **industrial property platform ที่เชื่อถือได้, ใช้งานง่าย, ค้นหาและตัดสินใจได้ดี, และรองรับการทำงานจริงของ brokerage business** [page:REQUIREMENTS_SPEC.html][page:FUNCTIONAL_SPEC.html].
-
-ดังนั้น design ที่ดีในโปรเจกต์นี้ต้องทำพร้อมกัน 4 อย่าง [page:FUNCTIONAL_SPEC.html]:
-
-- สร้างความเชื่อถือในระดับแบรนด์ [file:480][file:481]
-- ทำให้ข้อมูล inventory และ geography เข้าใจง่าย [file:457][file:459]
-- ลด friction ในการส่ง inquiry หรือ requirement [file:458][page:SEQUENCE_DIAGRAMS.html]
-- รองรับ workflow ต่อเนื่องไปยัง admin/CRM/product surfaces [page:FUNCTIONAL_SPEC.html]
-
-## 2. What the design is not
-
-เพื่อกันการหลุดทิศ งานออกแบบของโปรเจกต์นี้ **ไม่ใช่** สิ่งต่อไปนี้:
-
-- ไม่ใช่ luxury real estate marketing site [file:480][file:481]
-- ไม่ใช่ startup SaaS gradient interface
-- ไม่ใช่ template-based property portal ที่เน้นเพียง card grid จำนวนมาก [file:457]
-- ไม่ใช่ visual reskin ของเว็บเดิมโดยไม่แตะโครงสร้างข้อมูลและ flow
-
-ระบบนี้ต้องดู professional, grounded, modern และ trustworthy มากกว่า flashy, trendy หรือ theatrical [file:480][file:481][file:584].
-
-## 3. Source visual memory to preserve
-
-แม้ระบบจะถูก rewrite ใหม่ แต่มี visual memory บางอย่างจากระบบเดิมที่ควรถูกเก็บในระดับ character [file:479][file:480][file:481][file:485][file:486].
-
-### 3.1 Green-led accent system
-
-ใน revision นี้ brand accent หลักไม่ใช้ gold ของ TIP อีกต่อไป แต่เปลี่ยนมาใช้ชุดเขียวจาก `Fun-Green-11-kigen-design.svg` เป็นแกน [file:584][code_file:585]. เฉดหลักที่ควรจำคือ `#0D6C3B`, `#09582F`, `#043F20` และ `#C3FED5` [file:584][code_file:585].
-
-### 3.2 Clean and practical surfaces
-
-พื้นผิวของระบบเดิมดูสะอาด, ใช้งานจริง และไม่พยายามสร้าง illusion หรูเกินบริบท [file:480][file:481]. งานใหม่จึงควรใช้ neutral surfaces ที่ช่วยให้ข้อมูลเด่นและให้ความรู้สึกเป็นมืออาชีพ แล้วใช้ green เป็น accent layer [file:480][code_file:585].
-
-### 3.3 Thai-readable typography
-
-typography เดิมมี character แบบตรงไปตรงมา อ่านง่าย และรองรับภาษาไทย [file:485]. งานใหม่อาจ normalize type scale ใหม่ได้ แต่ต้องรักษา principle เรื่อง readability และ language suitability ไว้ [file:485].
-
-### 3.4 Trust-heavy content presence
-
-ภาพจริงของสถานที่, โมดูลความน่าเชื่อถือ, credentials และ proof sections เป็นส่วนสำคัญของ story เดิม [file:480][file:481]. งานใหม่ต้องไม่หายไปจาก trust posture นี้ [page:REQUIREMENTS_SPEC.html].
-
-## 4. Design principles
-
-### 4.1 Clarity before decoration
-
-ถ้าต้องเลือกระหว่างหน้าที่ดู exciting กับหน้าที่ทำให้ผู้ใช้เข้าใจ inventory, area หรือ next step ได้เร็วกว่า ให้เลือกอย่างหลัง [file:457][file:459]. โปรเจกต์นี้ขายความชัดและความน่าเชื่อถือ ไม่ใช่ความหวือหวา [file:480][file:481].
-
-### 4.2 Trust before persuasion tricks
-
-conversion ในบริบทธุรกิจนี้ไม่ได้มาจาก urgency gimmicks แต่เกิดจากความเชื่อถือและความรู้สึกว่าแพลตฟอร์ม/ทีม “เข้าใจโจทย์จริง” [page:REQUIREMENTS_SPEC.html][page:SEQUENCE_DIAGRAMS.html]. ดังนั้น design ต้องช่วย build confidence มากกว่าการเร่งปิดการขายแบบ landing page ทั่วไป [file:480].
-
-### 4.3 Structure before style
-
-ทุก page และ component ต้องเริ่มจาก role, content hierarchy และ user task ก่อน visual styling [page:FUNCTIONAL_SPEC.html]. การเร่งทำ visual polish ก่อนนิยาม object model หรือ workflow ทำให้เกิดระบบที่สวยแต่เปราะ [file:459][file:458].
-
-### 4.4 System consistency over isolated beauty
-
-หน้าที่สวยเป็นรายหน้าแต่ใช้ pattern คนละภาษา คนละ spacing คนละ CTA logic กัน จะทำให้ระบบดูไม่เป็นมืออาชีพ เป้าหมายคือ design system ที่คุมได้ทั้ง public และ admin ไม่ใช่หน้าเดี่ยวที่ดูดีแต่ต่อกันไม่ได้ [page:FUNCTIONAL_SPEC.html][code_file:585].
-
-### 4.5 Guided discovery over raw browsing
-
-ผู้ใช้ในระบบนี้ไม่ควรถูกปล่อยให้ไหลอยู่ใน listing grid อย่างเดียว [file:457]. design ต้องช่วยให้ search, GEO pages, comparison, requirement flow และ trust content ทำงานร่วมกันเพื่อพาผู้ใช้ไปข้างหน้า [page:FUNCTIONAL_SPEC.html][page:SEQUENCE_DIAGRAMS.html].
-
-## 5. Color direction
-
-ระบบสีของโปรเจกต์นี้ควรเป็น **neutral-first with disciplined green emphasis** [file:584][code_file:585]. สีเขียวคือ action signal และ brand cue หลักของระบบใหม่ [file:584].
-
-### Color rules
-
-- ใช้พื้นขาว/อ่อนเป็นฐานสำหรับ public surfaces [file:480][file:481]
-- ใช้ text hierarchy ผ่าน neutral darks ไม่ใช่ผ่านหลายสี [file:485]
-- ใช้ green กับ primary CTA, important highlights และ key trust emphasis [file:584][code_file:585]
-- สีสถานะเช่น success/warning/error ต้องเป็น semantic system แยกจาก brand accent เมื่อจำเป็น แต่ success สามารถ derive จาก green family ได้ [code_file:585]
-- อย่าให้ tags หรือ filters ใช้หลายเฉดเขียวจนแย่ง hierarchy ของ CTA [file:457][code_file:585]
-
-## 6. Typography direction
-
-typography ของโปรเจกต์นี้ต้อง support ภาษาไทยและอังกฤษอย่างลื่นไหล พร้อมทำงานได้ทั้งบน public narratives และ dense admin screens [file:485][page:FUNCTIONAL_SPEC.html].
-
-### Typography rules
-
-- ใช้ Thai-friendly sans เป็นแกน [file:485]
-- hierarchy ต้องชัดจาก size/weight/spacing ไม่ใช่จากลูกเล่นมากมาย [file:485]
-- body text ต้องอ่านง่ายและไม่เล็กเกินไป แม้ source เดิมจะมี compact text อยู่บ้าง [file:485]
-- property IDs, numbers และ data-heavy surfaces ควรมี treatment ที่คงเสถียรและ scan ได้เร็ว [file:457][file:459]
-
-## 7. Layout direction
-
-layout ของโปรเจกต์นี้ควรสะท้อนความเป็น structured platform ที่คุมการไหลของข้อมูลได้ [file:480][file:481][file:487]. ระบบเดิมมี long-form landing rhythm ที่ดีบางส่วนและควรถูกต่อยอด [file:480].
-
-### Layout rules
-
-- homepage และ public pages ใช้ section rhythm ที่ชัดและพาผู้ใช้จาก trust → discovery → decision → inquiry [file:480][page:SEQUENCE_DIAGRAMS.html]
-- listing surfaces ต้อง prioritize filter clarity, result readability และ next actions [file:457]
-- detail pages ต้องจัดลำดับข้อมูลเพื่อช่วย evaluation มากกว่าการแสดงข้อมูลยาว ๆ แบบไม่จัดกลุ่ม [file:459]
-- admin pages ต้องจัดลำดับเพื่อ workflow throughput ไม่ใช่เลียนแบบ public marketing layouts [page:FUNCTIONAL_SPEC.html]
-
-## 8. Component philosophy
-
-component ในระบบนี้ไม่ใช่แค่ UI blocks แต่เป็นพาหะของ workflow [page:FUNCTIONAL_SPEC.html]. เวลาออกแบบ component ให้ถามเสมอว่า component นี้ช่วยอะไรใน journey [page:SEQUENCE_DIAGRAMS.html].
-
-### Core component behaviors
-
-- search module ต้องทำหน้าที่เป็น gateway ไม่ใช่แค่แบบฟอร์ม [file:480][file:457]
-- listing card ต้องเป็น decision-entry component ไม่ใช่แค่ teaser [file:457]
-- detail inquiry module ต้องเชื่อม conversion context อย่างชัด [file:458][file:459]
-- trust modules ต้องช่วยลดความเสี่ยงเชิง perception ไม่ใช่แค่เติมหน้าให้ยาว [file:480][file:481]
-- admin object views ต้องทำให้ next task เห็นชัดในหน้าจอเดียว [page:FUNCTIONAL_SPEC.html]
-
-## 9. Public UX priorities
-
-public experience ควรถูก optimize ตามลำดับความสำคัญนี้ [page:REQUIREMENTS_SPEC.html][page:FUNCTIONAL_SPEC.html]:
-
-1. เข้าใจว่าแบรนด์นี้ช่วยอะไร
-2. ค้นหาหรือเข้าถึง inventory/areas ที่เกี่ยวข้องได้เร็ว [file:457]
-3. ประเมิน listing ได้อย่างมั่นใจ [file:459]
-4. ส่ง inquiry หรือ requirement ได้ง่ายและมีบริบท [file:458]
-5. ถูกพาไปสู่ next step ที่ชัด [page:SEQUENCE_DIAGRAMS.html]
-
-## 10. Admin UX priorities
-
-admin experience ควรถูก optimize เพื่อความเร็วในการทำงาน, ลด context switching และทำให้ข้อมูลที่จำเป็นอยู่ใกล้ decision point [page:FUNCTIONAL_SPEC.html]. visual language ควร calm, structured และไม่ marketing-heavy.
-
-### Admin rules
-
-- มองหน้าจอเป็น workspace ของ object เช่น lead, listing, visit, deal [page:SEQUENCE_DIAGRAMS.html]
-- ให้ state, ownership, pending actions และ recent history มองเห็นง่าย [page:FUNCTIONAL_SPEC.html]
-- อย่าให้ style overrides ฝั่ง admin สร้างระบบย่อยใหม่ที่หลุดจาก token base เดียวกัน [code_file:585]
-- dense UI ทำได้ แต่ต้องไม่ลด readability หรือ hierarchy [page:FUNCTIONAL_SPEC.html]
-
-## 11. Discoverability-aware design
-
-ดีไซน์ของโปรเจกต์นี้ต้องคำนึงถึง discoverability ตั้งแต่แรก ไม่ใช่รอให้ SEO มา patch ทีหลัง [file:462][page:REQUIREMENTS_SPEC.html]. นี่หมายความว่า page structure, headings, breadcrumbs, internal links และ visible taxonomy cues ต้องถูกออกแบบพร้อมกัน [page:FUNCTIONAL_SPEC.html].
-
-### Rules
-
-- area pages ต้องดูเป็น first-class pages ไม่ใช่ search leftovers [page:REQUIREMENTS_SPEC.html]
-- breadcrumb และ route context ต้องมองเห็นและเข้าใจง่าย [file:459][file:462]
-- service/content/GEO surfaces ต้องเชื่อมกันผ่าน navigation และ on-page links อย่างมีเหตุผล [page:FUNCTIONAL_SPEC.html]
-- listing filters และ labels ต้องช่วยทั้งผู้ใช้และ information architecture ไปพร้อมกัน [file:457][file:462]
-
-## 12. Conversion-aware design
-
-การออกแบบ conversion ในระบบนี้ไม่ควรเน้นปุ่ม “ติดต่อ” อย่างเดียว แต่ต้องคิดเป็น **decision-support + intent capture system** [file:458][page:SEQUENCE_DIAGRAMS.html].
-
-### Rules
-
-- ในจุดที่ผู้ใช้ยังไม่พร้อมคุย ควรมี path ไปสู่ compare, shortlist หรือ save mental model [page:FUNCTIONAL_SPEC.html]
-- ในจุดที่ผู้ใช้พร้อมแล้ว ต้องมี CTA ที่ชัดและ friction ต่ำ โดยใช้ green-600 เป็น default action color [file:584][code_file:585]
-- no-results และ uncertainty states ควรชี้ทางไป requirement flow [file:457][page:REQUIREMENTS_SPEC.html]
-- inquiry forms ต้องดูน่าเชื่อถือและไม่ถามเกินจำเป็น แต่ต้องเก็บ context พอส่งต่อ workflow [file:458][page:SEQUENCE_DIAGRAMS.html]
-
-## 13. Imagery direction
-
-ใช้ภาพจริงเป็นหลัก [file:479][file:480][file:481]. ธุรกิจนี้ได้ประโยชน์จาก real-world proof มากกว่าภาพอารมณ์หรือ abstract visuals [file:480][file:481].
-
-## 14. Responsive design mindset
-
-responsive design ในโปรเจกต์นี้ไม่ใช่แค่การย่อ desktop ลง mobile แต่คือการรักษา **task clarity** ในทุก breakpoint [file:479][file:480][file:481][page:FUNCTIONAL_SPEC.html].
-
-### Rules
-
-- mobile ต้องยังค้นหา inventory และส่ง requirement ได้จริง ไม่ใช่แค่ดูสวย [file:479][file:480]
-- iPad/tablet เป็น breakpoint สำคัญ เพราะพฤติกรรมเดิมมี middle-state ชัด [file:480]
-- desktop ใช้พื้นที่เพื่อเพิ่ม comparison, density และ trust layering อย่างมีเหตุผล [file:481]
-- อย่าให้ responsive behavior ทำลาย hierarchy ของ CTA และ content progression โดยเฉพาะสี action หลัก [file:584][code_file:585]
-
-## 15. Accessibility and readability
-
-ระบบใหม่ต้องมีมาตรฐาน accessibility และ readability ที่ดีกว่าของเดิม [page:FUNCTIONAL_SPEC.html]. การอ่านง่ายและใช้งานง่ายคือส่วนหนึ่งของ brand quality ไม่ใช่ข้อกำหนดทางเทคนิคอย่างเดียว [file:485].
-
-### Rules
-
-- contrast ต้องพอสำหรับ text และ actions [file:584][code_file:585]
-- body text อย่าเล็กเกินไป [file:485]
-- focus/hover/active states ต้องชัด [page:FUNCTIONAL_SPEC.html]
-- form labels, helper text และ validation states ต้องเข้าใจง่าย [file:458]
-- mobile tap targets ต้องใช้งานจริงในเงื่อนไขงานภาคสนามหรือระหว่างเดินทาง [page:FUNCTIONAL_SPEC.html]
-
-## 16. What to avoid
-
-สิ่งต่อไปนี้ถือเป็น design anti-patterns ของโปรเจกต์นี้:
-
-- clone เว็บเดิมแบบ pixel-perfect
-- ใช้ gradient-heavy startup visuals
-- ใช้ luxury cues ที่ไม่สอดคล้องกับ industrial trust posture [file:480][file:481]
-- ทำหน้า listing ให้เป็นแค่ card wall โดยไม่มี guided evaluation [file:457]
-- ทำ detail page เป็น data dump โดยไม่มี hierarchy [file:459]
-- ทำ admin เป็น generic CRUD dashboard ที่ไม่สะท้อน workflow จริง [page:FUNCTIONAL_SPEC.html]
-- ใช้ gold เป็น CTA default ต่อไปหลังจาก palette ถูกเปลี่ยนแล้ว [file:584][code_file:585]
+สร้าง **industrial property platform** ที่ *เชื่อถือได้ · ใช้งานง่าย · ค้นหา-ตัดสินใจได้ดี · รองรับ workflow จริงของ brokerage* งานออกแบบต้องทำ 4 อย่างพร้อมกัน: สร้าง trust ระดับแบรนด์ · ทำให้ข้อมูล inventory/geography เข้าใจง่าย · ลด friction การส่ง inquiry/requirement · ต่อเชื่อม workflow ไป admin/CRM
+
+**ไม่ใช่:** luxury real-estate site · startup SaaS gradient · template portal ที่มีแต่ card grid · reskin เว็บเก่าโดยไม่แตะ data/flow → โทนต้อง professional, grounded, modern, trustworthy
+
+---
+
+## 2. Canonical Design Tokens (ค่าจริงจาก `design/Design System.dc.html`)
+
+> **ห้ามคิดสี/ฟอนต์/radius/spacing ใหม่ที่ไม่อยู่ในลิสต์นี้** (ตาม `design/CLAUDE.md`)
+
+### 2.1 Brand colors
+| Token | Hex | ใช้กับ | สีตัวอักษรบนพื้นนี้ |
+|---|---|---|---|
+| Neon green | `#2DFB91` | CTA หลัก**บนพื้นเข้ม**, chip active, จุดเน้น, ตัวเลข stat บนพื้นดำ | `#022310` (เขียวเข้ม) |
+| Green 600 (action) | `#0D6C3B` | **ปุ่มหลักบนพื้นสว่าง**, badge "ขาย", สถานะสำเร็จ | `#FFFFFF` |
+| Deep teal (accent) | `#034956` | eyebrow, ลิงก์, ไอคอนเน้น, **ราคา** | — (เป็นสีตัวเอง) |
+| Deep pine | `#273c33` | active state ไอคอน/border, ปุ่ม dark, ปุ่มในโมดัล | `#FFFFFF` |
+| Near black | `#04140C` / `#0A0E0C` | panel/section เข้ม, stat card (หมายเหตุ: footer หน้า Home ใช้ `#000000` — ดู §2.8) | `#FFFFFF` |
+| Emerald gradient | `linear-gradient(135deg,#0B7A45 0%,#0A5C39 45%,#043F20 100%)` | การ์ด CTA band, panel เด่น | `#FFFFFF` (accent `#C3FED5`) |
+| Gold | `#D9A62B` | โทรศัพท์, เรียงตาม (sort), คำแนะนำ/แนะนำ | `#FFFFFF` |
+| Danger | `#C0392B` | ลบ/ยกเลิก/ไม่ว่าง/error (subtle bg `#F9E4E1`, border `#E4C4C0`) | `#FFFFFF` |
+| Purple (admin เท่านั้น) | `#7A3FB0` | หมวดตั้งค่า / Field Builder (ใช้เฉพาะ admin) | `#FFFFFF` |
+
+หมายเหตุ: gold ใช้เป็น **accent เฉพาะจุด** (โทร/sort/แนะนำ) — **ห้ามใช้เป็นสี CTA หลัก** (CTA หลัก = green 600 บนพื้นสว่าง / neon บนพื้นเข้ม)
+
+### 2.2 Neutrals / surfaces (CSS variables)
+```css
+--bg:#F9F8F5;      /* พื้นหลังหลักทั้งเว็บ */
+--bg2:#F3F0EC;     /* พื้น section สลับ (เช่น 4 ขั้นตอน) */
+--surface:#FFFFFF; /* พื้นการ์ด/โมดัล/เฮดเดอร์ */
+--tint:#EEF4F3;    /* พื้นรอง/ไอคอนวงกลม/hover เบา */
+--text:#28251D;    /* ตัวอักษรหลัก */
+--muted:#5F5A52;   /* ตัวอักษรรอง (body/description) */
+--muted2:#7A7974;  /* ตัวอักษรจาง (caption/meta) */
+--muted3:#9B968D;  /* จางสุด (label เลข/breadcrumb) */
+--border:#E7E3DC;  /* เส้นขอบมาตรฐาน */
+--accent:#034956;  /* accent หลัก (eyebrow/ลิงก์/ไอคอน/ราคา) — ลิงก์ hover #023742 */
+```
+
+### 2.3 Typography
+- ฟอนต์: **Noto Sans Thai** (400–800) + Inter fallback · **JetBrains Mono** (500) สำหรับราคา/รหัส/โค้ด
+- โหลด: `Noto+Sans+Thai:wght@400;500;600;700;800` + `JetBrains+Mono:wght@500`
+
+| Role | ค่า |
+|---|---|
+| Hero H1 | 44px / 700 / letter-spacing -.01em |
+| Section H2 | 34px / 700 / -.01em |
+| Card H3 | 22px / 800 |
+| Body | 15–16px / 400 / line-height ~1.7 / สี `--muted` |
+| Eyebrow | 13px / 700 / uppercase / letter-spacing .08em / สี `#273c33` (มักมีแท่ง 26×2px นำหน้า) |
+| Price | JetBrains Mono 21px / 800 / สี `#034956` |
+
+### 2.4 Spacing scale
+`4 · 8 · 16 · 24 · 44 · 88px`
+- 4 = gap ไอคอน+ข้อความเล็ก · 8 = gap ปุ่ม/ชิป · 16 = padding การ์ดย่อย, gap grid มือถือ · 24 = padding แนวนอน container · 44 = gap ระหว่าง sub-section · 88 = padding บน/ล่าง section ใหญ่ (desktop)
+
+### 2.5 Radius (ค่า exact)
+`sm 10px · md 18px · lg 24px · full 9999px (pill)` — การ์ดส่วนใหญ่ 16–18px, ปุ่ม/ชิป = full, footer โค้งบน ~34px
+
+### 2.6 Icons
+สไตล์ iOS/SF Symbols — `stroke-width:1.7px`, `stroke-linecap/linejoin:round` ทุกอัน, viewBox 24×24, สีปกติ `#034956` (ในวงกลม `--tint`). ใช้ inline SVG หรือ lucide-react (สไตล์ตรงกัน)
+
+### 2.7 Motion
+| Token | ค่า | ใช้กับ |
+|---|---|---|
+| hover-lift | `translateY(-2px)` .2s | ปุ่มลอยขึ้นตอน hover |
+| hover-glow | `box-shadow` .2s (สีเดียวกับปุ่ม @ .4 alpha) | ปุ่มเรืองแสง |
+| card-hover | `translateY(-6~-8px)` .3s `cubic-bezier(.2,.7,.3,1)` + shadow `0 20px 40px rgba(0,0,0,.1)` | การ์ด listing/feature |
+| reveal-up | opacity + `translateY(28px)` .7s | scroll-reveal ทีละ section |
+| drawer-slide | `translateX` .35s `cubic-bezier(.2,.8,.3,1)` | เมนู hamburger มือถือ |
+
+### 2.8 Component specs (จาก Design System)
+**ปุ่ม** (h48, padding 0 26px, radius 9999px, font 14.5px):
+- Primary: `#0D6C3B` / #fff / 700 · hover lift + shadow `rgba(13,108,59,.4)`
+- Neon CTA: `#2DFB91` / `#022310` / 800 · glow `rgba(45,251,145,.4)`
+- Dark: `#273c33` / #fff / 700
+- Outline: transparent / border 1.5px `--border` / `--text` / 700 · hover border `#273c33` + bg `--tint`
+- Gold: `#D9A62B` / #fff / 800
+
+**Chips/badges:** active `#2DFB91`/`#022310` h32 · idle `--tint`/`--text` h32 · verified `#EEF4F3`/`#034956` h24 + ✓ · badge "ให้เช่า" `rgba(255,255,255,.94)`/`#28251D` + shadow · badge "ขาย" `#0D6C3B`/#fff — ทั้งหมด pill
+
+**การ์ด:** standard bg `--surface` / border **1.5px** `--border` / radius 18 / hover lift + shadow · dark gradient card (emerald) text #fff, accent `#C3FED5` · stat card `#04140C` เลข `#2DFB91` 26/800
+
+**Header:** sticky, `background:rgba(249,248,245,.92)`, `backdrop-filter:blur(16px) saturate(1.5)`, border-bottom 1px `--border`, height **72px**
+
+**Footer:** พื้น **`#000000`** (หน้า Home จริง — *ไม่ใช่* `#04140C`), ตัวอักษร `#C9C5BD`, ลิงก์ `#2DFB91`, โค้งมุมบน 34px, `position:fixed;bottom:0` (footer ตรึงล่าง)
+
+**Container:** max-width **1200px**, padding แนวนอน 24px
+
+### 2.9 Semantic status (map จากสีแบรนด์ — อย่าคิดสีใหม่)
+- **success:** `#0D6C3B` (green 600) / on `#fff` — เช่น "ยืนยันแล้ว", สถานะสำเร็จ
+- **warning / แนะนำ:** `#D9A62B` (gold) / on `#fff`
+- **error / danger / ไม่ว่าง:** solid `#C0392B` · subtle bg `#F9E4E1` · border `#E4C4C0` · on `#fff` (ค่าจริงจาก `AdminRequirement.dc.html`)
+- **info:** `#034956` (deep teal / accent) — ดีไซน์ไม่มีสี info แยก ใช้ teal
+
+### 2.10 States
+- **focus / selected ring:** `box-shadow: inset 0 0 0 3px #034956` (teal) — จาก input/selected จริง (`Home.dc.html:780`)
+- **input error:** border `#C0392B`
+- **hover:** ปุ่ม lift+glow (§2.7) · การ์ด lift+shadow · ลิงก์ accent → hover `#023742`
+- **disabled:** opacity ~.5 + `cursor:not-allowed` — *(derived; ยืนยันกับหน้าจริงเมื่อเจอ element จริง)*
+
+### 2.11 Breakpoints (จาก `Home.dc.html` จริง)
+- **≤1024px:** nav → hamburger (เมนู desktop ซ่อน)
+- **≤980px:** grid 2-col → 1col, 3/4-col → 2col, footer 4col → 2col, **H1 44→34px**
+- **≤640px:** ทุก grid → 1 คอลัมน์ (mobile stack เต็ม)
+
+### 2.12 Z-index & elevation (จากหน้าจริง)
+- **z-index:** local 1–7 · sticky ~50 · header **200** · drawer/overlay **400** · dropdown/modal/popover **900**
+- **shadow scale:**
+  - sm (การ์ดปกติ / badge): `0 1px 3px rgba(0,0,0,.05)` · badge `0 2px 8px rgba(0,0,0,.12)`
+  - md (card hover): `0 20px 44px rgba(0,0,0,.18)` หรือ green-tint `0 22px 44px rgba(2,35,16,.16)`
+  - lg (modal/overlay): `0 40px 80px rgba(0,0,0,.4)`
+  - glow: neon `0 6–12px … rgba(45,251,145,.4–.5)` · green btn `… rgba(13,108,59,.4)`
+
+---
+
+## 3. Design principles
+1. **Clarity before decoration** — เข้าใจ inventory/area/next-step เร็ว สำคัญกว่าดูหวือหวา
+2. **Trust before persuasion tricks** — conversion มาจากความน่าเชื่อถือ ไม่ใช่ urgency gimmick
+3. **Structure before style** — เริ่มจาก role/hierarchy/task ก่อน visual (แต่ปลายทางต้องตรงดีไซน์)
+4. **System consistency over isolated beauty** — ใช้ token/pattern ชุดเดียวทั้ง public + admin
+5. **Guided discovery over raw browsing** — search/GEO/compare/requirement/trust ทำงานร่วมกันพาผู้ใช้ไปข้างหน้า
+
+## 4. Color rules
+- พื้นขาว/อ่อน (`--bg`/`--surface`) เป็นฐาน public
+- text hierarchy ผ่าน neutral darks ไม่ใช่หลายสี
+- green = primary CTA / highlight / trust emphasis · neon เฉพาะบนพื้นเข้ม
+- semantic status (success/warning/error) แยกจาก brand เมื่อจำเป็น (success derive จาก green ได้)
+- อย่าให้ tag/filter ใช้เขียวหลายเฉดจนแย่ง hierarchy ของ CTA · gold = accent เฉพาะจุด ไม่ใช่ CTA
+
+## 5. Typography / Layout rules
+- Thai-friendly sans เป็นแกน, hierarchy จาก size/weight/spacing
+- body ไม่เล็กเกินไป (15–16px) · ราคา/รหัสใช้ mono ให้ scan ง่าย
+- homepage/public ใช้ section rhythm: trust → discovery → decision → inquiry
+- listing เน้น filter clarity + result readability · detail จัดลำดับเพื่อ evaluation · admin จัดเพื่อ throughput
+
+## 6. Component philosophy
+component = พาหะของ workflow ไม่ใช่แค่ UI block:
+- search module = **gateway** ไม่ใช่แค่ฟอร์ม
+- listing card = **decision-entry** ไม่ใช่แค่ teaser
+- detail inquiry = เชื่อม conversion context ชัด
+- trust modules = ลดความเสี่ยงเชิง perception
+- admin object views = next task เห็นชัดในหน้าจอเดียว
+
+## 7. UX priorities
+**Public:** (1) เข้าใจว่าแบรนด์ช่วยอะไร (2) ค้นหา inventory/area เร็ว (3) ประเมิน listing มั่นใจ (4) ส่ง inquiry/requirement ง่าย+มีบริบท (5) ถูกพาไป next step
+**Admin:** เร็ว · ลด context switching · state/ownership/pending/history เห็นง่าย · calm & structured · dense ได้แต่ต้อง readable · ไม่หลุด token base เดียวกัน
+
+## 8. Imagery · Responsive · Accessibility
+- **Imagery:** ใช้ภาพจริงเป็นหลัก (real-world proof) — asset จริงอยู่ที่ `design/assets/` + `design/uploads/`
+- **Responsive:** รักษา task clarity ทุก breakpoint (mobile ต้องค้นหา+ส่ง requirement ได้จริง; iPad/tablet เป็น breakpoint สำคัญ; อย่าให้ responsive ทำลาย hierarchy ของ CTA)
+- **A11y:** contrast พอ, body ไม่เล็ก, focus/hover/active ชัด, form label/helper/validation เข้าใจง่าย, tap target ใช้จริงได้
+
+## 9. Anti-patterns (ห้ามทำ)
+- clone เว็บ **เก่า (legacy)** pixel-perfect *(แต่ reproduce ดีไซน์ **ใหม่** ใน `design/` ให้ตรง = ต้องทำ)*
+- gradient-heavy startup visuals · luxury cues ที่ขัด industrial trust posture
+- listing เป็น card wall ไม่มี guided evaluation · detail เป็น data dump ไม่มี hierarchy
+- admin เป็น generic CRUD ที่ไม่สะท้อน workflow
+- ใช้ gold เป็น CTA default · คิดสี/radius/spacing นอกลิสต์ §2

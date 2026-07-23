@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+  *{box-sizing:border-box;}
+  :root{--bg:#F9F8F5;--bg2:#F3F0EC;--surface:#FFFFFF;--tint:#EEF4F3;--text:#28251D;--muted:#5F5A52;--muted2:#7A7974;--muted3:#9B968D;--border:#E7E3DC;--accent:#034956;}
+  body{margin:0;font-family:'Noto Sans Thai','Inter',system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  a{text-decoration:none;color:var(--accent);}
+  svg{stroke-linecap:round !important;stroke-linejoin:round !important;}
+  svg[fill="none"]{stroke-width:1.7px !important;}
+  code{font-family:'JetBrains Mono',monospace;}
+  @media (max-width:760px){ #cs-item{grid-template-columns:1fr !important;} #cs-brandrow{flex-direction:column;align-items:flex-start !important;gap:16px !important;} }
+</style>
+</helmet>
+
+<div style="width:100%;background:var(--bg);min-height:100vh;">
+  <!-- TOP BAR (broker) -->
+  <header style="background:#0A0E0C;padding:14px 24px;">
+    <div style="max-width:1080px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+      <img src="assets/jkp-logo-white.png" alt="JKP Property" style="height:32px;width:auto;display:block;">
+      <div style="display:flex;align-items:center;gap:7px;height:34px;padding:0 13px;border-radius:9999px;background:rgba(45,251,145,.14);border:1px solid rgba(45,251,145,.3);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg><span style="font-size:11.5px;font-weight:700;color:#2DFB91;">ลิงก์ส่วนตัว · ไม่ต้องเข้าสู่ระบบ</span></div>
+    </div>
+  </header>
+
+  <!-- BRAND / CLIENT HEADER -->
+  <section style="max-width:1080px;margin:0 auto;padding:28px 24px 0;">
+    <div style="background:linear-gradient(135deg,#043F20 0%,#022310 100%);border-radius:22px;padding:30px 32px;position:relative;overflow:hidden;">
+      <div style="position:absolute;top:-50px;right:-30px;width:200px;height:200px;border-radius:9999px;background:rgba(45,251,145,.1);pointer-events:none;"></div>
+      <div id="cs-brandrow" style="position:relative;display:flex;align-items:center;justify-content:space-between;gap:24px;">
+        <div style="display:flex;align-items:center;gap:18px;">
+          <div style="width:72px;height:72px;border-radius:16px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;padding:8px;"><image-slot id="cs-client-logo" shape="rect" fit="contain" placeholder="โลโก้ลูกค้า" src=""></image-slot></div>
+          <div>
+            <div style="font-size:11.5px;font-weight:700;letter-spacing:.06em;color:#8FE6B6;text-transform:uppercase;">คัดทรัพย์สำหรับ</div>
+            <div style="margin-top:4px;font-size:22px;font-weight:800;color:#fff;">บริษัท ไทยโลจิสติกส์ กรุ๊ป จำกัด</div>
+            <div style="margin-top:4px;font-size:12.5px;color:#C3FED5;display:flex;align-items:flex-start;gap:6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8FE6B6" stroke-width="2" style="flex-shrink:0;margin-top:2px;"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>99/1 ถ.บางนา-ตราด กม.19 ต.บางโฉลง อ.บางพลี จ.สมุทรปราการ</div>
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:11.5px;color:#8FE6B6;">Shortlist</div>
+          <code style="font-size:15px;font-weight:700;color:#fff;">SL-208</code>
+          <div style="margin-top:6px;font-size:11.5px;color:#C3FED5;">ส่งเมื่อ 18 ก.ค. 2026</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INTRO -->
+  <section style="max-width:1080px;margin:0 auto;padding:22px 24px 0;">
+    <div style="display:flex;align-items:center;gap:8px;"><span style="width:26px;height:2px;background:#273c33;border-radius:2px;"></span><span style="font-size:13px;font-weight:700;letter-spacing:.06em;color:#273c33;text-transform:uppercase;">รายการที่คัดให้</span></div>
+    <h1 style="margin:10px 0 6px;font-size:26px;font-weight:800;color:var(--text);letter-spacing:-.01em;">ทรัพย์ที่ตรงกับความต้องการของคุณ</h1>
+    <p style="margin:0;font-size:14px;color:var(--muted);max-width:640px;">ทีมงาน JKP Property คัดเลือก {{ itemCount }} รายการที่ตรงเงื่อนไขและตรวจสอบว่าว่างแล้ว — กรุณาให้ความเห็นแต่ละรายการเพื่อให้เราจัดนัดเข้าชมต่อไป</p>
+  </section>
+
+  <!-- REQUIREMENT SUMMARY STRIP -->
+  <section style="max-width:1080px;margin:0 auto;padding:18px 24px 0;">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px 20px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+      <span style="font-size:12px;font-weight:700;color:var(--muted2);">ความต้องการ:</span>
+      <sc-for list="{{ reqChips }}" as="c" hint-placeholder-count="4"><span style="height:28px;padding:0 12px;border-radius:9999px;background:var(--tint);color:var(--accent);font-size:12px;font-weight:700;display:inline-flex;align-items:center;">{{ c }}</span></sc-for>
+    </div>
+  </section>
+
+  <!-- VIEW TOGGLE -->
+  <section style="max-width:1080px;margin:0 auto;padding:18px 24px 0;display:flex;justify-content:flex-end;">
+    <div style="display:flex;gap:4px;padding:4px;border-radius:9999px;background:var(--surface);border:1px solid var(--border);">
+      <div onClick="{{ setCards }}" style="{{ cardsTabStyle }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>การ์ด</div>
+      <div onClick="{{ setCompare }}" style="{{ compareTabStyle }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3z"></path><path d="M3 9h18M9 3v18"></path></svg>ตารางเปรียบเทียบ</div>
+    </div>
+  </section>
+
+  <!-- COMPARE TABLE -->
+  <sc-if value="{{ isCompare }}" hint-placeholder-val="{{ false }}">
+  <section style="max-width:1080px;margin:0 auto;padding:16px 24px 0;">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:0 12px 30px rgba(2,35,16,.06);overflow-x:auto;" class="scroll">
+      <table style="width:100%;border-collapse:separate;border-spacing:0;min-width:560px;">
+        <thead><tr>
+          <th style="padding:16px 18px;text-align:left;font-size:12px;font-weight:800;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;background:var(--bg);position:sticky;left:0;z-index:2;">รายละเอียด</th>
+          <sc-for list="{{ compareCols }}" as="c" hint-placeholder-count="2"><th style="padding:0;background:linear-gradient(135deg,#043F20,#022310);min-width:200px;"><div style="padding:16px 18px;color:#fff;"><div style="display:flex;align-items:center;gap:8px;"><span style="width:26px;height:26px;border-radius:8px;background:#2DFB91;color:#022310;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">{{ c.rank }}</span><span style="font-size:13.5px;font-weight:800;">{{ c.shortTitle }}</span></div></div></th></sc-for>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td style="padding:14px 18px;font-size:12.5px;font-weight:700;color:var(--text);background:var(--bg);position:sticky;left:0;">รูปทรัพย์</td>
+            <sc-for list="{{ compareCols }}" as="c" hint-placeholder-count="2"><td style="padding:12px 14px;border-bottom:1px solid var(--border);"><a href="PropertyDetail.dc.html" style="display:block;height:96px;border-radius:11px;overflow:hidden;background:var(--tint);"><image-slot id="{{ c.cmpImgId }}" shape="rect" fit="cover" placeholder="รูป" src="{{ c.img }}" credit="{{ c.credit }}" credit-href="{{ c.creditHref }}"></image-slot></a><a href="PropertyDetail.dc.html" style="margin-top:8px;display:flex;align-items:center;justify-content:center;gap:5px;height:30px;border-radius:8px;background:var(--tint);color:var(--accent);font-size:11.5px;font-weight:700;">ดูรายละเอียด<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></a></td></sc-for>
+          </tr>
+          <sc-for list="{{ compareRows }}" as="r" hint-placeholder-count="9">
+            <tr style="{{ r.rowStyle }}">
+              <td style="padding:13px 18px;font-size:12.5px;font-weight:700;color:{{ r.labelColor }};background:{{ r.labelBg }};position:sticky;left:0;">{{ r.label }}</td>
+              <sc-for list="{{ r.cells }}" as="cell" hint-placeholder-count="2"><td style="{{ cell.style }}">{{ cell.v }}</td></sc-for>
+            </tr>
+          </sc-for>
+          <tr>
+            <td style="padding:14px 18px;font-size:12.5px;font-weight:700;color:var(--text);background:var(--bg);position:sticky;left:0;">ความเห็น</td>
+            <sc-for list="{{ compareCols }}" as="c" hint-placeholder-count="2"><td style="padding:12px 14px;"><div onClick="{{ c.fbToggle }}" style="{{ c.fbStyle }}"><span dangerouslySetInnerHTML="{{ c.fbIcon }}"></span>{{ c.fbLabel }}</div></td></sc-for>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  </sc-if>
+
+  <!-- ITEMS (cards) -->
+  <sc-if value="{{ isCards }}" hint-placeholder-val="{{ true }}">
+  <section style="max-width:1080px;margin:0 auto;padding:20px 24px 0;display:flex;flex-direction:column;gap:18px;">
+    <sc-for list="{{ items }}" as="it" hint-placeholder-count="2">
+      <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:20px;overflow:hidden;">
+        <div id="cs-item" style="display:grid;grid-template-columns:300px 1fr;gap:0;">
+          <div style="position:relative;min-height:220px;background:var(--tint);">
+            <image-slot id="{{ it.imgId }}" shape="rect" fit="cover" placeholder="รูปทรัพย์" src="{{ it.img }}" credit="{{ it.credit }}" credit-href="{{ it.creditHref }}"></image-slot>
+            <div style="position:absolute;top:12px;left:12px;display:flex;gap:7px;"><span style="width:30px;height:30px;border-radius:9999px;background:#0D6C3B;color:#fff;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(0,0,0,.25);">{{ it.rank }}</span><span style="height:30px;padding:0 12px;border-radius:9999px;background:rgba(255,255,255,.95);color:#0D6C3B;font-size:11.5px;font-weight:800;display:flex;align-items:center;gap:5px;"><span style="width:7px;height:7px;border-radius:9999px;background:#0D6C3B;"></span>ว่าง</span></div>
+          </div>
+          <div style="padding:22px 24px;display:flex;flex-direction:column;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+              <div><div style="font-size:17px;font-weight:800;color:var(--text);line-height:1.35;">{{ it.title }}</div><div style="margin-top:5px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><code style="font-size:12px;color:#0D6C3B;font-weight:700;">{{ it.code }}</code><span style="font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:4px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" stroke-width="1.8"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>{{ it.loc }}</span></div></div>
+              <div style="text-align:right;"><div style="font-size:20px;font-weight:800;font-family:'JetBrains Mono',monospace;color:#034956;">{{ it.price }}</div><div style="font-size:11.5px;color:var(--muted3);">{{ it.unit }}</div></div>
+            </div>
+            <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+              <sc-for list="{{ it.specs }}" as="sp" hint-placeholder-count="3"><span style="height:28px;padding:0 12px;border-radius:9px;background:var(--bg);border:1px solid var(--border);font-size:12px;font-weight:600;color:var(--text);display:inline-flex;align-items:center;gap:5px;">{{ sp }}</span></sc-for>
+              <a href="PropertyDetail.dc.html" style="height:28px;padding:0 12px;border-radius:9px;background:var(--tint);color:var(--accent);font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px;">ดูรายละเอียด<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></a>
+            </div>
+            <div style="margin-top:auto;padding-top:18px;">
+              <div style="font-size:12px;font-weight:700;color:var(--muted2);margin-bottom:8px;">ความเห็นของคุณ</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <sc-for list="{{ it.feedback }}" as="fb" hint-placeholder-count="3"><div onClick="{{ fb.select }}" style="{{ fb.style }}"><span dangerouslySetInnerHTML="{{ fb.icon }}"></span>{{ fb.label }}</div></sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+  </section>
+  </sc-if>
+
+  <!-- CONTACT AGENT -->
+  <section style="max-width:1080px;margin:0 auto;padding:24px 24px 60px;">
+    <div style="background:#0A0E0C;border-radius:20px;padding:28px 32px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div style="width:52px;height:52px;border-radius:9999px;background:#273c33;color:#2DFB91;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;flex-shrink:0;">อ</div>
+        <div><div style="font-size:15px;font-weight:800;color:#fff;">อารยา สุขสวัสดิ์ · ที่ปรึกษาของคุณ</div><div style="font-size:12.5px;color:#B9C2BD;">สอบถามเพิ่มเติมหรือจัดนัดเข้าชมได้เลย</div></div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="tel:+66818000000" style="display:flex;align-items:center;gap:7px;height:46px;padding:0 22px;border-radius:9999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.24);color:#fff;font-size:13.5px;font-weight:700;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z"></path></svg>โทร</a>
+        <a href="#" style="display:flex;align-items:center;gap:7px;height:46px;padding:0 24px;border-radius:9999px;background:#2DFB91;color:#022310;font-size:13.5px;font-weight:800;">จัดนัดเข้าชม<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#022310" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></a>
+      </div>
+    </div>
+    <div style="margin-top:16px;text-align:center;font-size:11.5px;color:var(--muted3);">ราคาและสถานะว่างอาจเปลี่ยนแปลง — ทีมงานจะยืนยันอีกครั้งก่อนนัดเข้าชม · Powered by JKP Property</div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { fb: {}, view: 'cards' };
+  renderVals() {
+    const S = this.state;
+    const fbDefs = [
+      { key:'interested', label:'สนใจ', path:'<path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.3a2 2 0 002-1.7l1.4-9a2 2 0 00-2-2.3z"></path><path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"></path>', on:'#0D6C3B', onBg:'#E8F3EC' },
+      { key:'undecided', label:'ยังไม่ตัดสินใจ', path:'<circle cx="12" cy="12" r="10"></circle><path d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3M12 17h.01"></path>', on:'#9A741C', onBg:'#FBF3E1' },
+      { key:'not', label:'ไม่สนใจ', path:'<path d="M10 15V19a3 3 0 003 3l4-9V2H5.7a2 2 0 00-2 1.7l-1.4 9a2 2 0 002 2.3z"></path><path d="M17 2h3a2 2 0 012 2v7a2 2 0 01-2 2h-3"></path>', on:'#C0392B', onBg:'#F9E4E1' },
+    ];
+    const mkFb = (itemId) => fbDefs.map(d => {
+      const active = S.fb[itemId] === d.key;
+      return { label:d.label, select:()=>this.setState({fb:{...S.fb,[itemId]:d.key}}),
+        icon:{__html:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="'+(active?d.on:'var(--muted2)')+'" stroke-width="1.9">'+d.path+'</svg>'},
+        style:'display:flex;align-items:center;gap:7px;height:38px;padding:0 16px;border-radius:9999px;font-size:12.5px;font-weight:700;cursor:pointer;transition:all .15s;border:1.5px solid '+(active?d.on:'var(--border)')+';background:'+(active?d.onBg:'transparent')+';color:'+(active?d.on:'var(--text)')+';' };
+    });
+    const cmpFbOne = (itemId) => { const cur=S.fb[itemId]; const d=fbDefs.find(x=>x.key===cur)||{label:'ให้ความเห็น',path:'<circle cx="12" cy="12" r="10"></circle><path d="M8 12h8"></path>',on:'var(--muted2)',onBg:'transparent'}; const active=!!cur;
+      return { fbLabel:d.label, fbToggle:()=>{ const order=['interested','undecided','not']; const idx=order.indexOf(cur); this.setState({fb:{...S.fb,[itemId]:order[(idx+1)%3]}}); },
+        fbIcon:{__html:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="'+(active?d.on:'var(--muted2)')+'" stroke-width="1.9">'+d.path+'</svg>'},
+        fbStyle:'display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 13px;border-radius:9999px;font-size:11.5px;font-weight:700;cursor:pointer;border:1.5px solid '+(active?d.on:'var(--border)')+';background:'+(active?d.onBg:'transparent')+';color:'+(active?d.on:'var(--text)')+';' }; };
+    const cellS = (highlight) => 'padding:13px 16px;border-bottom:1px solid var(--border);text-align:center;font-size:12.5px;font-weight:'+(highlight?'800':'600')+';color:'+(highlight?'#034956':'var(--text)')+';background:'+(highlight?'rgba(3,73,86,.04)':'transparent')+';';
+    const cmp = [
+      { rank:'1', shortTitle:'JKP-SPK0042', cmpImgId:'cs-c1', img:'https://images.unsplash.com/photo-1553413077-190dd305871c?w=500&q=80', credit:'Photo by Petrebels on Unsplash', creditHref:'https://unsplash.com/@petrebels',
+        area:'2,700 ตร.ม.', land:'4 ไร่', floor:'3 ตัน/ตร.ม.', height:'9 เมตร', power:'3 Phase 50/150A', rent:'฿176,000/ด.', rentSqm:'฿150/ตร.ม.', sale:'ให้เช่าเท่านั้น', deposit:'3 เดือน', advance:'1 เดือน', term:'3 ปี', mapLabel:'ดูแผนที่' },
+      { rank:'2', shortTitle:'JKP-SKN0015', cmpImgId:'cs-c2', img:'https://images.unsplash.com/photo-1565793298595-6a879b1d9492?w=500&q=80', credit:'Photo by Ruchindra Gunasekara on Unsplash', creditHref:'https://unsplash.com/@ruchindra',
+        area:'1,800 ตร.ม.', land:'2.5 ไร่', floor:'2 ตัน/ตร.ม.', height:'8 เมตร', power:'3 Phase 50/100A', rent:'฿88,000/ด.', rentSqm:'฿49/ตร.ม.', sale:'฿62M', deposit:'3 เดือน', advance:'1 เดือน', term:'3 ปี', mapLabel:'ดูแผนที่' },
+    ];
+    const itemIds = ['i1','i2'];
+    const compareCols = cmp.map((c,i)=>({ ...c, ...cmpFbOne(itemIds[i]) }));
+    const rowDef = (label, field, opts) => ({ label, labelColor: (opts&&opts.accent)?'#C0392B':'var(--text)', labelBg: (opts&&opts.accent)?'#FBEEEC':'var(--bg)',
+      rowStyle:'', cells: cmp.map(c=>({ v:c[field], style: cellS(opts&&opts.hi&&field==='rent') })) });
+    const compareRows = [
+      rowDef('พื้นที่ทรัพย์','area'),
+      rowDef('ขนาดที่ดิน','land'),
+      rowDef('รับน้ำหนักพื้น','floor'),
+      rowDef('ความสูง','height'),
+      rowDef('ระบบไฟฟ้า','power'),
+      rowDef('ค่าเช่า/เดือน','rent',{hi:true}),
+      rowDef('ค่าเช่า/ตร.ม.','rentSqm'),
+      rowDef('ราคาขาย','sale'),
+      rowDef('เงินประกัน','deposit',{accent:true}),
+      rowDef('ชำระล่วงหน้า','advance',{accent:true}),
+      rowDef('สัญญาเช่า','term',{accent:true}),
+    ];
+    const tab=(on)=>'display:flex;align-items:center;gap:6px;height:32px;padding:0 15px;border-radius:9999px;font-size:12.5px;font-weight:700;cursor:pointer;background:'+(on?'#273c33':'transparent')+';color:'+(on?'#fff':'var(--muted)')+';';
+    return {
+      isCards: S.view==='cards', isCompare: S.view==='compare',
+      setCards: ()=>this.setState({view:'cards'}), setCompare: ()=>this.setState({view:'compare'}),
+      cardsTabStyle: tab(S.view==='cards'), compareTabStyle: tab(S.view==='compare'),
+      compareCols, compareRows,
+      itemCount: '2',
+      reqChips: ['เช่าโกดัง','2,000–3,500 ตร.ม.','฿150K–250K/ด.','ต้องการ ร.ง.4','สมุทรปราการ/ชลบุรี'],
+      items: [
+        { rank:'1', imgId:'cs-i1', img:'https://images.unsplash.com/photo-1553413077-190dd305871c?w=700&q=80', credit:'Photo by Petrebels on Unsplash', creditHref:'https://unsplash.com/@petrebels', title:'โกดังพร้อมสำนักงาน 2,700 ตร.ม.', code:'JKP-SPK0042', loc:'บางพลี, สมุทรปราการ', price:'฿176,000', unit:'/เดือน · ฿150/ตร.ม.', specs:['2,700 ตร.ม.','สูง 9 ม.','ร.ง.4 ได้','3 Phase'], feedback:mkFb('i1') },
+        { rank:'2', imgId:'cs-i2', img:'https://images.unsplash.com/photo-1565793298595-6a879b1d9492?w=700&q=80', credit:'Photo by Ruchindra Gunasekara on Unsplash', creditHref:'https://unsplash.com/@ruchindra', title:'โกดังให้เช่า มหาชัย 1,800 ตร.ม.', code:'JKP-SKN0015', loc:'เมือง, สมุทรสาคร', price:'฿88,000', unit:'/เดือน · ฿49/ตร.ม.', specs:['1,800 ตร.ม.','สูง 8 ม.','บนถนนหลัก','ใกล้ท่าเรือ'], feedback:mkFb('i2') },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>
