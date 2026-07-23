@@ -97,7 +97,20 @@ validation + honeypot + rate-limit and return the `{ data, meta, errors }` envel
 `requirement_form`. Swap the in-memory route bodies for the CRM/DB later — the forms
 don't change.
 
-## Next up — Phase FE-4
+## Admin / operations (FE-4) ✅
 
-Admin shell + CRM: login, dashboard, and the Leads workspace (state-machine status
-control, assignment, notes/tasks/activities) — the first operations surface. See `FRONTEND_PLAN.md` §9.
+Guarded admin app (`/admin`, single-language Thai, outside `[locale]`): mock cookie
+auth + RBAC + login (`/admin/login`), a dashboard (stat cards + pipeline funnel +
+activity/task feeds), and the **Leads workspace** — index (URL-driven filters) and
+master-detail with a status dropdown driven by the `@jkp/domain` lead **state
+machine** (`nextStatuses`), assignment, notes/tasks timeline, and a
+cancel-requirement dialog that requires a reason + field (FR-CRM-07). Interactions
+are optimistic/simulated; auth + mutations swap to real endpoints later.
+**Demo login:** any email + password → super_admin. Other admin nav entries
+(shortlists/visits/deals/properties/listings/CMS/SEO/users) are later phases and
+are not built yet.
+
+## Next up — Phase FE-5
+
+Shortlist builder + availability gate + the client shortlist token view (`/s/[token]`)
+with per-item feedback. See `FRONTEND_PLAN.md` §9.

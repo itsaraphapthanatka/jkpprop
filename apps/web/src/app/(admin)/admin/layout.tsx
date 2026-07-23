@@ -3,23 +3,24 @@ import '../../globals.css';
 
 import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
-import { AdminShell } from '@/components/shells/admin-shell';
+import { Toaster } from '@jkp/ui';
 
 export const metadata: Metadata = {
-  title: 'JKP Admin',
+  title: { default: 'JKP Admin', template: '%s · JKP Admin' },
   robots: { index: false, follow: false },
 };
 
 /**
- * Admin root layout (second root layout via route group — no locale prefix,
- * single language). Dark-ready: add data-theme="dark" to <html> to flip the
- * whole admin tree to the dark token set (D5).
+ * Admin root layout (route-group root, no locale prefix). Provides <html>/<body>
+ * only — the dark shell + auth guard live in the nested (app) layout so the
+ * /admin/login page can render without them.
  */
 export default function AdminRootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="th">
       <body>
-        <AdminShell>{children}</AdminShell>
+        {children}
+        <Toaster />
       </body>
     </html>
   );

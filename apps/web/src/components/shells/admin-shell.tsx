@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
+import type { AdminUser } from '@/data/admin/session';
+import { AdminUserMenu } from '@/components/admin/admin-user-menu';
 
 /**
  * AdminShell — dark sidebar (248px) + sticky topbar + scrolling main.
- * Single language (Thai) in v1; i18n-wired copy lands in the admin phase.
- * Dark-ready: set data-theme="dark" on <html> (admin root layout) to opt the
- * whole tree into the dark token set (D5).
+ * Single language (Thai) in v1. Rendered by the guarded (app) layout with the
+ * signed-in user.
  */
 const NAV_GROUPS: { title: string; items: { href: string; label: string }[] }[] = [
   {
@@ -36,12 +37,12 @@ const NAV_GROUPS: { title: string; items: { href: string; label: string }[] }[] 
   },
 ];
 
-export function AdminShell({ children }: { children: ReactNode }) {
+export function AdminShell({ children, user }: { children: ReactNode; user?: AdminUser }) {
   return (
     <div className="flex min-h-dvh">
       <aside className="hidden w-[248px] shrink-0 flex-col bg-sidebar px-4 py-6 text-white md:flex">
         <div className="px-2 text-lg font-bold">JKP Admin</div>
-        <nav className="mt-8 flex flex-col gap-6" aria-label="admin">
+        <nav className="mt-8 flex flex-1 flex-col gap-6" aria-label="admin">
           {NAV_GROUPS.map((group) => (
             <div key={group.title}>
               <p className="px-2 text-xs font-semibold uppercase tracking-wide text-white/50">
@@ -62,6 +63,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             </div>
           ))}
         </nav>
+        {user && <AdminUserMenu name={user.name} role={user.role} />}
       </aside>
 
       <div className="flex flex-1 flex-col">
