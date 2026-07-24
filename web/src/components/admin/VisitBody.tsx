@@ -35,7 +35,7 @@ const MAPS_URL =
 export function VisitActions() {
   const [completed, setCompleted] = React.useState(false);
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+    <div id="visit-actions" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9"><path d="M9 17H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v7a2 2 0 01-2 2h-2" /><path d="M9 13h6M9 17h6" /></svg>พิมพ์ route sheet
       </div>
@@ -72,7 +72,7 @@ export function VisitBody() {
     <>
       {/* CRITERIA GATE (Flow C) */}
       <div style={{ background: gateConfirmed ? '#E8F3EC' : 'var(--surface)', border: '1px solid ' + (gateConfirmed ? '#B6E0C4' : '#EAD9A8'), borderRadius: 16, padding: '18px 22px', boxShadow: gateConfirmed ? undefined : '0 4px 16px rgba(217,166,43,.08)' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+        <div id="visit-gate-row" style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
           <div style={{ width: 40, height: 40, borderRadius: 11, background: gateConfirmed ? '#0D6C3B' : '#FBF3E1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={gateConfirmed ? '#fff' : '#9A741C'} strokeWidth="1.9">
               {gateConfirmed ? <path d="M20 6L9 17l-5-5" /> : (<><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></>)}
@@ -88,7 +88,7 @@ export function VisitBody() {
             </span>
           )}
           {gatePending && (
-            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+            <div id="visit-gate-btns" style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
               <a href="/admin/requirements" style={{ height: 38, padding: '0 14px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center' }}>แก้ criteria</a>
               <div onClick={() => setGateConfirmed(true)} style={{ height: 38, padding: '0 16px', borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>ยืนยันไม่เปลี่ยน</div>
             </div>

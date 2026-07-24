@@ -10,7 +10,15 @@ export const metadata: Metadata = { title: 'Visits · JKP CMS', robots: { index:
 
 const visitCss = `
 @media (max-width:1100px){ #visit-split{grid-template-columns:1fr !important;} #visit-side{position:static !important;} }
-@media (max-width:640px){ #visit-plan-meta{grid-template-columns:1fr !important;} }
+@media (max-width:640px){
+  #visit-plan-meta{grid-template-columns:1fr !important;}
+  #admin-main > main{ padding:16px 14px 44px !important; }
+  #visit-actions{ width:100%; flex-wrap:wrap; row-gap:8px; }
+  #visit-actions > div{ flex:1 1 auto; justify-content:center; }
+  #visit-gate-row{ flex-wrap:wrap; }
+  #visit-gate-btns{ flex:1 1 100% !important; margin-top:12px; }
+  #visit-gate-btns > *{ flex:1 1 auto; justify-content:center; }
+}
 `;
 
 /* Topbar eyebrow (breadcrumb) + title (with a status code badge) contain rich
