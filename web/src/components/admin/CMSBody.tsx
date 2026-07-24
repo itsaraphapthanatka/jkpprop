@@ -18,7 +18,10 @@ const cmsCss = `
   #cms-meta-row{grid-template-columns:1fr !important;}
   #cms-actions{width:100%;flex-wrap:wrap;row-gap:8px;}
 }
-@media (max-width:480px){ #cms-preview-body{padding:24px 20px !important;} }
+@media (max-width:480px){
+  #cms-preview-body{padding:24px 20px !important;}
+  #cms-publish-btn{flex:1 1 100% !important;justify-content:center;}
+}
 .cms-tb-btn:hover{background:var(--tint);}
 .cms-linkchoice:hover{background:var(--tint);}
 `;
@@ -172,7 +175,7 @@ export function CMSBody() {
       <div onClick={openPreview} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></svg>Preview
       </div>
-      <div onClick={doPublish} className="admin-primary-btn" style={{ height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', transition: 'transform .2s,box-shadow .2s' }}>
+      <div id="cms-publish-btn" onClick={doPublish} className="admin-primary-btn" style={{ height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, cursor: 'pointer', transition: 'transform .2s,box-shadow .2s' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z" /></svg>Publish
       </div>
     </div>
