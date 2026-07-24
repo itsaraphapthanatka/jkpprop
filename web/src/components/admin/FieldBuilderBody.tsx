@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { AdminShell, AdminBreadcrumb } from '@/components/admin/AdminShell';
 
 /* Ported from AdminFieldBuilder.dc.html — the <main> content of the
    no-code field builder. Interactive beyond the static design:
@@ -48,6 +49,37 @@ const INITIAL_FIELDS: FieldDef[] = [
   { id: 'overhead_crane', label: 'มีเครนเหนือศีรษะ', key: 'overhead_crane', typeName: 'ใช่/ไม่ (boolean)', required: false, system: false, iconBg: '#F0ECF9', iconColor: '#7A3FB0', icon: fi('<path d="M3 21h18M5 21V7l10-3v17M5 7h10"></path>', '#7A3FB0') },
 ];
 
+/* Field sets differ per property type — the "ฟิลด์ของ: …" scope dropdown swaps these. */
+const WAREHOUSE_FIELDS: FieldDef[] = [
+  { id: 'usable_area_sqm', label: 'พื้นที่ใช้สอย (ตร.ม.)', key: 'usable_area_sqm', typeName: 'ตัวเลข', required: true, system: true, iconBg: '#EEF4F3', iconColor: '#034956', icon: fi('<path d="M3 3h18v18H3z"></path><path d="M3 9h18M9 3v18"></path>', '#034956') },
+  { id: 'clear_height_m', label: 'ความสูงใต้อาคาร (ม.)', key: 'clear_height_m', typeName: 'ตัวเลข', required: true, system: true, iconBg: '#EEF4F3', iconColor: '#034956', icon: fi('<path d="M12 3v18M5 8l7-5 7 5"></path>', '#034956') },
+  { id: 'floor_loading', label: 'รับน้ำหนักพื้น (ตัน/ตร.ม.)', key: 'floor_loading', typeName: 'ตัวเลขทศนิยม', required: false, system: true, iconBg: '#EEF4F3', iconColor: '#034956', icon: fi('<path d="M12 2v20M5 8h14"></path>', '#034956') },
+  { id: 'dock_doors', label: 'จำนวนประตู Loading Dock', key: 'dock_doors', typeName: 'ตัวเลข', required: false, system: false, iconBg: '#F0ECF9', iconColor: '#7A3FB0', icon: fi('<rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M9 3v18"></path>', '#7A3FB0') },
+  { id: 'cold_storage', label: 'ห้องเย็น/ควบคุมอุณหภูมิ', key: 'cold_storage', typeName: 'ใช่/ไม่ (boolean)', required: false, system: false, iconBg: '#F0ECF9', iconColor: '#7A3FB0', icon: fi('<path d="M12 2v20M2 12h20M5 5l14 14M19 5L5 19"></path>', '#7A3FB0') },
+  { id: 'power_system', label: 'ระบบไฟฟ้า', key: 'power_system', typeName: 'ตัวเลือก (dropdown)', required: false, system: false, iconBg: '#F0ECF9', iconColor: '#7A3FB0', icon: fi('<path d="M13 2L3 14h7l-1 8 11-14h-7z"></path>', '#7A3FB0') },
+];
+const LAND_FIELDS: FieldDef[] = [
+  { id: 'land_area_rai', label: 'ขนาดที่ดิน (ไร่)', key: 'land_area_rai', typeName: 'ตัวเลขทศนิยม', required: true, system: true, iconBg: '#EEF4F3', iconColor: '#034956', icon: fi('<path d="M3 20h18M5 20V10l7-5 7 5v10"></path>', '#034956') },
+  { id: 'zoning', label: 'ผังเมือง (โซนสี)', key: 'zoning', typeName: 'ตัวเลือก (dropdown)', required: true, system: true, iconBg: '#EEF4F3', iconColor: '#034956', icon: fi('<path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"></path><path d="M9 3v15M15 6v15"></path>', '#034956') },
+  { id: 'road_frontage_m', label: 'หน้ากว้างติดถนน (ม.)', key: 'road_frontage_m', typeName: 'ตัวเลข', required: false, system: false, iconBg: '#F0ECF9', iconColor: '#7A3FB0', icon: fi('<path d="M4 19l6-14M20 19l-6-14M12 5v14"></path>', '#7A3FB0') },
+  { id: 'filled_land', label: 'ถมดินแล้ว', key: 'filled_land', typeName: 'ใช่/ไม่ (boolean)', required: false, system: false, iconBg: '#F0ECF9', iconColor: '#7A3FB0', icon: fi('<path d="M3 20h18M5 20l7-8 7 8"></path>', '#7A3FB0') },
+];
+const FIELDS_BY_SCOPE: Record<string, FieldDef[]> = { factory: INITIAL_FIELDS, warehouse: WAREHOUSE_FIELDS, land: LAND_FIELDS };
+const SCOPES: { key: string; label: string }[] = [
+  { key: 'factory', label: 'โรงงาน' },
+  { key: 'warehouse', label: 'โกดัง' },
+  { key: 'land', label: 'ที่ดิน' },
+];
+const ddOption = (active: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '9px 11px', borderRadius: 9, fontSize: '12.5px', fontWeight: active ? 700 : 600, cursor: 'pointer', color: active ? '#0D6C3B' : 'var(--text)', background: active ? 'rgba(13,108,59,.06)' : 'transparent' });
+
+const fbCss = `
+@media (max-width:1100px){ #fb-split{grid-template-columns:1fr !important;} #fb-preview{position:static !important;} }
+@media (max-width:640px){ #fb-actions{flex-wrap:wrap !important;width:100% !important;row-gap:8px !important;} #fb-edit-grid{grid-template-columns:1fr !important;} }
+.fb-save:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(13,108,59,.35);}
+.fb-edit:hover{background:var(--border);}
+.fb-type:hover{border-color:#7A3FB0;transform:translateY(-2px);}
+`;
+
 const switchStyle = (isOn: boolean): React.CSSProperties => ({ width: 36, height: 21, borderRadius: 9999, cursor: 'pointer', position: 'relative', transition: 'background .2s', background: isOn ? '#0D6C3B' : 'var(--border)', flexShrink: 0 });
 const knobStyle = (isOn: boolean): React.CSSProperties => ({ position: 'absolute', top: '2.5px', left: isOn ? '17px' : '2.5px', width: 16, height: 16, borderRadius: 9999, background: '#fff', transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,.2)' });
 
@@ -55,8 +87,18 @@ const editInput: React.CSSProperties = { width: '100%', height: 40, padding: '0 
 const editLabel: React.CSSProperties = { display: 'block', marginBottom: 6, fontSize: '11.5px', fontWeight: 700, color: 'var(--muted2)' };
 
 export function FieldBuilderBody() {
-  const [fields, setFields] = React.useState<FieldDef[]>(INITIAL_FIELDS);
+  const [scope, setScope] = React.useState('factory');
+  const [fieldsByScope, setFieldsByScope] = React.useState<Record<string, FieldDef[]>>(FIELDS_BY_SCOPE);
+  const fields = fieldsByScope[scope];
+  const setFields = React.useCallback(
+    (updater: FieldDef[] | ((p: FieldDef[]) => FieldDef[])) =>
+      setFieldsByScope((prev) => ({ ...prev, [scope]: typeof updater === 'function' ? (updater as (p: FieldDef[]) => FieldDef[])(prev[scope]) : updater })),
+    [scope],
+  );
   const [on, setOn] = React.useState<Record<string, boolean>>({ truck_parking: false });
+  const [scopeOpen, setScopeOpen] = React.useState(false);
+  const [toast, setToast] = React.useState('');
+  const toastTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const [drag, setDrag] = React.useState<{ kind: 'field' | 'type'; value: string } | null>(null);
   const [overId, setOverId] = React.useState<string | null>(null);
   const [overAdd, setOverAdd] = React.useState(false);
@@ -108,8 +150,48 @@ export function FieldBuilderBody() {
   };
   const typeIdxOf = (f: FieldDef) => FIELD_TYPES.findIndex((t) => t.typeName === f.typeName);
 
+  const scopeLabel = SCOPES.find((s) => s.key === scope)?.label ?? 'โรงงาน';
+  const flash = (msg: string) => { setToast(msg); if (toastTimer.current) clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToast(''), 2200); };
+  const doSave = () => flash('บันทึกฟิลด์ของ "' + scopeLabel + '" แล้ว · ' + fields.length + ' ฟิลด์');
+  const pickScope = (k: string) => { setScope(k); setScopeOpen(false); setEditId(null); clearDrag(); };
+
+  const fbTitle = (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>Field Builder <span style={{ height: 22, padding: '0 10px', borderRadius: 9999, background: '#F0ECF9', color: '#7A3FB0', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center' }}>No-code</span></span>
+  );
+
+  const actions = (
+    <div id="fb-actions" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ position: 'relative' }}>
+        <div onClick={() => setScopeOpen((o) => !o)} style={{ height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          ฟิลด์ของ: {scopeLabel}
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2.4" style={scopeOpen ? { transform: 'rotate(180deg)', transition: 'transform .2s' } : { transition: 'transform .2s' }}><path d="M6 9l6 6 6-6" /></svg>
+        </div>
+        {scopeOpen && (
+          <>
+            <div onClick={() => setScopeOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+            <div style={{ position: 'absolute', top: 46, left: 0, zIndex: 50, minWidth: 200, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 13, boxShadow: '0 18px 40px rgba(0,0,0,.16)', padding: 6 }}>
+              {SCOPES.map((s) => {
+                const active = s.key === scope;
+                return (
+                  <div key={s.key} onClick={() => pickScope(s.key)} style={ddOption(active)}>
+                    <span>ฟิลด์ของ {s.label}</span>
+                    {active && <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" strokeWidth="2.6"><path d="M20 6L9 17l-5-5" /></svg>}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+      <div className="fb-save" onClick={doSave} style={{ height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'transform .2s,box-shadow .2s' }}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2"><path d="M20 6L9 17l-5-5" /></svg>
+        บันทึก
+      </div>
+    </div>
+  );
+
   return (
-    <>
+    <AdminShell active="cms" eyebrow={<AdminBreadcrumb items={[{ label: 'Settings', href: '/admin/settings' }, { label: 'Field Builder' }]} />} title={fbTitle} actions={actions} css={fbCss}>
       <p style={{ margin: '0 0 18px', fontSize: 13, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 8 }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.9"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
         สร้างฟิลด์ทรัพย์เองได้โดยไม่ต้องเขียนโค้ด — ลากเรียง, เลือกชนิดข้อมูล, ตั้งว่าบังคับ/แสดงบนเว็บ
@@ -181,7 +263,7 @@ export function FieldBuilderBody() {
                 {/* inline editor */}
                 {isEditing && (
                   <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div id="fb-edit-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                       <div>
                         <label style={editLabel}>ชื่อฟิลด์ (แสดงผล)</label>
                         <input value={f.label} onChange={(e) => updateField(f.id, { label: e.target.value })} placeholder="เช่น พื้นที่ใช้สอย" style={editInput} />
@@ -269,6 +351,13 @@ export function FieldBuilderBody() {
           </div>
         </div>
       </div>
-    </>
+
+      {toast && (
+        <div style={{ position: 'fixed', left: '50%', bottom: 28, transform: 'translateX(-50%)', zIndex: 900, background: '#0A0E0C', color: '#fff', padding: '12px 20px', borderRadius: 9999, fontSize: 13, fontWeight: 700, boxShadow: '0 12px 30px rgba(0,0,0,.3)', display: 'flex', alignItems: 'center', gap: 9, maxWidth: 'calc(100vw - 32px)' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" strokeWidth="2.6" style={{ flexShrink: 0 }}><path d="M20 6L9 17l-5-5" /></svg>
+          {toast}
+        </div>
+      )}
+    </AdminShell>
   );
 }

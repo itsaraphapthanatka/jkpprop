@@ -56,6 +56,12 @@ const TOP_LISTINGS = [
 
 const dashCss = `
 @media (max-width:1000px){ #stat-grid{grid-template-columns:repeat(2,1fr) !important;} #dash-cols{grid-template-columns:1fr !important;} }
+@media (max-width:480px){
+  #stat-grid{grid-template-columns:repeat(1,1fr) !important;}
+  .dash-funnel-row{gap:8px !important;}
+  .dash-funnel-label{width:82px !important;font-size:11px !important;}
+  .dash-funnel-count{width:32px !important;font-size:12px !important;}
+}
 `;
 
 const panel: React.CSSProperties = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, padding: 24 };
@@ -93,12 +99,12 @@ export default function AdminDashboardPage() {
             </div>
             <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 11 }}>
               {FUNNEL.map((f) => (
-                <div key={f.label} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <div style={{ width: 150, flexShrink: 0, fontSize: '12.5px', fontWeight: 600, color: 'var(--text)' }}>{f.label}</div>
+                <div key={f.label} className="dash-funnel-row" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div className="dash-funnel-label" style={{ width: 150, flexShrink: 0, fontSize: '12.5px', fontWeight: 600, color: 'var(--text)' }}>{f.label}</div>
                   <div style={{ flex: 1, height: 26, borderRadius: 8, background: 'var(--bg)', overflow: 'hidden', position: 'relative' }}>
                     <div style={{ height: '100%', width: f.pct, background: f.color, borderRadius: 8, transition: 'width .6s cubic-bezier(.2,.8,.3,1)' }} />
                   </div>
-                  <div style={{ width: 44, textAlign: 'right', fontSize: 13, fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: 'var(--text)' }}>{f.count}</div>
+                  <div className="dash-funnel-count" style={{ width: 44, textAlign: 'right', fontSize: 13, fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: 'var(--text)' }}>{f.count}</div>
                 </div>
               ))}
             </div>

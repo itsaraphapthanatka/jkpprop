@@ -49,6 +49,8 @@ export function Floating() {
     <>
       {/* BACK TO TOP (floating, fixed) */}
       <div
+        id="back-to-top-btn"
+        className={cookieOpen ? 'fab-raised' : undefined}
         onClick={scrollTop}
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = 'translateY(-3px)';

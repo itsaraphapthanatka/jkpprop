@@ -98,7 +98,7 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        position: 'relative', flex: '0 0 calc((100% - 48px)/3)', background: 'var(--surface)',
+        position: 'relative', flex: '0 0 calc(33.3333% - 16px)', background: 'var(--surface)',
         border: '1px solid ' + (hover ? 'var(--accent)' : 'var(--border)'), borderRadius: 18,
         overflow: 'hidden', minHeight: 535, display: 'flex', flexDirection: 'column',
         boxShadow: hover ? '0 22px 44px rgba(2,35,16,.16)' : '0 1px 3px rgba(0,0,0,.05)',

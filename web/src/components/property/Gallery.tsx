@@ -14,14 +14,30 @@ const THUMBS: Thumb[] = [
 
 const fillImg: React.CSSProperties = { width: '100%', height: '100%', objectFit: 'cover', display: 'block' };
 
+/* Mobile: the fixed 300px thumb column has no room to shrink into on a
+   320-390px phone, so collapse to a single column (main image on top,
+   thumbs as a horizontal scroll strip below) instead of squeezing both. */
+const galleryCss = `
+@media (max-width:900px){
+  #pd-gallery-grid{grid-template-columns:1fr !important;height:auto !important;}
+  #pd-gallery-main{height:280px !important;}
+  #pd-gallery-thumbs{grid-template-rows:none !important;grid-auto-flow:column !important;grid-auto-columns:104px !important;overflow-x:auto !important;height:104px !important;}
+}
+@media (max-width:480px){
+  #pd-gallery-main{height:220px !important;}
+  #pd-gallery-thumbs{grid-auto-columns:88px !important;height:88px !important;}
+}
+`;
+
 export function Gallery() {
   const [mainSrc, setMainSrc] = useState(MAIN_SRC);
 
   return (
     <section style={{ maxWidth: '1320px', margin: '0 auto', padding: '16px 24px 0' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 12, height: 440 }}>
+      <style dangerouslySetInnerHTML={{ __html: galleryCss }} />
+      <div id="pd-gallery-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 12, height: 440 }}>
         {/* MAIN */}
-        <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', background: 'var(--tint)' }}>
+        <div id="pd-gallery-main" style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', background: 'var(--tint)' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={mainSrc} alt="รูปทรัพย์หลัก" style={fillImg} />
           <div style={{ position: 'absolute', top: 16, left: 16, display: 'flex', gap: 8 }}>
@@ -41,7 +57,7 @@ export function Gallery() {
         </div>
 
         {/* THUMBS */}
-        <div style={{ display: 'grid', gridTemplateRows: 'repeat(3,minmax(0,1fr))', gap: 12, minHeight: 0 }}>
+        <div id="pd-gallery-thumbs" style={{ display: 'grid', gridTemplateRows: 'repeat(3,minmax(0,1fr))', gap: 12, minHeight: 0 }}>
           {THUMBS.map((t) => (
             <div
               key={t.id}

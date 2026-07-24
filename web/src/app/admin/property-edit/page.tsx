@@ -10,11 +10,12 @@ export const metadata: Metadata = { title: 'Property Edit · JKP CMS', robots: {
    form (tabs + feature toggles) lives in <PropertyEditBody> (client). */
 
 const editCss = `
+@media (max-width:1100px){ #ed-tabbar{position:static !important;top:auto !important;} }
 @media (max-width:640px){ #ed-grid{grid-template-columns:1fr !important;} #ed-media{grid-template-columns:repeat(2,1fr) !important;} }
 `;
 
 const actions = (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', rowGap: 8 }}>
     <span style={{ fontSize: '11.5px', color: 'var(--muted3)', display: 'flex', alignItems: 'center', gap: 5 }}>
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted3)" strokeWidth="2"><path d="M20 6L9 17l-5-5" /></svg>บันทึกอัตโนมัติ 1 นาทีที่แล้ว
     </span>

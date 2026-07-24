@@ -67,7 +67,7 @@ export function BrandingHeaderActions() {
   const resetTheme = () =>
     setState({ primary: '#034956', accent: '#034956', neon: '#2DFB91', pine: '#273c33', font: 'noto', radius: 'md' });
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+    <div id="brand-actions" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <div onClick={resetTheme} style={{ height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--muted)', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2"><path d="M3 12a9 9 0 109-9 9 9 0 00-6.4 2.6L3 8"></path><path d="M3 3v5h5"></path></svg>รีเซ็ต
       </div>

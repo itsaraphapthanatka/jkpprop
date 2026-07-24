@@ -21,6 +21,10 @@ const aboutCss =
 @media (max-width:640px){
   #stats-row{flex-wrap:wrap;gap:20px !important;}
   #logo-row{gap:20px !important;}
+  /* the unconditional 3-up rule above leaves ~43-70px per column on a
+     320-390px phone once the 44px card padding + 28px gaps are taken
+     out — too narrow for the pillar copy, so collapse to 1 column here. */
+  #about-pillars{grid-template-columns:1fr !important;}
 }
 `;
 

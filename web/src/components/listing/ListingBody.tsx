@@ -325,7 +325,7 @@ export function ListingBody({ preset = DEFAULT_PRESET }: { preset?: ListingPrese
               </svg>
             </div>
             {sortOpen && (
-              <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, width: 220, background: 'var(--surface)', borderRadius: 16, boxShadow: '0 20px 50px rgba(0,0,0,.18)', padding: 8, zIndex: 60 }}>
+              <div id="sort-dd-panel" style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, width: 220, background: 'var(--surface)', borderRadius: 16, boxShadow: '0 20px 50px rgba(0,0,0,.18)', padding: 8, zIndex: 60 }}>
                 {SORT_DEFS.map((o) => {
                   const active = o.key === sortKey;
                   return (
@@ -399,7 +399,7 @@ export function ListingBody({ preset = DEFAULT_PRESET }: { preset?: ListingPrese
       </div>
 
       {/* PAGINATION */}
-      <div id="pagination-row" style={{ maxWidth: '1320px', margin: '-40px auto 80px', padding: '0 24px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
+      <div id="pagination-row" style={{ maxWidth: '1320px', margin: '-40px auto 0', padding: '0 24px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
         <div style={{ width: 38, height: 38, borderRadius: 9999, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted3)', cursor: 'pointer' }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
             <path d="M15 6l-6 6 6 6" />

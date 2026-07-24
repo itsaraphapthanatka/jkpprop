@@ -193,7 +193,7 @@ function ShortlistItem({ it }: { it: ItemVal }) {
         transition: 'border-color .15s,background .15s,opacity .15s',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div className="sl-item-row" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         {/* drag handle */}
         <div
           draggable
@@ -210,7 +210,7 @@ function ShortlistItem({ it }: { it: ItemVal }) {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="6" r="1" /><circle cx="15" cy="6" r="1" /><circle cx="9" cy="12" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="9" cy="18" r="1" /><circle cx="15" cy="18" r="1" /></svg>
         </div>
         <div style={{ width: 32, height: 32, borderRadius: 9, background: '#0D6C3B', color: '#fff', fontSize: 14, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{it.rank}</div>
-        <div style={{ width: 52, height: 52, borderRadius: 11, background: 'var(--tint)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div className="sl-item-thumb" style={{ width: 52, height: 52, borderRadius: 11, background: 'var(--tint)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M3 21V8l9-5 9 5v13" /><path d="M3 21h18" /><path d="M7 21v-8h10v8" /></svg>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -302,7 +302,7 @@ export function ShortlistMain() {
     <>
       <div id="sl-split" style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 20, alignItems: 'start' }}>
         {/* LEFT: requirement summary (sticky) */}
-        <div style={{ position: 'sticky', top: 88, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div id="sl-side" style={{ position: 'sticky', top: 88, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ background: 'linear-gradient(135deg,#043F20 0%,#022310 100%)', borderRadius: 16, padding: 22, color: '#fff' }}>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.06em', color: '#8FE6B6', textTransform: 'uppercase' }}>ตรึงไว้เทียบ</div>
             <div style={{ marginTop: 6, fontSize: 16, fontWeight: 800 }}>บ. ไทยโลจิสติกส์</div>
@@ -380,7 +380,7 @@ export function ShortlistMain() {
       {/* SEND DIALOG */}
       {sendOpen && (
         <div onClick={closeSend} style={{ position: 'fixed', inset: 0, zIndex: 800, background: 'rgba(2,14,8,.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 440, background: 'var(--surface)', borderRadius: 20, boxShadow: '0 40px 80px rgba(0,0,0,.4)', padding: 28, textAlign: 'center' }}>
+          <div onClick={(e) => e.stopPropagation()} className="a-scroll" style={{ width: '100%', maxWidth: 440, maxHeight: '88vh', overflowY: 'auto', background: 'var(--surface)', borderRadius: 20, boxShadow: '0 40px 80px rgba(0,0,0,.4)', padding: 28, textAlign: 'center' }}>
             <div style={{ width: 56, height: 56, borderRadius: 9999, background: '#E8F3EC', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" strokeWidth="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z" /></svg>
             </div>

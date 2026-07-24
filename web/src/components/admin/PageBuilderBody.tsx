@@ -53,7 +53,8 @@ const INITIAL_PAGE_DATA: Record<PageKey, Sec[]> = {
 const PAGE_NAMES: Record<PageKey, string> = { home: 'หน้าแรก', about: 'เกี่ยวกับเรา', contact: 'ติดต่อเรา' };
 
 const pageCss = `
-@media (max-width:1200px){ #pb-grid{grid-template-columns:1fr !important;} #pb-preview{display:none !important;} }
+@media (max-width:1200px){ #pb-grid{grid-template-columns:1fr !important;} #pb-preview{position:static !important;top:auto !important;} }
+@media (max-width:640px){ #pb-actions{flex-wrap:wrap !important;width:100% !important;row-gap:8px !important;} }
 .pb-remove:hover{background:#F9E4E1 !important;color:#C0392B !important;}
 .pb-addbtn:hover{border-color:#0D6C3B !important;color:#0D6C3B !important;}
 .pb-addtype:hover{background:var(--tint) !important;}
@@ -161,7 +162,7 @@ export function PageBuilderBody() {
   const pageName = PAGE_NAMES[page];
 
   const actions = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+    <div id="pb-actions" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, height: 40, padding: 4, borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)' }}>
         {pageTabs.map((p) => (
           <div key={p.label} onClick={p.select} style={p.style}>{p.label}</div>

@@ -11,6 +11,13 @@ const csCss = `
   #cs-item{grid-template-columns:1fr !important;}
   #cs-brandrow{flex-direction:column;align-items:flex-start !important;gap:16px !important;}
 }
+@media (max-width:380px){
+  /* the "การ์ด / ตารางเปรียบเทียบ" segmented control sits right at the
+     edge of a 320-360px viewport's usable width; shrink its padding and
+     type a touch so it never has to wrap or clip on the smallest phones. */
+  #cs-view-toggle{gap:2px !important;}
+  #cs-view-toggle > div{padding:0 10px !important;font-size:11.5px !important;gap:4px !important;}
+}
 `;
 
 export default function ClientShortlistPage() {

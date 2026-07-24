@@ -23,6 +23,15 @@ const listingCss = `
   #toolbar-row{flex-direction:column;align-items:flex-start !important;}
   #sort-share-row{width:100%;justify-content:space-between !important;}
   #pagination-row{flex-wrap:wrap;}
+  #page-sheet{padding-bottom:48px !important;}
+  /* the sort trigger sits mid-row (not flush to an edge) once
+     #sort-share-row goes full-width + space-between, so its 220px
+     dropdown panel (anchored left:0 on the trigger) can run past the
+     right edge of a 320-390px phone. Anchor it to the trigger's own
+     right edge instead (mirrors the share panel, which already
+     anchors right:0) and cap the width so it never exceeds the
+     viewport on the very narrowest phones. */
+  #sort-dd-panel{left:auto !important;right:0 !important;width:min(220px, calc(100vw - 48px)) !important;}
 }
 .share-opt:hover{background:var(--tint);}
 `;
@@ -41,6 +50,10 @@ export function ListingShell({ preset }: { preset?: ListingPreset }) {
           zIndex: 2,
           background: 'var(--bg)',
           minHeight: '100vh',
+          // light breathing room between the pagination and the (dark, fixed)
+          // footer revealed below — as page-sheet padding (not the pagination's
+          // own margin, which margin-collapses out of the sheet into the black gap).
+          paddingBottom: 80,
         }}
       >
         <ListingHeader />

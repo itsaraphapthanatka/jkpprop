@@ -21,6 +21,11 @@ export const AUTH_CSS = `
   #auth-brand{display:none !important;}
   #auth-mobilelogo{display:flex !important;}
 }
+@media (max-width:640px){
+  /* tighten the form panel's gutter on 320-390px phones so the 380px
+     max-width card gets a bit more breathing room for the inputs. */
+  #auth-formpanel{padding:32px 18px !important;}
+}
 `;
 
 const feature = (label: string, desc: string) => (
@@ -74,7 +79,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* RIGHT — form panel */}
-        <div style={{ background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
+        <div id="auth-formpanel" style={{ background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
           <div style={{ width: '100%', maxWidth: 380 }}>
             <div id="auth-mobilelogo" style={{ display: 'none', alignItems: 'center', gap: 10, marginBottom: 26 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}

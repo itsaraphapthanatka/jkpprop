@@ -190,18 +190,21 @@ export function SiteFooter() {
         </div>
         <div style={{ borderTop: '1px solid rgba(255,255,255,.1)' }}>
           <div
+            id="foot-bottom-row"
             style={{
               maxWidth: '1200px',
               margin: '0 auto',
               padding: '26px 24px',
               display: 'flex',
+              flexWrap: 'wrap',
+              gap: 12,
               justifyContent: 'space-between',
               fontSize: 13,
               color: '#8E8B84',
             }}
           >
             <div>© 2026 JKP PROPERTY. สงวนลิขสิทธิ์</div>
-            <div style={{ display: 'flex', gap: 24 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24 }}>
               <a href="#" style={{ color: '#8E8B84' }}>นโยบายความเป็นส่วนตัว</a>
               <a href="#" style={{ color: '#8E8B84' }}>ข้อกำหนดการใช้งาน</a>
             </div>

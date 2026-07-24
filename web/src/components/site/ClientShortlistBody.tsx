@@ -129,7 +129,7 @@ export function ClientShortlistBody() {
 
       {/* VIEW TOGGLE */}
       <section style={{ maxWidth: '1080px', margin: '0 auto', padding: '18px 24px 0', display: 'flex', justifyContent: 'flex-end' }}>
-        <div style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)' }}>
+        <div id="cs-view-toggle" style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)' }}>
           <div onClick={() => setView('cards')} style={tab(view === 'cards')}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>การ์ด
           </div>

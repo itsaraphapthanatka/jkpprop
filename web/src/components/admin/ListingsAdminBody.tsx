@@ -137,16 +137,61 @@ const rowMenu = (d: Row): MenuItem[] => {
   return list;
 };
 
-const STATUS_TABS: { label: string; count: string; active: boolean; danger: boolean }[] = [
-  { label: 'ทั้งหมด', count: '2,956', active: true, danger: false },
-  { label: 'เผยแพร่', count: '2,410', active: false, danger: false },
-  { label: 'รอตรวจ', count: '48', active: false, danger: false },
-  { label: 'ร่าง', count: '372', active: false, danger: false },
-  { label: 'ซ่อน', count: '96', active: false, danger: false },
-  { label: 'ไม่ว่าง', count: '30', active: false, danger: true },
+const STATUS_TABS: { key: 'all' | StatusK; label: string; count: string; danger: boolean }[] = [
+  { key: 'all', label: 'ทั้งหมด', count: '2,956', danger: false },
+  { key: 'published', label: 'เผยแพร่', count: '2,410', danger: false },
+  { key: 'review', label: 'รอตรวจ', count: '48', danger: false },
+  { key: 'draft', label: 'ร่าง', count: '372', danger: false },
+  { key: 'hidden', label: 'ซ่อน', count: '96', danger: false },
+  { key: 'unavailable', label: 'ไม่ว่าง', count: '30', danger: true },
 ];
 
-const FILTERS = [{ label: 'ประเภท' }, { label: 'จังหวัด' }, { label: 'ดีล' }, { label: 'Featured' }];
+/* ---- filter dropdowns (type / province / deal / featured) ---- */
+type TypeK = 'factory' | 'warehouse' | 'land';
+type FiltersState = { type?: string; province?: string; deal?: string; featured?: string };
+const typeOf = (d: Row): TypeK => (/โกดัง|คลัง/.test(d.title) ? 'warehouse' : /ที่ดิน/.test(d.title) ? 'land' : 'factory');
+const PROVINCE_OPTS: [string, string][] = Array.from(new Set(RAW_DATA.map((d) => d.location))).map((p) => [p, p]);
+const FILTER_DEFS: { key: keyof FiltersState; label: string; options: [string, string][] }[] = [
+  { key: 'type', label: 'ประเภท', options: [['factory', 'โรงงาน'], ['warehouse', 'โกดัง/คลัง'], ['land', 'ที่ดิน']] },
+  { key: 'province', label: 'จังหวัด', options: PROVINCE_OPTS },
+  { key: 'deal', label: 'ดีล', options: [['rent', 'ให้เช่า'], ['sale', 'ขาย'], ['both', 'ทั้งสอง']] },
+  { key: 'featured', label: 'Featured', options: [['yes', 'แนะนำ'], ['no', 'ไม่แนะนำ']] },
+];
+
+const filterTriggerStyle = (active: boolean): React.CSSProperties => ({
+  display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 14px', borderRadius: 10,
+  background: active ? 'rgba(13,108,59,.06)' : 'var(--bg)', border: '1px solid ' + (active ? '#0D6C3B' : 'var(--border)'),
+  fontSize: 13, fontWeight: active ? 700 : 600, color: active ? '#0D6C3B' : 'var(--text)', cursor: 'pointer', whiteSpace: 'nowrap',
+});
+const filterOptStyle = (on: boolean): React.CSSProperties => ({
+  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '9px 11px', borderRadius: 9,
+  fontSize: 13, fontWeight: on ? 700 : 600, color: on ? '#0D6C3B' : 'var(--text)',
+  background: on ? 'rgba(13,108,59,.06)' : 'transparent', cursor: 'pointer',
+});
+const optCheck = (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" strokeWidth="2.6"><path d="M20 6L9 17l-5-5" /></svg>);
+
+function FilterDropdown({ def, value, open, onToggle, onSelect }: {
+  def: { key: keyof FiltersState; label: string; options: [string, string][] };
+  value?: string; open: boolean; onToggle: () => void; onSelect: (v: string | null) => void;
+}) {
+  const selLabel = value ? (def.options.find(([v]) => v === value)?.[1] ?? def.label) : def.label;
+  return (
+    <div style={{ position: 'relative' }}>
+      <div onClick={onToggle} style={filterTriggerStyle(!!value)}>
+        {selLabel}
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={value ? '#0D6C3B' : 'var(--muted2)'} strokeWidth="2.4" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}><path d="M6 9l6 6 6-6" /></svg>
+      </div>
+      {open && (
+        <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, minWidth: 190, maxHeight: 260, overflowY: 'auto', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, boxShadow: '0 20px 44px rgba(0,0,0,.16)', padding: 7, zIndex: 60 }}>
+          <div onClick={() => onSelect(null)} style={filterOptStyle(!value)}><span>ทั้งหมด</span>{!value && optCheck}</div>
+          {def.options.map(([v, l]) => (
+            <div key={v} onClick={() => onSelect(v)} style={filterOptStyle(value === v)}><span>{l}</span>{value === v && optCheck}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const CREATE_PROPS: { title: string; code: string; area: string; type: string }[] = [
   { title: 'โกดังพร้อมสำนักงาน 2,700 ตร.ม.', code: 'JKP-SPK0042', area: '2,700', type: 'โกดัง' },
@@ -169,7 +214,7 @@ export function ListingsActions() {
   const { setCreateOpen } = useCreate();
   const [exportOpen, setExportOpen] = React.useState(false);
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+    <div id="lst-actions" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
       <div style={{ position: 'relative' }}>
         <div onClick={() => setExportOpen((v) => !v)} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><path d="M7 10l5 5 5-5M12 15V3" /></svg>Export<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2.4"><path d="M6 9l6 6 6-6" /></svg>
@@ -197,8 +242,29 @@ export function ListingsAdminBody() {
   const [cDeal, setCDeal] = React.useState<DealK>('rent');
   const [cStatus, setCStatus] = React.useState<CreateStatusK>('draft');
 
+  // ---- filters (status tabs + search + dropdowns) ----
+  const [query, setQuery] = React.useState('');
+  const [statusFilter, setStatusFilter] = React.useState<'all' | StatusK>('all');
+  const [filters, setFilters] = React.useState<FiltersState>({});
+  const [openFilter, setOpenFilter] = React.useState<string | null>(null);
+
+  const filtered = RAW_DATA.filter((d) => {
+    if (statusFilter !== 'all' && d.status !== statusFilter) return false;
+    if (filters.type && typeOf(d) !== filters.type) return false;
+    if (filters.province && d.location !== filters.province) return false;
+    if (filters.deal && d.dealK !== filters.deal) return false;
+    if (filters.featured && (filters.featured === 'yes') !== d.featured) return false;
+    if (query.trim()) {
+      const q = query.trim().toLowerCase();
+      if (![d.title, d.code, d.location].some((f) => f.toLowerCase().includes(q))) return false;
+    }
+    return true;
+  });
+  const activeFilterCount = (statusFilter !== 'all' ? 1 : 0) + Object.values(filters).filter(Boolean).length + (query.trim() ? 1 : 0);
+  const clearFilters = () => { setStatusFilter('all'); setFilters({}); setQuery(''); setOpenFilter(null); };
+
   const selCount = Object.values(sel).filter(Boolean).length;
-  const allChecked = selCount === RAW_DATA.length && RAW_DATA.length > 0;
+  const allChecked = filtered.length > 0 && filtered.every((d) => sel[d.id]);
   const anyMenuOpen = openMenu !== null;
 
   const cur = CREATE_PROPS[cProp];
@@ -212,7 +278,7 @@ export function ListingsAdminBody() {
 
   const toggleAll = () => {
     if (allChecked) { setSel({}); }
-    else { const s: Record<string, boolean> = {}; RAW_DATA.forEach((d) => { s[d.id] = true; }); setSel(s); }
+    else { const s: Record<string, boolean> = { ...sel }; filtered.forEach((d) => { s[d.id] = true; }); setSel(s); }
   };
 
   return (
@@ -259,7 +325,7 @@ export function ListingsAdminBody() {
                   <div key={k} onClick={() => setCDeal(k)} style={pillStyle(cDeal === k)}>{label}</div>
                 ))}
               </div>
-              <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div id="lst-create-grid" style={{ marginTop: 20, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 {showRent && (
                   <div>
                     <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>ราคาเช่า (บาท/เดือน)</label>
@@ -301,30 +367,48 @@ export function ListingsAdminBody() {
 
       {/* CLICK-CATCHER FOR ROW MENUS */}
       {anyMenuOpen && (<div onClick={() => setOpenMenu(null)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />)}
+      {/* CLICK-CATCHER FOR FILTER DROPDOWNS */}
+      {openFilter && (<div onClick={() => setOpenFilter(null)} style={{ position: 'fixed', inset: 0, zIndex: 50 }} />)}
 
       {/* STATUS TABS */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        {STATUS_TABS.map((t) => (
-          <div key={t.label} style={tabStyle(t.active)}>{t.label}<span style={tabCountStyle(t.active, t.danger)}>{t.count}</span></div>
-        ))}
+        {STATUS_TABS.map((t) => {
+          const active = statusFilter === t.key;
+          return (
+            <div key={t.key} onClick={() => setStatusFilter(t.key)} style={tabStyle(active)}>{t.label}<span style={tabCountStyle(active, t.danger)}>{t.count}</span></div>
+          );
+        })}
       </div>
 
       {/* FILTER + SEARCH */}
-      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '14px 16px', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: 40, padding: '0 14px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--border)', flex: 1, minWidth: 220 }}>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '14px 16px', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16, position: 'relative', zIndex: openFilter ? 51 : undefined }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: 40, padding: '0 14px', borderRadius: 10, background: 'var(--bg)', border: '1px solid ' + (query.trim() ? '#0D6C3B' : 'var(--border)'), flex: 1, minWidth: 220 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
-          <input placeholder="ค้นหา listing code หรือชื่อ" style={{ border: 0, outline: 'none', background: 'transparent', fontSize: 13, color: 'var(--text)', flex: 1, minWidth: 0 }} />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ค้นหา listing code หรือชื่อ" style={{ border: 0, outline: 'none', background: 'transparent', fontSize: 13, color: 'var(--text)', flex: 1, minWidth: 0 }} />
+          {query && (<div onClick={() => setQuery('')} title="ล้าง" style={{ cursor: 'pointer', color: 'var(--muted3)', display: 'flex', flexShrink: 0 }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M18 6L6 18M6 6l12 12" /></svg></div>)}
         </div>
-        {FILTERS.map((f) => (
-          <div key={f.label} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 14px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--text)', cursor: 'pointer' }}>{f.label}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2.4"><path d="M6 9l6 6 6-6" /></svg></div>
+        {FILTER_DEFS.map((f) => (
+          <FilterDropdown
+            key={f.key}
+            def={f}
+            value={filters[f.key]}
+            open={openFilter === f.key}
+            onToggle={() => setOpenFilter(openFilter === f.key ? null : f.key)}
+            onSelect={(v) => { setFilters((p) => ({ ...p, [f.key]: v ?? undefined })); setOpenFilter(null); }}
+          />
         ))}
+        {activeFilterCount > 0 && (
+          <div onClick={clearFilters} style={{ display: 'flex', alignItems: 'center', gap: 6, height: 40, padding: '0 12px', borderRadius: 10, color: '#C0392B', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M18 6L6 18M6 6l12 12" /></svg>ล้างตัวกรอง
+          </div>
+        )}
       </div>
 
       {/* BULK BAR */}
       {selCount > 0 && (
-        <div style={{ background: '#04140C', borderRadius: 14, padding: '12px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div style={{ background: '#04140C', borderRadius: 14, padding: '12px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', rowGap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#fff', fontSize: 13, fontWeight: 600 }}><span style={{ height: 24, minWidth: 24, padding: '0 8px', borderRadius: 9999, background: '#2DFB91', color: '#04140C', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{String(selCount)}</span>เลือกแล้ว</div>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <div onClick={() => setSel({})} style={{ height: 36, padding: '0 16px', borderRadius: 9999, border: '1px solid rgba(255,255,255,.24)', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>ยกเลิก</div>
             <div style={{ height: 36, padding: '0 16px', borderRadius: 9999, background: 'rgba(255,255,255,.12)', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>Unpublish</div>
             <div style={{ height: 36, padding: '0 16px', borderRadius: 9999, background: '#2DFB91', color: '#04140C', fontSize: '12.5px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#04140C" strokeWidth="2.4"><path d="M20 6L9 17l-5-5" /></svg>Publish ทั้งหมด</div>
@@ -353,7 +437,7 @@ export function ListingsAdminBody() {
               </tr>
             </thead>
             <tbody>
-              {RAW_DATA.map((d) => {
+              {filtered.map((d) => {
                 const on = !!sel[d.id];
                 const mOpen = openMenu === d.id;
                 return (
@@ -396,12 +480,19 @@ export function ListingsAdminBody() {
                   </tr>
                 );
               })}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={8} style={{ padding: '44px 16px', textAlign: 'center', color: 'var(--muted2)', fontSize: 13 }}>
+                    ไม่พบประกาศที่ตรงกับตัวกรอง — <span onClick={clearFilters} style={{ color: '#0D6C3B', fontWeight: 700, cursor: 'pointer' }}>ล้างตัวกรอง</span>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderTop: '1px solid var(--border)' }}>
-          <div style={{ fontSize: '12.5px', color: 'var(--muted)' }}>แสดง 1–9 จาก 2,956 ประกาศ · <span style={{ color: 'var(--muted3)' }}>20 ต่อหน้า</span></div>
-          <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderTop: '1px solid var(--border)', flexWrap: 'wrap', rowGap: 10 }}>
+          <div style={{ fontSize: '12.5px', color: 'var(--muted)' }}>แสดง {filtered.length} จาก 2,956 ประกาศ · <span style={{ color: 'var(--muted3)' }}>20 ต่อหน้า</span></div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             <div style={{ width: 34, height: 34, borderRadius: 9, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted3)' }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M15 6l-6 6 6 6" /></svg></div>
             {PAGES.map((p) => (<div key={p.n} style={p.style}>{p.n}</div>))}
             <div style={{ width: 34, height: 34, borderRadius: 9, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)' }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M9 6l6 6-6 6" /></svg></div>

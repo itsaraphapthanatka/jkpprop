@@ -58,6 +58,7 @@ const OVERLAY_OPTS: { label: string; on: boolean }[] = [
 
 const sectionsCss = `
 @media (max-width:1100px){ #sec-split{grid-template-columns:1fr !important;} #sec-preview{position:static !important;} }
+@media (max-width:640px){ #sec-actions{flex-wrap:wrap !important;width:100% !important;row-gap:8px !important;} }
 `;
 
 export function SectionsBody() {
@@ -69,7 +70,7 @@ export function SectionsBody() {
   const cur = list[selected];
 
   const actions = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+    <div id="sec-actions" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, height: 40, padding: 4, borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)' }}>
         {PAGE_TABS.map((p) => {
           const active = page === p.key;

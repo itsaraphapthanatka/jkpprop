@@ -87,6 +87,8 @@ const HISTORY = [
 
 const pvCss = `
 @media (max-width:1100px){ #pv-split{grid-template-columns:1fr !important;} #pv-side{position:static !important;} }
+@media (max-width:640px){ #pv-spec-grid{grid-template-columns:1fr !important;} }
+@media (max-width:480px){ #pv-gallery-grid{height:170px !important;gap:8px !important;} }
 `;
 
 /* AdminShell types eyebrow/title as `string`, but this design's header needs
@@ -96,11 +98,11 @@ const eyebrow = (
   <><a href="/admin/properties" style={{ color: 'var(--muted2)' }}>Properties</a> / รายละเอียด</>
 );
 const title = (
-  <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>โกดังพร้อมสำนักงาน 2,700 ตร.ม. <code style={{ fontSize: 12, fontWeight: 700, color: '#0D6C3B', background: '#E8F3EC', padding: '2px 8px', borderRadius: 6, fontFamily: "'JetBrains Mono',monospace" }}>JKP-SPK0042</code></span>
+  <span style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>โกดังพร้อมสำนักงาน 2,700 ตร.ม. <code style={{ fontSize: 12, fontWeight: 700, color: '#0D6C3B', background: '#E8F3EC', padding: '2px 8px', borderRadius: 6, fontFamily: "'JetBrains Mono',monospace" }}>JKP-SPK0042</code></span>
 );
 
 const actions = (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
     <a href="/property" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9"><path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /></svg>ดูหน้าเว็บจริง
     </a>
@@ -135,7 +137,7 @@ export default function AdminPropertyViewPage() {
               <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>รูปภาพ (12)</div>
               <span style={{ fontSize: 12, color: 'var(--muted2)' }}>รูปแรก = ปก · ลายน้ำเปิด</span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 10, height: 240 }}>
+            <div id="pv-gallery-grid" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 10, height: 240 }}>
               <div style={{ borderRadius: 12, overflow: 'hidden', background: 'var(--tint)', position: 'relative' }}>
                 <Photo src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&q=80" alt="ปก" />
                 <span style={{ position: 'absolute', top: 8, left: 8, height: 20, padding: '0 8px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: '9.5px', fontWeight: 800, display: 'flex', alignItems: 'center' }}>ปก</span>
@@ -160,7 +162,7 @@ export default function AdminPropertyViewPage() {
               <span style={{ width: 26, height: 2, background: '#273c33', borderRadius: 2 }} />
               <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>ข้อมูลทรัพย์ (Specs)</div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 28px' }}>
+            <div id="pv-spec-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 28px' }}>
               {SPECS.map((s) => (
                 <div key={s.k} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '11px 0', borderBottom: '1px solid var(--border)' }}>
                   <span style={{ fontSize: 13, color: 'var(--muted)' }}>{s.k}</span>

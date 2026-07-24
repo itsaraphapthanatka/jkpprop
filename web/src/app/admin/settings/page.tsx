@@ -23,12 +23,13 @@ const CARDS = [
 const setCss = `
 .set-card{transition:transform .25s cubic-bezier(.2,.7,.3,1),box-shadow .25s,border-color .25s;}
 .set-card:hover{transform:translateY(-4px);box-shadow:0 16px 32px rgba(0,0,0,.08);border-color:#0D6C3B;}
+@media (max-width:1024px){ #set-grid{grid-template-columns:repeat(2,1fr) !important;} }
 @media (max-width:760px){ #set-grid{grid-template-columns:1fr !important;} }
 `;
 
 export default function AdminSettingsPage() {
   return (
-    <AdminShell active="settings" eyebrow="ระบบ" title="Settings" actions={<></>} css={setCss}>
+    <AdminShell active="settings" eyebrow="ระบบ" title="Settings" actions={null} css={setCss}>
       <div id="set-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
         {CARDS.map((c) => (
           <a key={c.title} href={c.href} className="set-card" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>

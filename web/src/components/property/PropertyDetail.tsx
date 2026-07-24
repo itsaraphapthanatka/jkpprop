@@ -176,7 +176,7 @@ export function PropertyDetail() {
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted2)' }}>รหัสทรัพย์: <code style={{ fontWeight: 700, color: '#0D6C3B' }}>JKP-SPK0042</code></span>
                 </div>
               </div>
-              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+              <div style={{ textAlign: w640 ? 'left' : 'right', flexShrink: 0 }}>
                 <div style={{ fontSize: 12, color: 'var(--muted2)' }}>ราคาเช่า</div>
                 <div style={{ fontSize: 26, fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: '#034956' }}>฿405,000</div>
                 <div style={{ fontSize: '12.5px', color: 'var(--muted)' }}>/ เดือน · ฿150/ตร.ม.</div>
@@ -248,7 +248,7 @@ export function PropertyDetail() {
           <div style={sectionCard}>
             {sectionHead('ตำแหน่งทรัพย์', 8)}
             <p style={{ margin: '0 0 16px', fontSize: '12.5px', color: 'var(--muted2)' }}>แสดงระดับพื้นที่เพื่อความเป็นส่วนตัว — ตำบลบางนา อำเภอบางนา กรุงเทพฯ</p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 16 }}>
+            <div id="pd-location-grid" style={{ display: 'grid', gridTemplateColumns: w640 ? '1fr' : '1.5fr 1fr', gap: 16 }}>
               <div style={{ borderRadius: 16, overflow: 'hidden', height: 260, background: 'var(--tint)', position: 'relative' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=800&q=80" alt="แผนที่ระดับพื้นที่" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
@@ -270,8 +270,11 @@ export function PropertyDetail() {
           </div>
         </div>
 
-        {/* RIGHT: INQUIRY (sticky) */}
-        <InquiryBox />
+        {/* RIGHT: INQUIRY (sticky on desktop only — once pd-split collapses
+            to a single column at ≤980, the sidebar sits below a long left
+            column, so stickiness is unset via the `stacked` prop instead of
+            fighting the box's own layout with an extra CSS pass) */}
+        <InquiryBox stacked={w980} />
       </div>
 
       {/* RELATED */}

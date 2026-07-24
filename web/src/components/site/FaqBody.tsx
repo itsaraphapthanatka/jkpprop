@@ -128,7 +128,28 @@ export function FaqBody() {
         </aside>
 
         {/* CONTENT */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 34 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 34, minWidth: 0 }}>
+          {/* MOBILE search + category quick-jump (shown ≤980 when the sidebar is hidden) */}
+          <div id="faq-mobilebar" style={{ display: 'none', flexDirection: 'column', gap: 12, marginBottom: -12 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && doSearch()}
+                placeholder="ค้นหาคำถามที่พบบ่อย..."
+                style={{ flex: 1, height: 46, padding: '0 16px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 14, color: 'var(--text)', outline: 'none', minWidth: 0 }}
+              />
+              <div onClick={doSearch} style={{ width: 46, height: 46, borderRadius: 9999, background: '#034956', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
+              </div>
+            </div>
+            <div className="no-sb" style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2, minWidth: 0 }}>
+              {CATS.map((c) => (
+                <a key={c.key} href={'#' + c.key} style={{ flexShrink: 0, height: 34, padding: '0 14px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: '12.5px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' }}>{c.title}</a>
+              ))}
+            </div>
+          </div>
+
           {CATS.map((cat) => (
             <div key={cat.key} id={cat.key}>
               <h2 style={{ margin: '0 0 14px', fontSize: 18, fontWeight: 800, color: 'var(--accent)' }}>{cat.title}</h2>

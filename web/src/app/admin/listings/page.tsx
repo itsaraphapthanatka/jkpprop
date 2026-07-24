@@ -14,6 +14,10 @@ const pageCss = `
 .lst-row:hover{background:var(--tint);}
 .lst-menu-btn:hover{background:var(--border);}
 .lst-exp-item:hover{background:var(--tint);}
+@media (max-width:640px){
+  #lst-actions{width:100%;flex-wrap:wrap;row-gap:8px;}
+  #lst-create-grid{grid-template-columns:1fr !important;}
+}
 `;
 
 export default function AdminListingsPage() {

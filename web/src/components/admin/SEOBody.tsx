@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { AdminShell } from '@/components/admin/AdminShell';
+import { AdminShell, AdminBreadcrumb } from '@/components/admin/AdminShell';
 
 /* Ported from AdminSEO.dc.html — SEO · GEO · AEO Booster add-on page.
    Interactive: subscribe/unsubscribe toggle + llms.txt / robots.txt
@@ -69,7 +69,7 @@ export function SEOBody() {
   );
 
   return (
-    <AdminShell active="seo" eyebrow="เนื้อหา / SEO · GEO · AEO" title="SEO · GEO · AEO" actions={statusPill} css={seoCss}>
+    <AdminShell active="seo" eyebrow={<AdminBreadcrumb items={[{ label: 'Settings', href: '/admin/settings' }, { label: 'SEO · GEO · AEO' }]} />} title="SEO · GEO · AEO" actions={statusPill} css={seoCss}>
       <div style={{ maxWidth: 880 }}>
         {/* ADD-ON BANNER */}
         <div style={{ position: 'relative', overflow: 'hidden', background: 'linear-gradient(135deg,#043F20 0%,#022310 100%)', borderRadius: 20, padding: '26px 28px', color: '#fff', marginBottom: 20 }}>

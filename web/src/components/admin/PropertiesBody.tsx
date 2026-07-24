@@ -128,7 +128,7 @@ const COMPLETE_PCT = '45%';
 export function PropertiesActions() {
   const { setNewOpen } = useNew();
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+    <div id="prop-actions" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
       <a href="#" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700 }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><path d="M7 10l5 5 5-5M12 15V3" /></svg>Export
       </a>
@@ -274,9 +274,9 @@ export function PropertiesBody() {
             </tbody>
           </table>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderTop: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderTop: '1px solid var(--border)', flexWrap: 'wrap', rowGap: 10 }}>
           <div style={{ fontSize: '12.5px', color: 'var(--muted)' }}>แสดง 1–8 จาก 246 ทรัพย์</div>
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             <div style={{ width: 34, height: 34, borderRadius: 9, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted3)' }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M15 6l-6 6 6 6" /></svg></div>
             <div style={{ width: 34, height: 34, borderRadius: 9, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>1</div>
             <div style={{ width: 34, height: 34, borderRadius: 9, border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>2</div>
@@ -292,11 +292,10 @@ export function PropertiesBody() {
         <div onClick={() => setOpenMenu(null)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
       )}
 
-      {/* NEW PROPERTY DRAWER */}
+      {/* NEW PROPERTY MODAL — centered popup (matches Listings "สร้างประกาศใหม่") */}
       {newOpen && (
-        <>
-          <div onClick={() => setNewOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 800, background: 'rgba(2,14,8,.5)', backdropFilter: 'blur(3px)' }} />
-          <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: '92%', maxWidth: 640, zIndex: 801, background: 'var(--bg)', boxShadow: '-20px 0 50px rgba(0,0,0,.25)', display: 'flex', flexDirection: 'column' }}>
+        <div id="np-overlay" onClick={() => setNewOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 800, background: 'rgba(2,14,8,.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div id="np-modal" onClick={stopP} style={{ width: '100%', maxWidth: 640, maxHeight: '88vh', zIndex: 801, background: 'var(--surface)', borderRadius: 20, boxShadow: '0 40px 80px rgba(0,0,0,.4)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '20px 24px', background: 'var(--surface)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>เพิ่มทรัพย์ใหม่</div>
@@ -323,10 +322,10 @@ export function PropertiesBody() {
               ))}
             </div>
 
-            <div className="a-scroll" style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+            <div className="a-scroll" style={{ flex: 1, overflowY: 'auto', padding: 24, background: 'var(--bg)' }}>
               {/* TAB: ข้อมูลหลัก */}
               {tab === 'main' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div id="np-grid-main" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div style={{ gridColumn: '1 / -1' }}><label style={fieldLabel}>ชื่อทรัพย์ (ไทย) *</label><input placeholder="เช่น โกดังพร้อมสำนักงาน บางนา" style={drawerInput} /></div>
                   <div><label style={fieldLabel}>ประเภททรัพย์ *</label><div style={selectBox(true)}>เลือกประเภท<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2.4"><path d="M6 9l6 6 6-6" /></svg></div></div>
                   <div><label style={fieldLabel}>จังหวัด *</label><div style={selectBox(true)}>เลือกจังหวัด<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2.4"><path d="M6 9l6 6 6-6" /></svg></div></div>
@@ -343,7 +342,7 @@ export function PropertiesBody() {
               {/* TAB: Specs */}
               {tab === 'specs' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div id="np-grid-specs" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                     {SPEC_DEFS.map((f) => (
                       <div key={f.label} style={f.full ? { gridColumn: '1 / -1' } : undefined}>
                         <label style={fieldLabel}>{f.label}</label>
@@ -369,7 +368,7 @@ export function PropertiesBody() {
               {tab === 'features' && (
                 <div>
                   <div style={{ fontSize: '12.5px', color: 'var(--muted)', marginBottom: 14 }}>ติ๊กคุณสมบัติที่มี — ใช้เป็นตัวกรองบนเว็บสาธารณะ</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div id="np-grid-feat" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                     {FEAT_DEFS.map((label, i) => {
                       const on = !!feat['f' + i];
                       return (
@@ -394,7 +393,7 @@ export function PropertiesBody() {
                     </div>
                     <div style={{ height: 36, padding: '0 16px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>เลือกจากคลัง</div>
                   </div>
-                  <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
+                  <div id="np-grid-media" style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
                     {MEDIA_SLOTS.map((m) => (
                       <div key={m.id} style={{ position: 'relative', aspectRatio: '1/1', borderRadius: 11, overflow: 'hidden', background: 'var(--tint)' }}>
                         <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted3)', fontSize: 11 }}>รูป</div>
@@ -436,7 +435,7 @@ export function PropertiesBody() {
               <div style={{ height: 44, padding: '0 26px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>บันทึกร่าง</div>
             </div>
           </div>
-        </>
+        </div>
       )}
     </>
   );

@@ -105,7 +105,7 @@ export function VisitBody() {
               <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>แผนการเข้าชม</div>
               <span style={{ height: 26, padding: '0 12px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center' }}>เต็มวัน</span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+            <div id="visit-plan-meta" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
               <div style={{ background: 'var(--bg)', borderRadius: 12, padding: '13px 15px' }}><div style={{ fontSize: '11.5px', color: 'var(--muted2)' }}>วันที่นัด</div><div style={{ marginTop: 3, fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>22 ก.ค. 2026</div></div>
               <div style={{ background: 'var(--bg)', borderRadius: 12, padding: '13px 15px' }}><div style={{ fontSize: '11.5px', color: 'var(--muted2)' }}>ลูกค้า</div><div style={{ marginTop: 3, fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>บ. ไทยโลจิสติกส์</div></div>
               <div style={{ background: 'var(--bg)', borderRadius: 12, padding: '13px 15px' }}><div style={{ fontSize: '11.5px', color: 'var(--muted2)' }}>agent</div><div style={{ marginTop: 3, fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>อารยา</div></div>
@@ -164,7 +164,7 @@ export function VisitBody() {
         </div>
 
         {/* RIGHT: route + outcome summary */}
-        <div style={{ position: 'sticky', top: 88, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div id="visit-side" style={{ position: 'sticky', top: 88, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 20 }}>
             <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text)', marginBottom: 12 }}>สรุปเส้นทาง</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>

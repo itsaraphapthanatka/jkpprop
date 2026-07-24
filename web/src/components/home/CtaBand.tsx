@@ -156,6 +156,7 @@ export function CtaBand() {
         {/* RIGHT team photo */}
         <div id="cta-band-right" style={{ position: 'relative', zIndex: 2, minHeight: '340px' }}>
           <div
+            id="cta-photo-box"
             style={{
               position: 'absolute',
               inset: '22px 22px 22px 0',

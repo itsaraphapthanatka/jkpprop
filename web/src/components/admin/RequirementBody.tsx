@@ -81,6 +81,7 @@ const monoCode: React.CSSProperties = { fontFamily: "'JetBrains Mono',monospace"
 const reqCss = `
 @keyframes spin{to{transform:rotate(360deg);}}
 @media (max-width:1100px){ #req-split{grid-template-columns:1fr !important;} }
+@media (max-width:640px){ #req-fields{grid-template-columns:1fr !important;} }
 .req-shortlist-card:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(13,108,59,.18);}
 `;
 
@@ -172,7 +173,7 @@ export function RequirementBody() {
           <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>Flow B — Requirement → Shortlist</div>
           <span style={{ fontSize: 12, color: 'var(--muted2)' }}>เช็คว่าง <b style={{ color: 'var(--accent)' }}>ก่อน</b>สร้าง shortlist (FR-AVL-04)</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', overflowX: 'auto' }}>
           {steps.map((s, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -197,7 +198,7 @@ export function RequirementBody() {
               <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>ความต้องการของลูกค้า</div>
               <a href="/admin/leads" style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--accent)' }}>บ. ไทยโลจิสติกส์ →</a>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div id="req-fields" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               {REQ_FIELDS.map((f, i) => (
                 <div key={i} style={{ background: 'var(--bg)', borderRadius: 12, padding: '13px 15px' }}>
                   <div style={{ fontSize: '11.5px', color: 'var(--muted2)' }}>{f.k}</div>
@@ -281,8 +282,8 @@ export function RequirementBody() {
       {/* RE-CHECK DIALOG */}
       {recheckOpen && (
         <div onClick={closeRecheck} style={{ position: 'fixed', inset: 0, zIndex: 800, background: 'rgba(2,14,8,.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div onClick={stopProp} style={{ width: '100%', maxWidth: 480, background: 'var(--surface)', borderRadius: 20, boxShadow: '0 40px 80px rgba(0,0,0,.4)', overflow: 'hidden' }}>
-            <div style={{ padding: '22px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div onClick={stopProp} style={{ width: '100%', maxWidth: 480, maxHeight: '88vh', display: 'flex', flexDirection: 'column', background: 'var(--surface)', borderRadius: 20, boxShadow: '0 40px 80px rgba(0,0,0,.4)', overflow: 'hidden' }}>
+            <div style={{ padding: '22px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
               <div style={{ width: 42, height: 42, borderRadius: 12, background: '#E8F3EC', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" strokeWidth="1.9"><path d="M3 12a9 9 0 109-9 9 9 0 00-6.4 2.6L3 8" /><path d="M3 3v5h5" /></svg>
               </div>
@@ -291,7 +292,7 @@ export function RequirementBody() {
                 <div style={{ fontSize: 12, color: 'var(--muted2)' }}>สแกนทรัพย์ที่ตรงเกณฑ์ + สอบถามสถานะว่างกับเจ้าของ</div>
               </div>
             </div>
-            <div style={{ padding: '22px 24px' }}>
+            <div className="a-scroll" style={{ flex: 1, overflowY: 'auto', padding: '22px 24px' }}>
               {scanning && (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: '20px 0' }}>
                   <div style={{ width: 52, height: 52, borderRadius: 9999, border: '3px solid var(--tint)', borderTopColor: '#0D6C3B', animation: 'spin 0.8s linear infinite' }} />
@@ -320,7 +321,7 @@ export function RequirementBody() {
                 </>
               )}
             </div>
-            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 12, flexShrink: 0, flexWrap: 'wrap' }}>
               <div onClick={closeRecheck} style={{ height: 44, padding: '0 22px', borderRadius: 9999, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', cursor: 'pointer' }}>ปิด</div>
               {scanDone && (
                 <div onClick={addFound} style={{ height: 44, padding: '0 24px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', gap: 7, fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>
@@ -335,7 +336,7 @@ export function RequirementBody() {
       {/* CANCEL DIALOG */}
       {cancelOpen && (
         <div onClick={closeCancel} style={{ position: 'fixed', inset: 0, zIndex: 800, background: 'rgba(2,14,8,.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div onClick={stopProp} style={{ width: '100%', maxWidth: 460, background: 'var(--surface)', borderRadius: 20, boxShadow: '0 40px 80px rgba(0,0,0,.4)', padding: 28 }}>
+          <div onClick={stopProp} className="a-scroll" style={{ width: '100%', maxWidth: 460, maxHeight: '88vh', overflowY: 'auto', background: 'var(--surface)', borderRadius: 20, boxShadow: '0 40px 80px rgba(0,0,0,.4)', padding: 28 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ width: 44, height: 44, borderRadius: 12, background: '#F9E4E1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C0392B" strokeWidth="2"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h16.9a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" /><path d="M12 9v4M12 17h.01" /></svg>
@@ -361,7 +362,7 @@ export function RequirementBody() {
               <label style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--muted)' }}>เหตุผลเพิ่มเติม *</label>
               <textarea placeholder="อธิบายเหตุผลการยกเลิก…" style={{ marginTop: 8, width: '100%', height: 90, padding: '12px 14px', borderRadius: 12, border: '1px solid var(--border)', fontFamily: 'inherit', fontSize: 13, resize: 'none', outline: 'none', background: 'var(--bg)' }} />
             </div>
-            <div style={{ marginTop: 20, display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+            <div style={{ marginTop: 20, display: 'flex', gap: 12, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
               <div onClick={closeCancel} style={{ height: 44, padding: '0 22px', borderRadius: 9999, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', cursor: 'pointer' }}>ไม่ยกเลิก</div>
               <div onClick={confirmCancel} style={{ height: 44, padding: '0 24px', borderRadius: 9999, background: '#C0392B', color: '#fff', display: 'flex', alignItems: 'center', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>ยืนยันยกเลิก</div>
             </div>

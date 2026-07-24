@@ -121,12 +121,12 @@ export function Hero() {
 
         {/* search panel */}
         <div style={{ marginTop: 28, width: '100%', maxWidth: '860px', background: 'rgba(255,255,255,.14)', border: '1px solid rgba(255,255,255,.30)', borderRadius: 16, boxShadow: '0 12px 34px rgba(0,0,0,.22)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', padding: 16, textAlign: 'left' }}>
-          <div style={{ background: 'var(--surface)', borderRadius: 12, boxShadow: '0 6px 16px rgba(0,0,0,.12)', padding: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7A7974" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
+          <div id="hero-search-bar" style={{ background: 'var(--surface)', borderRadius: 12, boxShadow: '0 6px 16px rgba(0,0,0,.12)', padding: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div id="hero-search-textwrap" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7A7974" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
               <span style={{ fontSize: 15, color: 'var(--muted2)' }}>ค้นหาตามทำเล, จังหวัด, รหัสทรัพย์…</span>
             </div>
-            <button className="search-btn" style={{ border: 0, height: 44, padding: '0 26px', background: '#2DFB91', color: '#022310', fontFamily: 'inherit', fontSize: 15, fontWeight: 700, borderRadius: 8, cursor: 'pointer', transition: 'transform .15s' }}>ค้นหา</button>
+            <button id="hero-search-btn" className="search-btn" style={{ border: 0, height: 44, padding: '0 26px', background: '#2DFB91', color: '#022310', fontFamily: 'inherit', fontSize: 15, fontWeight: 700, borderRadius: 8, cursor: 'pointer', transition: 'transform .15s', flexShrink: 0 }}>ค้นหา</button>
           </div>
 
           <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
@@ -194,7 +194,7 @@ export function Hero() {
               </MoreSection>
               {/* feature */}
               <MoreSection title="คุณสมบัติ" open={secOpen.feature} onToggle={() => setSecOpen((s) => ({ ...s, feature: !s.feature }))} icon="feature">
-                <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+                <div id="hero-feature-grid" style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
                   {FEATURE_ITEMS.map((label) => {
                     const on = featureSel.includes(label);
                     return (
@@ -232,17 +232,17 @@ export function Hero() {
       {/* ===== SEARCH FILTER MODAL (type/size/price tabs) ===== */}
       {filterOpen && (
         <div onClick={() => setFilterOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 900, background: 'rgba(2,14,8,.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '480px', maxHeight: '86vh', overflow: 'auto', background: 'var(--surface)', borderRadius: 22, boxShadow: '0 40px 80px rgba(0,0,0,.4)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '22px 24px 0' }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '480px', maxHeight: '86vh', display: 'flex', flexDirection: 'column', background: 'var(--surface)', borderRadius: 22, boxShadow: '0 40px 80px rgba(0,0,0,.4)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '22px 24px 0', flexShrink: 0 }}>
               <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>ตัวกรองการค้นหา</div>
               <CloseBtn onClick={() => setFilterOpen(false)} />
             </div>
-            <div style={{ display: 'flex', gap: 22, marginTop: 18, padding: '0 24px', borderBottom: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 22, marginTop: 18, padding: '0 24px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
               {tabDef('type', 'ประเภทอสังหา')}
               {tabDef('size', 'ขนาดพื้นที่')}
               {tabDef('price', 'ช่วงราคา')}
             </div>
-            <div style={{ padding: 24 }}>
+            <div style={{ padding: 24, overflow: 'auto', flex: 1 }}>
               {filterTab === 'type' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {([['warehouse', 'โกดัง'], ['factory', 'โรงงาน']] as [PropType, string][]).map(([key, label]) => {
@@ -280,7 +280,7 @@ export function Hero() {
                 </div>
               )}
             </div>
-            <div style={{ display: 'flex', gap: 12, padding: '18px 24px 24px', borderTop: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', gap: 12, padding: '18px 24px 24px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
               <div onClick={() => { setPropType('warehouse'); setSizeSel(null); setPriceSel(null); }} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, border: '1.5px solid var(--border)', color: 'var(--text)', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>ล้างค่า</div>
               <div onClick={() => setFilterOpen(false)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>นำไปใช้</div>
             </div>

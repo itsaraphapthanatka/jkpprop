@@ -9,7 +9,8 @@ export const metadata: Metadata = { title: 'Visits · JKP CMS', robots: { index:
    client component VisitBody.tsx. */
 
 const visitCss = `
-@media (max-width:1100px){ #visit-split{grid-template-columns:1fr !important;} }
+@media (max-width:1100px){ #visit-split{grid-template-columns:1fr !important;} #visit-side{position:static !important;} }
+@media (max-width:640px){ #visit-plan-meta{grid-template-columns:1fr !important;} }
 `;
 
 /* Topbar eyebrow (breadcrumb) + title (with a status code badge) contain rich

@@ -11,7 +11,11 @@ export const metadata: Metadata = { title: 'Shortlists · JKP CMS', robots: { in
    main body share the send-dialog / add-remove state. */
 
 const slCss = `
-@media (max-width:1100px){ #sl-split{grid-template-columns:1fr !important;} }
+@media (max-width:1100px){ #sl-split{grid-template-columns:1fr !important;} #sl-side{position:static !important;} }
+@media (max-width:480px){
+  .sl-item-thumb{display:none !important;}
+  .sl-item-row{gap:8px !important;}
+}
 `;
 
 const eyebrowNode = (

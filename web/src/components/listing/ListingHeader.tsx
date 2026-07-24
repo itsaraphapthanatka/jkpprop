@@ -138,6 +138,7 @@ export function ListingHeader() {
             {/* โรงงาน (active) */}
             <div style={{ position: 'relative' }} onMouseEnter={() => setNavFactory(true)} onMouseLeave={() => setNavFactory(false)}>
               <div
+                onClick={() => setNavFactory((v) => !v)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -165,6 +166,7 @@ export function ListingHeader() {
             <div style={{ position: 'relative' }} onMouseEnter={() => setNavWarehouse(true)} onMouseLeave={() => setNavWarehouse(false)}>
               <div
                 className="nav-link"
+                onClick={() => setNavWarehouse((v) => !v)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',

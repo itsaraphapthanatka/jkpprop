@@ -14,6 +14,11 @@ type Article = { title: string; status: string; statusK: 'pub' | 'draft'; cat: s
 
 const cmsCss = `
 @media (max-width:1100px){ #cms-split{grid-template-columns:1fr !important;} }
+@media (max-width:640px){
+  #cms-meta-row{grid-template-columns:1fr !important;}
+  #cms-actions{width:100%;flex-wrap:wrap;row-gap:8px;}
+}
+@media (max-width:480px){ #cms-preview-body{padding:24px 20px !important;} }
 .cms-tb-btn:hover{background:var(--tint);}
 .cms-linkchoice:hover{background:var(--tint);}
 `;
@@ -160,7 +165,7 @@ export function CMSBody() {
   const curCat = catVal || cur.cat;
 
   const actions = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+    <div id="cms-actions" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <a href="/admin/page-builder" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9"><path d="M4 4h16v16H4z" /><path d="M4 9h16M9 9v11" /></svg>Page Builder
       </a>
@@ -266,7 +271,7 @@ export function CMSBody() {
             {/* slug */}
             <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 11, background: 'var(--tint)' }}>
               <span style={{ fontSize: 12, color: 'var(--muted2)' }}>slug:</span>
-              <code style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 700, flex: 1 }}>{curSlug}</code>
+              <code style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 700, flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{curSlug}</code>
               <span style={{ fontSize: 11, color: '#0D6C3B', fontWeight: 700, cursor: 'pointer' }}>แก้</span>
             </div>
 
@@ -285,7 +290,7 @@ export function CMSBody() {
             </div>
 
             {/* meta row */}
-            <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div id="cms-meta-row" style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div style={{ position: 'relative' }}>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>หมวดหมู่</label>
                 <div onClick={() => setCatOpen(!catOpen)} style={{ marginTop: 6, height: 44, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, color: 'var(--text)', cursor: 'pointer' }}>
@@ -352,11 +357,11 @@ export function CMSBody() {
             </div>
           </div>
 
-          <div style={{ padding: '16px 22px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <span style={{ fontSize: 12, color: 'var(--muted3)' }}>บันทึกอัตโนมัติเมื่อ 2 นาทีที่แล้ว</span>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <div onClick={saveDraft} style={{ height: 42, padding: '0 20px', borderRadius: 9999, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 700, color: 'var(--text)', cursor: 'pointer' }}>บันทึกร่าง</div>
-              <div onClick={doPublish} style={{ height: 42, padding: '0 24px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+          <div style={{ padding: '16px 22px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', rowGap: 10 }}>
+            <span style={{ fontSize: 12, color: 'var(--muted3)', minWidth: 0 }}>บันทึกอัตโนมัติเมื่อ 2 นาทีที่แล้ว</span>
+            <div style={{ display: 'flex', gap: 10, flexShrink: 0, marginLeft: 'auto' }}>
+              <div onClick={saveDraft} style={{ height: 42, padding: '0 20px', borderRadius: 9999, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 700, color: 'var(--text)', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>บันทึกร่าง</div>
+              <div onClick={doPublish} style={{ height: 42, padding: '0 24px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M20 6L9 17l-5-5" /></svg>เผยแพร่
               </div>
             </div>
@@ -377,7 +382,7 @@ export function CMSBody() {
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M18 6L6 18M6 6l12 12" /></svg>
               </div>
             </div>
-            <div className="a-scroll" style={{ flex: 1, overflowY: 'auto', padding: '32px 40px' }}>
+            <div id="cms-preview-body" className="a-scroll" style={{ flex: 1, overflowY: 'auto', padding: '32px 40px' }}>
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.06em', color: 'var(--accent)', textTransform: 'uppercase' }}>EEC &amp; โลจิสติกส์</div>
               <h1 style={{ margin: '10px 0 8px', fontSize: 28, fontWeight: 800, color: 'var(--text)', lineHeight: 1.3 }}>{cur.title}</h1>
               <div style={{ fontSize: '12.5px', color: 'var(--muted3)', marginBottom: 20 }}>โดย JKP Property · เผยแพร่วันนี้</div>

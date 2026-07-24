@@ -13,6 +13,10 @@ const faqCss =
 @media (max-width:980px){
   #faq-layout{grid-template-columns:1fr !important;}
   #faq-sidebar{display:none !important;}
+  /* the desktop sidebar (which holds search + category quick-jump) is
+     hidden on tablet/phone, so reveal the mobile-only search + category
+     chip bar rendered at the top of the content column instead. */
+  #faq-mobilebar{display:flex !important;}
 }
 `;
 

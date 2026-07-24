@@ -75,7 +75,7 @@ export function AuditExport() {
   };
   React.useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
       <div onClick={exportCsv} style={{ height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', whiteSpace: 'nowrap' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><path d="M7 10l5 5 5-5M12 15V3" /></svg>{exportLabel}
       </div>
@@ -182,7 +182,7 @@ export function AuditBody() {
 
       {/* LOG LIST */}
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
-        <div style={{ padding: '13px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '13px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', rowGap: 4 }}>
           <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>2,847 รายการ</span>
           <span style={{ fontSize: 12, color: 'var(--muted2)' }}>เก็บ before/after JSON ทุก mutation</span>
         </div>

@@ -195,7 +195,7 @@ export default function DealBody() {
           <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>Flow D — Negotiation → Deal</div>
           <span style={{ fontSize: 12, color: 'var(--muted2)' }}>lead อัปเดตอัตโนมัติเป็น <b style={{ color: 'var(--accent)' }}>won</b> เมื่อปิดดีล</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', overflowX: 'auto' }}>
           {stages.map((s, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -246,7 +246,7 @@ export default function DealBody() {
                   ))}
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <input value={offerAmount} onChange={(e) => setOfferAmount(e.target.value)} placeholder="ราคา เช่น ฿380,000/ด." style={{ flex: 1, height: 40, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', fontSize: '12.5px', background: 'var(--surface)', outline: 'none' }} />
+                  <input value={offerAmount} onChange={(e) => setOfferAmount(e.target.value)} placeholder="ราคา เช่น ฿380,000/ด." style={{ flex: 1, minWidth: 0, height: 40, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', fontSize: '12.5px', background: 'var(--surface)', outline: 'none' }} />
                   <div onClick={saveOffer} style={{ height: 40, padding: '0 16px', borderRadius: 10, background: '#0D6C3B', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>เพิ่ม</div>
                 </div>
                 <input value={offerTerms} onChange={(e) => setOfferTerms(e.target.value)} placeholder="เงื่อนไข (เช่น ขอ fit-out ฟรี 1 เดือน)" style={{ marginTop: 8, width: '100%', height: 40, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', fontSize: '12.5px', background: 'var(--surface)', outline: 'none' }} />
@@ -337,7 +337,7 @@ export default function DealBody() {
       {/* CLOSE DIALOG */}
       {closeDialogOpen && (
         <div onClick={closeDialog} style={{ position: 'fixed', inset: 0, zIndex: 800, background: 'rgba(2,14,8,.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 440, background: 'var(--surface)', borderRadius: 20, boxShadow: '0 40px 80px rgba(0,0,0,.4)', padding: 28, textAlign: 'center' }}>
+          <div onClick={(e) => e.stopPropagation()} className="a-scroll" style={{ width: '100%', maxWidth: 440, maxHeight: '88vh', overflowY: 'auto', background: 'var(--surface)', borderRadius: 20, boxShadow: '0 40px 80px rgba(0,0,0,.4)', padding: 28, textAlign: 'center' }}>
             <div style={{ width: 56, height: 56, borderRadius: 9999, background: '#E8F3EC', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" strokeWidth="2"><path d="M20 6L9 17l-5-5" /></svg>
             </div>

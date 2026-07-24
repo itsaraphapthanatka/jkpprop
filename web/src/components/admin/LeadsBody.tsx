@@ -71,7 +71,18 @@ const req = [
 const linked = ['Requirement #REQ-1042', 'Shortlist #SL-208', '2 Visits'];
 
 const panelSm: React.CSSProperties = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 20 };
-const dropdownPanelBase: React.CSSProperties = { position: 'absolute', top: 44, zIndex: 30, width: 190, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 13, boxShadow: '0 18px 40px rgba(0,0,0,.16)', padding: 6 };
+const dropdownPanelBase: React.CSSProperties = { position: 'absolute', top: 44, zIndex: 30, width: 190, maxWidth: 'calc(100vw - 16px)', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 13, boxShadow: '0 18px 40px rgba(0,0,0,.16)', padding: 6 };
+
+/* ---- add-lead modal form ---- */
+const COUNTRY_NAMES: Record<string, string> = { TH: 'ไทย', CN: 'จีน', JP: 'ญี่ปุ่น', US: 'สหรัฐฯ', SG: 'สิงคโปร์', OTHER: 'อื่นๆ' };
+const COUNTRY_OPTS: [string, string][] = [['TH', 'ไทย (TH)'], ['CN', 'จีน (CN)'], ['JP', 'ญี่ปุ่น (JP)'], ['US', 'สหรัฐฯ (US)'], ['SG', 'สิงคโปร์ (SG)'], ['OTHER', 'อื่นๆ']];
+const SOURCE_OPTS = ['requirement form', 'contact form', 'inquiry', 'referral'];
+const STATUS_CREATE_OPTS: [string, string][] = [['new', 'New'], ['qualified', 'Qualified'], ['requirements_confirmed', 'Req. confirmed'], ['negotiating', 'Negotiating'], ['shortlisted', 'Shortlisted'], ['won', 'Won']];
+const AGENT_OPTS = ['อารยา', 'วีรพล', 'สมชาย', 'ยังไม่มอบหมาย'];
+const fLabel: React.CSSProperties = { display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 700, color: 'var(--muted)' };
+const fInput: React.CSSProperties = { width: '100%', height: 44, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontFamily: 'inherit', fontSize: '13.5px', background: 'var(--surface)', color: 'var(--text)', outline: 'none' };
+const fSelect: React.CSSProperties = { ...fInput, cursor: 'pointer' };
+const fGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12 };
 
 export function LeadsBody() {
   const [selected, setSelected] = React.useState(0);
@@ -88,9 +99,17 @@ export function LeadsBody() {
   const [filters, setFilters] = React.useState<Record<string, string>>({ status: 'ทั้งหมด', agent: 'ทั้งหมด', source: 'ทั้งหมด', date: 'ทุกช่วง' });
   const [, setBaseDone] = React.useState<Record<string, boolean>>({});
 
-  const cur = leadsData[selected];
+  // add-lead
+  const [rows, setRows] = React.useState<Lead[]>(leadsData);
+  const [createOpen, setCreateOpen] = React.useState(false);
+  const emptyForm = { name: '', contact: '', country: 'TH', phone: '', email: '', source: 'contact form', statusK: 'new', agent: 'อารยา' };
+  const [form, setForm] = React.useState(emptyForm);
+  const setF = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
+  const canCreate = form.name.trim().length > 0;
 
-  const leads = leadsData.map((d, i) => ({
+  const cur = rows[selected];
+
+  const leads = rows.map((d, i) => ({
     ...d,
     statusStyle: stMap[d.statusK] || stMap.new,
     rowStyle: {
@@ -174,6 +193,22 @@ export function LeadsBody() {
     chipDef('date', 'ช่วงวันที่', ['ทุกช่วง', 'วันนี้', '7 วัน', '30 วัน']),
   ];
 
+  // keep an open filter-chip dropdown clamped inside the viewport on small screens
+  const chipPanelRef = React.useRef<HTMLDivElement | null>(null);
+  React.useLayoutEffect(() => {
+    const el = chipPanelRef.current;
+    if (!el || openChip === null) return;
+    el.style.left = '0px';
+    el.style.right = 'auto';
+    const vw = document.documentElement.clientWidth;
+    let r = el.getBoundingClientRect();
+    let left = 0;
+    if (r.right > vw - 8) left = -(r.right - (vw - 8));
+    el.style.left = Math.round(left) + 'px';
+    r = el.getBoundingClientRect();
+    if (r.left < 8) el.style.left = Math.round(left + (8 - r.left)) + 'px';
+  }, [openChip]);
+
   const anyOpen = openChip !== null || statusOpen || agentOpen;
   const closeAll = () => { setOpenChip(null); setStatusOpen(false); setAgentOpen(false); };
   const stopP = (e: React.MouseEvent) => e.stopPropagation();
@@ -187,8 +222,79 @@ export function LeadsBody() {
   const saveTask = () => { const v = taskText.trim(); if (!v) return; setExtraTasks([...extraTasks, { title: v, due: 'ยังไม่กำหนด', color: '#0D6C3B' }]); setTaskText(''); setTaskAdding(false); };
   const saveNote = () => { const v = noteText.trim(); if (!v) return; setExtraNotes([v, ...extraNotes]); setNoteText(''); };
 
+  const addLead = () => {
+    const name = form.name.trim();
+    if (!name) return;
+    const nl: Lead = {
+      name,
+      company: (form.contact.trim() || '—') + ' · ' + form.country,
+      country: COUNTRY_NAMES[form.country] || form.country,
+      initial: name[0] || '?',
+      avBg: '#273c33', avFg: '#2DFB91',
+      time: 'เมื่อสักครู่',
+      status: form.statusK, statusK: form.statusK,
+      source: form.source,
+      phone: form.phone.trim() || '—',
+      email: form.email.trim() || '—',
+      agent: 'มอบหมาย: ' + form.agent,
+    };
+    setRows((r) => [nl, ...r]);
+    setSelected(0);
+    setStatusVal(statusLabelMap[form.statusK] || 'New');
+    setAgentVal(form.agent);
+    setCreateOpen(false);
+    setForm(emptyForm);
+  };
+  const openCreate = () => { setForm(emptyForm); setCreateOpen(true); closeAll(); };
+
   return (
     <>
+      {/* CREATE LEAD MODAL */}
+      {createOpen && (
+        <div onClick={() => setCreateOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 800, background: 'rgba(2,14,8,.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div onClick={stopP} style={{ width: '100%', maxWidth: 480, maxHeight: '88vh', display: 'flex', flexDirection: 'column', background: 'var(--surface)', borderRadius: 20, boxShadow: '0 40px 80px rgba(0,0,0,.4)' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>เพิ่ม Lead ใหม่</div>
+                <div style={{ fontSize: 12, color: 'var(--muted2)', marginTop: 2 }}>บันทึกผู้สนใจเข้าสู่ระบบงานขาย</div>
+              </div>
+              <div onClick={() => setCreateOpen(false)} style={{ width: 32, height: 32, borderRadius: 9999, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--muted)', flexShrink: 0 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+              </div>
+            </div>
+            <div className="a-scroll" style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={fLabel}>ชื่อบริษัท / ลูกค้า *</label>
+                <input value={form.name} onChange={(e) => setF('name', e.target.value)} placeholder="เช่น บ. ไทยโลจิสติกส์" style={fInput} autoFocus />
+              </div>
+              <div style={fGrid}>
+                <div><label style={fLabel}>ผู้ติดต่อ</label><input value={form.contact} onChange={(e) => setF('contact', e.target.value)} placeholder="เช่น คุณสมชาย" style={fInput} /></div>
+                <div><label style={fLabel}>ประเทศ</label><select value={form.country} onChange={(e) => setF('country', e.target.value)} style={fSelect}>{COUNTRY_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+              </div>
+              <div style={fGrid}>
+                <div><label style={fLabel}>เบอร์โทร</label><input value={form.phone} onChange={(e) => setF('phone', e.target.value)} placeholder="+66 8x-xxx-xxxx" style={fInput} /></div>
+                <div><label style={fLabel}>อีเมล</label><input value={form.email} onChange={(e) => setF('email', e.target.value)} placeholder="name@company.com" style={fInput} /></div>
+              </div>
+              <div style={fGrid}>
+                <div><label style={fLabel}>แหล่งที่มา</label><select value={form.source} onChange={(e) => setF('source', e.target.value)} style={fSelect}>{SOURCE_OPTS.map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
+                <div><label style={fLabel}>สถานะ</label><select value={form.statusK} onChange={(e) => setF('statusK', e.target.value)} style={fSelect}>{STATUS_CREATE_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+              </div>
+              <div>
+                <label style={fLabel}>มอบหมายให้</label>
+                <select value={form.agent} onChange={(e) => setF('agent', e.target.value)} style={fSelect}>{AGENT_OPTS.map((a) => <option key={a} value={a}>{a}</option>)}</select>
+              </div>
+            </div>
+            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+              <div onClick={() => setCreateOpen(false)} style={{ height: 44, padding: '0 22px', borderRadius: 9999, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', cursor: 'pointer' }}>ยกเลิก</div>
+              <div onClick={addLead} style={{ height: 44, padding: '0 26px', borderRadius: 9999, background: canCreate ? '#0D6C3B' : 'var(--border)', color: canCreate ? '#fff' : 'var(--muted3)', display: 'flex', alignItems: 'center', gap: 7, fontSize: '13.5px', fontWeight: 700, cursor: canCreate ? 'pointer' : 'default' }}>
+                เพิ่ม Lead
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* FILTER CHIPS */}
       <div style={{ position: 'relative', display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
         {anyOpen && <div onClick={closeAll} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />}
@@ -199,7 +305,7 @@ export function LeadsBody() {
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={c.chev} strokeWidth="2.4" style={c.chevStyle}><path d="M6 9l6 6 6-6"></path></svg>
             </div>
             {c.open && (
-              <div onClick={stopP} style={{ ...dropdownPanelBase, left: 0 }}>
+              <div ref={chipPanelRef} onClick={stopP} style={{ ...dropdownPanelBase, left: 0 }}>
                 {c.options.map((o) => (
                   <div key={o.label} onClick={o.select} style={o.style}>
                     <span>{o.label}</span>
@@ -210,13 +316,17 @@ export function LeadsBody() {
             )}
           </div>
         ))}
+        <div id="lead-addbtn" onClick={openCreate} className="admin-primary-btn" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 7, height: 36, padding: '0 16px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M12 5v14M5 12h14"></path></svg>
+          เพิ่ม Lead
+        </div>
       </div>
 
       <div id="lead-split" style={{ display: 'grid', gridTemplateColumns: '400px 1fr', gap: 20, alignItems: 'start' }}>
         {/* LIST */}
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
+        <div style={{ minWidth: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
           <div style={{ padding: '13px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>42 leads</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>{42 + (rows.length - leadsData.length)} leads</span>
             <span style={{ fontSize: 12, color: 'var(--muted2)' }}>เรียง: ใหม่ล่าสุด</span>
           </div>
           <div className="a-scroll" style={{ maxHeight: 660, overflowY: 'auto' }}>
@@ -242,7 +352,7 @@ export function LeadsBody() {
         </div>
 
         {/* DETAIL */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* header card */}
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 22 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
@@ -301,14 +411,14 @@ export function LeadsBody() {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 6l-10 7L2 6"></path><rect x="2" y="4" width="20" height="16" rx="2"></rect></svg>
                 {cur.email}
               </a>
-              <a href="/admin/requirements" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 36, padding: '0 16px', borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: '12.5px', fontWeight: 700, marginLeft: 'auto' }}>
+              <a id="lead-openreq" href="/admin/requirements" className="admin-primary-btn" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 36, padding: '0 16px', borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: '12.5px', fontWeight: 700, marginLeft: 'auto' }}>
                 เปิด Requirement
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
               </a>
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div id="lead-detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             {/* requirement summary */}
             <div style={panelSm}>
               <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', marginBottom: 14 }}>สรุปความต้องการ</div>
@@ -337,7 +447,7 @@ export function LeadsBody() {
               </div>
               {taskAdding && (
                 <div style={{ display: 'flex', gap: 8, marginBottom: 9 }}>
-                  <input value={taskText} onChange={(e) => setTaskText(e.target.value)} placeholder="งานใหม่…" style={{ flex: 1, height: 38, padding: '0 12px', borderRadius: 10, border: '1px solid #0D6C3B', fontFamily: 'inherit', fontSize: '12.5px', background: 'var(--surface)', outline: 'none' }} />
+                  <input value={taskText} onChange={(e) => setTaskText(e.target.value)} placeholder="งานใหม่…" style={{ flex: 1, minWidth: 0, height: 38, padding: '0 12px', borderRadius: 10, border: '1px solid #0D6C3B', fontFamily: 'inherit', fontSize: '12.5px', background: 'var(--surface)', outline: 'none' }} />
                   <div onClick={saveTask} style={{ height: 38, padding: '0 14px', borderRadius: 10, background: '#0D6C3B', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>เพิ่ม</div>
                 </div>
               )}
@@ -361,7 +471,7 @@ export function LeadsBody() {
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 22 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', marginBottom: 6 }}>Timeline &amp; Notes</div>
             <div style={{ display: 'flex', gap: 10, margin: '12px 0 18px' }}>
-              <input value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="เพิ่มบันทึก…" style={{ flex: 1, height: 42, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontFamily: 'inherit', fontSize: 13, background: 'var(--bg)', outline: 'none' }} />
+              <input value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="เพิ่มบันทึก…" style={{ flex: 1, minWidth: 0, height: 42, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontFamily: 'inherit', fontSize: 13, background: 'var(--bg)', outline: 'none' }} />
               <div onClick={saveNote} style={{ height: 42, padding: '0 18px', borderRadius: 11, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>บันทึก</div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>

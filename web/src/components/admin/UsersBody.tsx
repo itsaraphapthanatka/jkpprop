@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { AdminShell } from '@/components/admin/AdminShell';
+import { AdminShell, AdminBreadcrumb } from '@/components/admin/AdminShell';
 
 /* Ported from AdminUsers.dc.html — Users & Roles. Interactive: view
    toggle (users / roles matrix) lives in the topbar, an invite modal
@@ -110,7 +110,9 @@ const thC: React.CSSProperties = { padding: '12px 16px', textAlign: 'center', fo
 const USERS_CSS = `
 .users-row:hover{background:var(--tint);}
 .users-kebab:hover{background:var(--border);}
-@media (max-width:820px){ #matrix-wrap{overflow-x:auto;} }
+@media (max-width:640px){
+  #users-actions{width:100%;flex-wrap:wrap;row-gap:8px;}
+}
 `;
 
 export function UsersBody() {
@@ -164,7 +166,7 @@ export function UsersBody() {
   });
 
   const actions = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+    <div id="users-actions" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, height: 40, padding: 4, borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)' }}>
         {viewTabs.map((v) => (
           <div key={v.key} onClick={v.select} style={v.style}>{v.label}</div>
@@ -177,7 +179,7 @@ export function UsersBody() {
   );
 
   return (
-    <AdminShell active="settings" eyebrow="Settings / ผู้ใช้" title="Users & Roles" actions={actions} css={USERS_CSS}>
+    <AdminShell active="settings" eyebrow={<AdminBreadcrumb items={[{ label: 'Settings', href: '/admin/settings' }, { label: 'ผู้ใช้' }]} />} title="Users & Roles" actions={actions} css={USERS_CSS}>
       {/* USERS VIEW */}
       {view === 'users' && (
         <>
@@ -251,7 +253,7 @@ export function UsersBody() {
             <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>สิทธิ์ตาม Role (RBAC 6 บทบาท)</div>
           </div>
           <p style={{ margin: '0 0 18px', fontSize: '12.5px', color: 'var(--muted2)' }}>enforce ที่ API layer ไม่ใช่แค่ซ่อน UI · ✓ = ทำได้ · ◐ = เฉพาะที่ได้รับมอบหมาย/อ่าน</p>
-          <div id="matrix-wrap">
+          <div id="matrix-wrap" className="a-scroll" style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
               <thead>
                 <tr>
@@ -279,7 +281,7 @@ export function UsersBody() {
       {/* INVITE MODAL */}
       {inviteOpen && (
         <div onClick={closeInvite} style={{ position: 'fixed', inset: 0, zIndex: 800, background: 'rgba(2,14,8,.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div onClick={stopProp} style={{ width: '100%', maxWidth: 460, background: 'var(--surface)', borderRadius: 20, boxShadow: '0 40px 80px rgba(0,0,0,.4)', padding: 28 }}>
+          <div onClick={stopProp} style={{ width: '100%', maxWidth: 460, maxHeight: '90vh', overflowY: 'auto', background: 'var(--surface)', borderRadius: 20, boxShadow: '0 40px 80px rgba(0,0,0,.4)', padding: 28 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)' }}>เชิญผู้ใช้ใหม่</div>
               <div onClick={closeInvite} style={{ width: 30, height: 30, borderRadius: 9999, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--muted)' }}>
@@ -294,7 +296,7 @@ export function UsersBody() {
                 <div key={r.key} onClick={r.toggle} style={r.style}>{r.label}</div>
               ))}
             </div>
-            <div style={{ marginTop: 22, display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+            <div style={{ marginTop: 22, display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               <div onClick={closeInvite} style={{ height: 44, padding: '0 22px', borderRadius: 9999, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', cursor: 'pointer' }}>ยกเลิก</div>
               <div style={{ height: 44, padding: '0 24px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', gap: 7, fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z" /></svg>ส่งคำเชิญ

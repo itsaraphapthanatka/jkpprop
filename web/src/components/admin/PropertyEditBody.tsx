@@ -69,7 +69,7 @@ export function PropertyEditBody() {
   return (
     <div style={{ margin: '-24px -28px -60px' }}>
       {/* TAB BAR */}
-      <div className="a-scroll" style={{ position: 'sticky', top: 69, zIndex: 40, background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '0 28px', display: 'flex', gap: 8, overflowX: 'auto' }}>
+      <div id="ed-tabbar" className="a-scroll" style={{ position: 'sticky', top: 69, zIndex: 40, background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '0 28px', display: 'flex', gap: 8, overflowX: 'auto' }}>
         {tabDefs.map(([k, label, done]) => {
           const on = tab === k;
           return (
