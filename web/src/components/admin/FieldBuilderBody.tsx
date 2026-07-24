@@ -73,8 +73,14 @@ const SCOPES: { key: string; label: string }[] = [
 const ddOption = (active: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '9px 11px', borderRadius: 9, fontSize: '12.5px', fontWeight: active ? 700 : 600, cursor: 'pointer', color: active ? '#0D6C3B' : 'var(--text)', background: active ? 'rgba(13,108,59,.06)' : 'transparent' });
 
 const fbCss = `
+#fb-split > div{ min-width:0; }
 @media (max-width:1100px){ #fb-split{grid-template-columns:1fr !important;} #fb-preview{position:static !important;} }
-@media (max-width:640px){ #fb-actions{flex-wrap:wrap !important;width:100% !important;row-gap:8px !important;} #fb-edit-grid{grid-template-columns:1fr !important;} }
+@media (max-width:640px){
+  #admin-main > main{ padding:16px 14px 44px !important; }
+  #fb-actions{flex-wrap:wrap !important;width:100% !important;row-gap:8px !important;}
+  #fb-edit-grid{grid-template-columns:1fr !important;}
+  #fb-split code{ overflow-wrap:anywhere; }
+}
 .fb-save:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(13,108,59,.35);}
 .fb-edit:hover{background:var(--border);}
 .fb-type:hover{border-color:#7A3FB0;transform:translateY(-2px);}
