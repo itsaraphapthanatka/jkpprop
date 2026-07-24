@@ -46,7 +46,22 @@ const TABS: { key: 'geo' | 'zones'; label: string }[] = [
 
 const geoCss = `
 @media (max-width:1100px){ #geo-cols{grid-template-columns:1fr !important;} }
-@media (max-width:640px){ #geo-actions{flex-wrap:wrap !important;width:100% !important;row-gap:8px !important;} }
+@media (max-width:640px){
+  #admin-main > main{ padding:16px 14px 44px !important; }
+  #geo-actions{flex-wrap:wrap !important;width:100% !important;row-gap:8px !important;}
+  /* zones table → stacked cards */
+  #geo-zone-scroll{ overflow-x:visible !important; }
+  #geo-zone-table{ min-width:0 !important; }
+  #geo-zone-table thead{ display:none; }
+  #geo-zone-table tbody{ display:block; padding:10px; }
+  #geo-zone-table tr{ display:block; border:1px solid var(--border) !important; border-radius:12px; padding:2px; margin-bottom:10px; }
+  #geo-zone-table td{ display:flex !important; align-items:center; justify-content:space-between; gap:12px; padding:9px 12px !important; text-align:left !important; }
+  #geo-zone-table td[data-label]::before{ content:attr(data-label); font-size:11px; font-weight:700; color:var(--muted2); }
+  #geo-zone-table td:first-child{ border-bottom:1px solid var(--border); }
+}
+@media (max-width:480px){
+  #geo-add-btn{ flex:1 1 100% !important; justify-content:center; }
+}
 .geo-zone-row:hover{background:var(--tint);}
 `;
 
@@ -121,7 +136,7 @@ export function GeographyBody() {
           );
         })}
       </div>
-      <div onClick={openAdd} className="admin-primary-btn" style={{ height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'transform .2s,box-shadow .2s' }}>
+      <div id="geo-add-btn" onClick={openAdd} className="admin-primary-btn" style={{ height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'transform .2s,box-shadow .2s' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2"><path d="M12 5v14M5 12h14" /></svg>{addLabel}
       </div>
     </div>
@@ -198,8 +213,8 @@ export function GeographyBody() {
               <input placeholder="ค้นหานิคม" style={{ border: 0, outline: 'none', background: 'transparent', fontSize: '12.5px', color: 'var(--text)', flex: 1, minWidth: 0 }} />
             </div>
           </div>
-          <div style={{ overflowX: 'auto' }} className="a-scroll">
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
+          <div id="geo-zone-scroll" style={{ overflowX: 'auto' }} className="a-scroll">
+            <table id="geo-zone-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
               <thead>
                 <tr style={{ background: 'var(--bg)' }}>
                   <th style={th}>นิคมอุตสาหกรรม</th>
@@ -223,12 +238,12 @@ export function GeographyBody() {
                           <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)' }}>{z.name}</span>
                         </div>
                       </td>
-                      <td style={{ padding: '13px 16px' }}>
+                      <td data-label="ประเภท" style={{ padding: '13px 16px' }}>
                         <span style={{ height: 22, padding: '0 10px', borderRadius: 9999, background: 'var(--bg)', border: '1px solid var(--border)', fontSize: 11, fontWeight: 600, color: 'var(--text)', display: 'inline-flex', alignItems: 'center' }}>{z.type}</span>
                       </td>
-                      <td style={{ padding: '13px 16px', fontSize: '12.5px', color: 'var(--muted)' }}>{z.province}</td>
-                      <td style={{ padding: '13px 16px', textAlign: 'center', fontSize: 13, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: 'var(--text)' }}>{z.count}</td>
-                      <td style={{ padding: '13px 16px', textAlign: 'center' }}>
+                      <td data-label="จังหวัด" style={{ padding: '13px 16px', fontSize: '12.5px', color: 'var(--muted)' }}>{z.province}</td>
+                      <td data-label="ทรัพย์" style={{ padding: '13px 16px', textAlign: 'center', fontSize: 13, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: 'var(--text)' }}>{z.count}</td>
+                      <td data-label="สถานะ" style={{ padding: '13px 16px', textAlign: 'center' }}>
                         <div onClick={() => setZoneOn({ ...zoneOn, [key]: !on })} style={{ width: 40, height: 23, borderRadius: 9999, cursor: 'pointer', position: 'relative', transition: 'background .2s', background: on ? '#0D6C3B' : 'var(--border)', display: 'inline-block' }}>
                           <div style={{ position: 'absolute', top: '2.5px', left: on ? '19px' : '2.5px', width: 18, height: 18, borderRadius: 9999, background: '#fff', transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,.2)' }} />
                         </div>
