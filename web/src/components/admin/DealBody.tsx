@@ -232,9 +232,9 @@ export default function DealBody() {
 
           {/* offers timeline */}
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 22 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>ประวัติการเจรจา (Offers)</div>
-              <div onClick={() => setAddOfferOpen((v) => !v)} style={{ height: 34, padding: '0 14px', borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', minWidth: 0 }}>ประวัติการเจรจา (Offers)</div>
+              <div onClick={() => setAddOfferOpen((v) => !v)} style={{ height: 34, padding: '0 14px', borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M12 5v14M5 12h14" /></svg>เพิ่ม offer
               </div>
             </div>
