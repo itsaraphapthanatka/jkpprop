@@ -53,8 +53,12 @@ const INITIAL_PAGE_DATA: Record<PageKey, Sec[]> = {
 const PAGE_NAMES: Record<PageKey, string> = { home: 'หน้าแรก', about: 'เกี่ยวกับเรา', contact: 'ติดต่อเรา' };
 
 const pageCss = `
+#pb-grid > div{ min-width:0; }
 @media (max-width:1200px){ #pb-grid{grid-template-columns:1fr !important;} #pb-preview{position:static !important;top:auto !important;} }
-@media (max-width:640px){ #pb-actions{flex-wrap:wrap !important;width:100% !important;row-gap:8px !important;} }
+@media (max-width:640px){
+  #admin-main > main{ padding:16px 14px 44px !important; }
+  #pb-actions{flex-wrap:wrap !important;width:100% !important;row-gap:8px !important;}
+}
 .pb-remove:hover{background:#F9E4E1 !important;color:#C0392B !important;}
 .pb-addbtn:hover{border-color:#0D6C3B !important;color:#0D6C3B !important;}
 .pb-addtype:hover{background:var(--tint) !important;}
