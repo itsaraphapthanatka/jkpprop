@@ -18,6 +18,10 @@ const pageCss = `
   #lst-actions{width:100%;flex-wrap:wrap;row-gap:8px;}
   #lst-create-grid{grid-template-columns:1fr !important;}
 }
+@media (max-width:480px){
+  #lc-footer{ flex-direction:column-reverse; }
+  #lc-footer > *{ width:100%; }
+}
 `;
 
 export default function AdminListingsPage() {

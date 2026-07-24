@@ -12,7 +12,13 @@ export const metadata: Metadata = { title: 'Deals · JKP CMS', robots: { index: 
    rich nodes (a link, a status badge), so they are passed as nodes
    and cast — the only deviation. */
 
-const dealCss = `@media (max-width:1100px){ #deal-split{grid-template-columns:1fr !important;} }`;
+const dealCss = `
+@media (max-width:1100px){ #deal-split{grid-template-columns:1fr !important;} }
+@media (max-width:480px){
+  #deal-actions{ width:100%; }
+  #deal-close-btn, #deal-unlock-btn{ width:100%; }
+}
+`;
 
 const eyebrow = (
   <>

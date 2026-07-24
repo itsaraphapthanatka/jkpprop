@@ -55,7 +55,9 @@ const TOP_LISTINGS = [
 ];
 
 const dashCss = `
+#dash-cols > div{ min-width:0; }
 @media (max-width:1000px){ #stat-grid{grid-template-columns:repeat(2,1fr) !important;} #dash-cols{grid-template-columns:1fr !important;} }
+@media (max-width:640px){ #admin-main > main{ padding:16px 14px 44px !important; } }
 @media (max-width:480px){
   #stat-grid{grid-template-columns:repeat(1,1fr) !important;}
   .dash-funnel-row{gap:8px !important;}

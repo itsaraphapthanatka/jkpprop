@@ -11,7 +11,9 @@ export const metadata: Metadata = { title: 'Shortlists · JKP CMS', robots: { in
    main body share the send-dialog / add-remove state. */
 
 const slCss = `
+#sl-split > div{ min-width:0; }
 @media (max-width:1100px){ #sl-split{grid-template-columns:1fr !important;} #sl-side{position:static !important;} }
+@media (max-width:640px){ #admin-main > main{ padding:16px 14px 44px !important; } }
 @media (max-width:480px){
   .sl-item-thumb{display:none !important;}
   .sl-item-row{gap:8px !important;}
