@@ -170,8 +170,8 @@ export function BrandingBody() {
   const radiusLabel = radiusMap[S.radius];
   const isDesktop = S.device === 'desktop';
 
-  const deviceDesktopStyle: React.CSSProperties = { height: 28, padding: '0 14px', borderRadius: 9999, fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', background: S.device === 'desktop' ? '#273c33' : 'transparent', color: S.device === 'desktop' ? '#fff' : 'var(--muted)' };
-  const deviceMobileStyle: React.CSSProperties = { height: 28, padding: '0 14px', borderRadius: 9999, fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', background: S.device === 'mobile' ? '#273c33' : 'transparent', color: S.device === 'mobile' ? '#fff' : 'var(--muted)' };
+  const deviceDesktopStyle: React.CSSProperties = { height: 28, padding: '0 14px', borderRadius: 9999, fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap', background: S.device === 'desktop' ? '#273c33' : 'transparent', color: S.device === 'desktop' ? '#fff' : 'var(--muted)' };
+  const deviceMobileStyle: React.CSSProperties = { height: 28, padding: '0 14px', borderRadius: 9999, fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap', background: S.device === 'mobile' ? '#273c33' : 'transparent', color: S.device === 'mobile' ? '#fff' : 'var(--muted)' };
 
   const previewFrameStyle: React.CSSProperties = { border: '1px solid var(--border)', borderRadius: 18, overflow: 'hidden', boxShadow: '0 20px 44px rgba(0,0,0,.1)', transition: 'max-width .35s cubic-bezier(.2,.8,.3,1)', margin: '0 auto', maxWidth: S.device === 'mobile' ? 390 : '100%' };
 
@@ -290,11 +290,11 @@ export function BrandingBody() {
 
       {/* LIVE PREVIEW */}
       <div id="brand-preview" style={{ position: 'sticky', top: 88 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '12.5px', fontWeight: 700, color: 'var(--muted)' }}>
-            <span style={{ width: 8, height: 8, borderRadius: 9999, background: '#2DFB91' }}></span>ตัวอย่างสด — อัปเดตทันทีเมื่อปรับ
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', rowGap: 8, marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '12.5px', fontWeight: 700, color: 'var(--muted)', minWidth: 0 }}>
+            <span style={{ width: 8, height: 8, borderRadius: 9999, background: '#2DFB91', flexShrink: 0 }}></span>ตัวอย่างสด — อัปเดตทันทีเมื่อปรับ
           </div>
-          <div style={{ display: 'flex', gap: 6, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 9999, padding: 3 }}>
+          <div style={{ display: 'flex', gap: 6, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 9999, padding: 3, flexShrink: 0 }}>
             <div onClick={() => setState({ device: 'desktop' })} style={deviceDesktopStyle}>เดสก์ท็อป</div>
             <div onClick={() => setState({ device: 'mobile' })} style={deviceMobileStyle}>มือถือ</div>
           </div>
@@ -311,7 +311,7 @@ export function BrandingBody() {
               {isDesktop && (
                 <span style={{ fontSize: 11, color: '#5F5A52', fontFamily: fontStack }}>โรงงาน · โกดัง · เกี่ยวกับเรา</span>
               )}
-              <div style={{ height: 30, padding: '0 14px', borderRadius: pillRadius, background: neon, color: '#04140C', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', fontFamily: fontStack }}>ติดต่อทีมงาน</div>
+              <div style={{ height: 30, padding: '0 14px', borderRadius: pillRadius, background: neon, color: '#04140C', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', fontFamily: fontStack, whiteSpace: 'nowrap', flexShrink: 0 }}>ติดต่อทีมงาน</div>
             </div>
           </div>
           {/* mini hero */}
@@ -338,9 +338,9 @@ export function BrandingBody() {
                   </div>
                   <div style={{ padding: '12px 14px' }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: '#28251D', fontFamily: fontStack }}>{pc.title}</div>
-                    <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: accent, fontFamily: "'JetBrains Mono',monospace" }}>{pc.price}</span>
-                      <div style={{ height: 26, padding: '0 12px', borderRadius: pillRadius, background: '#fff', border: '1px solid ' + pine, color: pine, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', fontFamily: fontStack }}>ดูรายละเอียด</div>
+                    <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, flexWrap: 'wrap', rowGap: 6 }}>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: accent, fontFamily: "'JetBrains Mono',monospace", whiteSpace: 'nowrap' }}>{pc.price}</span>
+                      <div style={{ height: 26, padding: '0 12px', borderRadius: pillRadius, background: '#fff', border: '1px solid ' + pine, color: pine, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', fontFamily: fontStack, whiteSpace: 'nowrap', flexShrink: 0 }}>ดูรายละเอียด</div>
                     </div>
                   </div>
                 </div>
