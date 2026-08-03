@@ -64,6 +64,7 @@ const tabDefs: [TabKey, string, boolean][] = [
 
 export function PropertyEditBody() {
   const [tab, setTab] = React.useState<TabKey>('main');
+  const [dealType, setDealType] = React.useState('เช่า');
   const [feat, setFeat] = React.useState<Record<string, boolean>>({ f0: true, f1: true, f4: true, f5: true });
 
   return (
@@ -89,6 +90,17 @@ export function PropertyEditBody() {
               <label style={labelStyle}>ชื่อทรัพย์ (ไทย) *</label>
               <input defaultValue="โกดังพร้อมสำนักงาน 2,700 ตร.ม." style={{ ...inputBase, fontSize: 14, fontWeight: 600 }} />
             </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>ประเภทประกาศ *</label>
+              <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
+                {['เช่า', 'ขาย', 'ขายและเช่า'].map((opt) => {
+                  const on = dealType === opt;
+                  return (
+                    <div key={opt} onClick={() => setDealType(opt)} style={{ flex: 1, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 11, fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? 'rgba(13,108,59,.06)' : 'var(--surface)', color: on ? '#0D6C3B' : 'var(--text)', transition: 'all .15s' }}>{opt}</div>
+                  );
+                })}
+              </div>
+            </div>
             <div>
               <label style={labelStyle}>ประเภททรัพย์ *</label>
               <div style={selectBox}>โกดัง<Chevron /></div>
@@ -97,17 +109,33 @@ export function PropertyEditBody() {
               <label style={labelStyle}>จังหวัด *</label>
               <div style={selectBox}>สมุทรปราการ<Chevron /></div>
             </div>
+            <div>
+              <label style={labelStyle}>อำเภอ *</label>
+              <div style={selectBox}>บางพลี<Chevron /></div>
+            </div>
+            <div>
+              <label style={labelStyle}>ระดับการแสดงตำแหน่ง</label>
+              <div style={selectBox}>ระดับตำบล<Chevron /></div>
+            </div>
             <div style={{ gridColumn: '1 / -1', background: 'var(--tint)', borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 10h18" /></svg>
               <span style={{ fontSize: '12.5px', color: 'var(--accent)' }}>รหัสทรัพย์: <code style={{ fontWeight: 700 }}>JKP-SPK0042</code> (แก้ไขไม่ได้ — สร้างจากจังหวัดตอนบันทึกครั้งแรก)</span>
             </div>
             <div>
-              <label style={labelStyle}>พื้นที่รวม (ตร.ม.)</label>
+              <label style={labelStyle}>ราคา ({dealType === 'ขาย' ? 'บาท' : 'บาท / เดือน'})</label>
+              <input defaultValue="405,000" style={inputBase} />
+            </div>
+            <div>
+              <label style={labelStyle}>ขนาดที่ดิน (ไร่-งาน-ตร.ว.)</label>
+              <input defaultValue="2-1-50" placeholder="เช่น 2-1-50" style={inputBase} />
+            </div>
+            <div>
+              <label style={labelStyle}>พื้นที่ใช้สอยรวม (ตร.ม.)</label>
               <input defaultValue="2,700" style={inputBase} />
             </div>
             <div>
-              <label style={labelStyle}>ระดับการแสดงตำแหน่ง</label>
-              <div style={selectBox}>ระดับตำบล<Chevron /></div>
+              <label style={labelStyle}>พื้นที่โกดัง / โรงงาน (ตร.ม.)</label>
+              <input defaultValue="2,300" style={inputBase} />
             </div>
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={labelStyle}>คำอธิบายย่อ (ไทย)</label>
