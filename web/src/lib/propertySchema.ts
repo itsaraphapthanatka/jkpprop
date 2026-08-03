@@ -301,6 +301,39 @@ export const REQUIREMENT_FIELDS: Record<string, FieldDef[]> = {
 export const requirementFields = (typeKey: string): FieldDef[] => REQUIREMENT_FIELDS[typeKey] || REQUIREMENT_FIELDS.warehouse;
 
 /* ============================================================
+   Property-type enablement — an agency turns off the types it doesn't
+   handle (e.g. only warehouse + factory). Persisted to localStorage and
+   read by BOTH the front-end requirement form and the back-end create/
+   edit forms + Field Builder, so front and back stay in sync.
+   ============================================================ */
+export type TypeConfig = { disabled: string[] };
+const TC_KEY = 'jkp.typeConfig.v1';
+
+export function loadTypeConfig(): TypeConfig {
+  if (typeof window === 'undefined') return { disabled: [] };
+  try {
+    const raw = window.localStorage.getItem(TC_KEY);
+    const o = raw ? (JSON.parse(raw) as TypeConfig) : null;
+    return o && Array.isArray(o.disabled) ? { disabled: o.disabled } : { disabled: [] };
+  } catch {
+    return { disabled: [] };
+  }
+}
+export function saveTypeConfig(tc: TypeConfig) {
+  if (typeof window === 'undefined') return;
+  try { window.localStorage.setItem(TC_KEY, JSON.stringify({ disabled: tc.disabled })); } catch { /* ignore */ }
+}
+/** Enabled property types (never empty — falls back to all if everything is off). */
+export function enabledPropertyTypes(tc?: TypeConfig): PropertyType[] {
+  const dis = new Set((tc || loadTypeConfig()).disabled);
+  const list = PROPERTY_TYPES.filter((t) => !dis.has(t.key));
+  return list.length ? list : PROPERTY_TYPES;
+}
+export function isTypeEnabled(key: string, tc?: TypeConfig): boolean {
+  return enabledPropertyTypes(tc).some((t) => t.key === key);
+}
+
+/* ============================================================
    Store — per-type overrides persisted in localStorage.
    Shape: { [typeKey]: { disabled: string[]; order: string[]; extra: FieldDef[] } }
    ============================================================ */

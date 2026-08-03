@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { DynamicFieldForm } from './DynamicFieldForm';
-import { PROPERTY_TYPES } from '@/lib/propertySchema';
+import { PROPERTY_TYPES, enabledPropertyTypes } from '@/lib/propertySchema';
 
 /* Property edit form — schema-driven. The "รายละเอียดทรัพย์" tab loads the
    field form for the selected property type (from the Field Builder schema in
@@ -36,6 +36,12 @@ const tabDefs: [TabKey, string, boolean][] = [
 export function PropertyEditBody() {
   const [tab, setTab] = React.useState<TabKey>('main');
   const [selType, setSelType] = React.useState('warehouse');
+  const [types, setTypes] = React.useState(PROPERTY_TYPES);
+  React.useEffect(() => {
+    const en = enabledPropertyTypes();
+    setTypes(en);
+    setSelType((k) => (en.some((t) => t.key === k) ? k : en[0].key));
+  }, []);
 
   return (
     <div style={{ margin: '-24px -28px -60px' }}>
@@ -65,7 +71,7 @@ export function PropertyEditBody() {
             <div>
               <label style={labelStyle}>ประเภททรัพย์ *</label>
               <div id="ed-type-picker" style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {PROPERTY_TYPES.map((pt) => {
+                {types.map((pt) => {
                   const on = selType === pt.key;
                   return (
                     <div key={pt.key} onClick={() => setSelType(pt.key)} style={{ flex: '1 1 auto', minWidth: 120, height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 12, fontSize: '13px', fontWeight: 700, cursor: 'pointer', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? 'rgba(13,108,59,.06)' : 'var(--surface)', color: on ? '#0D6C3B' : 'var(--text)' }}>

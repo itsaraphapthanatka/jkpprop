@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { DynamicFieldForm } from './DynamicFieldForm';
-import { PROPERTY_TYPES } from '@/lib/propertySchema';
+import { PROPERTY_TYPES, enabledPropertyTypes } from '@/lib/propertySchema';
 
 /* ============================================================
    AdminProperties.dc.html — ported <main> content (interactive):
@@ -126,6 +126,12 @@ export function PropertiesBody() {
   const { newOpen, setNewOpen } = useNew();
   const [tab, setTab] = React.useState('main');
   const [selType, setSelType] = React.useState('house');
+  const [types, setTypes] = React.useState(PROPERTY_TYPES);
+  React.useEffect(() => {
+    const en = enabledPropertyTypes();
+    setTypes(en);
+    setSelType((k) => (en.some((t) => t.key === k) ? k : en[0].key));
+  }, []);
   const [openMenu, setOpenMenu] = React.useState<number | null>(null);
   const [openFilter, setOpenFilter] = React.useState<FilterKey | null>(null);
   const [filterVals, setFilterVals] = React.useState<Record<FilterKey, string>>({ type: 'ทั้งหมด', province: 'ทั้งหมด', status: 'ทั้งหมด' });
@@ -309,7 +315,7 @@ export function PropertiesBody() {
                   <div>
                     <label style={fieldLabel}>ประเภททรัพย์ *</label>
                     <div id="np-type-picker" style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      {PROPERTY_TYPES.map((pt) => {
+                      {types.map((pt) => {
                         const on = selType === pt.key;
                         return (
                           <div key={pt.key} onClick={() => setSelType(pt.key)} style={{ flex: '1 1 auto', minWidth: 120, height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 12, fontSize: '13px', fontWeight: 700, cursor: 'pointer', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? 'rgba(13,108,59,.06)' : 'var(--surface)', color: on ? '#0D6C3B' : 'var(--text)' }}>

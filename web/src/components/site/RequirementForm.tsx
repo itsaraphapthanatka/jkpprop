@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { PROPERTY_TYPES, requirementFields, type FieldDef } from '@/lib/propertySchema';
+import { PROPERTY_TYPES, requirementFields, enabledPropertyTypes, type FieldDef } from '@/lib/propertySchema';
 import { addLead, newLeadId, type ReqItem } from '@/lib/leadStore';
 
 /* Public requirement-intake form (Contact page). Visitor picks a property
@@ -17,6 +17,13 @@ const isFull = (f: FieldDef) => ['dealtype', 'boolean', 'multiselect'].includes(
 
 export function RequirementForm() {
   const [typeKey, setTypeKey] = React.useState('warehouse');
+  // start from all types (SSR-safe), then narrow to the agency's enabled types on the client
+  const [types, setTypes] = React.useState(PROPERTY_TYPES);
+  React.useEffect(() => {
+    const en = enabledPropertyTypes();
+    setTypes(en);
+    setTypeKey((k) => (en.some((t) => t.key === k) ? k : en[0].key));
+  }, []);
   const [values, setValues] = React.useState<Record<string, unknown>>({ deal_intent: 'เช่า' });
   const [name, setName] = React.useState('');
   const [phone, setPhone] = React.useState('');
@@ -139,7 +146,7 @@ export function RequirementForm() {
       <div style={{ marginTop: 16 }}>
         <label style={labelStyle}>ประเภททรัพย์ที่ต้องการ{reqMark}</label>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {PROPERTY_TYPES.map((pt) => {
+          {types.map((pt) => {
             const on = typeKey === pt.key;
             return (
               <div key={pt.key} onClick={() => pickType(pt.key)} style={{ flex: '1 1 auto', minWidth: 108, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 12, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? 'rgba(13,108,59,.06)' : 'var(--bg)', color: on ? '#0D6C3B' : 'var(--text)' }}>

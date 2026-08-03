@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { AdminShell, AdminBreadcrumb } from '@/components/admin/AdminShell';
-import { PROPERTY_TYPES, loadOverride, saveOverride, resolveFields, type FieldDef, type FieldKind, type SchemaOverride } from '@/lib/propertySchema';
+import { PROPERTY_TYPES, loadOverride, saveOverride, resolveFields, loadTypeConfig, saveTypeConfig, type FieldDef, type FieldKind, type SchemaOverride, type TypeConfig } from '@/lib/propertySchema';
 
 /* Schema-driven Field Builder — edits the per-property-type field schema
    (enable/disable, reorder, add). Saves to localStorage; the create-property
@@ -62,8 +62,10 @@ export function FieldBuilderBody() {
   const [over, setOver] = React.useState<string | null>(null);
   const seq = React.useRef(1);
   const cardRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+  const [typeConfig, setTypeConfig] = React.useState<TypeConfig>({ disabled: [] });
 
   React.useEffect(() => { setOverride(loadOverride(scope)); setDirty(false); }, [scope]);
+  React.useEffect(() => { setTypeConfig(loadTypeConfig()); }, []);
 
   const type = PROPERTY_TYPES.find((t) => t.key === scope) || PROPERTY_TYPES[0];
   const fields = resolveFields(scope, override);
@@ -103,6 +105,23 @@ export function FieldBuilderBody() {
   };
   const save = () => { saveOverride(scope, override); setDirty(false); flash(`บันทึกฟิลด์ของ "${scopeLabel}" แล้ว · เปิดใช้ ${enabledCount} ฟิลด์`); };
 
+  // enable/disable an entire property type (auto-saved; affects front + back)
+  const toggleType = (key: string) => {
+    setTypeConfig((tc) => {
+      const dis = new Set(tc.disabled);
+      if (dis.has(key)) dis.delete(key);
+      else {
+        const enabledLeft = PROPERTY_TYPES.filter((t) => !dis.has(t.key) && t.key !== key).length;
+        if (enabledLeft < 1) { flash('ต้องเปิดอย่างน้อย 1 ประเภททรัพย์'); return tc; }
+        dis.add(key);
+      }
+      const next = { disabled: [...dis] };
+      saveTypeConfig(next);
+      flash('อัปเดตประเภททรัพย์ที่เปิดใช้งานแล้ว · มีผลกับฟอร์มหน้าเว็บและหลังบ้าน');
+      return next;
+    });
+  };
+
   const isCustom = (key: string) => override.extra.some((f) => f.key === key);
 
   const fbTitle = (
@@ -126,7 +145,7 @@ export function FieldBuilderBody() {
                 const active = t.key === scope;
                 return (
                   <div key={t.key} onClick={() => { setScope(t.key); setScopeOpen(false); }} style={dd(active)}>
-                    <span>ฟิลด์ของ {t.label}</span>
+                    <span>ฟิลด์ของ {t.label}{typeConfig.disabled.includes(t.key) ? ' · ปิดอยู่' : ''}</span>
                     {active && <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" strokeWidth="2.6"><path d="M20 6L9 17l-5-5" /></svg>}
                   </div>
                 );
@@ -203,6 +222,24 @@ export function FieldBuilderBody() {
 
         {/* PALETTE */}
         <div id="fb-preview" style={{ position: 'sticky', top: 88, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* property-type enablement — off types disappear from front + back */}
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 20 }}>
+            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text)', marginBottom: 4 }}>ประเภททรัพย์ที่เปิดใช้งาน</div>
+            <div style={{ fontSize: '11.5px', color: 'var(--muted2)', marginBottom: 14 }}>ปิดประเภทที่ไม่ได้ทำ — จะซ่อนจากฟอร์มหน้าเว็บ (แจ้งความต้องการ) และหลังบ้าน (+เพิ่มทรัพย์ / แก้ไข) ทันที</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {PROPERTY_TYPES.map((t) => {
+                const on = !typeConfig.disabled.includes(t.key);
+                return (
+                  <div key={t.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 11px', borderRadius: 11, border: '1px solid var(--border)', background: on ? 'var(--surface)' : 'var(--bg)' }}>
+                    <span style={{ display: 'flex', width: 18, height: 18, flexShrink: 0, opacity: on ? 1 : 0.45 }} dangerouslySetInnerHTML={{ __html: t.icon }} />
+                    <span style={{ flex: 1, minWidth: 0, fontSize: '12.5px', fontWeight: 700, color: on ? 'var(--text)' : 'var(--muted3)' }}>{t.label}</span>
+                    <div onClick={() => toggleType(t.key)} title={on ? 'ปิดประเภทนี้' : 'เปิดประเภทนี้'} style={switchStyle(on)}><div style={knob(on)} /></div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 20 }}>
             <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text)', marginBottom: 4 }}>เพิ่มชนิดฟิลด์</div>
             <div style={{ fontSize: '11.5px', color: 'var(--muted2)', marginBottom: 14 }}>กดเพื่อเพิ่มฟิลด์ใหม่เข้าประเภทนี้</div>
