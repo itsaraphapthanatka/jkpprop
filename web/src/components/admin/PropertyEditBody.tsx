@@ -23,7 +23,6 @@ type SpecDef = { label: string; kind: 'input' | 'select' | 'toggle'; value: stri
 
 const specDefs: SpecDef[] = [
   { label: 'พื้นที่ใช้สอย (ตร.ม.)', kind: 'input', value: '2,700' },
-  { label: 'ขนาดที่ดิน (ไร่)', kind: 'input', value: '4' },
   { label: 'ความสูงใต้อาคาร (ม.)', kind: 'input', value: '9' },
   { label: 'รับน้ำหนักพื้น (ตัน/ตร.ม.)', kind: 'input', value: '3' },
   { label: 'ระบบไฟฟ้า', kind: 'select', value: '3 Phase 50/150A' },
@@ -136,6 +135,14 @@ export function PropertyEditBody() {
             <div>
               <label style={labelStyle}>พื้นที่โกดัง / โรงงาน (ตร.ม.)</label>
               <input defaultValue="2,300" style={inputBase} />
+            </div>
+            <div>
+              <label style={labelStyle}>ขนาดรวม (ตร.ม.)</label>
+              <input defaultValue="3,200" style={inputBase} />
+            </div>
+            <div>
+              <label style={labelStyle}>จำนวนชั้นออฟฟิศ (ชั้น)</label>
+              <input defaultValue="2" style={inputBase} />
             </div>
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={labelStyle}>คำอธิบายย่อ (ไทย)</label>
