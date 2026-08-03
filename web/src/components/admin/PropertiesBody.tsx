@@ -1,6 +1,8 @@
 'use client';
 
 import * as React from 'react';
+import { DynamicFieldForm } from './DynamicFieldForm';
+import { PROPERTY_TYPES } from '@/lib/propertySchema';
 
 /* ============================================================
    AdminProperties.dc.html — ported <main> content (interactive):
@@ -76,35 +78,13 @@ const ROW_MENU: MenuItem[] = [
 ];
 
 const TAB_DEFS: { key: string; label: string; done: boolean }[] = [
-  { key: 'main', label: 'ข้อมูลหลัก', done: true },
-  { key: 'specs', label: 'Specs', done: false },
-  { key: 'features', label: 'Features', done: false },
-  { key: 'media', label: 'Media', done: false },
-  { key: 'trans', label: 'Translations', done: false },
+  { key: 'main', label: 'รายละเอียดทรัพย์', done: true },
+  { key: 'trans', label: 'การแปลภาษา', done: false },
 ];
-
-const SPEC_DEFS: { label: string; kind: 'input' | 'select' | 'toggle'; placeholder: string; full: boolean }[] = [
-  { label: 'พื้นที่ใช้สอย (ตร.ม.)', kind: 'input', placeholder: '0', full: false },
-  { label: 'ขนาดที่ดิน (ไร่)', kind: 'input', placeholder: '0', full: false },
-  { label: 'ความสูงใต้อาคาร (ม.)', kind: 'input', placeholder: '0', full: false },
-  { label: 'รับน้ำหนักพื้น (ตัน/ตร.ม.)', kind: 'input', placeholder: '0', full: false },
-  { label: 'ระบบไฟฟ้า', kind: 'select', placeholder: 'เลือกระบบไฟ', full: false },
-  { label: 'เขตโซน', kind: 'select', placeholder: 'เลือกเขตโซน', full: false },
-  { label: 'ขอใบ ร.ง.4 ได้', kind: 'toggle', placeholder: 'ขอใบอนุญาตโรงงานได้', full: true },
-];
-
-const FEAT_DEFS = ['อาคารเดี่ยว', 'มีพื้นที่สำนักงานในตัว', 'พื้นที่ขนถ่ายแบบยกพื้น', 'เครนเหนือศีรษะ', 'พนักงานรักษาความปลอดภัย', 'บนถนนสายหลัก', 'ใกล้ท่าเรือ/สนามบิน', 'ห้องเย็น/ควบคุมอุณหภูมิ'];
 
 const TRANS_LANGS = [
   { name: 'English', code: 'EN', flag: FLAG_TH, badge: 'ยังไม่แปล', title: '', titlePh: 'Warehouse with office, Bangna', descPh: 'Describe the property in English…' },
   { name: '中文', code: 'ZH', flag: FLAG_ZH, badge: 'ยังไม่แปล', title: '', titlePh: '带办公室的仓库，邦纳', descPh: '用中文描述该物业…' },
-];
-
-const MEDIA_SLOTS = [
-  { id: 'np-m1', src: '', cover: true },
-  { id: 'np-m2', src: '', cover: false },
-  { id: 'np-m3', src: '', cover: false },
-  { id: 'np-m4', src: '', cover: false },
 ];
 
 /* ---- style helpers ---- */
@@ -112,13 +92,10 @@ const thBase: React.CSSProperties = { padding: '13px 16px', textAlign: 'left', f
 
 const fieldLabel: React.CSSProperties = { fontSize: 12, fontWeight: 700, color: 'var(--muted)' };
 const drawerInput: React.CSSProperties = { marginTop: 6, width: '100%', height: 44, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: '13.5px', background: 'var(--surface)', outline: 'none' };
-const selectBox = (muted: boolean): React.CSSProperties => ({ marginTop: 6, height: 44, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: '13.5px', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: muted ? 'var(--muted)' : 'var(--text)' });
 
 const chipStyle = (hot: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 14px', borderRadius: 10, fontSize: 13, fontWeight: hot ? 700 : 600, cursor: 'pointer', background: hot ? '#273c33' : 'var(--bg)', color: hot ? '#fff' : 'var(--text)', border: '1px solid ' + (hot ? '#273c33' : 'var(--border)') });
 const ddOption = (active: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '9px 11px', borderRadius: 9, fontSize: '12.5px', fontWeight: active ? 700 : 600, cursor: 'pointer', color: active ? '#0D6C3B' : 'var(--text)', background: active ? 'rgba(13,108,59,.06)' : 'transparent' });
 const tabStyle = (on: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: 6, padding: '0 4px 12px', fontSize: 13, fontWeight: on ? 700 : 600, color: on ? '#0D6C3B' : 'var(--muted2)', borderBottom: '2.5px solid ' + (on ? '#0D6C3B' : 'transparent'), cursor: 'pointer', whiteSpace: 'nowrap' });
-const featStyle = (on: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: 11, padding: '12px 14px', borderRadius: 12, cursor: 'pointer', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? 'rgba(13,108,59,.05)' : 'var(--surface)' });
-const featBox = (on: boolean): React.CSSProperties => ({ width: 20, height: 20, borderRadius: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? '#0D6C3B' : 'transparent' });
 const menuItemStyle = (danger: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 11px', borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: 'pointer', color: danger ? '#C0392B' : 'var(--text)' });
 const badgeYet: React.CSSProperties = { height: 22, padding: '0 10px', borderRadius: 9999, background: '#FBF3E1', color: '#9A741C', fontSize: '10.5px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' };
 
@@ -148,7 +125,7 @@ export function PropertiesActions() {
 export function PropertiesBody() {
   const { newOpen, setNewOpen } = useNew();
   const [tab, setTab] = React.useState('main');
-  const [feat, setFeat] = React.useState<Record<string, boolean>>({ f0: true, f2: true });
+  const [selType, setSelType] = React.useState('house');
   const [openMenu, setOpenMenu] = React.useState<number | null>(null);
   const [openFilter, setOpenFilter] = React.useState<FilterKey | null>(null);
   const [filterVals, setFilterVals] = React.useState<Record<FilterKey, string>>({ type: 'ทั้งหมด', province: 'ทั้งหมด', status: 'ทั้งหมด' });
@@ -323,83 +300,40 @@ export function PropertiesBody() {
             </div>
 
             <div className="a-scroll" style={{ flex: 1, overflowY: 'auto', padding: 24, background: 'var(--bg)' }}>
-              {/* TAB: ข้อมูลหลัก */}
+              {/* TAB: รายละเอียดทรัพย์ — schema-driven per property type */}
               {tab === 'main' && (
-                <div id="np-grid-main" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                  <div style={{ gridColumn: '1 / -1' }}><label style={fieldLabel}>ชื่อทรัพย์ (ไทย) *</label><input placeholder="เช่น โกดังพร้อมสำนักงาน บางนา" style={drawerInput} /></div>
-                  <div><label style={fieldLabel}>ประเภททรัพย์ *</label><div style={selectBox(true)}>เลือกประเภท<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2.4"><path d="M6 9l6 6 6-6" /></svg></div></div>
-                  <div><label style={fieldLabel}>จังหวัด *</label><div style={selectBox(true)}>เลือกจังหวัด<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2.4"><path d="M6 9l6 6 6-6" /></svg></div></div>
-                  <div style={{ gridColumn: '1 / -1', background: 'var(--tint)', border: '1px dashed #9CC', borderColor: 'rgba(3,73,86,.3)', borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
-                    <span style={{ fontSize: '12.5px', color: 'var(--accent)' }}>รหัสตัวอย่าง: <code style={{ fontWeight: 700 }}>JKP-SPK0043</code> (สมุทรปราการ) — ระบบสร้างให้อัตโนมัติเมื่อบันทึก</span>
-                  </div>
-                  <div><label style={fieldLabel}>พื้นที่รวม (ตร.ม.)</label><input placeholder="0" style={drawerInput} /></div>
-                  <div><label style={fieldLabel}>ระดับการแสดงตำแหน่ง</label><div style={selectBox(false)}>ระดับตำบล<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2.4"><path d="M6 9l6 6 6-6" /></svg></div></div>
-                  <div style={{ gridColumn: '1 / -1' }}><label style={fieldLabel}>คำอธิบายย่อ (ไทย)</label><textarea placeholder="อธิบายจุดเด่นของทรัพย์สั้นๆ…" style={{ marginTop: 6, width: '100%', height: 82, padding: '12px 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--surface)', outline: 'none', resize: 'none', fontFamily: 'inherit' }} /></div>
-                </div>
-              )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                  <div><label style={fieldLabel}>ชื่อทรัพย์ (ไทย) *</label><input placeholder="เช่น บ้านเดี่ยว 2 ชั้น หมู่บ้านเดอะแกรนด์" style={drawerInput} /></div>
 
-              {/* TAB: Specs */}
-              {tab === 'specs' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <div id="np-grid-specs" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                    {SPEC_DEFS.map((f) => (
-                      <div key={f.label} style={f.full ? { gridColumn: '1 / -1' } : undefined}>
-                        <label style={fieldLabel}>{f.label}</label>
-                        {f.kind === 'input' && <input placeholder={f.placeholder} style={drawerInput} />}
-                        {f.kind === 'select' && <div style={selectBox(true)}>{f.placeholder}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2.4"><path d="M6 9l6 6 6-6" /></svg></div>}
-                        {f.kind === 'toggle' && (
-                          <div style={{ marginTop: 6, height: 44, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: 13, color: 'var(--text)' }}>{f.placeholder}</span>
-                            <div style={{ width: 40, height: 23, borderRadius: 9999, background: '#0D6C3B', position: 'relative' }}><div style={{ position: 'absolute', top: '2.5px', left: 19, width: 18, height: 18, borderRadius: 9999, background: '#fff' }} /></div>
+                  {/* property-type selector — drives which field form is loaded */}
+                  <div>
+                    <label style={fieldLabel}>ประเภททรัพย์ *</label>
+                    <div id="np-type-picker" style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {PROPERTY_TYPES.map((pt) => {
+                        const on = selType === pt.key;
+                        return (
+                          <div key={pt.key} onClick={() => setSelType(pt.key)} style={{ flex: '1 1 auto', minWidth: 120, height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 12, fontSize: '13px', fontWeight: 700, cursor: 'pointer', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? 'rgba(13,108,59,.06)' : 'var(--surface)', color: on ? '#0D6C3B' : 'var(--text)' }}>
+                            <span style={{ display: 'flex', width: 16, height: 16 }} dangerouslySetInnerHTML={{ __html: pt.icon }} />
+                            {pt.label}
                           </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '12px 14px', borderRadius: 11, background: '#F0ECF9', border: '1px solid #DCCFEC' }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7A3FB0" strokeWidth="1.9" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
-                    <span style={{ fontSize: 12, color: '#7A3FB0' }}>ฟิลด์ในแท็บนี้ปรับได้ที่ <b>Field Builder</b> — แต่ละ tenant กำหนดสเปกเองได้</span>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB: Features */}
-              {tab === 'features' && (
-                <div>
-                  <div style={{ fontSize: '12.5px', color: 'var(--muted)', marginBottom: 14 }}>ติ๊กคุณสมบัติที่มี — ใช้เป็นตัวกรองบนเว็บสาธารณะ</div>
-                  <div id="np-grid-feat" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                    {FEAT_DEFS.map((label, i) => {
-                      const on = !!feat['f' + i];
-                      return (
-                        <div key={label} onClick={() => setFeat({ ...feat, ['f' + i]: !on })} style={featStyle(on)}>
-                          <div style={featBox(on)}>{on && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4"><path d="M20 6L9 17l-5-5" /></svg>}</div>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{label}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* TAB: Media */}
-              {tab === 'media' && (
-                <div>
-                  <div style={{ border: '1.5px dashed var(--border)', borderRadius: 14, padding: 26, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, textAlign: 'center', background: 'var(--surface)' }}>
-                    <div style={{ width: 46, height: 46, borderRadius: 12, background: 'var(--tint)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><path d="M17 8l-5-5-5 5M12 3v12" /></svg></div>
-                    <div>
-                      <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)' }}>ลากรูปมาวาง หรือเลือกจากคลัง Media</div>
-                      <div style={{ fontSize: 12, color: 'var(--muted3)' }}>รูปแรกจะเป็นปก · ลายน้ำอัตโนมัติ · JPG/PNG/WebP</div>
+                        );
+                      })}
                     </div>
-                    <div style={{ height: 36, padding: '0 16px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>เลือกจากคลัง</div>
                   </div>
-                  <div id="np-grid-media" style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
-                    {MEDIA_SLOTS.map((m) => (
-                      <div key={m.id} style={{ position: 'relative', aspectRatio: '1/1', borderRadius: 11, overflow: 'hidden', background: 'var(--tint)' }}>
-                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted3)', fontSize: 11 }}>รูป</div>
-                        {m.cover && <span style={{ position: 'absolute', top: 6, left: 6, height: 18, padding: '0 7px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center' }}>ปก</span>}
-                      </div>
-                    ))}
+
+                  {/* auto-code hint */}
+                  <div style={{ background: 'var(--tint)', border: '1px dashed rgba(3,73,86,.3)', borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
+                    <span style={{ fontSize: '12.5px', color: 'var(--accent)' }}>รหัสตัวอย่าง: <code style={{ fontWeight: 700 }}>JKP-SPK0043</code> — ระบบสร้างให้อัตโนมัติเมื่อบันทึก</span>
+                  </div>
+
+                  {/* schema-driven fields for the selected type */}
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 18 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+                      <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text)' }}>รายละเอียด: {PROPERTY_TYPES.find((p) => p.key === selType)?.label}</div>
+                      <a href="/admin/field-builder" style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--accent)', textDecoration: 'none' }}>ปรับฟิลด์ที่ Field Builder →</a>
+                    </div>
+                    <DynamicFieldForm typeKey={selType} />
                   </div>
                 </div>
               )}
