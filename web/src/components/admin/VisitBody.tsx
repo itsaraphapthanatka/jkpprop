@@ -49,7 +49,6 @@ export function VisitActions() {
 /* ---- Main content ---- */
 export function VisitBody() {
   const [gateConfirmed, setGateConfirmed] = React.useState(false);
-  const [extraAppts, setExtraAppts] = React.useState<unknown[]>([]);
   const gatePending = !gateConfirmed;
   const overWarn = TOTAL_LISTINGS > 8;
 
@@ -65,7 +64,6 @@ export function VisitBody() {
         { seq: '1', title: 'โรงงาน + โกดัง ปิ่นทอง', code: 'JKP-CBI0019', outcome: 'ยังไม่ดู', outcomeStyle: ob('#F0EEE9', '#7A7974') },
       ],
     },
-    ...extraAppts.map((_appt, i): Appointment => ({ no: String(3 + i), landlord: 'นัดใหม่ (ยังไม่ระบุ)', time: 'กำหนดเวลา', badge: 'ร่าง', badgeStyle: ob('#F0EEE9', '#7A7974'), count: '0', listings: [] })),
   ];
 
   return (
@@ -151,15 +149,6 @@ export function VisitBody() {
                 </div>
               </div>
             ))}
-          </div>
-
-          <div
-            onClick={() => setExtraAppts((prev) => [...prev, {}])}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#0D6C3B'; e.currentTarget.style.color = '#0D6C3B'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--muted)'; }}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, border: '1.5px dashed var(--border)', borderRadius: 14, color: 'var(--muted)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M12 5v14M5 12h14" /></svg>เพิ่มนัด (appointment)
           </div>
         </div>
 
