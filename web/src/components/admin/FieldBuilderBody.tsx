@@ -2,75 +2,34 @@
 
 import * as React from 'react';
 import { AdminShell, AdminBreadcrumb } from '@/components/admin/AdminShell';
+import { PROPERTY_TYPES, loadOverride, saveOverride, resolveFields, type FieldDef, type FieldKind, type SchemaOverride } from '@/lib/propertySchema';
 
-/* Ported from AdminFieldBuilder.dc.html — the <main> content of the
-   no-code field builder. Interactive beyond the static design:
-   - drag a field type from the right palette → drop into the left
-     list to add a new field (drop on a row inserts there; drop on the
-     "เพิ่มฟิลด์ใหม่" box appends)
-   - "เพิ่มฟิลด์ใหม่" button adds a text field
-   - drag the grip handle to reorder fields
-   - the pencil opens an inline editor (ชื่อ/คีย์/ชนิด/บังคับ/แสดงบนเว็บ + ลบ)
-   - per-field "แสดงบนเว็บ" toggle */
+/* Schema-driven Field Builder — edits the per-property-type field schema
+   (enable/disable, reorder, add). Saves to localStorage; the create-property
+   modal and the property-edit form read the same schema. */
 
-const fi = (p: string, c: string) => ({ __html: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="' + c + '" stroke-width="1.8">' + p + '</svg>' });
-const ti = (p: string) => ({ __html: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">' + p + '</svg>' });
-
-type FieldDef = {
-  id: string;
-  label: string;
-  key: string;
-  typeName: string;
-  required: boolean;
-  system: boolean;
-  iconBg: string;
-  iconColor: string;
-  icon: { __html: string };
+const KIND_LABEL: Record<FieldKind, string> = {
+  dealtype: 'ประเภทประกาศ', text: 'ข้อความ', number: 'ตัวเลข', price: 'ราคา',
+  select: 'ตัวเลือก (dropdown)', multiselect: 'เลือกหลายค่า', boolean: 'ใช่/ไม่',
+  media: 'ไฟล์ / สื่อ', location: 'ที่อยู่ / พิกัด', group: 'กลุ่มย่อย',
+};
+const kindPath = (k: FieldKind) => {
+  const m: Record<FieldKind, string> = {
+    dealtype: '<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>',
+    text: '<path d="M4 7V4h16v3M9 20h6M12 4v16"></path>',
+    number: '<path d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18"></path>',
+    price: '<path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"></path>',
+    select: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path>',
+    multiselect: '<rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><path d="M3 16l2 2 4-4M14 17h7"></path>',
+    boolean: '<rect x="1" y="5" width="22" height="14" rx="7"></rect><circle cx="16" cy="12" r="4"></circle>',
+    media: '<rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path>',
+    location: '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z"></path><circle cx="12" cy="10" r="3"></circle>',
+    group: '<rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect>',
+  };
+  return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7A3FB0" stroke-width="1.8">' + m[k] + '</svg>';
 };
 
-type FieldType = { name: string; typeName: string; keyBase: string; path: string };
-
-const FIELD_TYPES: FieldType[] = [
-  { name: 'ข้อความ', typeName: 'ข้อความ', keyBase: 'text', path: '<path d="M4 7V4h16v3M9 20h6M12 4v16"></path>' },
-  { name: 'ตัวเลข', typeName: 'ตัวเลข', keyBase: 'number', path: '<path d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18"></path>' },
-  { name: 'ตัวเลือก', typeName: 'ตัวเลือก (dropdown)', keyBase: 'select', path: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path>' },
-  { name: 'ใช่/ไม่', typeName: 'ใช่/ไม่ (boolean)', keyBase: 'boolean', path: '<rect x="1" y="5" width="22" height="14" rx="7"></rect><circle cx="16" cy="12" r="4"></circle>' },
-  { name: 'วันที่', typeName: 'วันที่', keyBase: 'date', path: '<rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path>' },
-  { name: 'ไฟล์แนบ', typeName: 'ไฟล์แนบ', keyBase: 'file', path: '<path d="M21.4 11.05l-9.19 9.19a5 5 0 01-7.07-7.07l9.19-9.19a3 3 0 014.24 4.24l-9.2 9.19a1 1 0 01-1.41-1.41l8.49-8.49"></path>' },
-];
-
-const INITIAL_FIELDS: FieldDef[] = [
-  { id: 'usable_area_sqm', label: 'พื้นที่ใช้สอย (ตร.ม.)', key: 'usable_area_sqm', typeName: 'ตัวเลข', required: true, system: true, iconBg: '#EEF4F3', iconColor: '#034956', icon: fi('<path d="M3 3h18v18H3z"></path><path d="M3 9h18M9 3v18"></path>', '#034956') },
-  { id: 'clear_height_m', label: 'ความสูงใต้อาคาร (ม.)', key: 'clear_height_m', typeName: 'ตัวเลข', required: true, system: true, iconBg: '#EEF4F3', iconColor: '#034956', icon: fi('<path d="M12 3v18M5 8l7-5 7 5"></path>', '#034956') },
-  { id: 'floor_loading', label: 'รับน้ำหนักพื้น (ตัน/ตร.ม.)', key: 'floor_loading', typeName: 'ตัวเลขทศนิยม', required: false, system: true, iconBg: '#EEF4F3', iconColor: '#034956', icon: fi('<path d="M12 2v20M5 8h14"></path>', '#034956') },
-  { id: 'power_system', label: 'ระบบไฟฟ้า', key: 'power_system', typeName: 'ตัวเลือก (dropdown)', required: true, system: false, iconBg: '#F0ECF9', iconColor: '#7A3FB0', icon: fi('<path d="M13 2L3 14h7l-1 8 11-14h-7z"></path>', '#7A3FB0') },
-  { id: 'truck_parking', label: 'จำนวนที่จอดรถบรรทุก', key: 'truck_parking', typeName: 'ตัวเลข', required: false, system: false, iconBg: '#F0ECF9', iconColor: '#7A3FB0', icon: fi('<path d="M1 3h15v13H1zM16 8h4l3 3v5h-7"></path><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle>', '#7A3FB0') },
-  { id: 'factory_license', label: 'ขอใบ ร.ง.4 ได้', key: 'factory_license', typeName: 'ใช่/ไม่ (boolean)', required: false, system: false, iconBg: '#F0ECF9', iconColor: '#7A3FB0', icon: fi('<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>', '#7A3FB0') },
-  { id: 'overhead_crane', label: 'มีเครนเหนือศีรษะ', key: 'overhead_crane', typeName: 'ใช่/ไม่ (boolean)', required: false, system: false, iconBg: '#F0ECF9', iconColor: '#7A3FB0', icon: fi('<path d="M3 21h18M5 21V7l10-3v17M5 7h10"></path>', '#7A3FB0') },
-];
-
-/* Field sets differ per property type — the "ฟิลด์ของ: …" scope dropdown swaps these. */
-const WAREHOUSE_FIELDS: FieldDef[] = [
-  { id: 'usable_area_sqm', label: 'พื้นที่ใช้สอย (ตร.ม.)', key: 'usable_area_sqm', typeName: 'ตัวเลข', required: true, system: true, iconBg: '#EEF4F3', iconColor: '#034956', icon: fi('<path d="M3 3h18v18H3z"></path><path d="M3 9h18M9 3v18"></path>', '#034956') },
-  { id: 'clear_height_m', label: 'ความสูงใต้อาคาร (ม.)', key: 'clear_height_m', typeName: 'ตัวเลข', required: true, system: true, iconBg: '#EEF4F3', iconColor: '#034956', icon: fi('<path d="M12 3v18M5 8l7-5 7 5"></path>', '#034956') },
-  { id: 'floor_loading', label: 'รับน้ำหนักพื้น (ตัน/ตร.ม.)', key: 'floor_loading', typeName: 'ตัวเลขทศนิยม', required: false, system: true, iconBg: '#EEF4F3', iconColor: '#034956', icon: fi('<path d="M12 2v20M5 8h14"></path>', '#034956') },
-  { id: 'dock_doors', label: 'จำนวนประตู Loading Dock', key: 'dock_doors', typeName: 'ตัวเลข', required: false, system: false, iconBg: '#F0ECF9', iconColor: '#7A3FB0', icon: fi('<rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M9 3v18"></path>', '#7A3FB0') },
-  { id: 'cold_storage', label: 'ห้องเย็น/ควบคุมอุณหภูมิ', key: 'cold_storage', typeName: 'ใช่/ไม่ (boolean)', required: false, system: false, iconBg: '#F0ECF9', iconColor: '#7A3FB0', icon: fi('<path d="M12 2v20M2 12h20M5 5l14 14M19 5L5 19"></path>', '#7A3FB0') },
-  { id: 'power_system', label: 'ระบบไฟฟ้า', key: 'power_system', typeName: 'ตัวเลือก (dropdown)', required: false, system: false, iconBg: '#F0ECF9', iconColor: '#7A3FB0', icon: fi('<path d="M13 2L3 14h7l-1 8 11-14h-7z"></path>', '#7A3FB0') },
-];
-const LAND_FIELDS: FieldDef[] = [
-  { id: 'land_area_rai', label: 'ขนาดที่ดิน (ไร่)', key: 'land_area_rai', typeName: 'ตัวเลขทศนิยม', required: true, system: true, iconBg: '#EEF4F3', iconColor: '#034956', icon: fi('<path d="M3 20h18M5 20V10l7-5 7 5v10"></path>', '#034956') },
-  { id: 'zoning', label: 'ผังเมือง (โซนสี)', key: 'zoning', typeName: 'ตัวเลือก (dropdown)', required: true, system: true, iconBg: '#EEF4F3', iconColor: '#034956', icon: fi('<path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"></path><path d="M9 3v15M15 6v15"></path>', '#034956') },
-  { id: 'road_frontage_m', label: 'หน้ากว้างติดถนน (ม.)', key: 'road_frontage_m', typeName: 'ตัวเลข', required: false, system: false, iconBg: '#F0ECF9', iconColor: '#7A3FB0', icon: fi('<path d="M4 19l6-14M20 19l-6-14M12 5v14"></path>', '#7A3FB0') },
-  { id: 'filled_land', label: 'ถมดินแล้ว', key: 'filled_land', typeName: 'ใช่/ไม่ (boolean)', required: false, system: false, iconBg: '#F0ECF9', iconColor: '#7A3FB0', icon: fi('<path d="M3 20h18M5 20l7-8 7 8"></path>', '#7A3FB0') },
-];
-const FIELDS_BY_SCOPE: Record<string, FieldDef[]> = { factory: INITIAL_FIELDS, warehouse: WAREHOUSE_FIELDS, land: LAND_FIELDS };
-const SCOPES: { key: string; label: string }[] = [
-  { key: 'factory', label: 'โรงงาน' },
-  { key: 'warehouse', label: 'โกดัง' },
-  { key: 'land', label: 'ที่ดิน' },
-];
-const ddOption = (active: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '9px 11px', borderRadius: 9, fontSize: '12.5px', fontWeight: active ? 700 : 600, cursor: 'pointer', color: active ? '#0D6C3B' : 'var(--text)', background: active ? 'rgba(13,108,59,.06)' : 'transparent' });
+const PALETTE: FieldKind[] = ['text', 'number', 'price', 'select', 'multiselect', 'boolean', 'media'];
 
 const fbCss = `
 #fb-split > div{ min-width:0; }
@@ -78,91 +37,75 @@ const fbCss = `
 @media (max-width:640px){
   #admin-main > main{ padding:16px 14px 44px !important; }
   #fb-actions{flex-wrap:wrap !important;width:100% !important;row-gap:8px !important;}
-  #fb-edit-grid{grid-template-columns:1fr !important;}
   #fb-split code{ overflow-wrap:anywhere; }
 }
+@media (max-width:480px){ #fb-save{flex:1 1 100% !important;justify-content:center;} }
 .fb-save:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(13,108,59,.35);}
-.fb-edit:hover{background:var(--border);}
 .fb-type:hover{border-color:#7A3FB0;transform:translateY(-2px);}
 `;
 
-const switchStyle = (isOn: boolean): React.CSSProperties => ({ width: 36, height: 21, borderRadius: 9999, cursor: 'pointer', position: 'relative', transition: 'background .2s', background: isOn ? '#0D6C3B' : 'var(--border)', flexShrink: 0 });
-const knobStyle = (isOn: boolean): React.CSSProperties => ({ position: 'absolute', top: '2.5px', left: isOn ? '17px' : '2.5px', width: 16, height: 16, borderRadius: 9999, background: '#fff', transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,.2)' });
-
-const editInput: React.CSSProperties = { width: '100%', height: 40, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)', fontFamily: 'inherit', fontSize: 13, color: 'var(--text)', outline: 'none' };
-const editLabel: React.CSSProperties = { display: 'block', marginBottom: 6, fontSize: '11.5px', fontWeight: 700, color: 'var(--muted2)' };
+const dd = (active: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '9px 11px', borderRadius: 9, fontSize: '12.5px', fontWeight: active ? 700 : 600, cursor: 'pointer', color: active ? '#0D6C3B' : 'var(--text)', background: active ? 'rgba(13,108,59,.06)' : 'transparent' });
+const switchStyle = (on: boolean): React.CSSProperties => ({ width: 36, height: 21, borderRadius: 9999, cursor: on === undefined ? 'default' : 'pointer', position: 'relative', transition: 'background .2s', background: on ? '#0D6C3B' : 'var(--border)', flexShrink: 0 });
+const knob = (on: boolean): React.CSSProperties => ({ position: 'absolute', top: '2.5px', left: on ? '17px' : '2.5px', width: 16, height: 16, borderRadius: 9999, background: '#fff', transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,.2)' });
 
 export function FieldBuilderBody() {
-  const [scope, setScope] = React.useState('factory');
-  const [fieldsByScope, setFieldsByScope] = React.useState<Record<string, FieldDef[]>>(FIELDS_BY_SCOPE);
-  const fields = fieldsByScope[scope];
-  const setFields = React.useCallback(
-    (updater: FieldDef[] | ((p: FieldDef[]) => FieldDef[])) =>
-      setFieldsByScope((prev) => ({ ...prev, [scope]: typeof updater === 'function' ? (updater as (p: FieldDef[]) => FieldDef[])(prev[scope]) : updater })),
-    [scope],
-  );
-  const [on, setOn] = React.useState<Record<string, boolean>>({ truck_parking: false });
+  const [scope, setScope] = React.useState('house');
+  const [override, setOverride] = React.useState<SchemaOverride>({ disabled: [], order: [], extra: [] });
+  const [dirty, setDirty] = React.useState(false);
   const [scopeOpen, setScopeOpen] = React.useState(false);
   const [toast, setToast] = React.useState('');
   const toastTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [drag, setDrag] = React.useState<{ kind: 'field' | 'type'; value: string } | null>(null);
-  const [overId, setOverId] = React.useState<string | null>(null);
-  const [overAdd, setOverAdd] = React.useState(false);
-  const [editId, setEditId] = React.useState<string | null>(null);
-  const seqRef = React.useRef(1);
+  const [drag, setDrag] = React.useState<string | null>(null);
+  const [over, setOver] = React.useState<string | null>(null);
+  const seq = React.useRef(1);
   const cardRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
 
-  const clearDrag = () => { setDrag(null); setOverId(null); setOverAdd(false); };
+  React.useEffect(() => { setOverride(loadOverride(scope)); setDirty(false); }, [scope]);
 
-  const makeField = (typeIdx: number): FieldDef => {
-    const t = FIELD_TYPES[typeIdx] || FIELD_TYPES[0];
-    const n = seqRef.current++;
-    return { id: 'new_' + n, label: 'ฟิลด์ใหม่ (' + t.name + ')', key: t.keyBase + '_' + n, typeName: t.typeName, required: false, system: false, iconBg: '#F0ECF9', iconColor: '#7A3FB0', icon: fi(t.path, '#7A3FB0') };
-  };
+  const type = PROPERTY_TYPES.find((t) => t.key === scope) || PROPERTY_TYPES[0];
+  const fields = resolveFields(scope, override);
+  const enabledCount = fields.filter((f) => f.enabled).length;
+  const scopeLabel = type.label;
 
-  const insertType = (typeIdx: number, atIndex: number) => setFields((prev) => { const cur = [...prev]; cur.splice(atIndex, 0, makeField(typeIdx)); return cur; });
-  const appendType = (typeIdx: number) => setFields((prev) => [...prev, makeField(typeIdx)]);
+  const flash = (msg: string) => { setToast(msg); if (toastTimer.current) clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToast(''), 2400); };
 
-  const reorder = (fromId: string, toId: string) => {
-    setFields((prev) => {
-      const cur = [...prev];
-      const fromI = cur.findIndex((x) => x.id === fromId);
-      if (fromI < 0) return prev;
-      const toIOrig = cur.findIndex((x) => x.id === toId);
-      const [moved] = cur.splice(fromI, 1);
-      if (toId === '__end__' || toIOrig < 0) { cur.push(moved); return cur; }
-      const dest = cur.findIndex((x) => x.id === toId);
-      cur.splice(fromI < toIOrig ? dest + 1 : dest, 0, moved);
-      return cur;
+  const toggle = (f: FieldDef & { enabled: boolean }) => {
+    if (f.required) return;
+    setOverride((o) => {
+      const dis = new Set(o.disabled);
+      if (dis.has(f.key)) dis.delete(f.key); else dis.add(f.key);
+      return { ...o, disabled: [...dis] };
     });
+    setDirty(true);
   };
 
-  const handleDrop = (raw: string, atIndex: number, toId: string) => {
-    if (raw.startsWith('field:')) reorder(raw.slice(6), toId);
-    else if (raw.startsWith('type:')) insertType(Number(raw.slice(5)), atIndex);
-    clearDrag();
+  const addField = (kind: FieldKind) => {
+    const nf: FieldDef = { key: `custom_${scope}_${kind}_${seq.current++}`, label: `ฟิลด์ใหม่ (${KIND_LABEL[kind]})`, kind, options: kind === 'select' || kind === 'multiselect' ? ['ตัวเลือก 1', 'ตัวเลือก 2'] : undefined };
+    setOverride((o) => ({ ...o, extra: [...o.extra, nf], order: [...(o.order.length ? o.order : fields.map((f) => f.key)), nf.key] }));
+    setDirty(true);
   };
-
-  const updateField = (id: string, patch: Partial<FieldDef>) => setFields((prev) => prev.map((f) => (f.id === id ? { ...f, ...patch } : f)));
-  const changeType = (id: string, idx: number) => setFields((prev) => prev.map((f) => {
-    if (f.id !== id) return f;
-    const t = FIELD_TYPES[idx];
-    return { ...f, typeName: t.typeName, icon: fi(t.path, f.iconColor) };
-  }));
-  const deleteField = (id: string) => {
-    setFields((prev) => prev.filter((f) => f.id !== id));
-    setOn((prev) => { const n = { ...prev }; delete n[id]; return n; });
-    setEditId((cur) => (cur === id ? null : cur));
+  const removeField = (key: string) => {
+    setOverride((o) => ({ disabled: o.disabled.filter((k) => k !== key), order: o.order.filter((k) => k !== key), extra: o.extra.filter((f) => f.key !== key) }));
+    setDirty(true);
   };
-  const typeIdxOf = (f: FieldDef) => FIELD_TYPES.findIndex((t) => t.typeName === f.typeName);
+  const reorder = (fromKey: string, toKey: string) => {
+    if (fromKey === toKey) return;
+    const keys = fields.map((f) => f.key);
+    const fi = keys.indexOf(fromKey), ti = keys.indexOf(toKey);
+    if (fi < 0 || ti < 0) return;
+    const [m] = keys.splice(fi, 1);
+    keys.splice(keys.indexOf(toKey) + (fi < ti ? 1 : 0), 0, m);
+    setOverride((o) => ({ ...o, order: keys }));
+    setDirty(true);
+  };
+  const save = () => { saveOverride(scope, override); setDirty(false); flash(`บันทึกฟิลด์ของ "${scopeLabel}" แล้ว · เปิดใช้ ${enabledCount} ฟิลด์`); };
 
-  const scopeLabel = SCOPES.find((s) => s.key === scope)?.label ?? 'โรงงาน';
-  const flash = (msg: string) => { setToast(msg); if (toastTimer.current) clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToast(''), 2200); };
-  const doSave = () => flash('บันทึกฟิลด์ของ "' + scopeLabel + '" แล้ว · ' + fields.length + ' ฟิลด์');
-  const pickScope = (k: string) => { setScope(k); setScopeOpen(false); setEditId(null); clearDrag(); };
+  const isCustom = (key: string) => override.extra.some((f) => f.key === key);
 
   const fbTitle = (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>Field Builder <span style={{ height: 22, padding: '0 10px', borderRadius: 9999, background: '#F0ECF9', color: '#7A3FB0', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center' }}>No-code</span></span>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>Field Builder
+      <span style={{ height: 22, padding: '0 10px', borderRadius: 9999, background: '#F0ECF9', color: '#7A3FB0', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center' }}>No-code · schema</span>
+    </span>
   );
 
   const actions = (
@@ -175,12 +118,12 @@ export function FieldBuilderBody() {
         {scopeOpen && (
           <>
             <div onClick={() => setScopeOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
-            <div style={{ position: 'absolute', top: 46, left: 0, zIndex: 50, minWidth: 200, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 13, boxShadow: '0 18px 40px rgba(0,0,0,.16)', padding: 6 }}>
-              {SCOPES.map((s) => {
-                const active = s.key === scope;
+            <div style={{ position: 'absolute', top: 46, left: 0, zIndex: 50, minWidth: 210, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 13, boxShadow: '0 18px 40px rgba(0,0,0,.16)', padding: 6 }}>
+              {PROPERTY_TYPES.map((t) => {
+                const active = t.key === scope;
                 return (
-                  <div key={s.key} onClick={() => pickScope(s.key)} style={ddOption(active)}>
-                    <span>ฟิลด์ของ {s.label}</span>
+                  <div key={t.key} onClick={() => { setScope(t.key); setScopeOpen(false); }} style={dd(active)}>
+                    <span>ฟิลด์ของ {t.label}</span>
                     {active && <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" strokeWidth="2.6"><path d="M20 6L9 17l-5-5" /></svg>}
                   </div>
                 );
@@ -189,171 +132,88 @@ export function FieldBuilderBody() {
           </>
         )}
       </div>
-      <div className="fb-save" onClick={doSave} style={{ height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'transform .2s,box-shadow .2s' }}>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2"><path d="M20 6L9 17l-5-5" /></svg>
-        บันทึก
+      <div id="fb-save" className="fb-save" onClick={save} style={{ height: 40, padding: '0 18px', borderRadius: 9999, background: dirty ? '#0D6C3B' : '#273c33', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'transform .2s,box-shadow .2s' }}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2"><path d="M20 6L9 17l-5-5" /></svg>{dirty ? 'บันทึก *' : 'บันทึก'}
       </div>
     </div>
   );
 
   return (
     <AdminShell active="cms" eyebrow={<AdminBreadcrumb items={[{ label: 'Settings', href: '/admin/settings' }, { label: 'Field Builder' }]} />} title={fbTitle} actions={actions} css={fbCss}>
-      <p style={{ margin: '0 0 18px', fontSize: 13, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 8 }}>
+      <p style={{ margin: '0 0 18px', fontSize: 13, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.9"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
-        สร้างฟิลด์ทรัพย์เองได้โดยไม่ต้องเขียนโค้ด — ลากเรียง, เลือกชนิดข้อมูล, ตั้งว่าบังคับ/แสดงบนเว็บ
+        แต่ละประเภททรัพย์เก็บรายละเอียดคนละชุด — เปิด/ปิดฟิลด์ แล้วกด <b>บันทึก</b> จะมีผลกับฟอร์ม <b>+เพิ่มทรัพย์</b> และ <b>แก้ไขทรัพย์</b> ของประเภทนั้นทันที
       </p>
 
       <div id="fb-split" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 20, alignItems: 'start' }}>
         {/* FIELD LIST */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {fields.map((f, i) => {
-            const isOn = on[f.id] !== false;
-            const isOver = overId === f.id && !(drag?.kind === 'field' && drag.value === f.id);
-            const isSrc = drag?.kind === 'field' && drag.value === f.id;
-            const isEditing = editId === f.id;
-            const curTypeIdx = typeIdxOf(f);
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {fields.map((f) => {
+            const custom = isCustom(f.key);
+            const isOver = over === f.key && drag !== f.key;
+            const isSrc = drag === f.key;
             return (
               <div
-                key={f.id}
-                ref={(el) => { cardRefs.current[f.id] = el; }}
-                onDragOver={(e) => { e.preventDefault(); setOverId(f.id); }}
-                onDragLeave={() => setOverId((cur) => (cur === f.id ? null : cur))}
-                onDrop={(e) => { e.preventDefault(); handleDrop(e.dataTransfer.getData('text/plain'), i, f.id); }}
-                style={{ background: isOver ? 'rgba(13,108,59,.05)' : 'var(--surface)', border: '1px solid ' + (isOver || isEditing ? '#0D6C3B' : 'var(--border)'), borderRadius: 14, padding: '14px 16px', opacity: isSrc ? 0.4 : 1, transition: 'border-color .15s,background .15s,opacity .15s' }}
+                key={f.key}
+                ref={(el) => { cardRefs.current[f.key] = el; }}
+                onDragOver={(e) => { e.preventDefault(); setOver(f.key); }}
+                onDragLeave={() => setOver((c) => (c === f.key ? null : c))}
+                onDrop={(e) => { e.preventDefault(); const from = e.dataTransfer.getData('text/plain'); setDrag(null); setOver(null); if (from) reorder(from, f.key); }}
+                style={{ background: isOver ? 'rgba(13,108,59,.05)' : 'var(--surface)', border: '1px solid ' + (isOver ? '#0D6C3B' : 'var(--border)'), borderRadius: 14, padding: '13px 14px', opacity: (isSrc ? 0.4 : 1) * (f.enabled ? 1 : 0.6), transition: 'border-color .15s,background .15s,opacity .15s' }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <div
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData('text/plain', 'field:' + f.id);
-                      e.dataTransfer.effectAllowed = 'move';
-                      const el = cardRefs.current[f.id];
-                      if (el) e.dataTransfer.setDragImage(el, 24, 24);
-                      setDrag({ kind: 'field', value: f.id });
-                    }}
-                    onDragEnd={clearDrag}
-                    title="ลากเพื่อจัดลำดับ"
-                    style={{ color: 'var(--muted3)', cursor: 'grab', flexShrink: 0, display: 'flex' }}
-                  >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div draggable onDragStart={(e) => { e.dataTransfer.setData('text/plain', f.key); e.dataTransfer.effectAllowed = 'move'; const el = cardRefs.current[f.key]; if (el) e.dataTransfer.setDragImage(el, 20, 20); setDrag(f.key); }} onDragEnd={() => { setDrag(null); setOver(null); }} title="ลากเพื่อจัดลำดับ" style={{ color: 'var(--muted3)', cursor: 'grab', flexShrink: 0, display: 'flex' }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="6" r="1" /><circle cx="15" cy="6" r="1" /><circle cx="9" cy="12" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="9" cy="18" r="1" /><circle cx="15" cy="18" r="1" /></svg>
                   </div>
-                  <div style={{ width: 40, height: 40, borderRadius: 10, background: f.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: f.iconColor }} dangerouslySetInnerHTML={f.icon} />
+                  <div style={{ width: 38, height: 38, borderRadius: 10, background: '#F0ECF9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} dangerouslySetInnerHTML={{ __html: kindPath(f.kind) }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{f.label}</span>
-                      {f.required && (
-                        <span style={{ height: 19, padding: '0 8px', borderRadius: 9999, background: '#F9E4E1', color: '#C0392B', fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>บังคับ</span>
-                      )}
-                      {f.system && (
-                        <span style={{ height: 19, padding: '0 8px', borderRadius: 9999, background: 'var(--bg)', color: 'var(--muted3)', fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>ระบบ</span>
-                      )}
+                      {f.required && <span style={{ height: 19, padding: '0 8px', borderRadius: 9999, background: '#F9E4E1', color: '#C0392B', fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>บังคับ</span>}
+                      {f.system && <span style={{ height: 19, padding: '0 8px', borderRadius: 9999, background: 'var(--bg)', color: 'var(--muted3)', fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>ระบบ</span>}
+                      {custom && <span style={{ height: 19, padding: '0 8px', borderRadius: 9999, background: '#EEF4F3', color: '#034956', fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>เพิ่มเอง</span>}
                     </div>
-                    <div style={{ marginTop: 3, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ marginTop: 3, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <code style={{ fontSize: 11, color: 'var(--muted2)' }}>{f.key}</code>
-                      <span style={{ fontSize: 11, color: 'var(--muted3)' }}>· {f.typeName}</span>
+                      <span style={{ fontSize: 11, color: 'var(--muted3)' }}>· {KIND_LABEL[f.kind]}{f.unit ? ` · ${f.unit}` : ''}{f.options ? ` (${f.options.length} ตัวเลือก)` : ''}</span>
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                      <div onClick={() => setOn((prev) => ({ ...prev, [f.id]: !isOn }))} style={switchStyle(isOn)}>
-                        <div style={knobStyle(isOn)} />
+                      <div onClick={() => toggle(f)} title={f.required ? 'ฟิลด์บังคับ — ปิดไม่ได้' : 'เปิด/ปิดฟิลด์'} style={{ ...switchStyle(f.enabled), cursor: f.required ? 'not-allowed' : 'pointer', opacity: f.required ? 0.7 : 1 }}>
+                        <div style={knob(f.enabled)} />
                       </div>
-                      <span style={{ fontSize: 9, color: 'var(--muted3)' }}>แสดงบนเว็บ</span>
+                      <span style={{ fontSize: 9, color: 'var(--muted3)' }}>{f.enabled ? 'เปิดใช้' : 'ปิดอยู่'}</span>
                     </div>
-                    <div className="fb-edit" onClick={() => setEditId((cur) => (cur === f.id ? null : f.id))} title="แก้ไขฟิลด์" style={{ width: 30, height: 30, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: isEditing ? '#0D6C3B' : 'var(--muted2)', background: isEditing ? '#E8F3EC' : 'transparent', cursor: 'pointer' }}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" /></svg>
-                    </div>
+                    {custom && (
+                      <div onClick={() => removeField(f.key)} title="ลบฟิลด์ที่เพิ่มเอง" style={{ width: 30, height: 30, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#C0392B', cursor: 'pointer' }}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" /></svg>
+                      </div>
+                    )}
                   </div>
                 </div>
-
-                {/* inline editor */}
-                {isEditing && (
-                  <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <div id="fb-edit-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                      <div>
-                        <label style={editLabel}>ชื่อฟิลด์ (แสดงผล)</label>
-                        <input value={f.label} onChange={(e) => updateField(f.id, { label: e.target.value })} placeholder="เช่น พื้นที่ใช้สอย" style={editInput} />
-                      </div>
-                      <div>
-                        <label style={editLabel}>คีย์ (key)</label>
-                        <input value={f.key} onChange={(e) => updateField(f.id, { key: e.target.value })} readOnly={f.system} placeholder="เช่น usable_area_sqm" style={{ ...editInput, fontFamily: "'JetBrains Mono',monospace", color: f.system ? 'var(--muted3)' : 'var(--text)', background: f.system ? 'var(--tint)' : 'var(--bg)', cursor: f.system ? 'not-allowed' : 'text' }} />
-                        {f.system && <div style={{ marginTop: 4, fontSize: 10.5, color: 'var(--muted3)' }}>คีย์ระบบ · แก้ไขไม่ได้</div>}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label style={editLabel}>ชนิดข้อมูล</label>
-                      <select value={curTypeIdx} onChange={(e) => changeType(f.id, Number(e.target.value))} style={{ ...editInput, cursor: 'pointer' }}>
-                        {curTypeIdx < 0 && <option value={-1} disabled>{f.typeName}</option>}
-                        {FIELD_TYPES.map((t, idx) => (<option key={t.keyBase} value={idx}>{t.name} · {t.typeName}</option>))}
-                      </select>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 26, flexWrap: 'wrap' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                        <div onClick={() => updateField(f.id, { required: !f.required })} style={switchStyle(f.required)}><div style={knobStyle(f.required)} /></div>
-                        <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text)' }}>บังคับกรอก</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                        <div onClick={() => setOn((prev) => ({ ...prev, [f.id]: !isOn }))} style={switchStyle(isOn)}><div style={knobStyle(isOn)} /></div>
-                        <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text)' }}>แสดงบนเว็บ</span>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 2 }}>
-                      {f.system ? (
-                        <span style={{ fontSize: 11.5, color: 'var(--muted3)' }}>ฟิลด์ระบบ · ลบไม่ได้</span>
-                      ) : (
-                        <div onClick={() => deleteField(f.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 38, padding: '0 15px', borderRadius: 9999, border: '1.5px solid #C0392B', color: '#C0392B', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', background: 'transparent' }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" /></svg>ลบฟิลด์
-                        </div>
-                      )}
-                      <div onClick={() => setEditId(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 38, padding: '0 20px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6"><path d="M20 6L9 17l-5-5" /></svg>เสร็จ
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             );
           })}
-          {/* add field (click = add text field, drop target = append) */}
-          <div
-            onClick={() => appendType(0)}
-            onDragOver={(e) => { e.preventDefault(); setOverAdd(true); }}
-            onDragLeave={() => setOverAdd(false)}
-            onDrop={(e) => { e.preventDefault(); handleDrop(e.dataTransfer.getData('text/plain'), fields.length, '__end__'); }}
-            style={{ border: '1.5px dashed ' + (overAdd ? '#0D6C3B' : 'var(--border)'), borderRadius: 14, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: overAdd ? '#0D6C3B' : 'var(--muted)', fontSize: 13, fontWeight: 700, cursor: 'pointer', background: overAdd ? 'rgba(13,108,59,.05)' : 'var(--surface)', transition: 'border-color .15s,background .15s,color .15s' }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M12 5v14M5 12h14" /></svg>
-            เพิ่มฟิลด์ใหม่
-          </div>
         </div>
 
-        {/* FIELD TYPE PALETTE */}
+        {/* PALETTE */}
         <div id="fb-preview" style={{ position: 'sticky', top: 88, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 20 }}>
-            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text)', marginBottom: 4 }}>ชนิดฟิลด์</div>
-            <div style={{ fontSize: '11.5px', color: 'var(--muted2)', marginBottom: 14 }}>ลากลงในรายการซ้ายเพื่อเพิ่ม</div>
+            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text)', marginBottom: 4 }}>เพิ่มชนิดฟิลด์</div>
+            <div style={{ fontSize: '11.5px', color: 'var(--muted2)', marginBottom: 14 }}>กดเพื่อเพิ่มฟิลด์ใหม่เข้าประเภทนี้</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              {FIELD_TYPES.map((t, idx) => (
-                <div
-                  key={t.name}
-                  className="fb-type"
-                  draggable
-                  onDragStart={(e) => { e.dataTransfer.setData('text/plain', 'type:' + idx); e.dataTransfer.effectAllowed = 'copy'; setDrag({ kind: 'type', value: String(idx) }); }}
-                  onDragEnd={clearDrag}
-                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 8px', borderRadius: 12, border: '1px solid ' + (drag?.kind === 'type' && drag.value === String(idx) ? '#7A3FB0' : 'var(--border)'), background: 'var(--bg)', cursor: 'grab', transition: 'border-color .15s,transform .15s', opacity: drag?.kind === 'type' && drag.value === String(idx) ? 0.5 : 1 }}
-                >
-                  <div style={{ color: '#7A3FB0' }} dangerouslySetInnerHTML={ti(t.path)} />
-                  <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text)' }}>{t.name}</span>
+              {PALETTE.map((k) => (
+                <div key={k} className="fb-type" onClick={() => addField(k)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 8px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', transition: 'border-color .15s,transform .15s' }}>
+                  <div dangerouslySetInnerHTML={{ __html: kindPath(k) }} />
+                  <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text)', textAlign: 'center' }}>{KIND_LABEL[k]}</span>
                 </div>
               ))}
             </div>
           </div>
           <div style={{ background: '#F0ECF9', border: '1px solid #DCCFEC', borderRadius: 16, padding: '16px 18px', display: 'flex', alignItems: 'flex-start', gap: 11 }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7A3FB0" strokeWidth="1.9" style={{ flexShrink: 0, marginTop: 1 }}><path d="M12 2l2 5 5 .5-4 3.5 1 5-4-2.5-4 2.5 1-5-4-3.5 5-.5z" /></svg>
-            <span style={{ fontSize: 12, color: '#7A3FB0', lineHeight: 1.55 }}>ฟิลด์ที่สร้างจะปรากฏใน tab &quot;Features&quot; ของหน้า Property อัตโนมัติ และค้นหา/กรองได้ถ้าเปิด &quot;แสดงบนเว็บ&quot; — ลูกค้าแต่ละ tenant ปรับฟิลด์ต่างกันได้เอง</span>
+            <span style={{ fontSize: 12, color: '#7A3FB0', lineHeight: 1.55 }}>ฟิลด์ที่เปิดไว้ ({enabledCount}/{fields.length}) จะปรากฏในฟอร์ม +เพิ่มทรัพย์ และ แก้ไขทรัพย์ ของประเภท <b>{scopeLabel}</b> · ฟิลด์ <b>บังคับ</b> ปิดไม่ได้</span>
           </div>
         </div>
       </div>
