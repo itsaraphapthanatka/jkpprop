@@ -24,6 +24,18 @@ const PRICE_VALS = ['ต่ำกว่า ฿50,000', '฿50,000–100,000', '�
 const ZONE_ITEMS = ['เขตปลอดอากร', 'เขตสีม่วง', 'นิคมอุตสาหกรรม'];
 const FEATURE_ITEMS = ['เครนเหนือศีรษะ', 'บนถนนสายหลัก', 'พนักงานรักษาความปลอดภัย', 'พร้อมพื้นที่สำนักงาน', 'พื้นที่ขนถ่ายสินค้าแบบยกพื้น', 'อาคารเดี่ยว'];
 const LOAD_VALS: [string, string][] = [['any', 'ไม่ระบุต่ำสุด'], ['0.5', '0.5 ton per sqm'], ['1', '1 ton per sqm'], ['2', '2 ton per sqm'], ['3', '3 ton per sqm']];
+// ผังเมือง (กทม. + EEC) — สีตามคู่มือประกาศผังเมือง; อ้างอิงเฉพาะโซนที่เกี่ยวกับทรัพย์อุตสาหกรรม/พาณิชย์เป็นหลัก
+const COLORZONE_ITEMS: { name: string; color: string; desc: string }[] = [
+  { name: 'เขตสีม่วง', color: '#7C4D9E', desc: 'ที่ดินประเภทอุตสาหกรรม' },
+  { name: 'เขตสีม่วงอ่อน', color: '#C79FD0', desc: 'พัฒนา/ส่งเสริมอุตสาหกรรม (EEC)' },
+  { name: 'เขตสีเม็ดมะปราง', color: '#9E5A6B', desc: 'ที่ดินประเภทคลังสินค้า' },
+  { name: 'เขตสีน้ำตาล', color: '#6E4A2A', desc: 'ส่งเสริมเศรษฐกิจพิเศษ (EEC)' },
+  { name: 'เขตสีแดง', color: '#D63C31', desc: 'ที่ดินประเภทพาณิชยกรรม' },
+  { name: 'เขตสีส้ม', color: '#F0862E', desc: 'ชุมชนเมือง / ที่อยู่อาศัยปานกลาง' },
+  { name: 'เขตสีเหลือง', color: '#F3D93B', desc: 'ที่อยู่อาศัยหนาแน่นน้อย' },
+  { name: 'เขตสีเขียว', color: '#4C9A4C', desc: 'ชนบทและเกษตรกรรม' },
+  { name: 'เขตสีน้ำเงิน', color: '#2B5BA8', desc: 'สถาบันราชการ / สาธารณูปโภค' },
+];
 
 const pillStyle = (on: boolean): React.CSSProperties => ({
   padding: '10px 16px', borderRadius: 9999, fontSize: '13.5px', fontWeight: 600, cursor: 'pointer',
@@ -52,8 +64,9 @@ export function Hero() {
   const [filterTab, setFilterTab] = useState<FilterTab>('type');
 
   const [moreOpen, setMoreOpen] = useState(false);
-  const [secOpen, setSecOpen] = useState<{ zone: boolean; feature: boolean; load: boolean }>({ zone: true, feature: true, load: true });
+  const [secOpen, setSecOpen] = useState<{ zone: boolean; color: boolean; feature: boolean; load: boolean }>({ zone: true, color: true, feature: true, load: true });
   const [zoneSel, setZoneSel] = useState<string[]>([]);
+  const [colorSel, setColorSel] = useState<string[]>([]);
   const [featureSel, setFeatureSel] = useState<string[]>([]);
   const [loadSel, setLoadSel] = useState('any');
 
@@ -192,6 +205,24 @@ export function Hero() {
                   })}
                 </div>
               </MoreSection>
+              {/* color zone (ผังเมือง) */}
+              <MoreSection title="พื้นที่สี (ผังเมือง)" open={secOpen.color} onToggle={() => setSecOpen((s) => ({ ...s, color: !s.color }))} icon="color">
+                <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr', gap: 4 }}>
+                  {COLORZONE_ITEMS.map((z) => {
+                    const on = colorSel.includes(z.name);
+                    return (
+                      <div key={z.name} onClick={() => setColorSel((a) => toggleIn(a, z.name))} style={rowSelStyle(on)}>
+                        <div style={boxStyle(on)}>{on && checkIcon}</div>
+                        <div style={{ width: 22, height: 22, borderRadius: 6, flexShrink: 0, background: z.color, border: '1px solid rgba(0,0,0,.14)' }} />
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{z.name}</div>
+                          <div style={{ fontSize: 11, color: 'var(--muted2)' }}>{z.desc}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </MoreSection>
               {/* feature */}
               <MoreSection title="คุณสมบัติ" open={secOpen.feature} onToggle={() => setSecOpen((s) => ({ ...s, feature: !s.feature }))} icon="feature">
                 <div id="hero-feature-grid" style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
@@ -222,7 +253,7 @@ export function Hero() {
               </MoreSection>
             </div>
             <div style={{ display: 'flex', gap: 12, padding: '18px 24px 24px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
-              <div onClick={() => { setZoneSel([]); setFeatureSel([]); setLoadSel('any'); }} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, border: '1.5px solid var(--border)', color: 'var(--text)', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>ล้างค่า</div>
+              <div onClick={() => { setZoneSel([]); setColorSel([]); setFeatureSel([]); setLoadSel('any'); }} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, border: '1.5px solid var(--border)', color: 'var(--text)', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>ล้างค่า</div>
               <div onClick={() => setMoreOpen(false)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>นำไปใช้</div>
             </div>
           </div>
@@ -291,13 +322,14 @@ export function Hero() {
   );
 }
 
-function MoreSection({ title, open, onToggle, icon, children }: { title: string; open: boolean; onToggle: () => void; icon: 'zone' | 'feature' | 'load'; children: React.ReactNode }) {
+function MoreSection({ title, open, onToggle, icon, children }: { title: string; open: boolean; onToggle: () => void; icon: 'zone' | 'color' | 'feature' | 'load'; children: React.ReactNode }) {
   return (
     <div style={{ borderTop: '1px solid var(--border)', padding: '16px 0' }}>
       <div onClick={onToggle} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '14.5px', fontWeight: 700, color: 'var(--text)' }}>
           <div style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {icon === 'zone' && <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z" /><circle cx="12" cy="10" r="3" /></svg>}
+            {icon === 'color' && <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r="1.4" /><circle cx="17.5" cy="10.5" r="1.4" /><circle cx="8.5" cy="7.5" r="1.4" /><circle cx="6.5" cy="12.5" r="1.4" /><path d="M12 22a10 10 0 110-20 8 8 0 018 8c0 2-2 3-4 3h-2a2 2 0 00-1 3.7A2 2 0 0112 22z" /></svg>}
             {icon === 'feature' && <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" /></svg>}
             {icon === 'load' && <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20" /><path d="M5 8h14" /><path d="M2 8a3 3 0 006 0M16 8a3 3 0 006 0" /><path d="M2 8l2-4M22 8l-2-4" /></svg>}
           </div>
