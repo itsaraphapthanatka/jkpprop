@@ -61,7 +61,7 @@ const rawListings: RawListing[] = [
   { slot: 'g9', deal: 'ขาย', photos: '5', code: 'TIP-1569', title: 'อาคารสำนักงานพร้อมโกดัง พื้นที่ 1,131 ตร.ม.', loc: 'สมุทรปราการ', price: '฿ 203,580 / เดือน', img: 'https://images.unsplash.com/photo-1553413077-190dd305871c?w=800&q=80', credit: 'Photo by Petrebels on Unsplash', creditHref: 'https://unsplash.com/@petrebels' },
 ];
 
-type Listing = RawListing & { type: string };
+type Listing = RawListing & { type: string; area: string };
 
 export type ListingFilterKey = 'factory-rent' | 'factory-sale' | 'warehouse-rent' | 'warehouse-sale';
 const FILTERS: Record<ListingFilterKey, (it: RawListing) => boolean> = {
@@ -72,7 +72,10 @@ const FILTERS: Record<ListingFilterKey, (it: RawListing) => boolean> = {
 };
 function deriveListings(filterKey?: ListingFilterKey): Listing[] {
   const base = filterKey ? rawListings.filter(FILTERS[filterKey]) : rawListings;
-  return base.map((it) => ({ ...it, type: /โกดัง|คลัง/.test(it.title) ? 'โกดัง/คลังสินค้า' : 'โรงงาน' }));
+  return base.map((it) => {
+    const m = it.title.match(/([\d,]+)\s*ตร\.ม\./);
+    return { ...it, type: /โกดัง|คลัง/.test(it.title) ? 'โกดัง/คลังสินค้า' : 'โรงงาน', area: m ? m[1] + ' ตร.ม.' : '—' };
+  });
 }
 
 /** Preset config for SEO/area pages (Listing with a preset filter). */
@@ -197,6 +200,10 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
             <circle cx="12" cy="10" r="3" />
           </svg>
           {it.loc}
+        </div>
+        <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted)', fontSize: 13 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7A7974" strokeWidth="2"><path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" /></svg>
+          ขนาดพื้นที่รวม {it.area}
         </div>
         <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
           <div>
