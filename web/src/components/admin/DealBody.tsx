@@ -136,6 +136,7 @@ export default function DealBody() {
   const [offerAmount, setOfferAmount] = useState('');
   const [offerTerms, setOfferTerms] = useState('');
   const [extraOffers, setExtraOffers] = useState<ExtraOffer[]>([]);
+  const [openProp, setOpenProp] = useState<Record<string, boolean>>({});
 
   const stages: Stage[] = closed
     ? [doneStage('Open', '1'), doneStage('Offer', '2'), doneStage('Counter', '3'), doneStage('Documentation', '4'), doneStage('Contract', '5'), doneStage('Closed won', '6')]
@@ -187,6 +188,9 @@ export default function DealBody() {
     { k: 'สถานะ', v: closed ? 'ปิดดีลแล้ว (won)' : 'contract review' },
   ];
 
+  const propCode = 'JKP-SPK0042';
+  const propOpen = !!openProp[propCode];
+
   return (
     <>
       {/* STAGE RAIL */}
@@ -215,8 +219,8 @@ export default function DealBody() {
       <div id="deal-split" style={{ display: 'grid', gridTemplateColumns: '1.2fr .8fr', gap: 20, alignItems: 'start' }}>
         {/* LEFT: offers + docs */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* context */}
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          {/* context (accordion header — คลิกเพื่อกาง/ซ่อนรายละเอียดด้านใน) */}
+          <div onClick={() => setOpenProp((p) => ({ ...p, [propCode]: !p[propCode] }))} style={{ background: 'var(--surface)', border: '1px solid ' + (propOpen ? '#0D6C3B' : 'var(--border)'), borderRadius: 16, padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', cursor: 'pointer', transition: 'border-color .15s' }}>
             <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--tint)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M3 21V8l9-5 9 5v13" /><path d="M3 21h18" /><path d="M7 21v-8h10v8" /></svg>
             </div>
@@ -228,8 +232,11 @@ export default function DealBody() {
               <div style={{ fontSize: '11.5px', color: 'var(--muted2)' }}>ตกลงที่</div>
               <div style={{ fontSize: 20, fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: '#034956' }}>฿385,000<span style={{ fontSize: 12, color: 'var(--muted)' }}>/ด.</span></div>
             </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2.4" style={{ flexShrink: 0, transform: propOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}><path d="M6 9l6 6 6-6" /></svg>
           </div>
 
+          {propOpen && (
+          <>
           {/* offers timeline */}
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 22 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
@@ -295,6 +302,8 @@ export default function DealBody() {
               ))}
             </div>
           </div>
+          </>
+          )}
         </div>
 
         {/* RIGHT: deal summary + commission */}
