@@ -20,6 +20,7 @@ input::placeholder,textarea::placeholder{color:var(--muted3);}
 .c-phone:hover{background:#034956 !important;color:#fff !important;}
 .c-email:hover{background:#04140C !important;color:#2DFB91 !important;}
 .c-social:hover{background:#2DFB91 !important;color:#04140C !important;transform:translateY(-2px);}
+.c-submit:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.28);}
 @media (max-width:640px){
   #info-form-grid{grid-template-columns:1fr !important;}
   #contact-form-fields{grid-template-columns:1fr !important;}

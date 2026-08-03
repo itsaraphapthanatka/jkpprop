@@ -253,6 +253,54 @@ export const PROPERTY_TYPES: PropertyType[] = [HOUSE, CONDO, LAND, FACTORY, WARE
 export const propertyType = (key: string): PropertyType => PROPERTY_TYPES.find((t) => t.key === key) || PROPERTY_TYPES[0];
 
 /* ============================================================
+   Requirement intake — the CURATED essential subset collected on
+   the public contact form (a buyer/renter states what they want).
+   Deliberately short per type; the full listing schema above is for
+   the admin cataloguing a real property, not for a lead's wishlist.
+   ============================================================ */
+const DEAL_INTENT: FieldDef = { key: 'deal_intent', label: 'ความต้องการ', kind: 'dealtype', options: ['เช่า', 'ซื้อ'], required: true };
+const REQ_LOCATION: FieldDef = { key: 'location', label: 'ทำเล / จังหวัดที่สนใจ', kind: 'text', placeholder: 'เช่น บางนา, สมุทรปราการ' };
+const REQ_BUDGET: FieldDef = { key: 'budget', label: 'งบประมาณ', kind: 'text', placeholder: 'เช่น 5–8 ล้าน หรือ 150,000/เดือน' };
+
+export const REQUIREMENT_FIELDS: Record<string, FieldDef[]> = {
+  house: [
+    DEAL_INTENT,
+    { key: 'bedrooms', label: 'จำนวนห้องนอน', kind: 'select', options: ['1–2 ห้อง', '3 ห้อง', '4 ห้องขึ้นไป'] },
+    REQ_LOCATION,
+    REQ_BUDGET,
+  ],
+  condo: [
+    DEAL_INTENT,
+    { key: 'room_type', label: 'ประเภทห้อง', kind: 'select', options: ['Studio', '1 ห้องนอน', '2 ห้องนอนขึ้นไป'] },
+    { key: 'location', label: 'ทำเล / ย่านที่สนใจ', kind: 'text', placeholder: 'เช่น อโศก, ห้วยขวาง' },
+    REQ_BUDGET,
+  ],
+  land: [
+    DEAL_INTENT,
+    { key: 'land_size', label: 'ขนาดที่ดินที่ต้องการ', kind: 'text', placeholder: 'เช่น 1–2 ไร่' },
+    { key: 'zoning_color', label: 'ผังเมืองสี (ถ้ามีข้อกำหนด)', kind: 'select', options: ['ไม่ระบุ', 'เขียว', 'เหลือง', 'ส้ม', 'แดง', 'ม่วง', 'เม็ดมะปราง'] },
+    REQ_LOCATION,
+    REQ_BUDGET,
+  ],
+  factory: [
+    DEAL_INTENT,
+    { key: 'usable_area', label: 'พื้นที่ใช้สอยที่ต้องการ', kind: 'number', unit: 'ตร.ม.' },
+    { key: 'power', label: 'ระบบไฟที่ต้องการ', kind: 'select', options: ['ไม่ระบุ', '1 เฟส', '3 เฟส'] },
+    { key: 'rg4', label: 'ต้องขอใบ ร.ง.4', kind: 'boolean' },
+    { key: 'location', label: 'ทำเล / นิคม / จังหวัด', kind: 'text', placeholder: 'เช่น นิคมบางปู, ชลบุรี' },
+    { key: 'budget', label: 'งบประมาณ (เช่า/ซื้อ)', kind: 'text', placeholder: 'เช่น 200,000/เดือน หรือ 40 ล้าน' },
+  ],
+  warehouse: [
+    DEAL_INTENT,
+    { key: 'usable_area', label: 'พื้นที่ใช้สอยที่ต้องการ', kind: 'number', unit: 'ตร.ม.' },
+    { key: 'cold_storage', label: 'ต้องการห้องเย็น / ควบคุมอุณหภูมิ', kind: 'boolean' },
+    { key: 'location', label: 'ทำเล / จังหวัดที่สนใจ', kind: 'text', placeholder: 'เช่น บางนา, สมุทรปราการ' },
+    { key: 'budget', label: 'งบประมาณ (เช่า/ซื้อ)', kind: 'text', placeholder: 'เช่น 150,000/เดือน' },
+  ],
+};
+export const requirementFields = (typeKey: string): FieldDef[] => REQUIREMENT_FIELDS[typeKey] || REQUIREMENT_FIELDS.warehouse;
+
+/* ============================================================
    Store — per-type overrides persisted in localStorage.
    Shape: { [typeKey]: { disabled: string[]; order: string[]; extra: FieldDef[] } }
    ============================================================ */

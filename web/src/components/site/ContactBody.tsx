@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { RequirementForm } from './RequirementForm';
 
 /* ============================================================
    Ported verbatim from Contact.dc.html — hero, info cards
@@ -14,8 +14,6 @@ const infoCard: React.CSSProperties = { background: 'var(--surface)', border: '1
 const iconCircle = (bg: string): React.CSSProperties => ({ flexShrink: 0, width: 48, height: 48, borderRadius: 9999, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform .2s,box-shadow .2s' });
 const phonePill: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 14px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--text)', fontSize: 13, fontWeight: 600, transition: 'background .2s,color .2s' };
 const emailPill: React.CSSProperties = { marginTop: 8, display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 14px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: 13, fontWeight: 600, transition: 'background .2s,color .2s' };
-const inputStyle: React.CSSProperties = { height: 46, padding: '0 16px', borderRadius: 12, border: '1px solid var(--border)', fontSize: '13.5px', color: 'var(--text)', outline: 'none', background: 'var(--bg)' };
-
 const iconHover = (shadow: string) => ({
   onMouseEnter: (e: React.MouseEvent<HTMLDivElement>) => {
     e.currentTarget.style.transform = 'scale(1.08)';
@@ -28,36 +26,6 @@ const iconHover = (shadow: string) => ({
 });
 
 export function ContactBody() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [subject, setSubject] = useState('');
-  const [message, setMessage] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-  const timer = useRef<number | undefined>(undefined);
-
-  const submitForm = () => {
-    setSubmitted(true);
-    window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => {
-      setSubmitted(false);
-      setName('');
-      setEmail('');
-      setPhone('');
-      setSubject('');
-      setMessage('');
-    }, 2200);
-  };
-
-  const submitEnter = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.currentTarget.style.transform = 'translateY(-2px)';
-    e.currentTarget.style.boxShadow = '0 10px 24px rgba(0,0,0,.28)';
-  };
-  const submitLeave = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.currentTarget.style.transform = 'none';
-    e.currentTarget.style.boxShadow = 'none';
-  };
-
   return (
     <>
       {/* HERO */}
@@ -146,17 +114,7 @@ export function ContactBody() {
       {/* FORM + MAP */}
       <div id="info-form-grid" style={{ maxWidth: '1320px', margin: '0 auto', padding: '12px 24px 90px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'stretch' }}>
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, padding: '26px 28px' }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)', marginBottom: 16 }}>ส่งข้อความ</div>
-          <div id="contact-form-fields" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="กรอกชื่อของคุณ" style={inputStyle} />
-            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="กรอกอีเมลของคุณ" style={inputStyle} />
-            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="กรอกเบอร์โทรศัพท์ (ไม่บังคับ)" style={inputStyle} />
-            <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="กรอกหัวข้อ (ไม่บังคับ)" style={inputStyle} />
-          </div>
-          <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="บอกเราเกี่ยวกับคำถามของคุณ..." style={{ marginTop: 12, width: '100%', height: 130, padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border)', fontSize: '13.5px', color: 'var(--text)', outline: 'none', resize: 'none', fontFamily: 'inherit', background: 'var(--bg)' }} />
-          <div onClick={submitForm} onMouseEnter={submitEnter} onMouseLeave={submitLeave} style={{ marginTop: 16, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 48, padding: '0 30px', borderRadius: 9999, background: '#04140C', color: '#2DFB91', fontSize: 14, fontWeight: 800, cursor: 'pointer', transition: 'transform .2s,box-shadow .2s' }}>
-            {submitted ? 'ส่งข้อความแล้ว ✓' : 'ส่งข้อความ'}
-          </div>
+          <RequirementForm />
         </div>
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '20px 24px 0', fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>ที่ตั้งของเรา</div>

@@ -1,14 +1,18 @@
 'use client';
 import * as React from 'react';
+import { loadLeads, relTime, type StoredLead } from '@/lib/leadStore';
 
 /* Ported from AdminLeads.dc.html <main> — interactive leads split view:
    lead list + detail card (status/agent dropdowns), filter chips,
-   follow-up tasks, and timeline/notes. Behavior mirrors the DCLogic. */
+   follow-up tasks, and timeline/notes. Behavior mirrors the DCLogic.
+   Leads submitted from the public requirement form (localStorage) are
+   merged in on mount, newest first, with their own requirement summary. */
 
 type Lead = {
   name: string; company: string; country: string; initial: string;
   avBg: string; avFg: string; time: string; status: string; statusK: string;
   source: string; phone: string; email: string; agent: string;
+  req?: { k: string; v: string }[]; message?: string; web?: boolean;
 };
 
 type Task = { title: string; due: string; color: string; done?: boolean };
@@ -35,6 +39,26 @@ const leadsData: Lead[] = [
   { name: 'บ. เอเชีย โกลด์', company: 'คุณธนา · TH', country: 'ไทย', initial: 'อ', avBg: '#E8F3EC', avFg: '#0D6C3B', time: 'เมื่อวาน', status: 'requirements_confirmed', statusK: 'requirements_confirmed', source: 'contact form', phone: '+66 81-555-4444', email: 'thana@asiagold.co.th', agent: 'มอบหมาย: อารยา' },
   { name: 'Global Ware Inc.', company: 'Ms. Chen · CN', country: 'จีน', initial: 'G', avBg: '#0D6C3B', avFg: '#fff', time: '2 วัน', status: 'won', statusK: 'won', source: 'referral', phone: '+86 139-8888-7777', email: 'chen@globalware.cn', agent: 'มอบหมาย: วีรพล' },
 ];
+
+/* map a public requirement-form submission into a Lead row */
+function webToLead(sl: StoredLead): Lead {
+  return {
+    name: sl.name || 'ไม่ระบุชื่อ',
+    company: `ต้องการ${sl.dealIntent}${sl.typeLabel}`,
+    country: 'ไทย',
+    initial: (sl.name.trim()[0] || '?').toUpperCase(),
+    avBg: '#273c33', avFg: '#2DFB91',
+    time: relTime(sl.createdAt),
+    status: 'new', statusK: 'new',
+    source: sl.source,
+    phone: sl.phone || '—',
+    email: sl.email || '—',
+    agent: 'มอบหมาย: ยังไม่มอบหมาย',
+    req: [{ k: 'ประเภททรัพย์', v: sl.typeLabel }, { k: 'ความต้องการ', v: sl.dealIntent }, ...sl.req],
+    message: sl.message || undefined,
+    web: true,
+  };
+}
 
 const ti = (p: string, c: string) => ({ __html: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="' + c + '" stroke-width="2">' + p + '</svg>' });
 
@@ -101,6 +125,13 @@ export function LeadsBody() {
 
   // add-lead
   const [rows, setRows] = React.useState<Lead[]>(leadsData);
+  const [webCount, setWebCount] = React.useState(0);
+
+  // merge leads submitted from the public requirement form (localStorage)
+  React.useEffect(() => {
+    const web = loadLeads();
+    if (web.length) { setRows([...web.map(webToLead), ...leadsData]); setWebCount(web.length); }
+  }, []);
   const [createOpen, setCreateOpen] = React.useState(false);
   const emptyForm = { name: '', contact: '', country: 'TH', phone: '', email: '', source: 'contact form', statusK: 'new', agent: 'อารยา' };
   const [form, setForm] = React.useState(emptyForm);
@@ -326,7 +357,10 @@ export function LeadsBody() {
         {/* LIST */}
         <div style={{ minWidth: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
           <div style={{ padding: '13px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>{42 + (rows.length - leadsData.length)} leads</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>{42 + (rows.length - leadsData.length)} leads</span>
+              {webCount > 0 && <span style={{ height: 19, padding: '0 8px', borderRadius: 9999, background: '#E8F3EC', color: '#0D6C3B', fontSize: 10, fontWeight: 800, display: 'inline-flex', alignItems: 'center' }}>+{webCount} จากเว็บ</span>}
+            </span>
             <span style={{ fontSize: 12, color: 'var(--muted2)' }}>เรียง: ใหม่ล่าสุด</span>
           </div>
           <div className="a-scroll" style={{ maxHeight: 660, overflowY: 'auto' }}>
@@ -421,20 +455,30 @@ export function LeadsBody() {
           <div id="lead-detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             {/* requirement summary */}
             <div style={panelSm}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', marginBottom: 14 }}>สรุปความต้องการ</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>สรุปความต้องการ</span>
+                {cur.web && <span style={{ height: 19, padding: '0 8px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>จากฟอร์มเว็บ</span>}
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-                {req.map((q) => (
-                  <div key={q.k} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                    <span style={{ fontSize: '12.5px', color: 'var(--muted)' }}>{q.k}</span>
+                {(cur.req && cur.req.length ? cur.req : req).map((q, qi) => (
+                  <div key={q.k + qi} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                    <span style={{ fontSize: '12.5px', color: 'var(--muted)', flexShrink: 0 }}>{q.k}</span>
                     <span style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text)', textAlign: 'right' }}>{q.v}</span>
                   </div>
                 ))}
               </div>
-              <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {linked.map((lk) => (
-                  <span key={lk} style={{ height: 26, padding: '0 11px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: '11.5px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}>{lk}</span>
-                ))}
-              </div>
+              {cur.message ? (
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--muted)', marginBottom: 6 }}>ข้อความจากลูกค้า</div>
+                  <div style={{ fontSize: '12.5px', color: 'var(--text)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{cur.message}</div>
+                </div>
+              ) : !cur.web && (
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {linked.map((lk) => (
+                    <span key={lk} style={{ height: 26, padding: '0 11px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: '11.5px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}>{lk}</span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* tasks */}
