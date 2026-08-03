@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { resolveFields, type FieldDef } from '@/lib/propertySchema';
+import { MapPicker } from './MapPicker';
 
 /* Renders the enabled fields for a property type (from the Field Builder
    schema in localStorage). Used by both the create-property modal and the
@@ -12,7 +13,7 @@ const inputStyle: React.CSSProperties = { width: '100%', height: 44, padding: '0
 const selectStyle: React.CSSProperties = { ...inputStyle, cursor: 'pointer' };
 const req = <span style={{ color: '#C0392B' }}> *</span>;
 
-const isFull = (f: FieldDef) => ['dealtype', 'location', 'group', 'media', 'multiselect', 'textarea'].includes(f.kind);
+const isFull = (f: FieldDef) => ['dealtype', 'location', 'group', 'media', 'multiselect', 'textarea', 'map'].includes(f.kind);
 
 export function DynamicFieldForm({ typeKey }: { typeKey: string }) {
   const [fields, setFields] = React.useState<(FieldDef & { enabled: boolean })[]>([]);
@@ -106,6 +107,8 @@ export function DynamicFieldForm({ typeKey }: { typeKey: string }) {
             </div>
           </div>
         );
+      case 'map':
+        return <MapPicker label={f.label} />;
       case 'date':
         return (<div>{lbl(f)}<input type="date" style={inputStyle} /></div>);
       case 'textarea':

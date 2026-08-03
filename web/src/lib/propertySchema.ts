@@ -23,6 +23,7 @@ export type FieldKind =
   | 'boolean'
   | 'media' // รูป / วิดีโอ / เอกสาร (mock upload)
   | 'location' // group: ชื่อโครงการ/ตำบล/อำเภอ/จังหวัด/พิกัด
+  | 'map' // interactive Leaflet map + lat/lng/link
   | 'group'; // generic sub-field group (e.g. ขนาดที่ดิน ไร่-งาน-วา)
 
 export type FieldDef = {
@@ -243,9 +244,7 @@ const WAREHOUSE: PropertyType = {
     { key: 'usage', label: 'การใช้งานที่เหมาะ', kind: 'multiselect', options: ['โกดัง', 'สตูดิโอ', 'โรงงาน', 'ศูนย์กระจายสินค้า', 'ครัวกลาง', 'โปรดักชั่น', 'ห้องเก็บของ', 'E-Commerce'], section: 'คุณสมบัติและการใช้งาน' },
 
     // ตำแหน่ง
-    { key: 'lat', label: 'ละติจูด', kind: 'text', section: 'ตำแหน่ง', placeholder: '13.7854444' },
-    { key: 'lng', label: 'ลองจิจูด', kind: 'text', section: 'ตำแหน่ง', placeholder: '100.6223333' },
-    { key: 'map_link', label: 'ลิงก์แผนที่ (Google Map)', kind: 'text', section: 'ตำแหน่ง', placeholder: 'https://maps.app.goo.gl/...' },
+    { key: 'location_map', label: 'ตำแหน่งบนแผนที่', kind: 'map', section: 'ตำแหน่ง' },
     { key: 'internal_note', label: 'หมายเหตุภายใน (ไม่แสดงบนเว็บ)', kind: 'textarea', section: 'ตำแหน่ง' },
   ],
 };
