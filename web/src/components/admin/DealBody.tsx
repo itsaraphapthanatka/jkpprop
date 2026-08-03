@@ -137,6 +137,8 @@ export default function DealBody() {
   const [offerTerms, setOfferTerms] = useState('');
   const [extraOffers, setExtraOffers] = useState<ExtraOffer[]>([]);
   const [openProp, setOpenProp] = useState<Record<string, boolean>>({});
+  const [closeOutcome, setCloseOutcome] = useState('สำเร็จ');
+  const [closeNote, setCloseNote] = useState('');
 
   const stages: Stage[] = closed
     ? [doneStage('Open', '1'), doneStage('Offer', '2'), doneStage('Counter', '3'), doneStage('Documentation', '4'), doneStage('Contract', '5'), doneStage('Closed won', '6')]
@@ -352,7 +354,16 @@ export default function DealBody() {
             </div>
             <h3 style={{ margin: '16px 0 0', fontSize: 19, fontWeight: 800, color: 'var(--text)' }}>ปิดดีลนี้?</h3>
             <p style={{ margin: '8px 0 0', fontSize: '13.5px', color: 'var(--muted)', lineHeight: 1.6 }}>lead จะเปลี่ยนเป็น <b>won</b> · บันทึก commission · ฟิลด์การเงินจะถูกล็อก (แก้ได้เฉพาะ super admin)</p>
-            <div style={{ marginTop: 20, display: 'flex', gap: 12 }}>
+            <div style={{ marginTop: 18, textAlign: 'left' }}>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>ผลการปิดดีล</label>
+              <select value={closeOutcome} onChange={(e) => setCloseOutcome(e.target.value)} style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 11, border: '1px solid var(--border)', fontFamily: 'inherit', fontSize: '13.5px', background: 'var(--surface)', color: 'var(--text)', outline: 'none', cursor: 'pointer' }}>
+                <option value="สำเร็จ">สำเร็จ</option>
+                <option value="ไม่สำเร็จ">ไม่สำเร็จ</option>
+              </select>
+              <label style={{ display: 'block', margin: '14px 0 6px', fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>หมายเหตุ</label>
+              <textarea value={closeNote} onChange={(e) => setCloseNote(e.target.value)} placeholder="หมายเหตุ (ถ้ามี)…" style={{ width: '100%', height: 76, padding: '10px 12px', borderRadius: 11, border: '1px solid var(--border)', fontFamily: 'inherit', fontSize: 13, background: 'var(--surface)', color: 'var(--text)', outline: 'none', resize: 'none' }} />
+            </div>
+            <div style={{ marginTop: 18, display: 'flex', gap: 12 }}>
               <div onClick={closeDialog} style={{ flex: 1, height: 46, borderRadius: 9999, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', cursor: 'pointer' }}>ยกเลิก</div>
               <div onClick={confirmClose} style={{ flex: 1, height: 46, borderRadius: 9999, background: '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>ยืนยันปิดดีล</div>
             </div>
