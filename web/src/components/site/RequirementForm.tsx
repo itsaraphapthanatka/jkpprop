@@ -29,7 +29,8 @@ export function RequirementForm() {
   const fields = requirementFields(typeKey);
   const setV = (k: string, v: unknown) => setValues((p) => ({ ...p, [k]: v }));
 
-  const pickType = (k: string) => { setTypeKey(k); setValues({ deal_intent: 'เช่า' }); }; // reset per-type answers
+  // reset per-type answers but PRESERVE the universal rent/buy intent
+  const pickType = (k: string) => { setTypeKey(k); setValues((p) => ({ deal_intent: (p.deal_intent as string) ?? 'เช่า' })); };
 
   const lbl = (f: FieldDef) => (<label style={labelStyle}>{f.label}{f.unit ? ` (${f.unit})` : ''}{f.required ? reqMark : null}</label>);
 
@@ -75,7 +76,7 @@ export function RequirementForm() {
       if (raw === undefined || raw === '' || raw === false) return;
       if (f.kind === 'boolean') { req.push({ k: f.label, v: 'ต้องการ' }); return; }
       const v = String(raw).trim();
-      if (!v) return;
+      if (!v || v === 'ไม่ระบุ') return; // treat an explicit "not specified" like a blank
       req.push({ k: f.label, v: f.unit ? `${v} ${f.unit}` : v });
     });
     return { req, dealIntent };

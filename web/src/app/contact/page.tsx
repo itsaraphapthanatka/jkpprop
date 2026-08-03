@@ -23,7 +23,6 @@ input::placeholder,textarea::placeholder{color:var(--muted3);}
 .c-submit:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.28);}
 @media (max-width:640px){
   #info-form-grid{grid-template-columns:1fr !important;}
-  #contact-form-fields{grid-template-columns:1fr !important;}
   #hours-row{flex-direction:column;align-items:flex-start !important;gap:14px !important;}
   /* phone/email pills have a fixed 34px height and no overflow handling;
      the info-card text column is only ~150-200px wide on a phone, which

@@ -40,21 +40,25 @@ const leadsData: Lead[] = [
   { name: 'Global Ware Inc.', company: 'Ms. Chen · CN', country: 'จีน', initial: 'G', avBg: '#0D6C3B', avFg: '#fff', time: '2 วัน', status: 'won', statusK: 'won', source: 'referral', phone: '+86 139-8888-7777', email: 'chen@globalware.cn', agent: 'มอบหมาย: วีรพล' },
 ];
 
-/* map a public requirement-form submission into a Lead row */
+/* map a public requirement-form submission into a Lead row (defensive against
+   malformed / hand-edited localStorage records) */
 function webToLead(sl: StoredLead): Lead {
+  const nm = (sl.name || '').trim();
+  const typeLabel = sl.typeLabel || sl.typeKey || 'ทรัพย์';
+  const intent = sl.dealIntent || '';
   return {
-    name: sl.name || 'ไม่ระบุชื่อ',
-    company: `ต้องการ${sl.dealIntent}${sl.typeLabel}`,
+    name: nm || 'ไม่ระบุชื่อ',
+    company: `ต้องการ${intent}${typeLabel}`,
     country: 'ไทย',
-    initial: (sl.name.trim()[0] || '?').toUpperCase(),
+    initial: (nm[0] || '?').toUpperCase(),
     avBg: '#273c33', avFg: '#2DFB91',
     time: relTime(sl.createdAt),
     status: 'new', statusK: 'new',
-    source: sl.source,
+    source: sl.source || 'requirement form',
     phone: sl.phone || '—',
     email: sl.email || '—',
     agent: 'มอบหมาย: ยังไม่มอบหมาย',
-    req: [{ k: 'ประเภททรัพย์', v: sl.typeLabel }, { k: 'ความต้องการ', v: sl.dealIntent }, ...sl.req],
+    req: [{ k: 'ประเภททรัพย์', v: typeLabel }, { k: 'ความต้องการ', v: intent }, ...(Array.isArray(sl.req) ? sl.req : [])],
     message: sl.message || undefined,
     web: true,
   };
