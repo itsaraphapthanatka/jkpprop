@@ -12,7 +12,7 @@ const inputStyle: React.CSSProperties = { width: '100%', height: 44, padding: '0
 const selectStyle: React.CSSProperties = { ...inputStyle, cursor: 'pointer' };
 const req = <span style={{ color: '#C0392B' }}> *</span>;
 
-const isFull = (f: FieldDef) => ['dealtype', 'location', 'group', 'media', 'multiselect'].includes(f.kind);
+const isFull = (f: FieldDef) => ['dealtype', 'location', 'group', 'media', 'multiselect', 'textarea'].includes(f.kind);
 
 export function DynamicFieldForm({ typeKey }: { typeKey: string }) {
   const [fields, setFields] = React.useState<(FieldDef & { enabled: boolean })[]>([]);
@@ -106,6 +106,26 @@ export function DynamicFieldForm({ typeKey }: { typeKey: string }) {
             </div>
           </div>
         );
+      case 'date':
+        return (<div>{lbl(f)}<input type="date" style={inputStyle} /></div>);
+      case 'textarea':
+        return (
+          <div>
+            {lbl(f)}
+            <textarea placeholder={f.placeholder || ''} style={{ ...inputStyle, height: 90, padding: '10px 12px', resize: 'vertical', lineHeight: 1.5 }} />
+            {f.ai && (
+              <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 13px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 12, fontWeight: 700, color: 'var(--text)', cursor: 'pointer' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><path d="M12 1v11m0 0a3 3 0 003-3V4a3 3 0 00-6 0v5a3 3 0 003 3zM19 10v1a7 7 0 01-14 0v-1M12 19v4" /></svg>พูด
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 13px', borderRadius: 9999, background: '#7A3FB0', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9"><path d="M12 3l1.9 4.8L18 9.5l-4.1 1.7L12 16l-1.9-4.8L6 9.5l4.1-1.7z" /></svg>ให้ AI ช่วยเขียน
+                </div>
+              </div>
+            )}
+            {f.note && <div style={{ marginTop: 5, fontSize: 11, color: 'var(--muted3)' }}>{f.note}</div>}
+          </div>
+        );
       case 'price':
         return (<div>{lbl(f)}<input inputMode="numeric" placeholder="0" style={inputStyle} /></div>);
       case 'number':
@@ -117,14 +137,44 @@ export function DynamicFieldForm({ typeKey }: { typeKey: string }) {
 
   if (!fields.length) return <div style={{ fontSize: 13, color: 'var(--muted3)' }}>ยังไม่มีฟิลด์ที่เปิดใช้สำหรับประเภทนี้</div>;
 
-  return (
-    <>
-      <style dangerouslySetInnerHTML={{ __html: '@media(max-width:560px){ .dyn-grid{grid-template-columns:1fr !important;} }' }} />
-      <div className="dyn-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        {fields.map((f) => (
-          <div key={f.key} style={{ gridColumn: isFull(f) ? '1 / -1' : undefined, minWidth: 0 }}>{field(f)}</div>
-        ))}
-      </div>
-    </>
+  const grid = (items: (FieldDef & { enabled: boolean })[]) => (
+    <div className="dyn-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+      {items.map((f) => (
+        <div key={f.key} style={{ gridColumn: isFull(f) ? '1 / -1' : undefined, minWidth: 0 }}>{field(f)}</div>
+      ))}
+    </div>
   );
+
+  const styleTag = <style dangerouslySetInnerHTML={{ __html: '@media(max-width:560px){ .dyn-grid{grid-template-columns:1fr !important;} }' }} />;
+
+  // Section-grouped layout when the schema defines sections. Group by section
+  // identity (first-appearance order) — robust to drag-reorder in Field Builder
+  // interleaving sections, which would otherwise produce duplicate headers.
+  if (fields.some((f) => f.section)) {
+    const groups: { section: string; items: (FieldDef & { enabled: boolean })[] }[] = [];
+    const idx = new Map<string, number>();
+    fields.forEach((f) => {
+      const sec = f.section || 'อื่นๆ';
+      if (!idx.has(sec)) { idx.set(sec, groups.length); groups.push({ section: sec, items: [] }); }
+      groups[idx.get(sec)!].items.push(f);
+    });
+    return (
+      <>
+        {styleTag}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {groups.map((g, i) => (
+            <section key={g.section + i} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 16px 18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                <span style={{ width: 4, height: 15, borderRadius: 3, background: '#0D6C3B', flexShrink: 0 }} />
+                <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: 'var(--text)' }}>{g.section}</h4>
+              </div>
+              {grid(g.items)}
+            </section>
+          ))}
+        </div>
+      </>
+    );
+  }
+
+  return (<>{styleTag}{grid(fields)}</>);
 }

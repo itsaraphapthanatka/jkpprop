@@ -9,7 +9,7 @@ import { PROPERTY_TYPES, loadOverride, saveOverride, resolveFields, type FieldDe
    modal and the property-edit form read the same schema. */
 
 const KIND_LABEL: Record<FieldKind, string> = {
-  dealtype: 'ประเภทประกาศ', text: 'ข้อความ', number: 'ตัวเลข', price: 'ราคา',
+  dealtype: 'ประเภทประกาศ', text: 'ข้อความ', textarea: 'ข้อความยาว', number: 'ตัวเลข', price: 'ราคา', date: 'วันที่',
   select: 'ตัวเลือก (dropdown)', multiselect: 'เลือกหลายค่า', boolean: 'ใช่/ไม่',
   media: 'ไฟล์ / สื่อ', location: 'ที่อยู่ / พิกัด', group: 'กลุ่มย่อย',
 };
@@ -17,8 +17,10 @@ const kindPath = (k: FieldKind) => {
   const m: Record<FieldKind, string> = {
     dealtype: '<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>',
     text: '<path d="M4 7V4h16v3M9 20h6M12 4v16"></path>',
+    textarea: '<path d="M4 6h16M4 10h16M4 14h12M4 18h8"></path>',
     number: '<path d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18"></path>',
     price: '<path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"></path>',
+    date: '<rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path>',
     select: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path>',
     multiselect: '<rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><path d="M3 16l2 2 4-4M14 17h7"></path>',
     boolean: '<rect x="1" y="5" width="22" height="14" rx="7"></rect><circle cx="16" cy="12" r="4"></circle>',
@@ -29,7 +31,7 @@ const kindPath = (k: FieldKind) => {
   return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7A3FB0" stroke-width="1.8">' + m[k] + '</svg>';
 };
 
-const PALETTE: FieldKind[] = ['text', 'number', 'price', 'select', 'multiselect', 'boolean', 'media'];
+const PALETTE: FieldKind[] = ['text', 'textarea', 'number', 'price', 'date', 'select', 'multiselect', 'boolean', 'media'];
 
 const fbCss = `
 #fb-split > div{ min-width:0; }
@@ -172,6 +174,7 @@ export function FieldBuilderBody() {
                       {f.required && <span style={{ height: 19, padding: '0 8px', borderRadius: 9999, background: '#F9E4E1', color: '#C0392B', fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>บังคับ</span>}
                       {f.system && <span style={{ height: 19, padding: '0 8px', borderRadius: 9999, background: 'var(--bg)', color: 'var(--muted3)', fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>ระบบ</span>}
                       {custom && <span style={{ height: 19, padding: '0 8px', borderRadius: 9999, background: '#EEF4F3', color: '#034956', fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>เพิ่มเอง</span>}
+                      {f.section && <span style={{ height: 19, padding: '0 8px', borderRadius: 9999, background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--muted)', fontSize: 10, fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>{f.section}</span>}
                     </div>
                     <div style={{ marginTop: 3, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <code style={{ fontSize: 11, color: 'var(--muted2)' }}>{f.key}</code>
