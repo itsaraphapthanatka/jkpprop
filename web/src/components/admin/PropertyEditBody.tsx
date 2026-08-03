@@ -27,6 +27,7 @@ const specDefs: SpecDef[] = [
   { label: 'รับน้ำหนักพื้น (ตัน/ตร.ม.)', kind: 'input', value: '3' },
   { label: 'ระบบไฟฟ้า', kind: 'select', value: '3 Phase 50/150A' },
   { label: 'เขตโซน', kind: 'select', value: 'เขตสีม่วง' },
+  { label: 'พื้นที่สี (ผังเมือง)', kind: 'select', value: 'เขตสีม่วง — อุตสาหกรรม' },
   { label: 'ขอใบ ร.ง.4 ได้', kind: 'toggle', value: 'ขอใบอนุญาตโรงงานได้', full: true },
 ];
 
