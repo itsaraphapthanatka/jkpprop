@@ -17,8 +17,15 @@ const isFull = (f: FieldDef) => ['dealtype', 'location', 'group', 'media', 'mult
 
 export function DynamicFieldForm({ typeKey }: { typeKey: string }) {
   const [fields, setFields] = React.useState<(FieldDef & { enabled: boolean })[]>([]);
-  React.useEffect(() => { setFields(resolveFields(typeKey).filter((f) => f.enabled)); }, [typeKey]);
   const [vals, setVals] = React.useState<Record<string, unknown>>({});
+  // Re-resolve the field list AND clear answers on type change — several keys
+  // (bathrooms, kitchen, common_area, appliances, furniture…) exist on more than
+  // one type with different kinds/options, so keeping values would leak a stale
+  // answer into a control that can't represent it (e.g. '5 ห้อง' in a 1–2 select).
+  React.useEffect(() => {
+    setFields(resolveFields(typeKey).filter((f) => f.enabled));
+    setVals({});
+  }, [typeKey]);
   const setV = (k: string, v: unknown) => setVals((p) => ({ ...p, [k]: v }));
   const toggleMulti = (k: string, opt: string) => setVals((p) => { const cur = new Set((p[k] as string[]) || []); if (cur.has(opt)) cur.delete(opt); else cur.add(opt); return { ...p, [k]: [...cur] }; });
 
@@ -141,7 +148,9 @@ export function DynamicFieldForm({ typeKey }: { typeKey: string }) {
   if (!fields.length) return <div style={{ fontSize: 13, color: 'var(--muted3)' }}>ยังไม่มีฟิลด์ที่เปิดใช้สำหรับประเภทนี้</div>;
 
   const grid = (items: (FieldDef & { enabled: boolean })[]) => (
-    <div className="dyn-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+    // keyed by typeKey so uncontrolled inputs whose field key exists on more
+    // than one type (usable_area, land_area…) remount instead of keeping text
+    <div key={`grid-${typeKey}`} className="dyn-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
       {items.map((f) => (
         <div key={f.key} style={{ gridColumn: isFull(f) ? '1 / -1' : undefined, minWidth: 0 }}>{field(f)}</div>
       ))}
@@ -166,7 +175,7 @@ export function DynamicFieldForm({ typeKey }: { typeKey: string }) {
         {styleTag}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {groups.map((g, i) => (
-            <section key={g.section + i} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 16px 18px' }}>
+            <section key={`${typeKey}-${g.section}-${i}`} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 16px 18px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
                 <span style={{ width: 4, height: 15, borderRadius: 3, background: '#0D6C3B', flexShrink: 0 }} />
                 <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: 'var(--text)' }}>{g.section}</h4>

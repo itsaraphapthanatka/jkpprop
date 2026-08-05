@@ -50,7 +50,7 @@ export function RequirementForm() {
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {(f.options || []).map((opt) => {
                 const on = (values[f.key] ?? (f.options || [])[0]) === opt;
-                return <div key={opt} onClick={() => setV(f.key, opt)} style={{ flex: '1 1 auto', minWidth: 100, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? 'rgba(13,108,59,.06)' : 'var(--bg)', color: on ? '#0D6C3B' : 'var(--text)' }}>{opt}</div>;
+                return <button type="button" key={opt} onClick={() => setV(f.key, opt)} aria-pressed={on} style={{ flex: '1 1 auto', minWidth: 100, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? 'rgba(13,108,59,.06)' : 'var(--bg)', color: on ? '#0D6C3B' : 'var(--text)' }}>{opt}</button>;
               })}
             </div>
           </div>
@@ -61,10 +61,10 @@ export function RequirementForm() {
         return (
           <div>
             {lbl(f)}
-            <div onClick={() => setV(f.key, !values[f.key])} style={{ height: 46, padding: '0 14px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+            <button type="button" role="switch" aria-checked={!!values[f.key]} aria-label={f.label} onClick={() => setV(f.key, !values[f.key])} style={{ width: '100%', height: 46, padding: '0 14px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', fontFamily: 'inherit' }}>
               <span style={{ fontSize: 13, color: 'var(--text)' }}>{values[f.key] ? 'ต้องการ' : 'ไม่ระบุ'}</span>
               <div style={{ width: 40, height: 23, borderRadius: 9999, background: values[f.key] ? '#0D6C3B' : 'var(--border)', position: 'relative', transition: 'background .2s' }}><div style={{ position: 'absolute', top: '2.5px', left: values[f.key] ? '19px' : '2.5px', width: 18, height: 18, borderRadius: 9999, background: '#fff', transition: 'left .2s' }} /></div>
-            </div>
+            </button>
           </div>
         );
       case 'number':
@@ -131,7 +131,7 @@ export function RequirementForm() {
   }
 
   return (
-    <div>
+    <form onSubmit={(e) => { e.preventDefault(); submit(); }} noValidate>
       <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>แจ้งความต้องการ</div>
       <div style={{ fontSize: '12.5px', color: 'var(--muted2)', marginTop: 3, marginBottom: 16 }}>เลือกประเภททรัพย์ที่สนใจ แล้วกรอกเฉพาะรายละเอียดที่จำเป็น — ทีมงานจะติดต่อกลับ</div>
 
@@ -149,10 +149,10 @@ export function RequirementForm() {
           {types.map((pt) => {
             const on = typeKey === pt.key;
             return (
-              <div key={pt.key} onClick={() => pickType(pt.key)} style={{ flex: '1 1 auto', minWidth: 108, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 12, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? 'rgba(13,108,59,.06)' : 'var(--bg)', color: on ? '#0D6C3B' : 'var(--text)' }}>
+              <button type="button" key={pt.key} onClick={() => pickType(pt.key)} aria-pressed={on} style={{ flex: '1 1 auto', minWidth: 108, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 12, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? 'rgba(13,108,59,.06)' : 'var(--bg)', color: on ? '#0D6C3B' : 'var(--text)' }}>
                 <span style={{ display: 'flex', width: 16, height: 16 }} dangerouslySetInnerHTML={{ __html: pt.icon }} />
                 {pt.label}
-              </div>
+              </button>
             );
           })}
         </div>
@@ -173,10 +173,10 @@ export function RequirementForm() {
 
       {error && <div style={{ marginTop: 12, fontSize: 12.5, color: '#C0392B', background: 'rgba(192,57,43,.08)', border: '1px solid rgba(192,57,43,.25)', borderRadius: 10, padding: '9px 12px' }}>{error}</div>}
 
-      <div onClick={submit} className="c-submit" style={{ marginTop: 16, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, padding: '0 30px', borderRadius: 9999, background: '#04140C', color: '#2DFB91', fontSize: 14, fontWeight: 800, cursor: 'pointer', transition: 'transform .2s,box-shadow .2s' }}>
+      <button type="submit" className="c-submit" style={{ marginTop: 16, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, padding: '0 30px', borderRadius: 9999, border: 0, background: '#04140C', color: '#2DFB91', fontSize: 14, fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer', transition: 'transform .2s,box-shadow .2s' }}>
         ส่งความต้องการ
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-      </div>
-    </div>
+      </button>
+    </form>
   );
 }

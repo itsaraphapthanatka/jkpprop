@@ -2,7 +2,11 @@
 
 import * as React from 'react';
 import { DynamicFieldForm } from './DynamicFieldForm';
-import { PROPERTY_TYPES, enabledPropertyTypes } from '@/lib/propertySchema';
+import { PROPERTY_TYPES, enabledPropertyTypes, propertyType } from '@/lib/propertySchema';
+
+/* The property this mock form is editing (JKP-SPK0042) — its own type, which
+   stays selectable even if that type is later disabled for new intake. */
+const RECORD_TYPE = 'warehouse';
 
 /* Property edit form — schema-driven. The "รายละเอียดทรัพย์" tab loads the
    field form for the selected property type (from the Field Builder schema in
@@ -35,12 +39,20 @@ const tabDefs: [TabKey, string, boolean][] = [
 
 export function PropertyEditBody() {
   const [tab, setTab] = React.useState<TabKey>('main');
-  const [selType, setSelType] = React.useState('warehouse');
+  const [selType, setSelType] = React.useState(RECORD_TYPE);
   const [types, setTypes] = React.useState(PROPERTY_TYPES);
+  // `offKeys` must start empty so the server render and the first client render
+  // emit identical markup — reading the config during render would hydrate-mismatch.
+  const [offKeys, setOffKeys] = React.useState<string[]>([]);
+  // Unlike the create form, the initial type here belongs to the EXISTING record.
+  // Turning a type off is an intake policy, not a statement that old records of
+  // that type are gone — so keep the record's own type in the picker (badged
+  // "ปิดอยู่") instead of silently re-typing the property to the first enabled one.
   React.useEffect(() => {
     const en = enabledPropertyTypes();
-    setTypes(en);
-    setSelType((k) => (en.some((t) => t.key === k) ? k : en[0].key));
+    const keep = en.some((t) => t.key === RECORD_TYPE) ? en : [...en, propertyType(RECORD_TYPE)];
+    setTypes(keep);
+    setOffKeys(keep.filter((t) => !en.some((e) => e.key === t.key)).map((t) => t.key));
   }, []);
 
   return (
@@ -73,11 +85,20 @@ export function PropertyEditBody() {
               <div id="ed-type-picker" style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {types.map((pt) => {
                   const on = selType === pt.key;
+                  const off = offKeys.includes(pt.key); // kept for this record, but closed for new intake
                   return (
-                    <div key={pt.key} onClick={() => setSelType(pt.key)} style={{ flex: '1 1 auto', minWidth: 120, height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 12, fontSize: '13px', fontWeight: 700, cursor: 'pointer', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? 'rgba(13,108,59,.06)' : 'var(--surface)', color: on ? '#0D6C3B' : 'var(--text)' }}>
+                    <button
+                      type="button"
+                      key={pt.key}
+                      onClick={() => setSelType(pt.key)}
+                      aria-pressed={on}
+                      title={off ? 'ประเภทนี้ถูกปิดรับใหม่ — ยังคงไว้เพราะเป็นประเภทของทรัพย์นี้' : undefined}
+                      style={{ flex: '1 1 auto', minWidth: 120, height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 12, fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? 'rgba(13,108,59,.06)' : 'var(--surface)', color: on ? '#0D6C3B' : 'var(--text)' }}
+                    >
                       <span style={{ display: 'flex', width: 16, height: 16 }} dangerouslySetInnerHTML={{ __html: pt.icon }} />
                       {pt.label}
-                    </div>
+                      {off && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted3)' }}>· ปิดอยู่</span>}
+                    </button>
                   );
                 })}
               </div>

@@ -233,7 +233,7 @@ export function FieldBuilderBody() {
                   <div key={t.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 11px', borderRadius: 11, border: '1px solid var(--border)', background: on ? 'var(--surface)' : 'var(--bg)' }}>
                     <span style={{ display: 'flex', width: 18, height: 18, flexShrink: 0, opacity: on ? 1 : 0.45 }} dangerouslySetInnerHTML={{ __html: t.icon }} />
                     <span style={{ flex: 1, minWidth: 0, fontSize: '12.5px', fontWeight: 700, color: on ? 'var(--text)' : 'var(--muted3)' }}>{t.label}</span>
-                    <div onClick={() => toggleType(t.key)} title={on ? 'ปิดประเภทนี้' : 'เปิดประเภทนี้'} style={switchStyle(on)}><div style={knob(on)} /></div>
+                    <button type="button" role="switch" aria-checked={on} aria-label={`เปิดใช้งานประเภท ${t.label}`} onClick={() => toggleType(t.key)} title={on ? 'ปิดประเภทนี้' : 'เปิดประเภทนี้'} style={{ ...switchStyle(on), border: 0, padding: 0 }}><div style={knob(on)} /></button>
                   </div>
                 );
               })}
