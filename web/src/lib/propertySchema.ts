@@ -293,7 +293,6 @@ export const REQUIREMENT_FIELDS: Record<string, FieldDef[]> = {
   warehouse: [
     DEAL_INTENT,
     { key: 'usable_area', label: 'พื้นที่ใช้สอยที่ต้องการ', kind: 'number', unit: 'ตร.ม.' },
-    { key: 'cold_storage', label: 'ต้องการห้องเย็น / ควบคุมอุณหภูมิ', kind: 'boolean' },
     { key: 'location', label: 'ทำเล / จังหวัดที่สนใจ', kind: 'text', placeholder: 'เช่น บางนา, สมุทรปราการ' },
     { key: 'budget', label: 'งบประมาณ (เช่า/ซื้อ)', kind: 'text', placeholder: 'เช่น 150,000/เดือน' },
   ],

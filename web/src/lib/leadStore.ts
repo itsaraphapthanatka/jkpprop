@@ -13,6 +13,8 @@ export type StoredLead = {
   name: string;
   phone: string;
   email: string;
+  company?: string; // ชื่อบริษัท / องค์กรของผู้ติดต่อ
+  respondentType?: string; // เป็น Agent ตัวแทน / เป็น ลูกค้า (ผู้เช่า)
   message: string;
   typeKey: string; // property type key (house/condo/land/factory/warehouse)
   typeLabel: string; // Thai label

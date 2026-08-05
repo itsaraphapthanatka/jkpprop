@@ -15,6 +15,10 @@ const labelStyle: React.CSSProperties = { display: 'block', marginBottom: 6, fon
 const reqMark = <span style={{ color: '#C0392B' }}> *</span>;
 const isFull = (f: FieldDef) => ['dealtype', 'boolean', 'multiselect'].includes(f.kind);
 
+/* Asked for EVERY property type — who is filling this in (ported from the
+   JKP "แบบสอบถามความต้องการใช้โกดังและโรงงาน" intake form). */
+const RESPONDENT_OPTS = ['เป็น Agent ตัวแทน', 'เป็น ลูกค้า (ผู้เช่า)'];
+
 export function RequirementForm() {
   const [typeKey, setTypeKey] = React.useState('warehouse');
   // start from all types (SSR-safe), then narrow to the agency's enabled types on the client
@@ -28,6 +32,8 @@ export function RequirementForm() {
   const [name, setName] = React.useState('');
   const [phone, setPhone] = React.useState('');
   const [email, setEmail] = React.useState('');
+  const [company, setCompany] = React.useState('');
+  const [respondent, setRespondent] = React.useState(''); // required, asked for every type
   const [message, setMessage] = React.useState('');
   const [error, setError] = React.useState('');
   const [submitted, setSubmitted] = React.useState(false);
@@ -35,6 +41,8 @@ export function RequirementForm() {
 
   const fields = requirementFields(typeKey);
   const setV = (k: string, v: unknown) => setValues((p) => ({ ...p, [k]: v }));
+  // drop a stale validation message as soon as the user acts on it
+  const clearErr = () => setError((e) => (e ? '' : e));
 
   // reset per-type answers but PRESERVE the universal rent/buy intent
   const pickType = (k: string) => { setTypeKey(k); setValues((p) => ({ deal_intent: (p.deal_intent as string) ?? 'เช่า' })); };
@@ -92,6 +100,7 @@ export function RequirementForm() {
   const submit = () => {
     if (!name.trim()) { setError('กรุณากรอกชื่อของคุณ'); return; }
     if (!phone.trim() && !email.trim()) { setError('กรุณากรอกเบอร์โทรหรืออีเมลอย่างน้อย 1 ช่องเพื่อให้เราติดต่อกลับ'); return; }
+    if (!respondent) { setError('กรุณาเลือกสถานะของผู้ตอบแบบสอบถาม'); return; }
     setError('');
     const t = PROPERTY_TYPES.find((p) => p.key === typeKey);
     const { req, dealIntent } = buildReq();
@@ -102,6 +111,8 @@ export function RequirementForm() {
       name: name.trim(),
       phone: phone.trim(),
       email: email.trim(),
+      company: company.trim(),
+      respondentType: respondent,
       message: message.trim(),
       typeKey,
       typeLabel: t?.label || typeKey,
@@ -113,7 +124,7 @@ export function RequirementForm() {
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
       setSubmitted(false);
-      setName(''); setPhone(''); setEmail(''); setMessage('');
+      setName(''); setPhone(''); setEmail(''); setCompany(''); setRespondent(''); setMessage('');
       setValues({ deal_intent: 'เช่า' });
     }, 3000);
   };
@@ -137,10 +148,31 @@ export function RequirementForm() {
 
       {/* contact */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12 }}>
-        <div style={{ minWidth: 0 }}><label style={labelStyle}>ชื่อของคุณ{reqMark}</label><input value={name} onChange={(e) => setName(e.target.value)} placeholder="กรอกชื่อของคุณ" style={inputStyle} /></div>
-        <div style={{ minWidth: 0 }}><label style={labelStyle}>เบอร์โทรศัพท์</label><input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="08x-xxx-xxxx" style={inputStyle} /></div>
+        <div style={{ minWidth: 0 }}><label style={labelStyle}>ชื่อของคุณ{reqMark}</label><input value={name} onChange={(e) => { setName(e.target.value); clearErr(); }} placeholder="กรอกชื่อของคุณ" style={inputStyle} /></div>
+        <div style={{ minWidth: 0 }}><label style={labelStyle}>เบอร์โทรศัพท์</label><input value={phone} onChange={(e) => { setPhone(e.target.value); clearErr(); }} placeholder="08x-xxx-xxxx" style={inputStyle} /></div>
       </div>
-      <div style={{ marginTop: 12 }}><label style={labelStyle}>อีเมล</label><input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@email.com" style={inputStyle} /></div>
+      <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12 }}>
+        <div style={{ minWidth: 0 }}><label style={labelStyle}>อีเมล</label><input value={email} onChange={(e) => { setEmail(e.target.value); clearErr(); }} placeholder="name@email.com" style={inputStyle} /></div>
+        <div style={{ minWidth: 0 }}><label style={labelStyle}>ชื่อบริษัท / องค์กรของคุณ</label><input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="เช่น บ. ไทยโลจิสติกส์" style={inputStyle} /></div>
+      </div>
+
+      {/* respondent status — asked for every property type */}
+      <div style={{ marginTop: 16 }} role="radiogroup" aria-label="สถานะของผู้ตอบแบบสอบถาม">
+        <label style={labelStyle}>สถานะของผู้ตอบแบบสอบถาม{reqMark}</label>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {RESPONDENT_OPTS.map((opt) => {
+            const on = respondent === opt;
+            return (
+              <button type="button" key={opt} onClick={() => { setRespondent(opt); clearErr(); }} aria-pressed={on} style={{ flex: '1 1 auto', minWidth: 150, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 12, fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? 'rgba(13,108,59,.06)' : 'var(--bg)', color: on ? '#0D6C3B' : 'var(--text)' }}>
+                <span style={{ width: 16, height: 16, borderRadius: 9999, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--muted3)') }}>
+                  {on && <span style={{ width: 8, height: 8, borderRadius: 9999, background: '#0D6C3B' }} />}
+                </span>
+                {opt}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* property-type picker */}
       <div style={{ marginTop: 16 }}>

@@ -44,13 +44,17 @@ const leadsData: Lead[] = [
    malformed / hand-edited localStorage records) */
 function webToLead(sl: StoredLead): Lead {
   const nm = (sl.name || '').trim();
+  const org = (sl.company || '').trim();
+  const who = (sl.respondentType || '').trim();
   const typeLabel = sl.typeLabel || sl.typeKey || 'ทรัพย์';
   const intent = sl.dealIntent || '';
+  // list convention: `name` = organisation, `company` = contact person · context
+  const title = org || nm || 'ไม่ระบุชื่อ';
   return {
-    name: nm || 'ไม่ระบุชื่อ',
-    company: `ต้องการ${intent}${typeLabel}`,
+    name: title,
+    company: [nm || '—', who || `ต้องการ${intent}${typeLabel}`].join(' · '),
     country: 'ไทย',
-    initial: (nm[0] || '?').toUpperCase(),
+    initial: (title[0] || '?').toUpperCase(),
     avBg: '#273c33', avFg: '#2DFB91',
     time: relTime(sl.createdAt),
     status: 'new', statusK: 'new',
@@ -58,7 +62,13 @@ function webToLead(sl: StoredLead): Lead {
     phone: sl.phone || '—',
     email: sl.email || '—',
     agent: 'มอบหมาย: ยังไม่มอบหมาย',
-    req: [{ k: 'ประเภททรัพย์', v: typeLabel }, { k: 'ความต้องการ', v: intent }, ...(Array.isArray(sl.req) ? sl.req : [])],
+    req: [
+      ...(who ? [{ k: 'สถานะผู้ติดต่อ', v: who }] : []),
+      ...(org ? [{ k: 'บริษัท / องค์กร', v: org }] : []),
+      { k: 'ประเภททรัพย์', v: typeLabel },
+      { k: 'ความต้องการ', v: intent },
+      ...(Array.isArray(sl.req) ? sl.req : []),
+    ],
     message: sl.message || undefined,
     web: true,
   };
