@@ -18,6 +18,7 @@ const CARDS = [
   { title: 'Branding & Theme', desc: 'โลโก้ สี ฟอนต์ — พรีวิวสด multi-tenant', meta: '12 พรีเซ็ต', href: '/admin/branding', iconBg: '#E8F3EC', icon: ic(<><circle cx="13.5" cy="6.5" r="2.5" /><circle cx="17.5" cy="10.5" r="2.5" /><circle cx="8.5" cy="7.5" r="2.5" /><circle cx="6.5" cy="12.5" r="2.5" /><path d="M12 22a10 10 0 110-20 8 8 0 018 8c0 2-2 3-4 3h-2a2 2 0 00-1 3.7A2 2 0 0112 22z" /></>, '#0D6C3B') },
   { title: 'SEO / GEO / AEO', desc: 'meta, schema, hreflang, AI answer', meta: '3 ภาษา', href: '/admin/seo', iconBg: '#EEF4F3', icon: ic(<><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20" /></>, '#034956') },
   { title: 'Audit Logs', desc: 'ประวัติ mutation ทั้งระบบ + before/after', meta: '2,847 รายการ', href: '/admin/audit', iconBg: '#FBF3E1', icon: ic(<><path d="M12 8v4l3 2" /><circle cx="12" cy="12" r="9" /></>, '#9A741C') },
+  { title: 'การแจ้งเตือน', desc: 'เตือนสัญญาเช่าใกล้หมด — ตั้งล่วงหน้า 1/2/3 เดือน', meta: 'ขึ้นที่กระดิ่งด้านบน', href: '/admin/notifications', iconBg: '#F9E4E1', icon: ic(<><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 01-3.4 0" /></>, '#C0392B') },
 ];
 
 const setCss = `

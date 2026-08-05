@@ -1,0 +1,177 @@
+'use client';
+
+import * as React from 'react';
+import { AdminShell, AdminBreadcrumb } from '@/components/admin/AdminShell';
+import { buildAlerts, loadNotifyConfig, saveNotifyConfig, DEFAULT_NOTIFY, MILESTONE_MONTHS, LEASES, type LeaseAlert, type NotifyConfig } from '@/lib/leaseStore';
+
+/* Settings → การแจ้งเตือน: choose how far ahead of a lease's end date the
+   system should raise a bell notification (1 / 2 / 3 เดือน), with a live
+   preview of exactly which leases the current setting would surface. */
+
+const nsCss = `
+#ns-split > div{ min-width:0; }
+@media (max-width:1000px){ #ns-split{grid-template-columns:1fr !important;} #ns-preview{position:static !important;} }
+@media (max-width:640px){ #admin-main > main{ padding:16px 14px 44px !important; } }
+@media (max-width:480px){ #ns-save{flex:1 1 100% !important;justify-content:center;} }
+.ns-save:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(13,108,59,.35);}
+`;
+
+const card: React.CSSProperties = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 20 };
+const switchStyle = (on: boolean): React.CSSProperties => ({ width: 40, height: 23, borderRadius: 9999, position: 'relative', transition: 'background .2s', background: on ? '#0D6C3B' : 'var(--border)', flexShrink: 0, border: 0, padding: 0, cursor: 'pointer' });
+const knob = (on: boolean): React.CSSProperties => ({ position: 'absolute', top: '2.5px', left: on ? '19px' : '2.5px', width: 18, height: 18, borderRadius: 9999, background: '#fff', transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,.2)' });
+
+const LEVEL: Record<string, { bg: string; fg: string; label: string }> = {
+  expired: { bg: '#F9E4E1', fg: '#C0392B', label: 'หมดสัญญาแล้ว' },
+  urgent: { bg: '#FBF3E1', fg: '#9A741C', label: 'ใกล้หมดมาก' },
+  warn: { bg: '#EEF4F3', fg: '#034956', label: 'ใกล้หมดสัญญา' },
+};
+
+export function NotifySettingsBody() {
+  const [cfg, setCfg] = React.useState<NotifyConfig>(DEFAULT_NOTIFY);
+  const [alerts, setAlerts] = React.useState<LeaseAlert[]>([]);
+  const [dirty, setDirty] = React.useState(false);
+  const [toast, setToast] = React.useState('');
+  const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [ready, setReady] = React.useState(false);
+
+  React.useEffect(() => { const c = loadNotifyConfig(); setCfg(c); setReady(true); }, []);
+  // live preview follows the edits, before they are saved
+  React.useEffect(() => { if (ready) setAlerts(buildAlerts(cfg)); }, [cfg, ready]);
+
+  const flash = (m: string) => { setToast(m); if (timer.current) clearTimeout(timer.current); timer.current = setTimeout(() => setToast(''), 2400); };
+
+  const toggleMonth = (m: number) => {
+    setCfg((c) => {
+      const has = c.months.includes(m);
+      const months = has ? c.months.filter((x) => x !== m) : [...c.months, m].sort((a, b) => a - b);
+      if (!months.length && !c.includeExpired) { flash('ต้องเลือกอย่างน้อย 1 ช่วงเวลา'); return c; }
+      return { ...c, months };
+    });
+    setDirty(true);
+  };
+  const setEnabled = (v: boolean) => { setCfg((c) => ({ ...c, enabled: v })); setDirty(true); };
+  const setExpired = (v: boolean) => {
+    setCfg((c) => {
+      if (!v && !c.months.length) { flash('ต้องเลือกอย่างน้อย 1 ช่วงเวลา'); return c; }
+      return { ...c, includeExpired: v };
+    });
+    setDirty(true);
+  };
+  const save = () => { saveNotifyConfig(cfg); setDirty(false); flash(`บันทึกแล้ว · แจ้งเตือน ${alerts.length} สัญญา`); };
+
+  const actions = (
+    <button type="button" id="ns-save" className="ns-save" onClick={save} style={{ height: 40, padding: '0 18px', borderRadius: 9999, background: dirty ? '#0D6C3B' : '#273c33', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, cursor: 'pointer', whiteSpace: 'nowrap', border: 0, fontFamily: 'inherit', transition: 'transform .2s,box-shadow .2s' }}>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2"><path d="M20 6L9 17l-5-5" /></svg>{dirty ? 'บันทึก *' : 'บันทึก'}
+    </button>
+  );
+
+  return (
+    <AdminShell
+      active="settings"
+      eyebrow={<AdminBreadcrumb items={[{ label: 'Settings', href: '/admin/settings' }, { label: 'การแจ้งเตือน' }]} />}
+      title="การแจ้งเตือนสัญญาเช่า"
+      actions={actions}
+      css={nsCss}
+    >
+      <p style={{ margin: '0 0 18px', fontSize: 13, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.9"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
+        เลือกว่าจะให้ระบบเตือนล่วงหน้ากี่เดือนก่อนสัญญาหมด — การแจ้งเตือนจะไปโผล่ที่<b>กระดิ่งด้านบน</b>ของหน้าแอดมิน
+      </p>
+
+      <div id="ns-split" style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 20, alignItems: 'start' }}>
+        {/* ---- settings ---- */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={card}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text)' }}>เปิดการแจ้งเตือนสัญญาใกล้หมด</div>
+                <div style={{ fontSize: '11.5px', color: 'var(--muted2)', marginTop: 2 }}>ปิดแล้วกระดิ่งจะไม่ขึ้นแจ้งเตือนเรื่องสัญญา</div>
+              </div>
+              <button type="button" id="ns-enable" role="switch" aria-checked={cfg.enabled} aria-label="เปิดการแจ้งเตือนสัญญาใกล้หมด" onClick={() => setEnabled(!cfg.enabled)} style={switchStyle(cfg.enabled)}><span style={knob(cfg.enabled)} /></button>
+            </div>
+          </div>
+
+          <div style={{ ...card, opacity: cfg.enabled ? 1 : 0.55 }}>
+            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text)' }}>แจ้งเตือนก่อนหมดสัญญา</div>
+            <div style={{ fontSize: '11.5px', color: 'var(--muted2)', margin: '2px 0 14px' }}>เลือกได้มากกว่า 1 ช่วง — ระบบจะเตือนเมื่อสัญญาเข้าใกล้ช่วงที่เลือก</div>
+            <div id="ns-months" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {MILESTONE_MONTHS.map((m) => {
+                const on = cfg.months.includes(m);
+                return (
+                  <button
+                    type="button"
+                    key={m}
+                    onClick={() => cfg.enabled && toggleMonth(m)}
+                    aria-pressed={on}
+                    style={{ flex: '1 1 auto', minWidth: 110, height: 52, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 12, fontSize: '13.5px', fontWeight: 700, cursor: cfg.enabled ? 'pointer' : 'not-allowed', fontFamily: 'inherit', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? 'rgba(13,108,59,.06)' : 'var(--bg)', color: on ? '#0D6C3B' : 'var(--text)' }}
+                  >
+                    <span style={{ width: 18, height: 18, borderRadius: 5, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--muted3)'), background: on ? '#0D6C3B' : 'transparent' }}>
+                      {on && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4"><path d="M20 6L9 17l-5-5" /></svg>}
+                    </span>
+                    {m} เดือน
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text)' }}>แจ้งเตือนสัญญาที่เลยกำหนดแล้วด้วย</div>
+                <div style={{ fontSize: 11, color: 'var(--muted3)', marginTop: 2 }}>สัญญาที่ผ่านวันสิ้นสุดแต่ยังไม่ต่อ / ไม่ปิด</div>
+              </div>
+              <button type="button" id="ns-expired" role="switch" aria-checked={cfg.includeExpired} aria-label="แจ้งเตือนสัญญาที่เลยกำหนดแล้ว" onClick={() => cfg.enabled && setExpired(!cfg.includeExpired)} style={switchStyle(cfg.includeExpired)}><span style={knob(cfg.includeExpired)} /></button>
+            </div>
+          </div>
+
+          <div style={{ background: '#F0ECF9', border: '1px solid #DCCFEC', borderRadius: 16, padding: '16px 18px', display: 'flex', alignItems: 'flex-start', gap: 11 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7A3FB0" strokeWidth="1.9" style={{ flexShrink: 0, marginTop: 1 }}><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 01-3.4 0" /></svg>
+            <span style={{ fontSize: 12, color: '#7A3FB0', lineHeight: 1.55 }}>
+              ตอนนี้เข้าเกณฑ์ <b>{alerts.length}</b> สัญญา จากทั้งหมด <b>{LEASES.length}</b> สัญญาที่ยังใช้งาน · กด <b>บันทึก</b> แล้วกระดิ่งด้านบนจะอัปเดตทันที
+            </span>
+          </div>
+        </div>
+
+        {/* ---- live preview ---- */}
+        <div id="ns-preview" style={{ position: 'sticky', top: 88 }}>
+          <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text)' }}>ตัวอย่างการแจ้งเตือน</div>
+              <div style={{ fontSize: 11, color: 'var(--muted2)' }}>สิ่งที่จะเห็นในกระดิ่ง</div>
+            </div>
+            <div id="ns-preview-list" className="a-scroll" style={{ maxHeight: 460, overflowY: 'auto' }}>
+              {!cfg.enabled ? (
+                <div style={{ padding: '26px 18px', textAlign: 'center', fontSize: '12.5px', color: 'var(--muted2)' }}>ปิดการแจ้งเตือนอยู่</div>
+              ) : alerts.length === 0 ? (
+                <div style={{ padding: '26px 18px', textAlign: 'center', fontSize: '12.5px', color: 'var(--muted2)' }}>ยังไม่มีสัญญาที่เข้าเกณฑ์</div>
+              ) : (
+                alerts.map((a) => {
+                  const lv = LEVEL[a.level];
+                  return (
+                    <div key={a.id} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                        <span style={{ height: 19, padding: '0 8px', borderRadius: 9999, background: lv.bg, color: lv.fg, fontSize: 10, fontWeight: 800, display: 'inline-flex', alignItems: 'center' }}>{lv.label}</span>
+                        <code style={{ fontSize: 11, fontWeight: 700, color: '#0D6C3B' }}>{a.lease.code}</code>
+                        {a.milestone && <span style={{ fontSize: 10, color: 'var(--muted3)' }}>· เกณฑ์ {a.milestone} เดือน</span>}
+                      </div>
+                      <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text)', lineHeight: 1.45 }}>{a.lease.title}</div>
+                      <div style={{ marginTop: 2, fontSize: 11.5, color: 'var(--muted)' }}>
+                        {a.lease.tenant} · {a.daysLeft < 0 ? `เกินกำหนด ${Math.abs(a.daysLeft)} วัน` : `เหลือ ${a.daysLeft} วัน`} (สิ้นสุด {a.endDateLabel})
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {toast && (
+        <div style={{ position: 'fixed', left: '50%', bottom: 28, transform: 'translateX(-50%)', zIndex: 900, background: '#0A0E0C', color: '#fff', padding: '12px 20px', borderRadius: 9999, fontSize: 13, fontWeight: 700, boxShadow: '0 12px 30px rgba(0,0,0,.3)', display: 'flex', alignItems: 'center', gap: 9, maxWidth: 'calc(100vw - 32px)' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" strokeWidth="2.6" style={{ flexShrink: 0 }}><path d="M20 6L9 17l-5-5" /></svg>
+          {toast}
+        </div>
+      )}
+    </AdminShell>
+  );
+}

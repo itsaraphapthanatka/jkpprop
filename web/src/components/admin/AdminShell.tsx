@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { NotificationBell } from './NotificationBell';
 
 /* ============================================================
    Shared admin CMS chrome — ported verbatim from the identical
@@ -167,10 +168,7 @@ export function AdminTopbarDefaultActions() {
         <input placeholder="ค้นหาทรัพย์, lead, รหัส…" style={{ border: 0, outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 13, color: 'var(--text)', flex: 1, minWidth: 0 }} />
         <code style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '10.5px', color: 'var(--muted3)', border: '1px solid var(--border)', borderRadius: 5, padding: '1px 5px' }}>⌘K</code>
       </div>
-      <div style={{ position: 'relative', width: 40, height: 40, borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text)" strokeWidth="1.8"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 01-3.4 0" /></svg>
-        <span style={{ position: 'absolute', top: 8, right: 9, width: 8, height: 8, borderRadius: 9999, background: '#2DFB91', border: '2px solid var(--surface)' }} />
-      </div>
+      <NotificationBell />
       <a id="admin-add-btn" href="/admin/properties" className="admin-primary-btn" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M12 5v14M5 12h14" /></svg>เพิ่มทรัพย์
       </a>
