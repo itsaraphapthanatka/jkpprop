@@ -99,7 +99,7 @@ export function RequirementForm() {
 
   const submit = () => {
     if (!name.trim()) { setError('กรุณากรอกชื่อของคุณ'); return; }
-    if (!phone.trim() && !email.trim()) { setError('กรุณากรอกเบอร์โทรหรืออีเมลอย่างน้อย 1 ช่องเพื่อให้เราติดต่อกลับ'); return; }
+    if (!phone.trim()) { setError('กรุณากรอกเบอร์โทรศัพท์ เพื่อให้ทีมงานติดต่อกลับได้'); return; }
     if (!respondent) { setError('กรุณาเลือกสถานะของผู้ตอบแบบสอบถาม'); return; }
     setError('');
     const t = PROPERTY_TYPES.find((p) => p.key === typeKey);
