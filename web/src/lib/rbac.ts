@@ -52,28 +52,30 @@ export const PRIVILEGES: { key: PrivKey; label: string; desc: string }[] = [
   { key: 'price', label: 'แก้ราคาหลังเผยแพร่แล้ว', desc: 'แยกจากการแก้ข้อมูลทั่วไป เพราะกระทบราคาที่ประกาศไปแล้ว' },
   { key: 'deal_unlock', label: 'ปลดล็อกดีลที่ปิดแล้ว', desc: 'ควรให้เฉพาะระดับบริหาร — ป้องกันการแก้ยอดย้อนหลัง' },
   { key: 'internal_note', label: 'เห็นหมายเหตุลับของทรัพย์', desc: 'โน้ตภายในทีม เช่น เงื่อนไขต่อรอง เบอร์คนเฝ้า' },
-  { key: 'export', label: 'ส่งออกข้อมูล (CSV)', desc: 'ดึงข้อมูลออกนอกระบบ — ควบคุมเป็นพิเศษเพราะพาข้อมูลลูกค้าออกได้' },
+  { key: 'export', label: 'ส่งออกข้อมูล (CSV)', desc: 'เฉพาะเจ้าของระบบเท่านั้น — การดึงข้อมูลออกนอกระบบพาข้อมูลลูกค้าออกไปด้วย' },
   { key: 'audit', label: 'ดู Audit log', desc: 'ประวัติการแก้ไขทั้งระบบ ใครทำอะไรเมื่อไหร่' },
 ];
 
 /** สิทธิ์พิเศษที่เปิดให้อัตโนมัติเมื่อเลือกบทบาทนั้น */
 export const DEFAULT_PRIVS: Record<RoleKey, PrivKey[]> = {
   owner: ['pii', 'publish', 'price', 'deal_unlock', 'internal_note', 'export', 'audit'],
-  manager: ['pii', 'publish', 'price', 'internal_note', 'export'],
+  manager: ['pii', 'publish', 'price', 'internal_note'],
   agent: ['pii', 'internal_note'],
   co_agent: [],
-  ops: ['pii', 'publish', 'internal_note', 'export'],
-  marketing: ['publish', 'export'],
+  ops: ['pii', 'publish', 'internal_note'],
+  marketing: ['publish'],
   translator: [],
 };
 
-/** สิทธิ์พิเศษที่ "ให้ไม่ได้" กับบทบาทนั้น (กันตั้งค่าผิด) */
+/** สิทธิ์พิเศษที่ "ให้ไม่ได้" กับบทบาทนั้น (กันตั้งค่าผิด)
+ *  `export` ห้ามทุกบทบาทยกเว้น owner — การดึงข้อมูลออกนอกระบบพาข้อมูลลูกค้าออกไปด้วย */
 export const FORBIDDEN_PRIVS: Partial<Record<RoleKey, PrivKey[]>> = {
-  agent: ['deal_unlock', 'audit'],
+  manager: ['export'],
+  agent: ['deal_unlock', 'audit', 'export'],
   co_agent: ['deal_unlock', 'audit', 'export', 'price', 'publish', 'internal_note'],
-  marketing: ['deal_unlock', 'audit', 'pii'],
+  marketing: ['deal_unlock', 'audit', 'pii', 'export'],
   translator: ['deal_unlock', 'audit', 'pii', 'price', 'export', 'internal_note'],
-  ops: ['deal_unlock', 'audit'],
+  ops: ['deal_unlock', 'audit', 'export'],
 };
 
 /* ---- permission matrix ------------------------------------------------
@@ -144,7 +146,7 @@ export const MATRIX: MatrixGroup[] = [
       row('พื้นที่ & นิคม (Geography)', { ops: 'yes' }),
       row('ผู้ใช้ & บทบาท', {}),
       row('Audit log', { manager: 'priv' }),
-      row('ส่งออกข้อมูล (CSV)', { manager: 'priv', agent: 'priv', ops: 'priv', marketing: 'priv' }),
+      row('ส่งออกข้อมูล (CSV)', {}, 'เฉพาะเจ้าของระบบ — กันข้อมูลลูกค้าถูกดึงออกนอกระบบ'),
       row('ตั้งค่าระบบ', { ops: 'yes' }),
     ],
   },

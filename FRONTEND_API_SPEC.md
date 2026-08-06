@@ -617,9 +617,11 @@ type UserPermissions = {
 | `price` | แก้ราคาหลังเผยแพร่ | co_agent, translator |
 | `deal_unlock` | ปลดล็อกดีลที่ปิดแล้ว | agent, co_agent, ops, marketing, translator |
 | `internal_note` | เห็นหมายเหตุลับของทรัพย์ | co_agent, translator |
-| `export` | ส่งออก CSV | co_agent, translator |
+| `export` | ส่งออก CSV | **ทุกบทบาทยกเว้น owner** |
 | `audit` | ดู audit log | agent, co_agent, ops, marketing, translator |
 
+> **`export` เป็นสิทธิ์ของ `owner` เท่านั้น** — endpoint ส่งออกต้องปฏิเสธทุกบทบาทอื่นแม้จะยิงตรง
+>
 > `FORBIDDEN_PRIVS` ใน `rbac.ts` เป็นตัวกันตั้งค่าผิดฝั่ง UI — **backend ต้องตรวจซ้ำ** ตอนบันทึก ไม่งั้นยิง API ตรงก็ตั้งได้
 
 ### 12.5 Endpoint ที่เสนอ
