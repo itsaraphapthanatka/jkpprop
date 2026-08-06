@@ -105,7 +105,8 @@ export const MATRIX: MatrixGroup[] = [
       row('แก้ราคาหลังเผยแพร่', { manager: 'priv', agent: 'priv', ops: 'priv' }),
       row('เช็คสถานะว่าง (Availability)', { manager: 'yes', agent: 'yes', co_agent: 'scope', ops: 'yes' }),
       row('Social Status — ติ๊กช่องทาง / แก้ caption', { manager: 'yes', agent: 'scope', marketing: 'yes' }),
-      row('คลังสื่อ (อัปโหลด / ลบ)', { manager: 'yes', agent: 'scope', ops: 'yes', marketing: 'yes' }),
+      row('คลังสื่อ — อัปโหลด', { manager: 'yes', agent: 'scope', ops: 'yes', marketing: 'yes' }),
+      row('คลังสื่อ — ลบไฟล์', { manager: 'yes' }, 'ลบแล้วกู้ไม่ได้ และกระทบประกาศที่ใช้รูปนั้นอยู่'),
     ],
   },
   {
