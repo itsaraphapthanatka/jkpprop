@@ -28,6 +28,8 @@ export function DynamicFieldForm({ typeKey, code }: { typeKey: string; code?: st
   const [vals, setVals] = React.useState<Vals>({});
   const [closed, setClosed] = React.useState<Record<string, boolean>>({});
   const [copied, setCopied] = React.useState(false);
+  const [refreshTick, setRefreshTick] = React.useState(0);
+  const [refreshed, setRefreshed] = React.useState(false);
 
   // Re-resolve the field list AND clear answers on type change — several keys
   // (bathrooms, kitchen, common_area, appliances, furniture…) exist on more than
@@ -61,8 +63,10 @@ export function DynamicFieldForm({ typeKey, code }: { typeKey: string; code?: st
   const lbl = (f: FieldDef) => (<label style={labelStyle}>{f.label}{f.unit ? ` (${f.unit})` : ''}{f.required ? req : null}</label>);
   const note = (f: FieldDef) => (f.note ? <div style={{ marginTop: 5, fontSize: 11, color: f.required ? '#C0392B' : 'var(--muted3)' }}>{f.note}</div> : null);
 
-  /* ---- summary text --------------------------------------------------- */
-  const summaryText = React.useMemo(() => {
+  /* ---- summary text ---------------------------------------------------
+     Rebuilds on every keystroke (vals is in the dep list); the refresh button
+     only exists to re-pull the schema and give a visible confirmation. */
+  const summary = React.useMemo(() => {
     const t = propertyType(typeKey);
     const list = (k: string) => { const v = vals[k]; return Array.isArray(v) ? v.join(', ') : ''; };
     const land = [
@@ -79,37 +83,53 @@ export function DynamicFieldForm({ typeKey, code }: { typeKey: string; code?: st
       code ? `(${code})` : '',
     ].filter(Boolean).join(' ');
     const office = [str('office_floors'), str('office_area_total') && `${str('office_area_total')} ตร.ม.`].filter(Boolean).join(' ');
-    return [
-      head,
-      '',
-      'รายละเอียด',
-      '',
-      `- ที่ตั้ง : ${place}`,
-      `- พื้นที่ใช้สอยรวม : ${str('building_area_total') && `${str('building_area_total')} ตร.ม.`}`,
-      `- ออฟฟิศ : ${office}`,
-      `- พื้นที่ดิน : ${land}`,
-      `- ความสูง : ${str('building_height') && `${str('building_height')} ม.`}`,
-      `- พื้นรับน้ำหนัก : ${str('floor_loading')}`,
-      `- ระบบไฟฟ้า : ${str('power_system') || str('power_phase')}`,
-      `- ราคาขาย : ${str('price_sale') && `${str('price_sale')} บาท`}`,
-      `- ค่าเช่า : ${str('price_rent') && `${str('price_rent')} บาท/เดือน`}`,
-      '',
-      'จุดเด่น',
-      `- โซน : ${str('zone')}`,
-      `- ใกล้ : ${str('nearby')}`,
-      `- พื้นที่สี : ${str('zoning_color')}`,
-      `- คุณสมบัติ : ${list('features')}`,
-      `- การใช้งาน : ${list('usage')}`,
+
+    // every row the template can fill — keeping empty ones visible was asked for,
+    // but we still count them so the UI can show that pulling actually happened
+    const rows: [string, string][] = [
+      ['ที่ตั้ง', place],
+      ['พื้นที่ใช้สอยรวม', str('building_area_total') && `${str('building_area_total')} ตร.ม.`],
+      ['ออฟฟิศ', office],
+      ['พื้นที่ดิน', land],
+      ['ความสูง', str('building_height') && `${str('building_height')} ม.`],
+      ['พื้นรับน้ำหนัก', str('floor_loading')],
+      ['ระบบไฟฟ้า', str('power_system') || str('power_phase')],
+      ['ราคาขาย', str('price_sale') && `${str('price_sale')} บาท`],
+      ['ค่าเช่า', str('price_rent') && `${str('price_rent')} บาท/เดือน`],
+    ];
+    const highlights: [string, string][] = [
+      ['โซน', str('zone')],
+      ['ใกล้', str('nearby')],
+      ['พื้นที่สี', str('zoning_color')],
+      ['คุณสมบัติ', list('features')],
+      ['การใช้งาน', list('usage')],
+    ];
+    const text = [
+      head, '', 'รายละเอียด', '',
+      ...rows.map(([k, v]) => `- ${k} : ${v}`),
+      '', 'จุดเด่น',
+      ...highlights.map(([k, v]) => `- ${k} : ${v}`),
     ].join('\n');
+    const all = [...rows, ...highlights];
+    return { text, filled: all.filter(([, v]) => v).length, total: all.length };
+    // refreshTick lets the refresh button force a recompute even though vals already does
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vals, typeKey, code, fields]);
+  }, [vals, typeKey, code, fields, refreshTick]);
+
+  // re-pull the schema (in case Field Builder changed) and recompute the text
+  const refreshSummary = () => {
+    setFields(resolveFields(typeKey).filter((f) => f.enabled));
+    setRefreshTick((n) => n + 1);
+    setRefreshed(true);
+    window.setTimeout(() => setRefreshed(false), 1400);
+  };
 
   const copySummary = async () => {
     try {
-      await navigator.clipboard.writeText(summaryText);
+      await navigator.clipboard.writeText(summary.text);
     } catch {
       const ta = document.createElement('textarea');
-      ta.value = summaryText;
+      ta.value = summary.text;
       ta.style.position = 'fixed';
       ta.style.opacity = '0';
       document.body.appendChild(ta);
@@ -220,14 +240,25 @@ export function DynamicFieldForm({ typeKey, code }: { typeKey: string; code?: st
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
               <label style={{ ...labelStyle, marginBottom: 0 }}>{f.label}</label>
-              <button type="button" onClick={copySummary} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 34, padding: '0 14px', borderRadius: 9999, border: 0, background: copied ? '#0D6C3B' : '#273c33', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
-                {copied
-                  ? <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6"><path d="M20 6L9 17l-5-5" /></svg>คัดลอกแล้ว</>
-                  : <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 012-2h8" /></svg>คัดลอกข้อความ</>}
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <button type="button" id="dyn-summary-refresh" onClick={refreshSummary} title="ดึงข้อมูลล่าสุดจากฟิลด์ด้านบน" style={{ display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 13px', borderRadius: 9999, border: '1px solid ' + (refreshed ? '#0D6C3B' : 'var(--border)'), background: 'var(--surface)', color: refreshed ? '#0D6C3B' : 'var(--text)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: refreshed ? 'rotate(360deg)' : 'none', transition: 'transform .5s' }}><path d="M21 12a9 9 0 11-3-6.7L21 8" /><path d="M21 3v5h-5" /></svg>
+                  {refreshed ? 'อัปเดตแล้ว' : 'Refresh'}
+                </button>
+                <button type="button" id="dyn-summary-copy" onClick={copySummary} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 34, padding: '0 14px', borderRadius: 9999, border: 0, background: copied ? '#0D6C3B' : '#273c33', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  {copied
+                    ? <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6"><path d="M20 6L9 17l-5-5" /></svg>คัดลอกแล้ว</>
+                    : <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 012-2h8" /></svg>คัดลอกข้อความ</>}
+                </button>
+              </div>
             </div>
-            <pre id="dyn-summary" style={{ margin: 0, padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontFamily: 'inherit', fontSize: '13px', lineHeight: 1.75, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', maxHeight: 420, overflowY: 'auto' }}>{summaryText}</pre>
-            {note(f)}
+            <pre id="dyn-summary" style={{ margin: 0, padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontFamily: 'inherit', fontSize: '13px', lineHeight: 1.75, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', maxHeight: 420, overflowY: 'auto' }}>{summary.text}</pre>
+            <div style={{ marginTop: 7, display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', fontSize: 11, color: 'var(--muted3)' }}>
+              <span id="dyn-summary-count" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 20, padding: '0 8px', borderRadius: 9999, background: summary.filled ? 'var(--tint)' : 'var(--bg2,#F3F0EC)', color: summary.filled ? 'var(--accent)' : 'var(--muted3)', fontWeight: 700 }}>
+                ดึงข้อมูลแล้ว {summary.filled}/{summary.total} รายการ
+              </span>
+              <span>{summary.filled ? 'อัปเดตอัตโนมัติทุกครั้งที่พิมพ์ — กด Refresh ถ้าเพิ่งแก้ฟิลด์ใน Field Builder' : 'ยังไม่ได้กรอกข้อมูล — พิมพ์ในฟิลด์ด้านบน ข้อความจะขึ้นเองทันที'}</span>
+            </div>
           </div>
         );
       case 'date':
