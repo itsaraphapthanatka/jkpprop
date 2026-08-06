@@ -647,6 +647,9 @@ type UserPermissions = {
 |---|---|
 | `web/src/lib/propertySchema.ts` | schema ประเภททรัพย์ทั้งหมด + field override + type config + `resolveFields()` |
 | `web/src/lib/leadStore.ts` | lead ที่ส่งจากฟอร์มหน้าเว็บ |
+| `web/src/lib/rbac.ts` | บทบาท / ขอบเขตข้อมูล / สิทธิ์พิเศษ + ตารางสิทธิ์ (ดู §12) |
+| `web/src/lib/socialStore.ts` | ช่องทางลงประกาศ + สถานะรายประกาศ |
+| `web/src/lib/summaryTemplate.ts` | ตัวสร้างข้อความโพสต์ (ใช้ร่วมฟอร์มทรัพย์ + Social Status) |
 | `web/src/lib/leaseStore.ts` | สัญญาเช่า (mock) + ค่าตั้งแจ้งเตือน + `buildAlerts()` |
 | `web/src/components/admin/DynamicFieldForm.tsx` | ตัวเรนเดอร์ฟอร์มจาก schema (ใช้ทั้งเพิ่มและแก้ไขทรัพย์) |
 | `web/src/components/admin/FieldBuilderBody.tsx` | UI แก้ schema + เปิด/ปิดประเภททรัพย์ |
@@ -662,6 +665,7 @@ jkp.fieldSchema.v1   → Record<typeKey, SchemaOverride>
 jkp.typeConfig.v1    → TypeConfig
 jkp.leads.v1         → StoredLead[]   (ล่าสุด 200 รายการ)
 jkp.leaseNotify.v1   → NotifyConfig
+jkp.socialStatus.v1  → { channels: Channel[]; records: Record<listingCode, SocialRecord> }
 ```
 
 ---
