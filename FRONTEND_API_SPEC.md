@@ -11,8 +11,8 @@
 |---|---|
 | **Stack** | Next.js 15 · App Router · React 19 · TypeScript strict |
 | **Styling** | Plain CSS + inline style objects (ไม่ใช้ Tailwind) |
-| **ที่เก็บข้อมูลตอนนี้** | localStorage 4 keys + mock array ใน component |
-| **โมดูลที่มี client store แล้ว** | 4 / 16 |
+| **ที่เก็บข้อมูลตอนนี้** | localStorage 5 keys + mock array ใน component |
+| **โมดูลที่มี client store แล้ว** | 5 / 17 |
 | **Repo** | `itsaraphapthanatka/jkpprop` → `/web` |
 
 **สารบัญ**
@@ -152,7 +152,7 @@ type FieldDef = {
 type PropertyType = { key: string; label: string; icon: string; fields: FieldDef[] };
 ```
 
-**ประเภททรัพย์ 5 ชนิดที่มีอยู่**
+**ประเภททรัพย์ 6 ชนิดที่มีอยู่**
 
 | key | label | ฟิลด์ | บังคับ | section | หมายเหตุ |
 |---|---|--:|--:|--:|---|
@@ -160,10 +160,11 @@ type PropertyType = { key: string; label: string; icon: string; fields: FieldDef
 | `condo` | คอนโด | 20 | 4 | — | ฟอร์มเรียงเดี่ยว |
 | `land` | ที่ดินเปล่า | 16 | 4 | — | มี FAR / OSR / ผังเมือง |
 | `factory` | โรงงาน | 13 | 4 | — | มี ร.ง.4 / เครน |
-| `warehouse` | โกดัง / คลังสินค้า | 45 | 8 | 10 | ชุดเต็มจากแบบฟอร์มรับทรัพย์ |
+| `warehouse` | โกดัง / คลังสินค้า | 50 | 8 | 10 | ชุดเต็มจากแบบฟอร์มรับทรัพย์ · มี `showWhen` (ภาษีตามประเภทประกาศ) |
+| `showroom` | โชว์รูมและเชิงพาณิชย์ | 50 | 8 | 10 | **ใช้ชุดฟิลด์เดียวกับ warehouse** (แชร์ array เดียวกันในโค้ด) |
 
 10 section ของโกดัง เรียงตามนี้:
-คำอธิบาย · ประเภทและทำเล · ข้อมูลทั่วไป · ผู้ให้เช่า · ขนาดพื้นที่ · ราคาและค่าใช้จ่าย · สเปคอาคาร · เงื่อนไขสัญญา · คุณสมบัติและการใช้งาน · ตำแหน่ง
+ประเภทและทำเล (รวมแผนที่) · ผู้ให้เช่า · พื้นที่ · สเปคอาคาร · ราคาและค่าใช้จ่าย · เงื่อนไขสัญญา · คุณสมบัติและการใช้งาน · หมายเหตุ (🔒 internalOnly) · ข้อมูลทั่วไป · หมายเหตุ : รายละเอียดทรัพย์ (รวม)
 
 **Override ที่แอดมินแก้ได้ (Field Builder)**
 
@@ -325,7 +326,7 @@ type StoredLead = {
   company?: string;        // ชื่อบริษัท / องค์กร
   respondentType?: string; // "เป็น Agent ตัวแทน" | "เป็น ลูกค้า (ผู้เช่า)" (บังคับ)
   message: string;
-  typeKey: string;         // house | condo | land | factory | warehouse
+  typeKey: string;         // house | condo | land | factory | warehouse | showroom
   typeLabel: string;       // label ไทย (denormalised ไว้แสดงผล)
   dealIntent: string;      // "เช่า" | "ซื้อ"
   req: ReqItem[];          // สรุปความต้องการเฉพาะที่กรอก (ข้อว่างถูกตัดออกแล้ว)
