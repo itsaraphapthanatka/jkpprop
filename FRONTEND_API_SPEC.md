@@ -129,8 +129,24 @@ type FieldDef = {
   note?: string;
   section?: string;       // จัดกลุ่มเป็นการ์ดในฟอร์ม
   ai?: boolean;           // textarea: โชว์ปุ่ม "ให้ AI ช่วยเขียน"
+  internalOnly?: boolean; // 🔒 ห้ามส่งออก public endpoint — ดูด้านล่าง
+  showWhen?: { field: string; in: string[] };  // แสดงเมื่อฟิลด์อื่นมีค่าตามที่ระบุ
   sub?: { key: string; label: string; kind?: FieldKind; options?: string[]; unit?: string }[];
 };
+```
+
+> ### 🔒 `internalOnly` — ฟิลด์ที่ห้ามหลุดออกหน้าเว็บ
+>
+> ฟิลด์ที่ตั้ง `internalOnly: true` เป็น**โน้ตภายในทีม** (ตอนนี้คือ `internal_note` ของโกดัง/โชว์รูม)
+> ใช้เก็บเรื่องอย่างเงื่อนไขต่อรอง เบอร์คนเฝ้า ข้อควรระวัง
+>
+> **ข้อบังคับสำหรับ backend:**
+> - endpoint สาธารณะ (หน้าเว็บ, ประกาศ, shortlist ที่แชร์ให้ลูกค้า) **ต้องตัดฟิลด์เหล่านี้ออกก่อนส่ง** — อย่าพึ่ง frontend เป็นตัวกรอง
+> - ห้ามใส่ลง SEO meta / JSON-LD / sitemap / feed ที่ส่งออกให้ portal ภายนอก
+> - ฝั่ง frontend กันไว้แล้ว: ตัวสร้างข้อความโพสต์ (`lib/summaryTemplate.ts`) อ่านเฉพาะ key ที่ระบุไว้ชัดเจน จึงไม่มีทางดึง `internal_note` ติดไปกับข้อความที่คัดลอกไปโพสต์
+
+```ts
+// (ต่อจาก FieldDef)
 
 type PropertyType = { key: string; label: string; icon: string; fields: FieldDef[] };
 ```

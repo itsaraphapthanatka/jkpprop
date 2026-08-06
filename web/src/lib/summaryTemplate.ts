@@ -33,7 +33,10 @@ const list = (v: SummaryValues, k: string) => {
   return Array.isArray(x) ? x.join(', ') : '';
 };
 
-/** Empty rows are kept on purpose — ops wanted the full skeleton to paste. */
+/** Empty rows are kept on purpose — ops wanted the full skeleton to paste.
+ *  NOTE: this reads an explicit allow-list of keys. Fields flagged
+ *  `internalOnly` in the schema (e.g. `internal_note`) must never be added
+ *  here — this text is copied out to public listings and social posts. */
 export function buildSummary({ typeLabel, code, values: v }: SummaryInput): Summary {
   const land = [
     sub(v, 'land_area_total', 'rai') && `${sub(v, 'land_area_total', 'rai')} ไร่`,

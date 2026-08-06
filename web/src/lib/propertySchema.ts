@@ -42,6 +42,8 @@ export type FieldDef = {
   note?: string; // small helper text
   section?: string; // group fields under a section header in the form
   ai?: boolean; // textarea: show "ให้ AI ช่วยเขียน" helper
+  /** ใช้ภายในทีมเท่านั้น — ห้ามส่งออกไปหน้าเว็บสาธารณะ / ประกาศ / ข้อความโพสต์ */
+  internalOnly?: boolean;
   showWhen?: ShowWhen; // conditional visibility
   sub?: { key: string; label: string; kind?: FieldKind; options?: string[]; unit?: string; placeholder?: string }[]; // for location / group
 };
@@ -259,8 +261,8 @@ const WAREHOUSE_FIELDS: FieldDef[] = [
   { key: 'features', label: 'คุณสมบัติ', kind: 'multiselect', options: ['พื้นที่สูงโปร่ง', 'มีพื้นที่สำนักงาน', 'รถบรรทุกเข้าถึงได้', 'พื้นเทคอนกรีต', 'ใกล้ถนนหลัก', 'มีลานจอด / ลานเทรลเลอร์', 'อาคารเดี่ยว', 'ยกพื้นเทียบตู้ (Dock leveler)'], section: 'คุณสมบัติและการใช้งาน' },
   { key: 'usage', label: 'การใช้งานที่เหมาะ', kind: 'multiselect', options: ['โกดัง', 'สตูดิโอ', 'โรงงาน', 'ศูนย์กระจายสินค้า', 'ครัวกลาง', 'โปรดักชั่น', 'ห้องเก็บของ', 'E-Commerce'], section: 'คุณสมบัติและการใช้งาน' },
 
-  // 8 · หมายเหตุ
-  { key: 'internal_note', label: 'หมายเหตุ', kind: 'textarea', section: 'หมายเหตุ' },
+  // 8 · หมายเหตุ (โน้ตลับของทีม — ไม่ออกหน้าเว็บ ไม่เข้าข้อความโพสต์)
+  { key: 'internal_note', label: 'หมายเหตุ', kind: 'textarea', section: 'หมายเหตุ', internalOnly: true, note: 'บันทึกภายในทีมเท่านั้น เช่น เงื่อนไขต่อรอง เบอร์คนเฝ้า ข้อควรระวัง — ไม่ถูกส่งไปหน้าเว็บและไม่รวมอยู่ในข้อความโพสต์', placeholder: 'เห็นเฉพาะทีมงานในระบบหลังบ้าน…' },
 
   // 9 · ข้อมูลทั่วไป (วันที่ลงประกาศ ย้ายไปอยู่กับประเภทประกาศแล้ว)
   { key: 'photos', label: 'รูปทรัพย์', kind: 'media', section: 'ข้อมูลทั่วไป', note: 'รูปแรก = ปก (แสดงบนหน้าแรก) · สูงสุด 10 รูป' },

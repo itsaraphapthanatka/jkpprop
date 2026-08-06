@@ -61,8 +61,18 @@ export function DynamicFieldForm({ typeKey, code }: { typeKey: string; code?: st
   };
   const visible = (f: FieldDef) => !f.showWhen || f.showWhen.in.includes(effective(f.showWhen.field));
 
-  const lbl = (f: FieldDef) => (<label style={labelStyle}>{f.label}{f.unit ? ` (${f.unit})` : ''}{f.required ? req : null}</label>);
-  const note = (f: FieldDef) => (f.note ? <div style={{ marginTop: 5, fontSize: 11, color: f.required ? '#C0392B' : 'var(--muted3)' }}>{f.note}</div> : null);
+  const lbl = (f: FieldDef) => (
+    <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+      <span>{f.label}{f.unit ? ` (${f.unit})` : ''}{f.required ? req : null}</span>
+      {f.internalOnly && (
+        <span title="ข้อมูลนี้ไม่ถูกส่งไปหน้าเว็บสาธารณะ" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 19, padding: '0 8px', borderRadius: 9999, background: '#FBF3E1', color: '#9A741C', fontSize: 10, fontWeight: 700 }}>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 018 0v4" /></svg>
+          ไม่แสดงบนเว็บ
+        </span>
+      )}
+    </label>
+  );
+  const note = (f: FieldDef) => (f.note ? <div style={{ marginTop: 5, fontSize: 11, lineHeight: 1.5, color: f.internalOnly ? '#9A741C' : f.required ? '#C0392B' : 'var(--muted3)' }}>{f.note}</div> : null);
 
   /* ---- summary text ---------------------------------------------------
      Rebuilds on every keystroke (vals is in the dep list); the refresh button
@@ -233,7 +243,16 @@ export function DynamicFieldForm({ typeKey, code }: { typeKey: string; code?: st
         return (
           <div>
             {lbl(f)}
-            <textarea value={str(f.key)} onChange={(e) => setV(f.key, e.target.value)} placeholder={f.placeholder || ''} style={{ ...inputStyle, height: 90, padding: '10px 12px', resize: 'vertical', lineHeight: 1.5 }} />
+            <textarea
+              value={str(f.key)}
+              onChange={(e) => setV(f.key, e.target.value)}
+              placeholder={f.placeholder || ''}
+              style={{
+                ...inputStyle, height: 90, padding: '10px 12px', resize: 'vertical', lineHeight: 1.5,
+                // internal notes get an amber ground so they never look like public copy
+                ...(f.internalOnly ? { background: '#FBF3E1', borderColor: 'rgba(154,116,28,.35)' } : {}),
+              }}
+            />
             {f.ai && (
               <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button type="button" style={{ display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 13px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 12, fontWeight: 700, color: 'var(--text)', cursor: 'pointer', fontFamily: 'inherit' }}>
