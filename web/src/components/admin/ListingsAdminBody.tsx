@@ -32,7 +32,7 @@ type DealK = 'rent' | 'sale' | 'both';
 type StatusK = 'published' | 'review' | 'draft' | 'hidden' | 'unavailable';
 type CreateStatusK = 'draft' | 'published';
 
-type Row = {
+export type Row = {
   id: string;
   title: string;
   code: string;
@@ -97,7 +97,8 @@ const menuIcon = (paths: React.ReactNode, color: string) => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths}</svg>
 );
 
-const RAW_DATA: Row[] = [
+// shared with the Social Status page so both read one list
+export const RAW_DATA: Row[] = [
   { id: 'l1', title: 'โกดังพร้อมสำนักงาน 2,700 ตร.ม.', code: 'JKP-SPK0042', location: 'สมุทรปราการ', deal: 'เช่า', dealK: 'rent', price: '฿176,000/ด.', status: 'published', featured: true, updated: 'วันนี้ 09:20' },
   { id: 'l2', title: 'โรงงาน ร.ง.4 บางนา กม.23', code: 'JKP0118', location: 'กรุงเทพฯ', deal: 'ทั้งสอง', dealK: 'both', price: '฿9.7M', status: 'published', featured: true, updated: 'เมื่อวาน' },
   { id: 'l3', title: 'คลังสินค้าแหลมฉบัง โซน A', code: 'JKP-CBI0007', location: 'ชลบุรี', deal: 'ขาย', dealK: 'sale', price: '฿45M', status: 'review', featured: false, updated: '2 วันก่อน' },

@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { resolveFields, propertyType, type FieldDef } from '@/lib/propertySchema';
+import { buildSummary } from '@/lib/summaryTemplate';
 import { MapPicker } from './MapPicker';
 
 /* Renders the enabled fields for a property type (from the Field Builder
@@ -65,56 +66,21 @@ export function DynamicFieldForm({ typeKey, code }: { typeKey: string; code?: st
 
   /* ---- summary text ---------------------------------------------------
      Rebuilds on every keystroke (vals is in the dep list); the refresh button
-     only exists to re-pull the schema and give a visible confirmation. */
-  const summary = React.useMemo(() => {
-    const t = propertyType(typeKey);
-    const list = (k: string) => { const v = vals[k]; return Array.isArray(v) ? v.join(', ') : ''; };
-    const land = [
-      sub('land_area_total', 'rai') && `${sub('land_area_total', 'rai')} ไร่`,
-      sub('land_area_total', 'ngan') && `${sub('land_area_total', 'ngan')} งาน`,
-      sub('land_area_total', 'wa') && `${sub('land_area_total', 'wa')} ตร.ว.`,
-    ].filter(Boolean).join(' ');
-    const place = [str('subdistrict'), str('district'), str('province')].filter(Boolean).join(', ');
-    const head = [
-      t.label,
-      effective('deal_type'),
-      str('building_area_total') && `${str('building_area_total')} ตร.ม.`,
-      [str('district'), str('province')].filter(Boolean).join(', '),
-      code ? `(${code})` : '',
-    ].filter(Boolean).join(' ');
-    const office = [str('office_floors'), str('office_area_total') && `${str('office_area_total')} ตร.ม.`].filter(Boolean).join(' ');
-
-    // every row the template can fill — keeping empty ones visible was asked for,
-    // but we still count them so the UI can show that pulling actually happened
-    const rows: [string, string][] = [
-      ['ที่ตั้ง', place],
-      ['พื้นที่ใช้สอยรวม', str('building_area_total') && `${str('building_area_total')} ตร.ม.`],
-      ['ออฟฟิศ', office],
-      ['พื้นที่ดิน', land],
-      ['ความสูง', str('building_height') && `${str('building_height')} ม.`],
-      ['พื้นรับน้ำหนัก', str('floor_loading')],
-      ['ระบบไฟฟ้า', str('power_system') || str('power_phase')],
-      ['ราคาขาย', str('price_sale') && `${str('price_sale')} บาท`],
-      ['ค่าเช่า', str('price_rent') && `${str('price_rent')} บาท/เดือน`],
-    ];
-    const highlights: [string, string][] = [
-      ['โซน', str('zone')],
-      ['ใกล้', str('nearby')],
-      ['พื้นที่สี', str('zoning_color')],
-      ['คุณสมบัติ', list('features')],
-      ['การใช้งาน', list('usage')],
-    ];
-    const text = [
-      head, '', 'รายละเอียด', '',
-      ...rows.map(([k, v]) => `- ${k} : ${v}`),
-      '', 'จุดเด่น',
-      ...highlights.map(([k, v]) => `- ${k} : ${v}`),
-    ].join('\n');
-    const all = [...rows, ...highlights];
-    return { text, filled: all.filter(([, v]) => v).length, total: all.length };
+     only exists to re-pull the schema and give a visible confirmation.
+     The wording itself lives in lib/summaryTemplate so the Social Status page
+     renders exactly the same block. */
+  const summary = React.useMemo(
+    () => buildSummary({
+      typeLabel: propertyType(typeKey).label,
+      code,
+      // deal_type defaults to its first option until touched — feed the value
+      // the control is actually painting, not the empty slot behind it
+      values: { ...vals, deal_type: effective('deal_type') },
+    }),
     // refreshTick lets the refresh button force a recompute even though vals already does
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vals, typeKey, code, fields, refreshTick]);
+    [vals, typeKey, code, fields, refreshTick],
+  );
 
   // re-pull the schema (in case Field Builder changed) and recompute the text
   const refreshSummary = () => {
