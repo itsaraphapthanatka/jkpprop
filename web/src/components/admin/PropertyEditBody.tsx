@@ -115,7 +115,7 @@ export function PropertyEditBody() {
                 <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text)' }}>รายละเอียด: {PROPERTY_TYPES.find((p) => p.key === selType)?.label}</div>
                 <a href="/admin/field-builder" style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--accent)', textDecoration: 'none' }}>ปรับฟิลด์ที่ Field Builder →</a>
               </div>
-              <DynamicFieldForm typeKey={selType} />
+              <DynamicFieldForm typeKey={selType} code="JKP-SPK0042" />
             </div>
           </div>
         )}

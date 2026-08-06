@@ -24,14 +24,14 @@ export function MapPicker({ label }: { label?: string }) {
   const boxRef = React.useRef<HTMLDivElement | null>(null);
   const mapRef = React.useRef<LeafletMap | null>(null);
   const markerRef = React.useRef<LeafletMarker | null>(null);
-  const [lat, setLat] = React.useState(String(DEFAULT_LAT));
-  const [lng, setLng] = React.useState(String(DEFAULT_LNG));
+  // one combined "lat, lng" box (ops asked for a single coordinate field)
+  const [coords, setCoords] = React.useState(`${DEFAULT_LAT}, ${DEFAULT_LNG}`);
   const [link, setLink] = React.useState('');
   const [status, setStatus] = React.useState('');
 
   // keep latest setters available to leaflet handlers without re-init
-  const sync = React.useRef((la: number, ln: number) => { setLat(fmt(la)); setLng(fmt(ln)); });
-  sync.current = (la, ln) => { setLat(fmt(la)); setLng(fmt(ln)); setLink(`https://www.google.com/maps?q=${fmt(la)},${fmt(ln)}`); };
+  const sync = React.useRef((la: number, ln: number) => { setCoords(`${fmt(la)}, ${fmt(ln)}`); });
+  sync.current = (la, ln) => { setCoords(`${fmt(la)}, ${fmt(ln)}`); setLink(`https://www.google.com/maps?q=${fmt(la)},${fmt(ln)}`); };
 
   React.useEffect(() => {
     let cancelled = false;
@@ -61,13 +61,20 @@ export function MapPicker({ label }: { label?: string }) {
     if (markerRef.current) markerRef.current.setLatLng([la, ln]);
     if (recenter && mapRef.current) mapRef.current.setView([la, ln]);
   };
-  const onLat = (v: string) => { setLat(v); const la = parseFloat(v), ln = parseFloat(lng); applyCoords(la, ln); if (Number.isFinite(la) && Number.isFinite(ln)) setLink(gmapLink(la, ln)); };
-  const onLng = (v: string) => { setLng(v); const la = parseFloat(lat), ln = parseFloat(v); applyCoords(la, ln); if (Number.isFinite(la) && Number.isFinite(ln)) setLink(gmapLink(la, ln)); };
+  // "13.785, 100.622" typed by hand — accepts comma or whitespace separated
+  const onCoords = (v: string) => {
+    setCoords(v);
+    const m = v.match(/(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)/);
+    if (!m) return;
+    const la = parseFloat(m[1]), ln = parseFloat(m[2]);
+    applyCoords(la, ln);
+    if (Number.isFinite(la) && Number.isFinite(ln)) setLink(gmapLink(la, ln));
+  };
   // try to pull coords out of a pasted Google-Map link
   const onLink = (v: string) => {
     setLink(v);
     const m = v.match(/(-?\d{1,2}\.\d{3,})[,@ ]+(-?\d{1,3}\.\d{3,})/);
-    if (m) { const la = parseFloat(m[1]), ln = parseFloat(m[2]); setLat(fmt(la)); setLng(fmt(ln)); applyCoords(la, ln, true); }
+    if (m) { const la = parseFloat(m[1]), ln = parseFloat(m[2]); setCoords(`${fmt(la)}, ${fmt(ln)}`); applyCoords(la, ln, true); }
   };
 
   const locateMe = () => {
@@ -91,9 +98,9 @@ export function MapPicker({ label }: { label?: string }) {
       </div>
       <div ref={boxRef} style={{ width: '100%', height: 260, borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden', zIndex: 0, background: 'var(--bg)' }} />
       <div style={{ marginTop: 5, fontSize: 11, color: 'var(--muted3)' }}>คลิกบนแผนที่หรือลากหมุดเพื่อปักตำแหน่ง{status ? ` · ${status}` : ''}</div>
-      <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12 }}>
-        <div style={{ minWidth: 0 }}><label style={labelStyle}>ละติจูด</label><input value={lat} onChange={(e) => onLat(e.target.value)} inputMode="decimal" style={inputStyle} /></div>
-        <div style={{ minWidth: 0 }}><label style={labelStyle}>ลองจิจูด</label><input value={lng} onChange={(e) => onLng(e.target.value)} inputMode="decimal" style={inputStyle} /></div>
+      <div style={{ marginTop: 12 }}>
+        <label style={labelStyle}>พิกัด (ละติจูด, ลองจิจูด)</label>
+        <input value={coords} onChange={(e) => onCoords(e.target.value)} inputMode="decimal" placeholder="13.7854444, 100.6223333" style={inputStyle} />
       </div>
       <div style={{ marginTop: 12 }}>
         <label style={labelStyle}>ลิงก์แผนที่ (Google Map)</label>

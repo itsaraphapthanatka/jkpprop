@@ -24,7 +24,11 @@ export type FieldKind =
   | 'media' // รูป / วิดีโอ / เอกสาร (mock upload)
   | 'location' // group: ชื่อโครงการ/ตำบล/อำเภอ/จังหวัด/พิกัด
   | 'map' // interactive Leaflet map + lat/lng/link
+  | 'summary' // read-only: ประกอบร่างข้อความจากทุกฟิลด์ที่กรอก + ปุ่มคัดลอก
   | 'group'; // generic sub-field group (e.g. ขนาดที่ดิน ไร่-งาน-วา)
+
+/** แสดงฟิลด์นี้เฉพาะเมื่อฟิลด์อื่นมีค่าตรงตามที่ระบุ (เช่น ภาษีที่โผล่ตามประเภทประกาศ) */
+export type ShowWhen = { field: string; in: string[] };
 
 export type FieldDef = {
   key: string;
@@ -38,7 +42,8 @@ export type FieldDef = {
   note?: string; // small helper text
   section?: string; // group fields under a section header in the form
   ai?: boolean; // textarea: show "ให้ AI ช่วยเขียน" helper
-  sub?: { key: string; label: string; kind?: FieldKind; options?: string[]; unit?: string }[]; // for location / group
+  showWhen?: ShowWhen; // conditional visibility
+  sub?: { key: string; label: string; kind?: FieldKind; options?: string[]; unit?: string; placeholder?: string }[]; // for location / group
 };
 
 export type PropertyType = { key: string; label: string; icon: string; fields: FieldDef[] };
@@ -57,6 +62,7 @@ const ICON_CONDO = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" 
 const ICON_LAND = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#034956" stroke-width="1.8"><path d="M3 20h18M5 20V9l7-4 7 4v11"></path><path d="M9 20v-5h6v5"></path></svg>';
 const ICON_FACTORY = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#034956" stroke-width="1.8"><path d="M2 21h20"></path><path d="M4 21V10l5 3V10l5 3V10l5 3v8"></path></svg>';
 const ICON_WAREHOUSE = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#034956" stroke-width="1.8"><path d="M3 21V8l9-5 9 5v13"></path><path d="M3 21h18"></path><path d="M7 21v-8h10v8"></path></svg>';
+const ICON_SHOWROOM = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#034956" stroke-width="1.8"><path d="M3 9l1.5-5h15L21 9"></path><path d="M3 9a3 3 0 006 0 3 3 0 006 0 3 3 0 006 0"></path><path d="M5 11v10h14V11"></path><path d="M9 21v-6h6v6"></path></svg>';
 
 const LOC_HOME: FieldDef = {
   key: 'location', label: 'ตำแหน่งบ้าน', kind: 'location',
@@ -179,77 +185,96 @@ const ZONE_COLORS = ['เขียว — ชนบท/เกษตรกรร�
 
 /* โกดัง / คลังสินค้า — full detail set ported from the ops import form
    (AppSheet "WUT Demo"), grouped into sections matching that layout. */
-const WAREHOUSE: PropertyType = {
-  key: 'warehouse', label: 'โกดัง / คลังสินค้า', icon: ICON_WAREHOUSE,
-  fields: [
-    // คำอธิบาย
-    { key: 'description', label: 'คำอธิบายทรัพย์ (สำหรับโปรยขาย)', kind: 'textarea', section: 'คำอธิบาย', ai: true, note: 'เขียนเองหรือกดให้ AI ช่วยร่างจากรายละเอียดด้านล่าง' },
+/** ผู้รับผิดชอบ + จำนวนเงิน — ใช้กับภาษี/ค่าธรรมเนียมที่ระบุว่าใครจ่าย */
+const payerAmount = (payers: string[]) => ([
+  { key: 'payer', label: 'ผู้รับผิดชอบ', kind: 'select' as FieldKind, options: payers },
+  { key: 'amount', label: 'จำนวนเงิน', kind: 'number' as FieldKind, unit: 'บาท' },
+]);
+const WHEN_RENT: ShowWhen = { field: 'deal_type', in: ['เช่า', 'เช่า / ขาย'] };
+const WHEN_SALE: ShowWhen = { field: 'deal_type', in: ['ขาย', 'เช่า / ขาย'] };
 
-    // ประเภทและทำเล
-    { key: 'deal_type', label: 'ประเภทประกาศ', kind: 'dealtype', options: ['เช่า', 'ขาย', 'เช่า / ขาย'], required: true, section: 'ประเภทและทำเล' },
-    { key: 'subdistrict', label: 'แขวง / ตำบล', kind: 'text', required: true, section: 'ประเภทและทำเล' },
-    { key: 'district', label: 'เขต / อำเภอ', kind: 'text', required: true, section: 'ประเภทและทำเล' },
-    { key: 'province', label: 'จังหวัด', kind: 'text', required: true, section: 'ประเภทและทำเล' },
-    { key: 'zoning_color', label: 'พื้นที่สี (ผังเมือง)', kind: 'select', options: ZONE_COLORS, required: true, section: 'ประเภทและทำเล' },
-    { key: 'zone', label: 'โซน', kind: 'text', section: 'ประเภทและทำเล', placeholder: 'เช่น โซน A / ฝั่งตะวันออก' },
-    { key: 'nearby', label: 'อยู่ใกล้ (สถานที่สำคัญ)', kind: 'text', section: 'ประเภทและทำเล', placeholder: 'เช่น ลาดพร้าว 101, โชคชัย 4' },
+/* ชุดฟิลด์ที่ใช้ร่วมกันระหว่าง "โกดัง / คลังสินค้า" และ "โชว์รูมและเชิงพาณิชย์"
+   เรียง section ตามลำดับที่ทีมงานกำหนด (1→9) แล้วปิดท้ายด้วยข้อความสรุปอัตโนมัติ */
+const WAREHOUSE_FIELDS: FieldDef[] = [
+  // 1 · ประเภทและทำเล (รวมตำแหน่งบนแผนที่เข้ามาด้วย)
+  { key: 'deal_type', label: 'ประเภทประกาศ', kind: 'dealtype', options: ['เช่า', 'ขาย', 'เช่า / ขาย'], required: true, section: 'ประเภทและทำเล' },
+  { key: 'subdistrict', label: 'แขวง / ตำบล', kind: 'text', required: true, section: 'ประเภทและทำเล' },
+  { key: 'district', label: 'เขต / อำเภอ', kind: 'text', required: true, section: 'ประเภทและทำเล' },
+  { key: 'province', label: 'จังหวัด', kind: 'text', required: true, section: 'ประเภทและทำเล' },
+  { key: 'zoning_color', label: 'พื้นที่สี (ผังเมือง)', kind: 'select', options: ZONE_COLORS, required: true, section: 'ประเภทและทำเล' },
+  { key: 'zone', label: 'โซน', kind: 'text', section: 'ประเภทและทำเล', placeholder: 'เช่น โซน A / ฝั่งตะวันออก' },
+  { key: 'nearby', label: 'อยู่ใกล้ (สถานที่สำคัญ)', kind: 'text', section: 'ประเภทและทำเล', placeholder: 'เช่น ลาดพร้าว 101, โชคชัย 4' },
+  { key: 'location_map', label: 'ตำแหน่งบนแผนที่', kind: 'map', section: 'ประเภทและทำเล' },
 
-    // ข้อมูลทั่วไป
-    { key: 'listing_date', label: 'วันที่ลงประกาศ', kind: 'date', required: true, section: 'ข้อมูลทั่วไป' },
-    { key: 'photos', label: 'รูปทรัพย์', kind: 'media', section: 'ข้อมูลทั่วไป', note: 'รูปแรก = ปก (แสดงบนหน้าแรก) · สูงสุด 10 รูป' },
+  // 2 · ผู้ให้เช่า
+  { key: 'lessor_status', label: 'สถานะผู้ให้เช่า', kind: 'select', options: ['บริษัท', 'บุคคลธรรมดา', 'นายหน้า', 'เจ้าของเอง'], section: 'ผู้ให้เช่า' },
+  { key: 'lessor_company', label: 'ชื่อบริษัทผู้ให้เช่า', kind: 'text', section: 'ผู้ให้เช่า' },
+  { key: 'lessor_name', label: 'ชื่อผู้ให้เช่า', kind: 'text', required: true, section: 'ผู้ให้เช่า' },
+  { key: 'lessor_phone', label: 'เบอร์โทรติดต่อ', kind: 'text', required: true, section: 'ผู้ให้เช่า', placeholder: '08x-xxx-xxxx' },
 
-    // ผู้ให้เช่า
-    { key: 'lessor_status', label: 'สถานะผู้ให้เช่า', kind: 'select', options: ['บริษัท', 'บุคคลธรรมดา', 'นายหน้า', 'เจ้าของเอง'], section: 'ผู้ให้เช่า' },
-    { key: 'lessor_company', label: 'ชื่อบริษัทผู้ให้เช่า', kind: 'text', section: 'ผู้ให้เช่า' },
-    { key: 'lessor_name', label: 'ชื่อผู้ให้เช่า', kind: 'text', required: true, section: 'ผู้ให้เช่า' },
-    { key: 'lessor_phone', label: 'เบอร์โทรติดต่อ', kind: 'text', required: true, section: 'ผู้ให้เช่า', placeholder: '08x-xxx-xxxx' },
-    { key: 'lessor_address', label: 'ที่อยู่ / เลขที่ผู้ให้เช่า', kind: 'textarea', section: 'ผู้ให้เช่า' },
+  // 3 · พื้นที่
+  { key: 'land_wh', label: 'กว้าง x ลึก ที่ดิน', kind: 'text', unit: 'ม.', section: 'พื้นที่', placeholder: 'เช่น 20 x 40' },
+  { key: 'land_area_total', label: 'ที่ดินรวม', kind: 'group', section: 'พื้นที่', sub: [
+    { key: 'rai', label: 'ไร่', kind: 'number' }, { key: 'ngan', label: 'งาน', kind: 'number' }, { key: 'wa', label: 'ตร.ว.', kind: 'number' },
+  ] },
+  { key: 'building_area', label: 'พื้นที่คลัง / ผลิต', kind: 'number', unit: 'ตร.ม.', section: 'พื้นที่' },
+  { key: 'building_wh', label: 'กว้าง x ลึก พื้นที่คลัง / ผลิต', kind: 'text', unit: 'ม.', section: 'พื้นที่', placeholder: 'เช่น 14 x 20' },
+  { key: 'office_floors', label: 'จำนวนชั้นออฟฟิศ', kind: 'select', options: ['ไม่มีออฟฟิศ', '1 ชั้น', '2 ชั้น', '3 ชั้น', 'มากกว่า 3 ชั้น'], section: 'พื้นที่' },
+  { key: 'building_floors', label: 'จำนวนชั้นอาคาร', kind: 'select', options: ['1 ชั้น', '2 ชั้น', '3 ชั้น', '4 ชั้น', 'มากกว่า 4 ชั้น'], section: 'พื้นที่' },
+  { key: 'office_area_f1', label: 'พื้นที่ออฟฟิศ ชั้น 1', kind: 'number', unit: 'ตร.ม.', section: 'พื้นที่' },
+  { key: 'building_total_wh', label: 'กว้าง x ลึก พื้นที่อาคารรวม', kind: 'text', unit: 'ม.', section: 'พื้นที่', placeholder: 'เช่น 20 x 40' },
+  { key: 'office_area_total', label: 'พื้นที่ออฟฟิศรวม', kind: 'number', unit: 'ตร.ม.', section: 'พื้นที่' },
+  { key: 'building_area_total', label: 'พื้นที่อาคารรวม', kind: 'number', unit: 'ตร.ม.', section: 'พื้นที่' },
 
-    // ขนาดพื้นที่
-    { key: 'land_wh', label: 'กว้าง x ลึก ที่ดิน', kind: 'text', unit: 'ม.', section: 'ขนาดพื้นที่', placeholder: 'เช่น 20 x 40' },
-    { key: 'land_area_total', label: 'ขนาดที่ดินรวม', kind: 'number', unit: 'ตร.ว.', section: 'ขนาดพื้นที่' },
-    { key: 'building_area', label: 'ขนาดอาคาร', kind: 'number', unit: 'ตร.ม.', section: 'ขนาดพื้นที่' },
-    { key: 'building_wh', label: 'กว้าง x ลึก อาคาร', kind: 'text', unit: 'ม.', section: 'ขนาดพื้นที่', placeholder: 'เช่น 14 x 20' },
-    { key: 'office_floors', label: 'จำนวนชั้นออฟฟิศ', kind: 'select', options: ['ไม่มีออฟฟิศ', '1 ชั้น', '2 ชั้น', '3 ชั้น', 'มากกว่า 3 ชั้น'], section: 'ขนาดพื้นที่' },
-    { key: 'office_area_f1', label: 'ขนาดออฟฟิศ ชั้น 1', kind: 'number', unit: 'ตร.ม.', section: 'ขนาดพื้นที่' },
-    { key: 'office_area_total', label: 'ขนาดออฟฟิศรวม', kind: 'number', unit: 'ตร.ม.', section: 'ขนาดพื้นที่' },
-    { key: 'building_area_total', label: 'ขนาดอาคารรวม', kind: 'number', unit: 'ตร.ม.', section: 'ขนาดพื้นที่' },
+  // 4 · สเปคอาคาร
+  { key: 'doors', label: 'จำนวนประตู', kind: 'number', unit: 'ประตู', section: 'สเปคอาคาร' },
+  { key: 'door_wh', label: 'ประตู กว้าง x สูง', kind: 'text', unit: 'ม.', section: 'สเปคอาคาร', placeholder: 'เช่น 5 x 5' },
+  { key: 'building_height', label: 'ความสูงอาคาร', kind: 'number', unit: 'ม.', section: 'สเปคอาคาร' },
+  { key: 'parking', label: 'จำนวนที่จอดรถ', kind: 'number', unit: 'คัน', section: 'สเปคอาคาร' },
+  { key: 'power_phase', label: 'ระบบไฟ (เฟส)', kind: 'select', options: ['1 เฟส', '3 เฟส'], section: 'สเปคอาคาร' },
+  { key: 'power_system', label: 'ระบบไฟฟ้า (รายละเอียด)', kind: 'text', section: 'สเปคอาคาร', placeholder: 'เช่น 3 Phase 30/100 amp (Upgradeable)' },
+  { key: 'floor_loading', label: 'น้ำหนักที่พื้นรับได้', kind: 'text', section: 'สเปคอาคาร', placeholder: 'เช่น 3 ตัน/ตร.ม.' },
+  { key: 'cold_storage', label: 'ห้องเย็น / ควบคุมอุณหภูมิ', kind: 'boolean', section: 'สเปคอาคาร' },
 
-    // ราคาและค่าใช้จ่าย
-    { key: 'price_rent', label: 'ราคาเช่า / เดือน', kind: 'price', unit: 'บาท/เดือน', section: 'ราคาและค่าใช้จ่าย' },
-    { key: 'price_per_sqm', label: 'ราคา / ตร.ม.', kind: 'number', unit: 'บาท/ตร.ม.', section: 'ราคาและค่าใช้จ่าย' },
-    { key: 'price_sale', label: 'ราคาขาย', kind: 'price', unit: 'บาท', section: 'ราคาและค่าใช้จ่าย' },
-    { key: 'tax_registration', label: 'ภาษี / การจดทะเบียน', kind: 'select', options: ['รวมแล้ว', 'ไม่รวม', 'ผู้เช่ารับผิดชอบ', 'ผู้ให้เช่ารับผิดชอบ'], section: 'ราคาและค่าใช้จ่าย' },
-    { key: 'transfer_resp', label: 'ค่าธรรมเนียมโอน / ผู้รับผิดชอบ', kind: 'select', options: ['รวมแล้ว', 'คนละครึ่ง (50/50)', 'ผู้ซื้อรับผิดชอบ', 'ผู้ขายรับผิดชอบ'], section: 'ราคาและค่าใช้จ่าย' },
-    { key: 'common_fee', label: 'ค่าส่วนกลาง', kind: 'number', unit: 'บาท/เดือน', section: 'ราคาและค่าใช้จ่าย' },
-    { key: 'elec_rate', label: 'ค่าไฟ', kind: 'number', unit: 'บาท/หน่วย', section: 'ราคาและค่าใช้จ่าย' },
-    { key: 'water_rate', label: 'ค่าน้ำ', kind: 'number', unit: 'บาท/หน่วย', section: 'ราคาและค่าใช้จ่าย' },
+  // 5 · ราคาและค่าใช้จ่าย — ภาษี/ค่าธรรมเนียมโผล่ตาม "ประเภทประกาศ"
+  { key: 'price_rent', label: 'ราคาเช่า / เดือน', kind: 'price', unit: 'บาท/เดือน', section: 'ราคาและค่าใช้จ่าย', showWhen: WHEN_RENT },
+  { key: 'price_per_sqm', label: 'ราคา / ตร.ม.', kind: 'number', unit: 'บาท/ตร.ม.', section: 'ราคาและค่าใช้จ่าย' },
+  { key: 'price_sale', label: 'ราคาขาย', kind: 'price', unit: 'บาท', section: 'ราคาและค่าใช้จ่าย', showWhen: WHEN_SALE },
+  { key: 'land_tax', label: 'ภาษีที่ดิน', kind: 'group', section: 'ราคาและค่าใช้จ่าย', showWhen: WHEN_RENT, sub: payerAmount(['เจ้าของ', 'ผู้เช่า']) },
+  { key: 'withholding_tax', label: 'หัก ณ ที่จ่าย', kind: 'group', section: 'ราคาและค่าใช้จ่าย', showWhen: WHEN_RENT, sub: payerAmount(['เจ้าของ', 'ผู้เช่า']) },
+  { key: 'vat', label: 'VAT', kind: 'select', options: ['รวม', 'ไม่รวม'], section: 'ราคาและค่าใช้จ่าย', showWhen: WHEN_RENT },
+  { key: 'stamp_duty', label: 'อากรแสตมป์', kind: 'group', section: 'ราคาและค่าใช้จ่าย', note: 'เก็บทั้งกรณีเช่าและกรณีขาย', sub: payerAmount(['เจ้าของ', 'ผู้เช่า']) },
+  { key: 'transfer_fee_resp', label: 'ค่าใช้จ่ายวันโอนกรรมสิทธิ์', kind: 'select', options: ['ผู้ขาย รับผิดชอบ 100%', 'ผู้ขายและผู้ซื้อ รับผิดชอบ 50/50', 'ผู้ซื้อ รับผิดชอบ 100%'], section: 'ราคาและค่าใช้จ่าย', showWhen: WHEN_SALE },
+  { key: 'common_fee', label: 'ค่าส่วนกลาง', kind: 'number', unit: 'บาท/เดือน', section: 'ราคาและค่าใช้จ่าย' },
+  { key: 'elec_rate', label: 'ค่าไฟ', kind: 'number', unit: 'บาท/หน่วย', section: 'ราคาและค่าใช้จ่าย' },
+  { key: 'water_rate', label: 'ค่าน้ำ', kind: 'number', unit: 'บาท/หน่วย', section: 'ราคาและค่าใช้จ่าย' },
 
-    // สเปคอาคาร
-    { key: 'doors', label: 'จำนวนประตู', kind: 'number', unit: 'ประตู', section: 'สเปคอาคาร' },
-    { key: 'door_wh', label: 'ประตู กว้าง x สูง', kind: 'text', unit: 'ม.', section: 'สเปคอาคาร', placeholder: 'เช่น 5 x 5' },
-    { key: 'building_height', label: 'ความสูงอาคาร', kind: 'number', unit: 'ม.', section: 'สเปคอาคาร' },
-    { key: 'power_phase', label: 'ระบบไฟ (เฟส)', kind: 'select', options: ['1 เฟส', '3 เฟส'], section: 'สเปคอาคาร' },
-    { key: 'power_system', label: 'ระบบไฟฟ้า (รายละเอียด)', kind: 'text', section: 'สเปคอาคาร', placeholder: 'เช่น 3 Phase 30/100 amp (Upgradeable)' },
-    { key: 'floor_loading', label: 'น้ำหนักที่พื้นรับได้', kind: 'text', section: 'สเปคอาคาร', placeholder: 'เช่น 3 ตัน/ตร.ม.' },
-    { key: 'cold_storage', label: 'ห้องเย็น / ควบคุมอุณหภูมิ', kind: 'boolean', section: 'สเปคอาคาร' },
+  // 6 · เงื่อนไขสัญญา
+  { key: 'lease_term', label: 'อายุสัญญาเช่า', kind: 'select', options: ['1 ปี', '2 ปี', '3 ปี', '5 ปี', 'อื่นๆ'], section: 'เงื่อนไขสัญญา' },
+  { key: 'deposit_months', label: 'เงินประกัน / ค่ามัดจำ', kind: 'select', options: ['1 เดือน', '2 เดือน', '3 เดือน', '6 เดือน'], section: 'เงื่อนไขสัญญา' },
+  { key: 'advance_months', label: 'ค่าเช่าล่วงหน้า', kind: 'select', options: ['1 เดือน', '2 เดือน', '3 เดือน'], section: 'เงื่อนไขสัญญา' },
 
-    // เงื่อนไขสัญญา
-    { key: 'lease_term', label: 'อายุสัญญาเช่า', kind: 'select', options: ['1 ปี', '2 ปี', '3 ปี', '5 ปี', 'อื่นๆ'], section: 'เงื่อนไขสัญญา' },
-    { key: 'deposit_months', label: 'เงินประกัน / ค่ามัดจำ', kind: 'select', options: ['1 เดือน', '2 เดือน', '3 เดือน', '6 เดือน'], section: 'เงื่อนไขสัญญา' },
-    { key: 'advance_months', label: 'ค่าเช่าล่วงหน้า', kind: 'select', options: ['1 เดือน', '2 เดือน', '3 เดือน'], section: 'เงื่อนไขสัญญา' },
+  // 7 · คุณสมบัติและการใช้งาน
+  { key: 'features', label: 'คุณสมบัติ', kind: 'multiselect', options: ['พื้นที่สูงโปร่ง', 'มีพื้นที่สำนักงาน', 'รถบรรทุกเข้าถึงได้', 'พื้นเทคอนกรีต', 'ใกล้ถนนหลัก', 'มีลานจอด / ลานเทรลเลอร์', 'อาคารเดี่ยว', 'ยกพื้นเทียบตู้ (Dock leveler)'], section: 'คุณสมบัติและการใช้งาน' },
+  { key: 'usage', label: 'การใช้งานที่เหมาะ', kind: 'multiselect', options: ['โกดัง', 'สตูดิโอ', 'โรงงาน', 'ศูนย์กระจายสินค้า', 'ครัวกลาง', 'โปรดักชั่น', 'ห้องเก็บของ', 'E-Commerce'], section: 'คุณสมบัติและการใช้งาน' },
 
-    // คุณสมบัติและการใช้งาน
-    { key: 'features', label: 'คุณสมบัติ', kind: 'multiselect', options: ['พื้นที่สูงโปร่ง', 'มีพื้นที่สำนักงาน', 'รถบรรทุกเข้าถึงได้', 'พื้นเทคอนกรีต', 'ใกล้ถนนหลัก', 'มีลานจอด / ลานเทรลเลอร์', 'อาคารเดี่ยว', 'ยกพื้นเทียบตู้ (Dock leveler)'], section: 'คุณสมบัติและการใช้งาน' },
-    { key: 'usage', label: 'การใช้งานที่เหมาะ', kind: 'multiselect', options: ['โกดัง', 'สตูดิโอ', 'โรงงาน', 'ศูนย์กระจายสินค้า', 'ครัวกลาง', 'โปรดักชั่น', 'ห้องเก็บของ', 'E-Commerce'], section: 'คุณสมบัติและการใช้งาน' },
+  // 8 · หมายเหตุ
+  { key: 'internal_note', label: 'หมายเหตุ', kind: 'textarea', section: 'หมายเหตุ' },
 
-    // ตำแหน่ง
-    { key: 'location_map', label: 'ตำแหน่งบนแผนที่', kind: 'map', section: 'ตำแหน่ง' },
-    { key: 'internal_note', label: 'หมายเหตุภายใน (ไม่แสดงบนเว็บ)', kind: 'textarea', section: 'ตำแหน่ง' },
-  ],
-};
+  // 9 · ข้อมูลทั่วไป
+  { key: 'listing_date', label: 'วันที่ลงประกาศ', kind: 'date', required: true, section: 'ข้อมูลทั่วไป' },
+  { key: 'photos', label: 'รูปทรัพย์', kind: 'media', section: 'ข้อมูลทั่วไป', note: 'รูปแรก = ปก (แสดงบนหน้าแรก) · สูงสุด 10 รูป' },
 
-export const PROPERTY_TYPES: PropertyType[] = [HOUSE, CONDO, LAND, FACTORY, WAREHOUSE];
+  // 10 · ข้อความสรุปอัตโนมัติ (อ่านอย่างเดียว + ปุ่มคัดลอก)
+  { key: 'summary_template', label: 'ข้อความสำหรับโพสต์ / ส่งลูกค้า', kind: 'summary', section: 'หมายเหตุ : รายละเอียดทรัพย์ (รวม)', note: 'ประกอบจากทุกฟิลด์ที่กรอกไว้ด้านบน — อัปเดตอัตโนมัติ' },
+];
+
+const WAREHOUSE: PropertyType = { key: 'warehouse', label: 'โกดัง / คลังสินค้า', icon: ICON_WAREHOUSE, fields: WAREHOUSE_FIELDS };
+
+/* ใช้ชุดฟิลด์เดียวกับโกดังทั้งหมด (คนละ typeKey จึงตั้งค่า Field Builder แยกกันได้) */
+const SHOWROOM: PropertyType = { key: 'showroom', label: 'โชว์รูมและเชิงพาณิชย์', icon: ICON_SHOWROOM, fields: WAREHOUSE_FIELDS };
+
+export const PROPERTY_TYPES: PropertyType[] = [HOUSE, CONDO, LAND, FACTORY, WAREHOUSE, SHOWROOM];
 export const propertyType = (key: string): PropertyType => PROPERTY_TYPES.find((t) => t.key === key) || PROPERTY_TYPES[0];
 
 /* ============================================================

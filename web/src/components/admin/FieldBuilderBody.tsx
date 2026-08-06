@@ -11,7 +11,7 @@ import { PROPERTY_TYPES, loadOverride, saveOverride, resolveFields, loadTypeConf
 const KIND_LABEL: Record<FieldKind, string> = {
   dealtype: 'ประเภทประกาศ', text: 'ข้อความ', textarea: 'ข้อความยาว', number: 'ตัวเลข', price: 'ราคา', date: 'วันที่',
   select: 'ตัวเลือก (dropdown)', multiselect: 'เลือกหลายค่า', boolean: 'ใช่/ไม่',
-  media: 'ไฟล์ / สื่อ', location: 'ที่อยู่ / พิกัด', map: 'แผนที่', group: 'กลุ่มย่อย',
+  media: 'ไฟล์ / สื่อ', location: 'ที่อยู่ / พิกัด', map: 'แผนที่', summary: 'ข้อความสรุปอัตโนมัติ', group: 'กลุ่มย่อย',
 };
 const kindPath = (k: FieldKind) => {
   const m: Record<FieldKind, string> = {
@@ -27,6 +27,7 @@ const kindPath = (k: FieldKind) => {
     media: '<rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path>',
     location: '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z"></path><circle cx="12" cy="10" r="3"></circle>',
     map: '<path d="M9 3L3 6v15l6-3 6 3 6-3V3l-6 3-6-3z"></path><path d="M9 3v15M15 6v15"></path>',
+    summary: '<rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M8 8h8M8 12h8M8 16h5"></path>',
     group: '<rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect>',
   };
   return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7A3FB0" stroke-width="1.8">' + m[k] + '</svg>';
