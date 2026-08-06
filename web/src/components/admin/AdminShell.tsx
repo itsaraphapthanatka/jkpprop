@@ -25,7 +25,7 @@ import { NotificationBell } from './NotificationBell';
    ============================================================ */
 
 export type AdminNavKey =
-  | 'dashboard' | 'properties' | 'listings'
+  | 'dashboard' | 'properties' | 'listings' | 'social'
   | 'leads' | 'requirements' | 'shortlists' | 'visits' | 'deals'
   | 'cms' | 'seo' | 'settings';
 
@@ -95,6 +95,7 @@ const NAV: NavEntry[] = [
   { group: 'ทรัพย์' },
   { key: 'properties', label: 'Properties', href: '/admin/properties', icon: '<path d="M3 21V8l9-5 9 5v13"></path><path d="M3 21h18"></path><path d="M7 21v-8h10v8"></path>' },
   { key: 'listings', label: 'Listings', href: '/admin/listings', icon: '<rect x="3" y="4" width="18" height="4" rx="1"></rect><rect x="3" y="10" width="18" height="4" rx="1"></rect><rect x="3" y="16" width="18" height="4" rx="1"></rect>' },
+  { key: 'social', label: 'Social Status', href: '/admin/social-status', icon: '<path d="M4 12v8a1 1 0 001 1h14a1 1 0 001-1v-8"></path><path d="M16 6l-4-4-4 4"></path><path d="M12 2v14"></path>' },
   { group: 'งานขาย' },
   { key: 'leads', label: 'Leads', href: '/admin/leads', icon: '<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path><circle cx="9" cy="7" r="4"></circle>', badge: '18' },
   { key: 'requirements', label: 'Requirements', href: '/admin/requirements', icon: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><path d="M14 2v6h6"></path>', badge: '7' },
