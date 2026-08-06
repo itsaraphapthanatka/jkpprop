@@ -43,6 +43,10 @@ export function SocialStatusBody() {
   const [copied, setCopied] = React.useState(false);
   const [draft, setDraft] = React.useState<SocialRecord>({ channels: {} });
   const [draftText, setDraftText] = React.useState('');
+  // true = still following the generated text; false = this listing has its own copy.
+  // Tracked explicitly rather than inferred by comparing strings, so typing the
+  // text back to something identical doesn't silently re-link it.
+  const [useAuto, setUseAuto] = React.useState(true);
 
   // client-only read (keeps SSR and first client render identical)
   React.useEffect(() => { setStore(loadSocial()); setReady(true); }, []);
@@ -77,15 +81,16 @@ export function SocialStatusBody() {
     const rec = recordOf(store, code);
     setDraft({ text: rec.text, channels: { ...rec.channels } });
     setDraftText(rec.text ?? generated(code));
+    setUseAuto(rec.text === undefined);
     setOpenCode(code);
     setCopied(false);
   };
+  /* Writes to the social store ONLY. The property form keeps its own copy of
+     the text and is never touched from here — editing a post caption must not
+     rewrite the property record. */
   const saveRow = () => {
     if (!openCode) return;
-    const gen = generated(openCode);
-    // only store the text when it actually differs, so it keeps tracking the
-    // generated version until someone deliberately edits it
-    const text = draftText.trim() === gen.trim() ? undefined : draftText;
+    const text = useAuto ? undefined : draftText;
     persist({ ...store, records: { ...store.records, [openCode]: { text, channels: draft.channels } } });
     setOpenCode(null);
   };
@@ -224,9 +229,14 @@ export function SocialStatusBody() {
             <div className="a-scroll" style={{ flex: 1, overflowY: 'auto', padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 18 }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', marginBottom: 7 }}>
-                  <label style={{ ...label, marginBottom: 0 }}>ข้อความสำหรับโพสต์ (แก้ไขได้)</label>
+                  <label style={{ ...label, marginBottom: 0, display: 'flex', alignItems: 'center', gap: 7 }}>
+                    ข้อความสำหรับโพสต์ (แก้ไขได้)
+                    <span id="soc-mode" style={{ display: 'inline-flex', alignItems: 'center', height: 19, padding: '0 8px', borderRadius: 9999, fontSize: 10, fontWeight: 700, background: useAuto ? 'var(--tint)' : '#F0ECF9', color: useAuto ? 'var(--accent)' : '#7A3FB0' }}>
+                      {useAuto ? 'ตามข้อความอัตโนมัติ' : 'แก้ไขเองแล้ว'}
+                    </span>
+                  </label>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button type="button" id="soc-reset" onClick={() => setDraftText(generated(openCode))} style={{ height: 30, padding: '0 11px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--muted)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>ใช้ข้อความอัตโนมัติ</button>
+                    <button type="button" id="soc-reset" onClick={() => { setDraftText(generated(openCode)); setUseAuto(true); }} disabled={useAuto} style={{ height: 30, padding: '0 11px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: useAuto ? 'var(--muted3)' : 'var(--muted)', fontSize: 11.5, fontWeight: 700, cursor: useAuto ? 'default' : 'pointer', fontFamily: 'inherit', opacity: useAuto ? 0.55 : 1 }}>ใช้ข้อความอัตโนมัติ</button>
                     <button type="button" id="soc-copy" onClick={copyText} style={{ display: 'flex', alignItems: 'center', gap: 6, height: 30, padding: '0 13px', borderRadius: 9999, border: 0, background: copied ? '#0D6C3B' : '#273c33', color: '#fff', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                       {copied
                         ? <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.8"><path d="M20 6L9 17l-5-5" /></svg>คัดลอกแล้ว</>
@@ -234,7 +244,11 @@ export function SocialStatusBody() {
                     </button>
                   </div>
                 </div>
-                <textarea id="soc-text" value={draftText} onChange={(e) => setDraftText(e.target.value)} style={{ width: '100%', height: 240, padding: '12px 14px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontFamily: 'inherit', fontSize: '13px', lineHeight: 1.7, outline: 'none', resize: 'vertical' }} />
+                <textarea id="soc-text" value={draftText} onChange={(e) => { setDraftText(e.target.value); setUseAuto(false); }} style={{ width: '100%', height: 240, padding: '12px 14px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontFamily: 'inherit', fontSize: '13px', lineHeight: 1.7, outline: 'none', resize: 'vertical' }} />
+                <div style={{ marginTop: 6, fontSize: 11, lineHeight: 1.55, color: 'var(--muted3)' }}>
+                  แก้ไขตรงนี้จะบันทึกเป็น<b> ข้อความโพสต์ของประกาศนี้เท่านั้น</b> — ไม่กระทบข้อความในหน้า <b>แก้ไขทรัพย์ → หมายเหตุ : รายละเอียดทรัพย์ (รวม)</b>
+                  {useAuto ? ' · ตอนนี้ยังตามข้อความอัตโนมัติ ถ้าข้อมูลทรัพย์เปลี่ยน ข้อความจะอัปเดตตาม' : ' · ตอนนี้ใช้ข้อความที่แก้เอง จะไม่เปลี่ยนตามข้อมูลทรัพย์แล้ว'}
+                </div>
               </div>
 
               <div>
