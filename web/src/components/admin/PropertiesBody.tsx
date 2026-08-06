@@ -309,8 +309,6 @@ export function PropertiesBody() {
               {/* TAB: รายละเอียดทรัพย์ — schema-driven per property type */}
               {tab === 'main' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                  <div><label style={fieldLabel}>ชื่อทรัพย์ (ไทย) *</label><input placeholder="เช่น บ้านเดี่ยว 2 ชั้น หมู่บ้านเดอะแกรนด์" style={drawerInput} /></div>
-
                   {/* property-type selector — drives which field form is loaded */}
                   <div>
                     <label style={fieldLabel}>ประเภททรัพย์ *</label>
@@ -332,6 +330,8 @@ export function PropertiesBody() {
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
                     <span style={{ fontSize: '12.5px', color: 'var(--accent)' }}>รหัสตัวอย่าง: <code style={{ fontWeight: 700 }}>JKP-SPK0043</code> — ระบบสร้างให้อัตโนมัติเมื่อบันทึก</span>
                   </div>
+
+                  <div><label style={fieldLabel}>ชื่อทรัพย์ (ไทย) *</label><input placeholder="เช่น บ้านเดี่ยว 2 ชั้น หมู่บ้านเดอะแกรนด์" style={drawerInput} /></div>
 
                   {/* schema-driven fields for the selected type */}
                   <div style={{ borderTop: '1px solid var(--border)', paddingTop: 18 }}>

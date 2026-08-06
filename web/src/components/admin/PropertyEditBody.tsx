@@ -74,11 +74,6 @@ export function PropertyEditBody() {
         {/* รายละเอียดทรัพย์ — schema-driven per property type */}
         {tab === 'main' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <div>
-              <label style={labelStyle}>ชื่อทรัพย์ (ไทย) *</label>
-              <input defaultValue="โกดังพร้อมสำนักงาน 2,700 ตร.ม." style={{ ...inputBase, fontSize: 14, fontWeight: 600 }} />
-            </div>
-
             {/* property-type selector — drives which field form is loaded */}
             <div>
               <label style={labelStyle}>ประเภททรัพย์ *</label>
@@ -107,6 +102,11 @@ export function PropertyEditBody() {
             <div style={{ background: 'var(--tint)', borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9" style={{ flexShrink: 0 }}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 10h18" /></svg>
               <span style={{ fontSize: '12.5px', color: 'var(--accent)' }}>รหัสทรัพย์: <code style={{ fontWeight: 700 }}>JKP-SPK0042</code> (แก้ไขไม่ได้ — สร้างจากจังหวัดตอนบันทึกครั้งแรก)</span>
+            </div>
+
+            <div>
+              <label style={labelStyle}>ชื่อทรัพย์ (ไทย) *</label>
+              <input defaultValue="โกดังพร้อมสำนักงาน 2,700 ตร.ม." style={{ ...inputBase, fontSize: 14, fontWeight: 600 }} />
             </div>
 
             {/* schema-driven fields for the selected type */}
