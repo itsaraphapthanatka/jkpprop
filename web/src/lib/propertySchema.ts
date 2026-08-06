@@ -203,7 +203,7 @@ const WAREHOUSE_FIELDS: FieldDef[] = [
   { key: 'district', label: 'เขต / อำเภอ', kind: 'text', required: true, section: 'ประเภทและทำเล' },
   { key: 'province', label: 'จังหวัด', kind: 'text', required: true, section: 'ประเภทและทำเล' },
   { key: 'zoning_color', label: 'พื้นที่สี (ผังเมือง)', kind: 'select', options: ZONE_COLORS, required: true, section: 'ประเภทและทำเล' },
-  { key: 'zone', label: 'โซน', kind: 'text', section: 'ประเภทและทำเล', placeholder: 'เช่น โซน A / ฝั่งตะวันออก' },
+  { key: 'zone', label: 'โซน', kind: 'select', options: ['ปลอดอากร (Free Zone)', 'การนิคมอุตสาหกรรม (กนอ.)', 'วัตถุอันตราย (DG Zone)'], section: 'ประเภทและทำเล' },
   { key: 'nearby', label: 'อยู่ใกล้ (สถานที่สำคัญ)', kind: 'text', section: 'ประเภทและทำเล', placeholder: 'เช่น ลาดพร้าว 101, โชคชัย 4' },
   { key: 'location_map', label: 'ตำแหน่งบนแผนที่', kind: 'map', section: 'ประเภทและทำเล' },
 
