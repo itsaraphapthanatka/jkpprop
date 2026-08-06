@@ -198,6 +198,7 @@ const WHEN_SALE: ShowWhen = { field: 'deal_type', in: ['ขาย', 'เช่�
 const WAREHOUSE_FIELDS: FieldDef[] = [
   // 1 · ประเภทและทำเล (รวมตำแหน่งบนแผนที่เข้ามาด้วย)
   { key: 'deal_type', label: 'ประเภทประกาศ', kind: 'dealtype', options: ['เช่า', 'ขาย', 'เช่า / ขาย'], required: true, section: 'ประเภทและทำเล' },
+  { key: 'listing_date', label: 'วันที่ลงประกาศ', kind: 'date', required: true, section: 'ประเภทและทำเล' },
   { key: 'subdistrict', label: 'แขวง / ตำบล', kind: 'text', required: true, section: 'ประเภทและทำเล' },
   { key: 'district', label: 'เขต / อำเภอ', kind: 'text', required: true, section: 'ประเภทและทำเล' },
   { key: 'province', label: 'จังหวัด', kind: 'text', required: true, section: 'ประเภทและทำเล' },
@@ -261,8 +262,7 @@ const WAREHOUSE_FIELDS: FieldDef[] = [
   // 8 · หมายเหตุ
   { key: 'internal_note', label: 'หมายเหตุ', kind: 'textarea', section: 'หมายเหตุ' },
 
-  // 9 · ข้อมูลทั่วไป
-  { key: 'listing_date', label: 'วันที่ลงประกาศ', kind: 'date', required: true, section: 'ข้อมูลทั่วไป' },
+  // 9 · ข้อมูลทั่วไป (วันที่ลงประกาศ ย้ายไปอยู่กับประเภทประกาศแล้ว)
   { key: 'photos', label: 'รูปทรัพย์', kind: 'media', section: 'ข้อมูลทั่วไป', note: 'รูปแรก = ปก (แสดงบนหน้าแรก) · สูงสุด 10 รูป' },
 
   // 10 · ข้อความสรุปอัตโนมัติ (อ่านอย่างเดียว + ปุ่มคัดลอก)
