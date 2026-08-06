@@ -149,7 +149,7 @@ export function RequirementForm() {
       {/* contact */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12 }}>
         <div style={{ minWidth: 0 }}><label style={labelStyle}>ชื่อของคุณ{reqMark}</label><input value={name} onChange={(e) => { setName(e.target.value); clearErr(); }} placeholder="กรอกชื่อของคุณ" style={inputStyle} /></div>
-        <div style={{ minWidth: 0 }}><label style={labelStyle}>เบอร์โทรศัพท์</label><input value={phone} onChange={(e) => { setPhone(e.target.value); clearErr(); }} placeholder="08x-xxx-xxxx" style={inputStyle} /></div>
+        <div style={{ minWidth: 0 }}><label style={labelStyle}>เบอร์โทรศัพท์{reqMark}</label><input value={phone} onChange={(e) => { setPhone(e.target.value); clearErr(); }} type="tel" inputMode="tel" autoComplete="tel" placeholder="08x-xxx-xxxx" style={inputStyle} /></div>
       </div>
       <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12 }}>
         <div style={{ minWidth: 0 }}><label style={labelStyle}>อีเมล</label><input value={email} onChange={(e) => { setEmail(e.target.value); clearErr(); }} placeholder="name@email.com" style={inputStyle} /></div>
