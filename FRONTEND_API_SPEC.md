@@ -559,6 +559,88 @@ UI เสร็จแล้วทุกหน้า แต่ข้อมูล�
 
 ---
 
+## 12. RBAC — บทบาท ขอบเขต และสิทธิ์พิเศษ
+
+> **ที่มา:** `web/src/lib/rbac.ts` · UI: `/admin/users`
+> ออกแบบสำหรับเอเจนซี่ **สาขาเดียว ทีมขายทีมเดียว + co-agent ภายนอก**
+> จึงไม่มี scope ระดับ "ทีม" และ **ไม่มี approval workflow** — ทำได้หรือไม่ได้เท่านั้น
+
+### 12.1 สามชั้นที่ต้องเช็คร่วมกัน
+
+สิทธิ์จริงของผู้ใช้ 1 คน = **บทบาท** ∧ **ขอบเขตข้อมูล** ∧ **สิทธิ์พิเศษ**
+
+```ts
+type RoleKey = 'owner' | 'manager' | 'agent' | 'co_agent' | 'ops' | 'marketing' | 'translator';
+type Scope   = 'own' | 'all';   // เห็นเฉพาะที่ตัวเองเป็นเจ้าของ / เห็นทั้งหมด
+type PrivKey = 'pii' | 'publish' | 'price' | 'deal_unlock' | 'internal_note' | 'export' | 'audit';
+
+type UserPermissions = {
+  role: RoleKey;
+  scope: Scope;          // owner=all และ co_agent=own ล็อกไว้ เปลี่ยนไม่ได้
+  privileges: PrivKey[];
+  expiresAt?: string;    // บังคับสำหรับ co_agent (บุคคลภายนอก) — ISO date
+};
+```
+
+### 12.2 🚨 ข้อบังคับสำหรับ backend
+
+1. **บังคับที่ API layer เสมอ** — UI ซ่อนปุ่มเป็นแค่ UX ห้ามใช้เป็นการรักษาความปลอดภัย ทุก endpoint ต้องเช็คเองซ้ำ
+2. **`scope: 'own'` = ต้องกรองที่ระดับแถว (row-level)** — `WHERE owner_id = :me` ไม่ใช่ดึงมาทั้งหมดแล้วให้ frontend กรอง มิฉะนั้นข้อมูลลูกค้าของเอเจนต์คนอื่นจะหลุดผ่าน API
+3. **PII ปิดบังเป็นค่าเริ่มต้น** — endpoint ต้องคืน `081-xxx-8888` / `s***@mail.com` เว้นแต่ผู้ใช้มีสิทธิ์ `pii`
+   การขอดูค่าเต็มต้องเป็น endpoint แยก และ **บันทึกลง audit log ทุกครั้ง** (PDPA ม.37 / GDPR Art.30)
+4. **`internalOnly` fields** (ดู §3) ต้องถูกตัดออกถ้าไม่มีสิทธิ์ `internal_note` — และตัดออกเสมอสำหรับ endpoint สาธารณะ
+5. **`co_agent` ต้องเช็ค `expiresAt` ทุก request** — หมดอายุแล้วปฏิเสธทันที ไม่ต้องรอ cron
+6. **`deal_unlock` ต้องเขียน audit log เสมอ** พร้อมเหตุผล — เป็นการแก้ยอดย้อนหลัง
+7. **`export` ควร rate-limit + log** ว่าใครดึงข้อมูลอะไรออกไปเมื่อไหร่
+
+### 12.3 บทบาท
+
+| key | บทบาท | เทียบสากล | scope เริ่มต้น |
+|---|---|---|---|
+| `owner` | เจ้าของระบบ | Principal / Broker of Record | `all` 🔒 |
+| `manager` | ผู้จัดการ | Sales Manager | `all` |
+| `agent` | เอเจนต์ขาย | Agent / Negotiator | `own` |
+| `co_agent` | Co-agent ภายนอก | Co-broke / Referral Partner | `own` 🔒 + ต้องมี `expiresAt` |
+| `ops` | ธุรการ / ปฏิบัติการ | Operations / Transaction Coordinator | `all` |
+| `marketing` | การตลาด | Marketing Executive | `all` |
+| `translator` | นักแปล | Translator | `all` |
+
+🔒 = ล็อก เปลี่ยนไม่ได้
+
+### 12.4 สิทธิ์พิเศษ + ข้อห้าม
+
+| priv | ความหมาย | บทบาทที่ห้ามให้ |
+|---|---|---|
+| `pii` | เห็นเบอร์/อีเมลลูกค้าเต็ม | marketing, translator, co_agent |
+| `publish` | เผยแพร่ประกาศ / หน้าเว็บ | co_agent, translator |
+| `price` | แก้ราคาหลังเผยแพร่ | co_agent, translator |
+| `deal_unlock` | ปลดล็อกดีลที่ปิดแล้ว | agent, co_agent, ops, marketing, translator |
+| `internal_note` | เห็นหมายเหตุลับของทรัพย์ | co_agent, translator |
+| `export` | ส่งออก CSV | co_agent, translator |
+| `audit` | ดู audit log | agent, co_agent, ops, marketing, translator |
+
+> `FORBIDDEN_PRIVS` ใน `rbac.ts` เป็นตัวกันตั้งค่าผิดฝั่ง UI — **backend ต้องตรวจซ้ำ** ตอนบันทึก ไม่งั้นยิง API ตรงก็ตั้งได้
+
+### 12.5 Endpoint ที่เสนอ
+
+| Method | Path | รายละเอียด |
+|---|---|---|
+| `GET` | `/api/users` | รายชื่อ + role + scope + privileges + expiresAt |
+| `POST` | `/api/users/invite` | เชิญผู้ใช้ (body: email, role) |
+| `PUT` | `/api/users/:id/permissions` | บันทึกจากป๊อปอัป "ตั้งค่าสิทธิ์" — ต้อง validate FORBIDDEN_PRIVS + scope lock ซ้ำ |
+| `PATCH` | `/api/users/:id/status` | เปิด / ปิดใช้งาน |
+| `GET` | `/api/me/permissions` | frontend เรียกตอน login เพื่อรู้ว่าจะซ่อนเมนูไหน |
+| `POST` | `/api/leads/:id/reveal-contact` | ขอดู PII เต็ม — ต้องมีสิทธิ์ `pii` และเขียน audit log |
+
+### 12.6 ตารางสิทธิ์เต็ม
+
+ดูของจริงที่ `MATRIX` ใน `web/src/lib/rbac.ts` (แบ่ง 5 หมวด: ทรัพย์ & ประกาศ · งานขาย & ลูกค้า · สัญญาเช่า & แจ้งเตือน · เนื้อหา & เว็บไซต์ · ระบบ & ตั้งค่า)
+หรือเปิดหน้า `/admin/users` → แท็บ **สิทธิ์ (Roles)**
+
+ค่าในตารางมี 5 แบบ: `yes` ทำได้ · `scope` ทำได้ตามขอบเขต · `read` อ่านอย่างเดียว · `priv` ต้องเปิดสิทธิ์พิเศษ · `no` ไม่ได้
+
+---
+
 ## ภาคผนวก — ไฟล์สำคัญที่ต้องรู้จัก
 
 | ไฟล์ | หน้าที่ |
