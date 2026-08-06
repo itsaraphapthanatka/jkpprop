@@ -72,9 +72,9 @@ export const DEFAULT_PRIVS: Record<RoleKey, PrivKey[]> = {
 export const FORBIDDEN_PRIVS: Partial<Record<RoleKey, PrivKey[]>> = {
   manager: ['export'],
   agent: ['deal_unlock', 'audit', 'export'],
-  co_agent: ['deal_unlock', 'audit', 'export', 'price', 'publish', 'internal_note'],
+  co_agent: ['deal_unlock', 'audit', 'export', 'price', 'publish', 'internal_note', 'pii'],
   marketing: ['deal_unlock', 'audit', 'pii', 'export'],
-  translator: ['deal_unlock', 'audit', 'pii', 'price', 'export', 'internal_note'],
+  translator: ['deal_unlock', 'audit', 'pii', 'price', 'export', 'internal_note', 'publish'],
   ops: ['deal_unlock', 'audit', 'export'],
 };
 

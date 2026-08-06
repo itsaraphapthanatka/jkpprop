@@ -12,7 +12,7 @@
 | **Stack** | Next.js 15 · App Router · React 19 · TypeScript strict |
 | **Styling** | Plain CSS + inline style objects (ไม่ใช้ Tailwind) |
 | **ที่เก็บข้อมูลตอนนี้** | localStorage 5 keys + mock array ใน component |
-| **โมดูลที่มี client store แล้ว** | 5 / 17 |
+| **โมดูลที่มี client store แล้ว** | 4 / 25 หน้า admin (leads · field-builder · notifications · social-status) |
 | **Repo** | `itsaraphapthanatka/jkpprop` → `/web` |
 
 **สารบัญ**
@@ -23,6 +23,7 @@
 4. [FieldKind → หน้าตา payload](#4-fieldkind--หน้าตา-payload)
 5. [ทรัพย์ (Properties)](#5-ทรัพย์-properties)
 6. [Leads — ฟอร์มแจ้งความต้องการหน้าเว็บ](#6-leads--ฟอร์มแจ้งความต้องการหน้าเว็บ)
+6.5 [Social Status — สถานะการลงประกาศรายช่องทาง](#65-social-status--สถานะการลงประกาศรายช่องทาง)
 7. [แจ้งเตือนสัญญาเช่าใกล้หมด](#7-แจ้งเตือนสัญญาเช่าใกล้หมด)
 8. [Validation ที่ backend ต้อง mirror](#8-validation-ที่-backend-ต้อง-mirror)
 9. [โมดูลที่ยังเป็น mock ทั้งหมด](#9-โมดูลที่ยังเป็น-mock-ทั้งหมด)
@@ -94,6 +95,7 @@ UI อัปเดตทันทีแล้วค่อยบันทึก (
 - ตั้งค่าแจ้งเตือน (`/admin/notifications`)
 - ฟอร์มทรัพย์ (เพิ่ม / แก้ไข)
 - ฟอร์มแจ้งความต้องการ (`/contact`)
+- Social Status — ติ๊กช่องทาง / แก้ caption (`/admin/social-status`)
 
 ### 2.4 Multi-tenant (สำคัญกับ Agency)
 
@@ -116,7 +118,7 @@ UI อัปเดตทันทีแล้วค่อยบันทึก (
 type FieldKind =
   | 'dealtype' | 'text' | 'textarea' | 'number' | 'price' | 'date'
   | 'select' | 'multiselect' | 'boolean'
-  | 'media' | 'location' | 'map' | 'group';
+  | 'media' | 'location' | 'map' | 'summary' | 'group';
 
 type FieldDef = {
   key: string;            // unique ต่อ 1 ประเภททรัพย์
@@ -132,7 +134,7 @@ type FieldDef = {
   ai?: boolean;           // textarea: โชว์ปุ่ม "ให้ AI ช่วยเขียน"
   internalOnly?: boolean; // 🔒 ห้ามส่งออก public endpoint — ดูด้านล่าง
   showWhen?: { field: string; in: string[] };  // แสดงเมื่อฟิลด์อื่นมีค่าตามที่ระบุ
-  sub?: { key: string; label: string; kind?: FieldKind; options?: string[]; unit?: string }[];
+  sub?: { key: string; label: string; kind?: FieldKind; options?: string[]; unit?: string; placeholder?: string }[];
 };
 ```
 
@@ -168,6 +170,10 @@ type PropertyType = { key: string; label: string; icon: string; fields: FieldDef
 
 **Override ที่แอดมินแก้ได้ (Field Builder)**
 
+> ⚠️ **key ของฟิลด์ที่แอดมินเพิ่มเอง (`extra`) ยังไม่ปลอดภัยพอ** — ตอนนี้ frontend สร้างเป็น
+> `custom_{typeKey}_{kind}_{n}` โดย `n` เป็นตัวนับในหน่วยความจำที่รีเซ็ตทุกครั้งที่รีเฟรช
+> แปลว่าคนละเบราว์เซอร์/คนละ tenant สร้าง key ชนกันได้ · **ขอให้ server เป็นคนออก key ให้**
+
 ```ts
 type SchemaOverride = {
   disabled: string[];   // field key ที่ปิด (ฟิลด์ required ปิดไม่ได้)
@@ -191,6 +197,10 @@ type SchemaOverride = {
 > 1. รวม `fields` ของประเภทนั้น + `extra`
 > 2. เรียงตาม `order` ก่อน ที่เหลือต่อท้ายด้วยลำดับเดิม
 > 3. ติดธง `enabled` = `required ? true : !disabled.includes(key)` — **ฟิลด์ required บังคับเปิดเสมอ**
+>
+> 4. ⚠️ **`showWhen` ไม่ถูกประมวลผลใน `resolveFields()`** — เป็นการซ่อน/แสดงตอน render เท่านั้น
+>    ฟิลด์ที่ `showWhen` ไม่ผ่านยังถือว่า `enabled` อยู่ ดังนั้น **ห้ามใช้ `resolveFields()` เป็นตัวตัดสินว่าฟิลด์ไหนต้องกรอก**
+>    ฝั่ง server ต้องประเมิน `showWhen` เองก่อน validate (เช่น `price_sale` ไม่ต้องมีถ้า `deal_type` = "เช่า")
 
 **Endpoint ที่เสนอ**
 
@@ -214,9 +224,9 @@ type TypeConfig = { disabled: string[] };
 
 **กฎที่ implement ไว้แล้ว ขอให้ API รักษาไว้**
 
-1. **ปิดทั้ง 5 ประเภทไม่ได้** — UI กันไว้ และ `enabledPropertyTypes()` จะ fallback เป็นเปิดหมดถ้าเจอ config ที่ปิดครบ
+1. **ปิดครบทุกประเภทไม่ได้** (ต้องเหลืออย่างน้อย 1) — UI กันไว้ และ `enabledPropertyTypes()` จะ fallback เป็นเปิดหมดถ้าเจอ config ที่ปิดครบ
 2. หน้า “แก้ไขทรัพย์” ยังต้องเลือกประเภทเดิมของทรัพย์นั้นได้ (ติดป้าย “ปิดอยู่”) — **การปิด = ปิดรับของใหม่ ไม่ใช่ลบของเก่า**
-3. Field Builder ยังต้องเห็นครบทั้ง 5 ประเภท เพื่อเข้าไปแก้ฟิลด์ของประเภทที่ปิดไว้ล่วงหน้าได้
+3. Field Builder ยังต้องเห็นครบทุกประเภท เพื่อเข้าไปแก้ฟิลด์ของประเภทที่ปิดไว้ล่วงหน้าได้
 
 | Method | Path | ใช้ที่ |
 |---|---|---|
@@ -247,6 +257,7 @@ type TypeConfig = { disabled: string[] };
 | `location` | กลุ่ม input ตาม `sub` | object ตาม sub keys | `{tambon,amphoe,province,map}` |
 | `map` | แผนที่ Leaflet ปักหมุดได้ | object 3 คีย์ | `{lat,lng,link}` |
 | `group` | กลุ่ม input ย่อยแถวเดียว | object ตาม sub keys | `{rai,ngan,wa}` |
+| `summary` | บล็อกอ่านอย่างเดียว + ปุ่ม Refresh / คัดลอก | 🟢 **ไม่ต้องเก็บ** — ประกอบสดจาก `buildSummary()` (ดูข้อ 5.2) | — |
 
 ### ทางเลือกโครงสร้างที่แนะนำ
 
@@ -302,6 +313,27 @@ type TypeConfig = { disabled: string[] };
 
 ---
 
+### 5.2 ข้อความโพสต์อัตโนมัติ (summary) · 🟢 DERIVED
+
+**ที่มา:** `web/src/lib/summaryTemplate.ts` → `buildSummary({ typeLabel, code, values })`
+
+ประกอบข้อความพร้อมโพสต์จากค่าที่กรอกในฟอร์มทรัพย์ **ใช้ร่วมกัน 2 ที่** จึงต้องไม่แตกเป็นสองสูตร:
+ฟิลด์ `kind: 'summary'` ในฟอร์มทรัพย์ (ข้อ 3) และหน้า Social Status (ข้อ 6.5)
+
+```ts
+type Summary = { text: string; filled: number; total: number };  // filled/total = นับบรรทัดที่มีค่า
+buildSummary({ typeLabel: string; code?: string; values: Record<string, unknown> }): Summary;
+```
+
+**กติกา**
+
+1. อ่าน key แบบ **allow-list** เท่านั้น (ที่ตั้ง · พื้นที่ · ออฟฟิศ · ที่ดิน · ความสูง · พื้นรับน้ำหนัก · ระบบไฟฟ้า · ราคาขาย · ค่าเช่า · โซน · ใกล้ · พื้นที่สี · คุณสมบัติ · การใช้งาน)
+   → ฟิลด์ `internalOnly` **ไม่มีทางหลุด** เข้าข้อความที่คัดลอกไปโพสต์
+2. **คงบรรทัดที่ยังไม่มีค่าไว้เสมอ** (ทีมงานขอให้เหลือโครงไว้เติม) — อย่า "ฉลาด" ตัดบรรทัดว่างทิ้ง
+3. เป็นค่า derived ล้วน — **ไม่ต้องมีคอลัมน์ในฐานข้อมูล** ถ้า server จะ generate เองต้องได้ผลตรงกันทุกตัวอักษร
+
+---
+
 ## 6. Leads — ฟอร์มแจ้งความต้องการหน้าเว็บ
 
 ทางเดินข้อมูลนี้ต่อครบวงจรแล้วฝั่ง client: ผู้เข้าเว็บกรอก → เก็บลง store → หน้า Admin → Leads อ่านไปแสดง
@@ -338,6 +370,7 @@ type StoredLead = {
 
 ```json
 {
+  "id": "web-1785753934641-381d8",
   "createdAt": 1785753934641,
   "name": "คุณทดสอบ ระบบ",
   "phone": "081-222-3333",
@@ -366,8 +399,12 @@ type StoredLead = {
 | `land` | 5 | ความต้องการ · ขนาดที่ดิน · ผังเมืองสี · ทำเล · งบประมาณ |
 | `factory` | 6 | ความต้องการ · พื้นที่ใช้สอย · ระบบไฟ · ต้องขอ ร.ง.4 · ทำเล · งบประมาณ |
 | `warehouse` | 4 | ความต้องการ · พื้นที่ใช้สอย · ทำเล · งบประมาณ |
+| `showroom` | 4 | **ไม่มีชุดของตัวเอง — ใช้ของ `warehouse`** ผ่าน fallback |
 
-นอกจากนี้ทุกประเภทถามร่วมกัน: ชื่อ · เบอร์ · อีเมล · ชื่อบริษัท · **สถานะผู้ตอบ**
+> `requirementFields(typeKey)` คืน `REQUIREMENT_FIELDS[typeKey] || REQUIREMENT_FIELDS.warehouse`
+> — `showroom` จึงได้ชุดของโกดังแบบเงียบ ๆ **ถ้าจะให้ถามคนละชุดต้องเพิ่ม entry ของตัวเองใน schema**
+
+นอกจากนี้ทุกประเภทถามร่วมกัน: ชื่อ · เบอร์ (บังคับ) · อีเมล · ชื่อบริษัท · **สถานะผู้ตอบ**
 (มาจากแบบสอบถาม “ความต้องการใช้โกดังและโรงงาน”)
 
 | Method | Path | รายละเอียด |
@@ -385,6 +422,66 @@ type StoredLead = {
 - สรุปความต้องการ = แถวสถานะผู้ติดต่อ + บริษัท + ประเภททรัพย์ + ความต้องการ แล้วต่อด้วย `req[]`
 
 ถ้า API จะจัดรูปให้เลยก็ได้ แต่ขอให้ยังส่ง field ดิบมาด้วย
+
+---
+
+## 6.5 Social Status — สถานะการลงประกาศรายช่องทาง
+
+ติดตามว่าประกาศไหนลงช่องทางไหนไปแล้ว พร้อมเก็บข้อความโพสต์ของประกาศนั้น
+
+### 6.5.1 ช่องทาง + สถานะรายประกาศ · 🟣 CLIENT STORE
+
+**ที่มา:** `web/src/lib/socialStore.ts` · localStorage key `jkp.socialStatus.v1` · UI: `/admin/social-status`
+
+```ts
+type Channel     = { key: string; label: string };            // แอดมินเพิ่ม/ลบเองได้
+type ChannelPost = { done: boolean; date?: string; url?: string };  // date = YYYY-MM-DD
+
+type SocialRecord = {
+  text?: string;                          // caption ที่แก้เอง — ไม่มี = ตามข้อความอัตโนมัติ
+  channels: Record<string, ChannelPost>;  // key = Channel.key
+};
+
+type SocialStore = {
+  channels: Channel[];
+  records: Record<string, SocialRecord>;  // key = public_code ของประกาศ
+};
+```
+
+ค่าเริ่มต้น 4 ช่องทาง: `ddproperty` · `facebook` · `instagram` · `proppit`
+
+```json
+{
+  "channels": [{ "key": "ddproperty", "label": "DD Property" }, { "key": "facebook", "label": "Facebook" }],
+  "records": {
+    "JKP-SPK0042": {
+      "text": "โพสต์เวอร์ชันการตลาด …",
+      "channels": {
+        "ddproperty": { "done": true, "date": "2026-08-06" },
+        "facebook":   { "done": true, "date": "2026-08-06", "url": "https://facebook.com/post/123" }
+      }
+    }
+  }
+}
+```
+
+**กฎที่ implement ไว้แล้ว**
+
+1. **`text` เก็บเฉพาะเมื่อแอดมินแก้เอง** — ถ้าไม่แก้จะเป็น `undefined` แล้วไปดึงข้อความอัตโนมัติ (ข้อ 5.2) มาแสดงแทน
+   ทำให้ประกาศที่ยังไม่แก้ caption อัปเดตตามข้อมูลทรัพย์ให้เอง
+2. **แก้ caption ที่นี่ต้องไม่กระทบข้อมูลทรัพย์** — เขียนลง `jkp.socialStatus.v1` เท่านั้น ห้ามเขียนย้อนกลับไปที่ property record
+3. **ลบช่องทาง = ต้องลบ `ChannelPost` ของช่องนั้นออกจากทุก record ด้วย** ไม่ให้เหลือข้อมูลกำพร้า
+4. ตอนติ๊กจากในตาราง ระบบใส่ `date` เป็นวันนี้ให้อัตโนมัติถ้ายังไม่เคยมี
+
+> ⚠️ หน้านี้ยังอ่านรายการประกาศจาก `RAW_DATA` ใน `ListingsAdminBody.tsx` (mock) — เมื่อมี `/api/listings` จริงต้องเปลี่ยนมาใช้ตัวนั้น
+
+| Method | Path | รายละเอียด |
+|---|---|---|
+| `GET` | `/api/social-channels` | รายการช่องทางของ tenant |
+| `POST` `DELETE` | `/api/social-channels[/:key]` | เพิ่ม / ลบช่องทาง — การลบต้อง cascade ลบสถานะของช่องนั้นทุกประกาศ |
+| `GET` | `/api/listings/:code/social` | `SocialRecord` ของประกาศเดียว |
+| `PUT` | `/api/listings/:code/social` | บันทึกจากป๊อปอัป — body = `SocialRecord` (ส่ง `text: null` เพื่อกลับไปใช้ข้อความอัตโนมัติ) |
+| `PATCH` | `/api/listings/:code/social/:channel` | ติ๊ก/ยกเลิกเร็วจากในตาราง |
 
 ---
 
@@ -497,6 +594,9 @@ UI เสร็จแล้วทุกหน้า แต่ข้อมูล�
 | `/admin/properties` | 🟡 mock | CRUD ทรัพย์ (ข้อ 5) |
 | `/admin/listings` | 🟡 mock | ประกาศ · สถานะเผยแพร่ · ผูกกับทรัพย์ |
 | `/admin/leads` | 🟣 store | ต่อ API ได้ตรง (ข้อ 6) |
+| `/admin/social-status` | 🟣 store | ช่องทางลงประกาศ + สถานะ/วันที่/ลิงก์รายประกาศ + caption (ข้อ 6.5) |
+| `/admin/field-builder` | 🟣 store | schema ฟิลด์ + เปิด/ปิดประเภททรัพย์ (ข้อ 3.1 · 3.2) |
+| `/admin/notifications` | 🟣 store | เกณฑ์แจ้งเตือนสัญญาเช่า (ข้อ 7.2) |
 | `/admin/requirements` | 🟡 mock | requirement ที่ยืนยันแล้ว แยกจาก lead |
 | `/admin/shortlists` | 🟡 mock | shortlist + ลิงก์ให้ลูกค้าดู (`/client-shortlist`) |
 | `/admin/visits` | 🟡 mock | นัดชมทรัพย์ · ผลการเข้าชม |
@@ -506,11 +606,14 @@ UI เสร็จแล้วทุกหน้า แต่ข้อมูล�
 | `/admin/sections` | 🟡 mock | คลัง section |
 | `/admin/media` | 🟡 mock | **ระบบไฟล์จริง** — upload, ลายน้ำ, thumbnail (ผูกกับ kind `media`) |
 | `/admin/geography` | 🟡 mock | จังหวัด/อำเภอ/ตำบล + นิคมอุตสาหกรรม (ใช้เป็น options ในฟอร์ม) |
-| `/admin/users` | 🟡 mock | ผู้ใช้ + RBAC 6 บทบาท |
+| `/admin/users` | 🟡 mock | ผู้ใช้ + RBAC 7 บทบาท + scope + สิทธิ์พิเศษรายคน (ข้อ 12) |
 | `/admin/branding` | 🟡 mock | โลโก้ สี ฟอนต์ ต่อ tenant |
 | `/admin/seo` | 🟡 mock | meta / schema / hreflang |
 | `/admin/audit` | 🟡 mock | audit log ทุก mutation + before/after |
-| `/admin/login` | 🟡 mock | **ยังไม่มี auth จริงเลย** — ทุกหน้า admin เปิดได้โดยไม่ล็อกอิน |
+| `/admin/property-view` | 🟡 mock | หน้าดูทรัพย์ (อ่านอย่างเดียว) |
+| `/admin/property-edit` | 🟡 mock | ฟอร์มแก้ไข — ฟอร์มมาจาก schema แล้ว แต่ค่ายัง hardcode (ข้อ 5) |
+| `/admin/settings` | 🟡 mock | ตัวเลขบนการ์ดตั้งค่า |
+| `/admin/login` · `/admin/forgot-password` | 🟡 mock | **ยังไม่มี auth จริงเลย** — ทุกหน้า admin เปิดได้โดยไม่ล็อกอิน |
 
 ### หน้าเว็บสาธารณะที่ต้องดึงข้อมูลจริง
 
@@ -521,7 +624,9 @@ UI เสร็จแล้วทุกหน้า แต่ข้อมูล�
 | `/property` | รายละเอียดทรัพย์ · ค่าเช่าล่วงหน้า/เงินประกัน/ค่าน้ำ-ไฟ-ส่วนกลาง · แผนที่ |
 | `/contact` | POST lead + อ่าน `typeConfig` |
 | `/client-shortlist` | shortlist ที่แชร์ให้ลูกค้าดู (ต้องมี token ในลิงก์) |
-| `/warehouse-rent`, `/factory-sale`, `/port-*`, `/airport-*`, `/bangkok-*` | landing page ตามทำเล — ดึงทรัพย์ตาม filter ที่กำหนดไว้ล่วงหน้า |
+| `/warehouse-rent`, `/warehouse-sale`, `/factory-rent`, `/factory-sale`, `/port-*`, `/airport-*`, `/bangkok-*` | landing page ตามทำเล — ดึงทรัพย์ตาม filter ที่กำหนดไว้ล่วงหน้า |
+| `/about`, `/faq` | เนื้อหาจาก CMS |
+| `/cms-sitemap`, `/site-index` | หน้าอ้างอิงผังเว็บ (static) |
 
 ---
 
@@ -548,7 +653,7 @@ UI เสร็จแล้วทุกหน้า แต่ข้อมูล�
 
 | # | คำถาม | ผลกระทบ |
 |--:|---|---|
-| 1 | Auth ใช้อะไร — session cookie หรือ JWT? และ RBAC 6 บทบาทบังคับที่ชั้นไหน | ตัวกำหนดว่าจะดึงข้อมูลใน Server Component ได้ไหม (ถ้าเป็น cookie ทำได้เลย) |
+| 1 | Auth ใช้อะไร — session cookie หรือ JWT? และ RBAC 7 บทบาทบังคับที่ชั้นไหน (ดูข้อ 12) | ตัวกำหนดว่าจะดึงข้อมูลใน Server Component ได้ไหม (ถ้าเป็น cookie ทำได้เลย) |
 | 2 | Multi-tenant แยกด้วย subdomain, path หรือ header? | ทุก endpoint + การอ่าน config ตอน SSR |
 | 3 | `resolveFields` ให้ client คำนวณต่อ หรือให้ server คืนฟิลด์ที่ resolve แล้ว? | ถ้า server คืนให้ ลด logic ซ้ำ แต่ Field Builder ต้อง preview ก่อนบันทึกได้ — อาจต้องมีทั้งสองแบบ |
 | 4 | ค่าที่แสดงผลเป็นภาษาไทยใน payload (`"เช่า"`, `"เป็น Agent ตัวแทน"`) จะเปลี่ยนเป็น enum code แล้วแปลที่ frontend ไหม? | จำเป็นถ้าจะทำ EN/中文 ให้ครบ (page-builder รองรับ 3 ภาษาอยู่แล้ว) — **แนะนำให้เปลี่ยน** |
@@ -556,7 +661,7 @@ UI เสร็จแล้วทุกหน้า แต่ข้อมูล�
 | 6 | “1 เดือน” = 30 วันตายตัว (ที่ทำไว้) หรือใช้เดือนตามปฏิทิน? | เปลี่ยนวันที่เด้งแจ้งเตือน ต้องตกลงให้ตรงกันทั้งสองฝั่ง |
 | 7 | ต้องส่งอีเมล / LINE ตอนสัญญาใกล้หมดด้วยไหม หรือแค่กระดิ่งในระบบ? | ถ้าต้องส่ง ต้องมี scheduled job ฝั่ง server ไม่ใช่คำนวณตอนเปิดหน้า |
 | 8 | ฟิลด์ที่แอดมินเพิ่มเอง (`extra`) — ถ้าลบฟิลด์ที่มีข้อมูลอยู่แล้วจะทำอย่างไร? | ตอนนี้ frontend แค่ซ่อน ไม่ลบค่า ควรยืนยันว่า backend ก็เก็บค่าไว้ |
-| 9 | กระดิ่งควรมีทุกหน้าไหม? | ตอนนี้ขึ้นเฉพาะหน้าที่ใช้ topbar มาตรฐาน (Dashboard, CMS, Requirements, Users, SEO, Geography) — หน้าที่ทำ topbar เองยังไม่มี |
+| 9 | กระดิ่งควรมีทุกหน้าไหม? | `<NotificationBell />` อยู่ใน `AdminTopbarDefaultActions` เท่านั้น จึงขึ้นเฉพาะหน้าที่ **ไม่ได้ส่ง `actions` เอง** (Dashboard, Social Status) — หน้าที่ทำ topbar เองยังไม่มี |
 
 ---
 
@@ -661,7 +766,7 @@ type UserPermissions = {
 | `web/src/components/site/RequirementForm.tsx` | ฟอร์มแจ้งความต้องการหน้าเว็บ (public) |
 | `web/src/components/admin/AdminShell.tsx` | โครง admin (sidebar + topbar + ที่วางกระดิ่ง) |
 
-**localStorage keys ที่ใช้อยู่ทั้งหมด** (ทั้ง 4 ตัวนี้คือสิ่งที่ API จะมาแทน)
+**localStorage keys ที่ใช้อยู่ทั้งหมด** (ทั้ง 5 ตัวนี้คือสิ่งที่ API จะมาแทน)
 
 ```text
 jkp.fieldSchema.v1   → Record<typeKey, SchemaOverride>
