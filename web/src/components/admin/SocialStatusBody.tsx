@@ -7,6 +7,7 @@ import {
   loadSocial, saveSocial, recordOf, postOf, doneCount, channelKey, todayISO,
   type SocialStore, type SocialRecord,
 } from '@/lib/socialStore';
+import { apiGet, apiPut, apiPost, apiDelete } from '@/lib/apiClient';
 
 /* Social Status — one row per listing showing which channels it has already
    been posted to. Open a row to read/edit the post text, copy it, and tick
@@ -48,10 +49,26 @@ export function SocialStatusBody() {
   // text back to something identical doesn't silently re-link it.
   const [useAuto, setUseAuto] = React.useState(true);
 
-  // client-only read (keeps SSR and first client render identical)
-  React.useEffect(() => { setStore(loadSocial()); setReady(true); }, []);
+  // client-only read (keeps SSR and first client render identical), then the
+  // server copy — localStorage stays as an offline cache
+  React.useEffect(() => {
+    setStore(loadSocial());
+    setReady(true);
+    apiGet<SocialStore>('/api/social')
+      .then((s) => { if (s && Array.isArray(s.channels)) { setStore(s); saveSocial(s); } })
+      .catch(() => { /* keep cache (§2.2) */ });
+  }, []);
 
-  const persist = (next: SocialStore) => { setStore(next); saveSocial(next); };
+  // optimistic local write + PUT for the touched listing (§2.3)
+  const persist = (next: SocialStore, code?: string) => {
+    setStore(next);
+    saveSocial(next);
+    if (code) {
+      const rec = next.records[code] || { channels: {} };
+      void apiPut(`/api/social/${encodeURIComponent(code)}`, { text: rec.text ?? null, channels: rec.channels })
+        .catch(() => { /* stays in the local cache */ });
+    }
+  };
   const channels = store.channels;
 
   const generated = (code: string) => {
@@ -73,7 +90,7 @@ export function SocialStatusBody() {
     const rec = recordOf(store, code);
     const cur = postOf(rec, key);
     const nextPost = cur.done ? { done: false } : { done: true, date: cur.date || todayISO(), url: cur.url };
-    persist({ ...store, records: { ...store.records, [code]: { ...rec, channels: { ...rec.channels, [key]: nextPost } } } });
+    persist({ ...store, records: { ...store.records, [code]: { ...rec, channels: { ...rec.channels, [key]: nextPost } } } }, code);
   };
 
   /* ---- row dialog ---- */
@@ -91,7 +108,7 @@ export function SocialStatusBody() {
   const saveRow = () => {
     if (!openCode) return;
     const text = useAuto ? undefined : draftText;
-    persist({ ...store, records: { ...store.records, [openCode]: { text, channels: draft.channels } } });
+    persist({ ...store, records: { ...store.records, [openCode]: { text, channels: draft.channels } } }, openCode);
     setOpenCode(null);
   };
   const setDraftPost = (key: string, patch: Partial<{ done: boolean; date: string; url: string }>) => {
@@ -117,6 +134,7 @@ export function SocialStatusBody() {
     const key = channelKey(l, channels.map((c) => c.key));
     persist({ ...store, channels: [...channels, { key, label: l }] });
     setNewCh('');
+    void apiPost('/api/social/channels', { key, label: l }).catch(() => { /* cached locally */ });
   };
   const removeChannel = (key: string) => {
     const records: SocialStore['records'] = {};
@@ -125,6 +143,8 @@ export function SocialStatusBody() {
       records[code] = { ...rec, channels: rest };
     });
     persist({ channels: channels.filter((c) => c.key !== key), records });
+    // server cascades the per-listing posts for this channel (§6.5 rule #3)
+    void apiDelete(`/api/social/channels?key=${encodeURIComponent(key)}`).catch(() => { /* cached locally */ });
   };
 
   const openRec = openCode ? draft : null;

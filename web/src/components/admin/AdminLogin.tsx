@@ -1,25 +1,37 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AuthShell, authInputWrap, authInput, authLeadIcon, authLabel, authBtn } from './AuthShell';
+import { apiPost, ApiClientError } from '@/lib/apiClient';
 
-/* Admin CMS login. Mock auth (no backend): submit → push /admin.
+/* Admin CMS login — POST /api/auth/login sets the httpOnly session
+   cookie; on success we land on the page the guard bounced us from.
    Layout/brand chrome provided by the shared <AuthShell>. */
 
 export function AdminLogin() {
   const router = useRouter();
+  const search = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
     setLoading(true);
-    window.setTimeout(() => router.push('/admin'), 500);
+    setError('');
+    try {
+      await apiPost('/api/auth/login', { email, password });
+      const next = search.get('next');
+      router.push(next && next.startsWith('/admin') ? next : '/admin');
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : 'เกิดข้อผิดพลาด กรุณาลองใหม่');
+      setLoading(false);
+    }
   };
 
   return (
@@ -69,17 +81,19 @@ export function AdminLogin() {
           <a href="/admin/forgot-password" className="auth-link" style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--accent)', transition: 'color .15s' }}>ลืมรหัสผ่าน?</a>
         </div>
 
+        {/* error */}
+        {error && (
+          <div role="alert" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '11px 13px', borderRadius: 11, marginBottom: 16, background: '#FBEDEA', border: '1px solid #E8C4BC' }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C0392B" strokeWidth="1.9" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></svg>
+            <span style={{ fontSize: 13, color: '#C0392B', lineHeight: 1.6 }}>{error}</span>
+          </div>
+        )}
+
         {/* submit */}
         <button type="submit" className="auth-btn" disabled={loading} style={{ ...authBtn, cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.85 : 1 }}>
           {loading ? 'กำลังเข้าสู่ระบบ…' : (<>เข้าสู่ระบบ<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg></>)}
         </button>
       </form>
-
-      {/* demo hint */}
-      <div style={{ marginTop: 16, display: 'flex', alignItems: 'flex-start', gap: 8, padding: '11px 13px', borderRadius: 11, background: 'var(--tint)', border: '1px solid var(--border)' }}>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
-        <span style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>เดโม — ยังไม่เชื่อมต่อระบบยืนยันตัวตน กด “เข้าสู่ระบบ” เพื่อเข้าสู่แดชบอร์ดได้เลย</span>
-      </div>
 
       {/* back to site */}
       <div style={{ marginTop: 26, textAlign: 'center' }}>

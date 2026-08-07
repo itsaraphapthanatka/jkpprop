@@ -1,6 +1,8 @@
 'use client';
 
 import * as React from 'react';
+import { apiGet } from '@/lib/apiClient';
+import { relTime } from '@/lib/leadStore';
 
 /* ============================================================
    AdminListings.dc.html — ported <main> content (interactive):
@@ -243,13 +245,26 @@ export function ListingsAdminBody() {
   const [cDeal, setCDeal] = React.useState<DealK>('rent');
   const [cStatus, setCStatus] = React.useState<CreateStatusK>('draft');
 
+  // ---- live rows: GET /api/listings (falls back to the porting-era demo set) ----
+  const [rows, setRows] = React.useState<Row[]>(RAW_DATA);
+  React.useEffect(() => {
+    let alive = true;
+    apiGet<{ items: (Omit<Row, 'updated'> & { updatedAt: number })[] }>('/api/listings')
+      .then((r) => {
+        if (!alive || !Array.isArray(r.items) || !r.items.length) return;
+        setRows(r.items.map((it) => ({ ...it, updated: relTime(it.updatedAt) })));
+      })
+      .catch(() => { /* keep demo rows (§2.2) */ });
+    return () => { alive = false; };
+  }, []);
+
   // ---- filters (status tabs + search + dropdowns) ----
   const [query, setQuery] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<'all' | StatusK>('all');
   const [filters, setFilters] = React.useState<FiltersState>({});
   const [openFilter, setOpenFilter] = React.useState<string | null>(null);
 
-  const filtered = RAW_DATA.filter((d) => {
+  const filtered = rows.filter((d) => {
     if (statusFilter !== 'all' && d.status !== statusFilter) return false;
     if (filters.type && typeOf(d) !== filters.type) return false;
     if (filters.province && d.location !== filters.province) return false;

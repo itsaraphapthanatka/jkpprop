@@ -1,0 +1,321 @@
+// JKP Property — backend schema (v1, single-tenant with orgId everywhere)
+// Contract: FRONTEND_API_SPEC.md — payload shapes mirror web/src/lib/*.ts stores.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Org {
+  id            String   @id @default(cuid())
+  name          String
+  // TypeConfig (§3.2): property-type keys switched off for this agency
+  disabledTypes String[] @default([])
+  // NotifyConfig (§7.2) minus readIds — org-wide thresholds; readIds live per user
+  notifyConfig  Json?
+  createdAt     DateTime @default(now())
+
+  users      User[]
+  properties Property[]
+  leads      Lead[]
+}
+
+model User {
+  id           String    @id @default(cuid())
+  orgId        String
+  org          Org       @relation(fields: [orgId], references: [id])
+  email        String    @unique
+  passwordHash String
+  name         String
+  phone        String?
+  // RBAC (§12) — mirrors web/src/lib/rbac.ts
+  role         String    @default("agent") // owner|manager|agent|co_agent|ops|marketing|translator
+  scope        String    @default("own") // own|all
+  privileges   String[]  @default([]) // pii|publish|price|deal_unlock|internal_note|export|audit
+  expiresAt    DateTime? // required for co_agent
+  active       Boolean   @default(true)
+  // lease-alert ids the user marked read (§7.2 readIds)
+  readAlertIds String[]  @default([])
+  createdAt    DateTime  @default(now())
+
+  sessions Session[]
+}
+
+model Session {
+  token     String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Field Builder override per property type (§3.1) — SchemaOverride shape
+model FieldOverride {
+  orgId    String
+  typeKey  String
+  disabled String[] @default([])
+  order    String[] @default([])
+  extra    Json     @default("[]") // FieldDef[] added by admin; server issues keys
+  // server-issued counter for custom field keys (custom_{typeKey}_{kind}_{n})
+  extraSeq Int      @default(0)
+
+  @@id([orgId, typeKey])
+}
+
+// Geography (§10 step 3): province/district/subdistrict/estate tree
+model GeoItem {
+  id       String  @id @default(cuid())
+  orgId    String
+  kind     String // province | district | subdistrict | estate
+  name     String
+  code     String? // 3-letter province code used in public_code (e.g. SPK)
+  meta     Json? // { en?, type?, count? } — extra display fields per kind
+  parentId String?
+  parent   GeoItem?  @relation("GeoTree", fields: [parentId], references: [id])
+  children GeoItem[] @relation("GeoTree")
+
+  @@index([orgId, kind])
+}
+
+model MediaAsset {
+  id         String   @id @default(cuid())
+  orgId      String
+  filename   String // original name
+  mime       String
+  size       Int
+  path       String // public URL path, e.g. /uploads/xxxx.webp
+  uploaderId String?
+  createdAt  DateTime @default(now())
+
+  @@index([orgId])
+}
+
+// per-prefix running number for public_code (FR-ADM-08), transaction-safe
+model CodeCounter {
+  orgId  String
+  prefix String // "JKP" (Bangkok) or "JKP-SPK" etc.
+  next   Int    @default(1)
+
+  @@id([orgId, prefix])
+}
+
+model Property {
+  id         String   @id @default(cuid())
+  orgId      String
+  org        Org      @relation(fields: [orgId], references: [id])
+  publicCode String   @unique // JKP0118 / JKP-SPK0042 — immutable after create
+  typeKey    String // house|condo|land|factory|warehouse|showroom
+  title      String   @default("")
+  status     String   @default("draft") // draft|active|hidden|archived
+  // all form values keyed by FieldDef.key (§4) — schema tells the meaning
+  values     Json     @default("{}")
+  ownerId    String? // owning agent — row-level scope 'own'
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  listings Listing[]
+
+  @@index([orgId, typeKey])
+  @@index([orgId, status])
+}
+
+model Listing {
+  id          String    @id @default(cuid())
+  orgId       String
+  propertyId  String
+  property    Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  status      String    @default("draft") // draft|published|hidden|unavailable|archived
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([orgId, status])
+}
+
+model Lead {
+  id             String   @id @default(cuid())
+  orgId          String
+  org            Org      @relation(fields: [orgId], references: [id])
+  createdAt      DateTime @default(now())
+  name           String
+  phone          String
+  email          String   @default("")
+  company        String?
+  respondentType String?
+  message        String   @default("")
+  typeKey        String
+  typeLabel      String
+  dealIntent     String
+  req            Json     @default("[]") // ReqItem[] { k, v }
+  source         String   @default("requirement form")
+  status         String   @default("new") // 9-state pipeline (forward-only)
+  assigneeId     String? // row-level scope 'own' checks this
+  updatedAt      DateTime @updatedAt
+
+  notes LeadNote[]
+  tasks LeadTask[]
+
+  @@index([orgId, status])
+  @@index([orgId, assigneeId])
+}
+
+model LeadNote {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  userId    String?
+  text      String
+  createdAt DateTime @default(now())
+}
+
+model LeadTask {
+  id        String    @id @default(cuid())
+  leadId    String
+  lead      Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  userId    String?
+  title     String
+  due       DateTime?
+  done      Boolean   @default(false)
+  createdAt DateTime  @default(now())
+}
+
+model Shortlist {
+  id        String   @id @default(cuid())
+  orgId     String
+  leadId    String?
+  name      String   @default("")
+  token     String   @unique // /client-shortlist?token=…
+  status    String   @default("open") // open|sent|closed
+  createdAt DateTime @default(now())
+
+  items ShortlistItem[]
+}
+
+model ShortlistItem {
+  id          String    @id @default(cuid())
+  shortlistId String
+  shortlist   Shortlist @relation(fields: [shortlistId], references: [id], onDelete: Cascade)
+  propertyId  String
+  note        String?
+  sort        Int       @default(0)
+}
+
+model Visit {
+  id        String   @id @default(cuid())
+  orgId     String
+  leadId    String?
+  date      DateTime
+  status    String   @default("scheduled") // scheduled|done|cancelled
+  note      String?
+  createdAt DateTime @default(now())
+
+  stops VisitStop[]
+}
+
+model VisitStop {
+  id         String @id @default(cuid())
+  visitId    String
+  visit      Visit  @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  propertyId String
+  sort       Int    @default(0)
+  result     String? // feedback after the visit
+}
+
+model Deal {
+  id         String    @id @default(cuid())
+  orgId      String
+  leadId     String?
+  propertyId String?
+  title      String    @default("")
+  amount     Int       @default(0) // baht
+  status     String    @default("negotiating") // negotiating|won|lost
+  closedAt   DateTime?
+  note       String?
+  locked     Boolean   @default(false) // financials read-only after close (deal_unlock to reopen)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([orgId, status])
+}
+
+// Lease book (§7.1) — real end dates, not day offsets
+model Lease {
+  id        String    @id @default(cuid())
+  orgId     String
+  code      String // property public_code
+  title     String
+  tenant    String
+  startDate DateTime?
+  endDate   DateTime
+  rent      Int // baht / month
+  status    String    @default("active") // active|renewed|closed
+  href      String    @default("/admin/deals")
+  createdAt DateTime  @default(now())
+
+  @@index([orgId, status])
+}
+
+// Social status (§6.5)
+model SocialChannel {
+  orgId String
+  key   String
+  label String
+  sort  Int    @default(0)
+
+  @@id([orgId, key])
+}
+
+model SocialRecord {
+  orgId String
+  code  String // listing public_code
+  text  String? // manual caption override; null = use buildSummary()
+
+  @@id([orgId, code])
+}
+
+model SocialPost {
+  orgId      String
+  code       String
+  channelKey String
+  done       Boolean @default(false)
+  date       String? // YYYY-MM-DD
+  url        String?
+
+  @@id([orgId, code, channelKey])
+}
+
+model CmsPage {
+  id        String   @id @default(cuid())
+  orgId     String
+  slug      String
+  title     String
+  status    String   @default("draft") // draft|published
+  content   Json     @default("{}") // per-language sections
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@unique([orgId, slug])
+}
+
+// Audit log — every mutation, before/after JSON (SPEC_PACK cross-cutting rule)
+model AuditLog {
+  id        String   @id @default(cuid())
+  orgId     String
+  userId    String?
+  userName  String? // denormalised for display
+  action    String // e.g. property.create, lead.status, pii.reveal
+  entity    String
+  entityId  String?
+  before    Json?
+  after     Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([orgId, createdAt])
+}

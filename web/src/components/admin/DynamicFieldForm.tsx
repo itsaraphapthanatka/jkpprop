@@ -2,8 +2,10 @@
 
 import * as React from 'react';
 import { resolveFields, propertyType, type FieldDef } from '@/lib/propertySchema';
+import { useSchemaSync } from '@/lib/schemaSync';
 import { buildSummary } from '@/lib/summaryTemplate';
 import { MapPicker } from './MapPicker';
+import { apiFetch, ApiClientError } from '@/lib/apiClient';
 
 /* Renders the enabled fields for a property type (from the Field Builder
    schema in localStorage). Used by both the create-property modal and the
@@ -24,7 +26,80 @@ const isFull = (f: FieldDef) => ['dealtype', 'location', 'group', 'media', 'mult
 
 type Vals = Record<string, unknown>;
 
-export function DynamicFieldForm({ typeKey, code }: { typeKey: string; code?: string }) {
+/* media field — uploads to /api/media and stores the served src paths in the
+   property values (payload shape per FRONTEND_API_SPEC §4: asset URL array) */
+function MediaField({ f, lbl, value, onChange }: {
+  f: FieldDef;
+  lbl: (f: FieldDef) => React.ReactNode;
+  value: string[];
+  onChange: (v: string[]) => void;
+}) {
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState('');
+
+  const upload = async (files: FileList) => {
+    setBusy(true);
+    setErr('');
+    const added: string[] = [];
+    for (const file of Array.from(files)) {
+      try {
+        const form = new FormData();
+        form.append('file', file);
+        const r = await apiFetch<{ src: string }>('/api/media', { method: 'POST', body: form });
+        added.push(r.src);
+      } catch (e) {
+        setErr(e instanceof ApiClientError ? e.message : `อัปโหลด ${file.name} ไม่สำเร็จ`);
+      }
+    }
+    if (added.length) onChange([...(value || []), ...added]);
+    setBusy(false);
+  };
+
+  return (
+    <div>
+      {lbl(f)}
+      <input ref={inputRef} type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,application/pdf" style={{ display: 'none' }} onChange={(e) => { if (e.target.files?.length) void upload(e.target.files); e.target.value = ''; }} />
+      <div style={{ border: '1.5px dashed var(--border)', borderRadius: 12, padding: '16px 14px', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg)' }}>
+        <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--tint)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><path d="M17 8l-5-5-5 5M12 3v12" /></svg>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: '12.5px', fontWeight: 700, color: err ? '#C0392B' : 'var(--text)' }}>{err || (value.length ? `แนบแล้ว ${value.length} ไฟล์` : 'ลากไฟล์มาวาง หรือเลือกจากคลัง')}</div>
+          {f.note && <div style={{ fontSize: 11, color: f.required ? '#C0392B' : 'var(--muted3)' }}>{f.note}</div>}
+        </div>
+        <button type="button" onClick={() => inputRef.current?.click()} disabled={busy} style={{ height: 34, padding: '0 14px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.7 : 1, flexShrink: 0, border: 0, fontFamily: 'inherit' }}>{busy ? 'กำลังอัปโหลด…' : 'อัปโหลด'}</button>
+      </div>
+      {value.length > 0 && (
+        <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {value.map((src, i) => (
+            <span key={src + i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 6px 0 4px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)' }}>
+              {src.startsWith('/api/media/') && !src.endsWith('.pdf') ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={src} alt="" style={{ width: 22, height: 22, borderRadius: 5, objectFit: 'cover' }} />
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><path d="M14 2v6h6" /></svg>
+              )}
+              <span style={{ fontSize: 11, color: 'var(--muted)' }}>ไฟล์ {i + 1}{i === 0 && f.key === 'photos' ? ' · ปก' : ''}</span>
+              <span onClick={() => onChange(value.filter((_, j) => j !== i))} style={{ display: 'flex', cursor: 'pointer', color: 'var(--muted3)' }} aria-label="ลบไฟล์">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M18 6L6 18M6 6l12 12" /></svg>
+              </span>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function DynamicFieldForm({ typeKey, code, initialValues, onValuesChange }: {
+  typeKey: string;
+  code?: string;
+  /** pre-fill (edit form) — applied only while typeKey matches the mount-time type */
+  initialValues?: Vals;
+  /** live value stream for the parent's save button */
+  onValuesChange?: (vals: Vals) => void;
+}) {
   const [fields, setFields] = React.useState<(FieldDef & { enabled: boolean })[]>([]);
   const [vals, setVals] = React.useState<Vals>({});
   const [closed, setClosed] = React.useState<Record<string, boolean>>({});
@@ -32,15 +107,23 @@ export function DynamicFieldForm({ typeKey, code }: { typeKey: string; code?: st
   const [refreshTick, setRefreshTick] = React.useState(0);
   const [refreshed, setRefreshed] = React.useState(false);
 
+  // captured once — switching type away from the record's own type clears the
+  // answers (see below); switching back re-applies the stored record values
+  const initRef = React.useRef({ typeKey, values: initialValues });
+  const onChangeRef = React.useRef(onValuesChange);
+  onChangeRef.current = onValuesChange;
+  React.useEffect(() => { onChangeRef.current?.(vals); }, [vals]);
+
   // Re-resolve the field list AND clear answers on type change — several keys
   // (bathrooms, kitchen, common_area, appliances, furniture…) exist on more than
   // one type with different kinds/options, so keeping values would leak a stale
   // answer into a control that can't represent it (e.g. '5 ห้อง' in a 1–2 select).
+  const schemaV = useSchemaSync();
   React.useEffect(() => {
     setFields(resolveFields(typeKey).filter((f) => f.enabled));
-    setVals({});
+    setVals(typeKey === initRef.current.typeKey ? { ...(initRef.current.values ?? {}) } : {});
     setClosed({});
-  }, [typeKey]);
+  }, [typeKey, schemaV]);
 
   const setV = (k: string, v: unknown) => setVals((p) => ({ ...p, [k]: v }));
   const setSub = (k: string, sk: string, v: unknown) => setVals((p) => ({ ...p, [k]: { ...((p[k] as Vals) || {}), [sk]: v } }));
@@ -158,21 +241,7 @@ export function DynamicFieldForm({ typeKey, code }: { typeKey: string; code?: st
           </div>
         );
       case 'media':
-        return (
-          <div>
-            {lbl(f)}
-            <div style={{ border: '1.5px dashed var(--border)', borderRadius: 12, padding: '16px 14px', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg)' }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--tint)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><path d="M17 8l-5-5-5 5M12 3v12" /></svg>
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text)' }}>ลากไฟล์มาวาง หรือเลือกจากคลัง</div>
-                {f.note && <div style={{ fontSize: 11, color: f.required ? '#C0392B' : 'var(--muted3)' }}>{f.note}</div>}
-              </div>
-              <button type="button" style={{ height: 34, padding: '0 14px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', cursor: 'pointer', flexShrink: 0, border: 0, fontFamily: 'inherit' }}>อัปโหลด</button>
-            </div>
-          </div>
-        );
+        return <MediaField f={f} lbl={lbl} value={(vals[f.key] as string[]) || []} onChange={(v) => setV(f.key, v)} />;
       case 'location':
         return (
           <div>
@@ -210,7 +279,7 @@ export function DynamicFieldForm({ typeKey, code }: { typeKey: string; code?: st
           </div>
         );
       case 'map':
-        return <MapPicker label={f.label} />;
+        return <MapPicker label={f.label} value={(vals[f.key] as { lat?: number; lng?: number; link?: string }) || undefined} onChange={(v) => setV(f.key, v)} />;
       case 'summary':
         return (
           <div>

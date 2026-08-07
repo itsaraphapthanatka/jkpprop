@@ -2,7 +2,8 @@
 
 import * as React from 'react';
 import { AdminShell, AdminBreadcrumb } from '@/components/admin/AdminShell';
-import { buildAlerts, loadNotifyConfig, saveNotifyConfig, DEFAULT_NOTIFY, MILESTONE_MONTHS, LEASES, type LeaseAlert, type NotifyConfig } from '@/lib/leaseStore';
+import { buildAlerts, loadNotifyConfig, saveNotifyConfig, fetchLeaseData, DEFAULT_NOTIFY, MILESTONE_MONTHS, LEASES, type Lease, type LeaseAlert, type NotifyConfig } from '@/lib/leaseStore';
+import { apiPut, ApiClientError } from '@/lib/apiClient';
 
 /* Settings → การแจ้งเตือน: choose how far ahead of a lease's end date the
    system should raise a bell notification (1 / 2 / 3 เดือน), with a live
@@ -34,9 +35,16 @@ export function NotifySettingsBody() {
   const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const [ready, setReady] = React.useState(false);
 
-  React.useEffect(() => { const c = loadNotifyConfig(); setCfg(c); setReady(true); }, []);
+  const [leases, setLeases] = React.useState<Lease[]>(LEASES);
+  React.useEffect(() => {
+    const c = loadNotifyConfig();
+    setCfg(c);
+    setReady(true);
+    // then reconcile with the server (org thresholds + real lease book)
+    void fetchLeaseData().then(({ leases: ls, cfg: remote }) => { setLeases(ls); setCfg(remote); });
+  }, []);
   // live preview follows the edits, before they are saved
-  React.useEffect(() => { if (ready) setAlerts(buildAlerts(cfg)); }, [cfg, ready]);
+  React.useEffect(() => { if (ready) setAlerts(buildAlerts(cfg, leases)); }, [cfg, ready, leases]);
 
   const flash = (m: string) => { setToast(m); if (timer.current) clearTimeout(timer.current); timer.current = setTimeout(() => setToast(''), 2400); };
 
@@ -57,7 +65,22 @@ export function NotifySettingsBody() {
     });
     setDirty(true);
   };
-  const save = () => { saveNotifyConfig(cfg); setDirty(false); flash(`บันทึกแล้ว · แจ้งเตือน ${alerts.length} สัญญา`); };
+  // PUT the org thresholds (readIds stay per-user); localStorage stays as cache
+  const [saving, setSaving] = React.useState(false);
+  const save = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await apiPut('/api/notify-config', { enabled: cfg.enabled, months: cfg.months, includeExpired: cfg.includeExpired });
+      saveNotifyConfig(cfg);
+      setDirty(false);
+      flash(`บันทึกแล้ว · แจ้งเตือน ${alerts.length} สัญญา`);
+    } catch (e) {
+      flash(e instanceof ApiClientError ? e.message : 'บันทึกไม่สำเร็จ กรุณาลองใหม่');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const actions = (
     <button type="button" id="ns-save" className="ns-save" onClick={save} style={{ height: 40, padding: '0 18px', borderRadius: 9999, background: dirty ? '#0D6C3B' : '#273c33', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, cursor: 'pointer', whiteSpace: 'nowrap', border: 0, fontFamily: 'inherit', transition: 'transform .2s,box-shadow .2s' }}>
@@ -126,7 +149,7 @@ export function NotifySettingsBody() {
           <div style={{ background: '#F0ECF9', border: '1px solid #DCCFEC', borderRadius: 16, padding: '16px 18px', display: 'flex', alignItems: 'flex-start', gap: 11 }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7A3FB0" strokeWidth="1.9" style={{ flexShrink: 0, marginTop: 1 }}><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 01-3.4 0" /></svg>
             <span style={{ fontSize: 12, color: '#7A3FB0', lineHeight: 1.55 }}>
-              ตอนนี้เข้าเกณฑ์ <b>{alerts.length}</b> สัญญา จากทั้งหมด <b>{LEASES.length}</b> สัญญาที่ยังใช้งาน · กด <b>บันทึก</b> แล้วกระดิ่งด้านบนจะอัปเดตทันที
+              ตอนนี้เข้าเกณฑ์ <b>{alerts.length}</b> สัญญา จากทั้งหมด <b>{leases.length}</b> สัญญาที่ยังใช้งาน · กด <b>บันทึก</b> แล้วกระดิ่งด้านบนจะอัปเดตทันที
             </span>
           </div>
         </div>

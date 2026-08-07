@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { buildAlerts, loadNotifyConfig, saveNotifyConfig, unreadCount, type LeaseAlert, type NotifyConfig } from '@/lib/leaseStore';
+import { buildAlerts, loadNotifyConfig, saveNotifyConfig, unreadCount, fetchLeaseData, type LeaseAlert, type NotifyConfig } from '@/lib/leaseStore';
+import { apiPost } from '@/lib/apiClient';
 
 /* Topbar notification bell — surfaces the lease-expiry alerts produced from
    Settings → การแจ้งเตือน. Config + alerts are read in an effect (never during
@@ -23,9 +24,14 @@ export function NotificationBell() {
   const [alerts, setAlerts] = React.useState<LeaseAlert[]>([]);
 
   const refresh = React.useCallback(() => {
+    // fast paint from the local cache, then reconcile with the server
     const c = loadNotifyConfig();
     setCfg(c);
     setAlerts(buildAlerts(c));
+    void fetchLeaseData().then(({ leases, cfg: remote }) => {
+      setCfg(remote);
+      setAlerts(buildAlerts(remote, leases));
+    });
   }, []);
 
   React.useEffect(() => { refresh(); }, [refresh]);
@@ -41,10 +47,13 @@ export function NotificationBell() {
 
   const markAllRead = () => {
     if (!cfg) return;
-    const next: NotifyConfig = { ...cfg, readIds: [...new Set([...cfg.readIds, ...alerts.map((a) => a.id)])] };
+    const ids = alerts.map((a) => a.id);
+    const next: NotifyConfig = { ...cfg, readIds: [...new Set([...cfg.readIds, ...ids])] };
     saveNotifyConfig(next);
     setCfg(next);
     setAlerts((prev) => prev.map((a) => ({ ...a, read: true })));
+    // per-user on the server (§11 #5) — fire and forget, local state already updated
+    void apiPost('/api/notifications/read', { ids }).catch(() => { /* offline — cache holds it */ });
   };
 
   return (
