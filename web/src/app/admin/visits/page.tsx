@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { VisitActions, VisitBody } from '@/components/admin/VisitBody';
+import Link from 'next/link';
 
 export const metadata: Metadata = { title: 'Visits · JKP CMS', robots: { index: false } };
 
@@ -24,7 +25,7 @@ const visitCss = `
 /* Topbar eyebrow (breadcrumb) + title (with a status code badge) contain rich
    markup; AdminShell types them as string, so cast the nodes through unknown. */
 const eyebrowNode = (
-  <><a href="/admin/shortlists" style={{ color: 'var(--muted2)' }}>SL-208</a> / Visit Plan</>
+  <><Link href="/admin/shortlists" style={{ color: 'var(--muted2)' }}>SL-208</Link> / Visit Plan</>
 );
 
 const titleNode = (

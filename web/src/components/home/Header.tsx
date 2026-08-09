@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 type Lang = 'th' | 'en' | 'zh';
 
@@ -114,14 +115,14 @@ export function Header() {
             height: headerH,
           }}
         >
-          <a href="/" style={{ display: 'flex', alignItems: 'center' }}>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/assets/jkp-logo-green.png"
               alt="JKP Property"
               style={{ width: 'auto', display: 'block', transition: 'height .3s', height: logoH }}
             />
-          </a>
+          </Link>
 
           <nav style={{ display: 'flex', alignItems: 'center', gap: 26 }}>
             {/* โรงงาน */}
@@ -148,12 +149,12 @@ export function Header() {
               {navFactory && (
                 <div style={{ position: 'absolute', top: '100%', left: 0, paddingTop: 10, width: 150 }}>
                   <div style={ddPanel}>
-                    <a className="dd-item" href="/factory-rent" style={ddItem}>
+                    <Link className="dd-item" href="/factory-rent" style={ddItem}>
                       โรงงานให้เช่า
-                    </a>
-                    <a className="dd-item" href="/factory-sale" style={ddItem}>
+                    </Link>
+                    <Link className="dd-item" href="/factory-sale" style={ddItem}>
                       โรงงานสำหรับขาย
-                    </a>
+                    </Link>
                   </div>
                 </div>
               )}
@@ -183,23 +184,23 @@ export function Header() {
               {navWarehouse && (
                 <div style={{ position: 'absolute', top: '100%', left: 0, paddingTop: 10, width: 150 }}>
                   <div style={ddPanel}>
-                    <a className="dd-item" href="/warehouse-rent" style={ddItem}>
+                    <Link className="dd-item" href="/warehouse-rent" style={ddItem}>
                       โกดังให้เช่า
-                    </a>
-                    <a className="dd-item" href="/warehouse-sale" style={ddItem}>
+                    </Link>
+                    <Link className="dd-item" href="/warehouse-sale" style={ddItem}>
                       โกดังสำหรับขาย
-                    </a>
+                    </Link>
                   </div>
                 </div>
               )}
             </div>
 
-            <a className="nav-link" href="/faq" style={{ fontSize: 14, fontWeight: 500, color: 'var(--muted)' }}>
+            <Link className="nav-link" href="/faq" style={{ fontSize: 14, fontWeight: 500, color: 'var(--muted)' }}>
               คำถามพบบ่อย
-            </a>
-            <a className="nav-link" href="/about" style={{ fontSize: 14, fontWeight: 500, color: 'var(--muted)' }}>
+            </Link>
+            <Link className="nav-link" href="/about" style={{ fontSize: 14, fontWeight: 500, color: 'var(--muted)' }}>
               เกี่ยวกับเรา
-            </a>
+            </Link>
 
             {/* language */}
             <div style={{ position: 'relative' }}>
@@ -386,8 +387,8 @@ export function Header() {
           </div>
           {mFactory && (
             <div style={{ padding: '0 10px 10px 22px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <a href="/factory-rent" style={{ padding: '10px 12px', borderRadius: 10, fontSize: 14, fontWeight: 600, color: 'var(--muted)' }}>โรงงานให้เช่า</a>
-              <a href="/factory-sale" style={{ padding: '10px 12px', borderRadius: 10, fontSize: 14, fontWeight: 600, color: 'var(--muted)' }}>โรงงานสำหรับขาย</a>
+              <Link href="/factory-rent" style={{ padding: '10px 12px', borderRadius: 10, fontSize: 14, fontWeight: 600, color: 'var(--muted)' }}>โรงงานให้เช่า</Link>
+              <Link href="/factory-sale" style={{ padding: '10px 12px', borderRadius: 10, fontSize: 14, fontWeight: 600, color: 'var(--muted)' }}>โรงงานสำหรับขาย</Link>
             </div>
           )}
           <div onClick={() => setMWarehouse((v) => !v)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '15px 10px', borderRadius: 12, cursor: 'pointer' }}>
@@ -396,12 +397,12 @@ export function Header() {
           </div>
           {mWarehouse && (
             <div style={{ padding: '0 10px 10px 22px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <a href="/warehouse-rent" style={{ padding: '10px 12px', borderRadius: 10, fontSize: 14, fontWeight: 600, color: 'var(--muted)' }}>โกดังให้เช่า</a>
-              <a href="/warehouse-sale" style={{ padding: '10px 12px', borderRadius: 10, fontSize: 14, fontWeight: 600, color: 'var(--muted)' }}>โกดังสำหรับขาย</a>
+              <Link href="/warehouse-rent" style={{ padding: '10px 12px', borderRadius: 10, fontSize: 14, fontWeight: 600, color: 'var(--muted)' }}>โกดังให้เช่า</Link>
+              <Link href="/warehouse-sale" style={{ padding: '10px 12px', borderRadius: 10, fontSize: 14, fontWeight: 600, color: 'var(--muted)' }}>โกดังสำหรับขาย</Link>
             </div>
           )}
-          <a href="/faq" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>คำถามพบบ่อย</a>
-          <a href="/about" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>เกี่ยวกับเรา</a>
+          <Link href="/faq" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>คำถามพบบ่อย</Link>
+          <Link href="/about" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>เกี่ยวกับเรา</Link>
           <div style={{ marginTop: 12, paddingTop: 16, borderTop: '1px solid var(--border)', display: 'flex', gap: 8 }}>
             {LANG_DEFS.map((l) => (
               <div

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AuthShell, authInputWrap, authInput, authLeadIcon, authLabel, authBtn } from './AuthShell';
 import { apiPost, ApiClientError } from '@/lib/apiClient';
+import Link from 'next/link';
 
 /* Admin CMS login — POST /api/auth/login sets the httpOnly session
    cookie; on success we land on the page the guard bounced us from.
@@ -78,7 +79,7 @@ export function AdminLogin() {
             <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }} />
             <span style={{ fontSize: '13.5px', color: 'var(--muted)' }}>จดจำฉันไว้</span>
           </label>
-          <a href="/admin/forgot-password" className="auth-link" style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--accent)', transition: 'color .15s' }}>ลืมรหัสผ่าน?</a>
+          <Link href="/admin/forgot-password" className="auth-link" style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--accent)', transition: 'color .15s' }}>ลืมรหัสผ่าน?</Link>
         </div>
 
         {/* error */}
@@ -97,10 +98,10 @@ export function AdminLogin() {
 
       {/* back to site */}
       <div style={{ marginTop: 26, textAlign: 'center' }}>
-        <a href="/" className="auth-back" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '13.5px', fontWeight: 600, color: 'var(--muted2)', transition: 'color .15s' }}>
+        <Link href="/" className="auth-back" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '13.5px', fontWeight: 600, color: 'var(--muted2)', transition: 'color .15s' }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M19 12H5" /><path d="M11 6l-6 6 6 6" /></svg>
           กลับสู่หน้าเว็บหลัก
-        </a>
+        </Link>
       </div>
     </AuthShell>
   );

@@ -1,10 +1,9 @@
 /* GET /api/media/:id/raw — stream the file from disk. Public read: the
    website serves listing photos from here. Immutable cache (content never
    changes for a given id). */
-import { readFile } from 'fs/promises';
 import { handler, ApiError } from '@/lib/server/api';
 import { db } from '@/lib/server/db';
-import { diskPathFor } from '@/lib/server/mediaStore';
+import { getObject } from '@/lib/server/mediaStore';
 
 export const runtime = 'nodejs';
 
@@ -12,7 +11,7 @@ export const GET = handler(async (_req: Request, ctx: { params: Promise<{ id: st
   const { id } = await ctx.params;
   const asset = await db.mediaAsset.findUnique({ where: { id } });
   if (!asset) throw new ApiError('NOT_FOUND', 'ไม่พบไฟล์นี้', 404);
-  const buf = await readFile(diskPathFor(asset.id, asset.mime)).catch(() => null);
+  const buf = await getObject(asset.id, asset.mime);
   if (!buf) throw new ApiError('NOT_FOUND', 'ไม่พบไฟล์นี้', 404);
   return new Response(new Uint8Array(buf), {
     headers: {

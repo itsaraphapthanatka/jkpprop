@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { MediaBody } from '@/components/admin/MediaBody';
+import Link from 'next/link';
 
 export const metadata: Metadata = { title: 'Media · JKP CMS', robots: { index: false } };
 
@@ -15,9 +16,9 @@ const mediaCss = `
 
 const mediaActions = (
   <div id="media-actions" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-    <a href="/admin/sections" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>
+    <Link href="/admin/sections" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9"><path d="M4 4h16v16H4z" /><path d="M4 9h16M9 9v11" /></svg>จัดการ Section
-    </a>
+    </Link>
     <div className="admin-primary-btn" style={{ height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer' }}>
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><path d="M17 8l-5-5-5 5M12 3v12" /></svg>อัปโหลด
     </div>

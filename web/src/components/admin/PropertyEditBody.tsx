@@ -6,6 +6,7 @@ import { DynamicFieldForm } from './DynamicFieldForm';
 import { PROPERTY_TYPES, enabledPropertyTypes, propertyType } from '@/lib/propertySchema';
 import { useSchemaSync } from '@/lib/schemaSync';
 import { apiGet, apiPatch, ApiClientError } from '@/lib/apiClient';
+import Link from 'next/link';
 
 /* Fallback type before the record loads (?code= missing → new-form preview);
    the record's own type stays selectable even if disabled for new intake. */
@@ -121,7 +122,7 @@ export function PropertyEditBody() {
           {notice.text}
         </span>
       )}
-      <a href="/admin/properties" style={{ height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center' }}>ยกเลิก</a>
+      <Link href="/admin/properties" style={{ height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center' }}>ยกเลิก</Link>
       <div onClick={save} className="admin-primary-btn" style={{ height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1, whiteSpace: 'nowrap', transition: 'transform .2s,box-shadow .2s' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2"><path d="M20 6L9 17l-5-5" /></svg>{saving ? 'กำลังบันทึก…' : 'บันทึก'}
       </div>
@@ -188,7 +189,7 @@ export function PropertyEditBody() {
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 18 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
                 <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text)' }}>รายละเอียด: {PROPERTY_TYPES.find((p) => p.key === selType)?.label}</div>
-                <a href="/admin/field-builder" style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--accent)', textDecoration: 'none' }}>ปรับฟิลด์ที่ Field Builder →</a>
+                <Link href="/admin/field-builder" style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--accent)', textDecoration: 'none' }}>ปรับฟิลด์ที่ Field Builder →</Link>
               </div>
               <DynamicFieldForm
                 key={record?.id ?? 'new'}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
+import Link from 'next/link';
 
 /* ============================================================
    Ported verbatim from About.dc.html — hero, story card + pillars,
@@ -64,7 +65,7 @@ export function AboutBody() {
 
       {/* BREADCRUMB */}
       <div style={{ maxWidth: '1320px', margin: '0 auto', padding: '16px 24px 0', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--muted2)' }}>
-        <a href="/" style={{ color: 'var(--muted2)' }}>หน้าแรก</a>
+        <Link href="/" style={{ color: 'var(--muted2)' }}>หน้าแรก</Link>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted3)" strokeWidth="2"><path d="M9 6l6 6-6 6" /></svg>
         <span style={{ color: 'var(--text)', fontWeight: 600 }}>เกี่ยวกับเรา</span>
       </div>
@@ -95,10 +96,10 @@ export function AboutBody() {
                   <div style={{ marginTop: 2, fontSize: '12.5px', color: 'var(--muted2)' }}>ประสบการณ์ทีมงาน</div>
                 </div>
               </div>
-              <a href="/contact" onMouseEnter={liftEnter('0 10px 24px rgba(39,60,51,.4)')} onMouseLeave={liftLeave} style={{ marginTop: 26, display: 'inline-flex', alignItems: 'center', gap: 8, height: 46, padding: '0 24px', borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: 14, fontWeight: 700, transition: 'transform .2s,box-shadow .2s' }}>
+              <Link href="/contact" onMouseEnter={liftEnter('0 10px 24px rgba(39,60,51,.4)')} onMouseLeave={liftLeave} style={{ marginTop: 26, display: 'inline-flex', alignItems: 'center', gap: 8, height: 46, padding: '0 24px', borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: 14, fontWeight: 700, transition: 'transform .2s,box-shadow .2s' }}>
                 ติดต่อเรา
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
-              </a>
+              </Link>
             </div>
             <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', boxShadow: '0 20px 44px rgba(2,35,16,.15)' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}

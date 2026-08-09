@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 /* ============================================================
    Ported verbatim from design/Listing.dc.html — markup + the
@@ -210,14 +211,14 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
             <div style={{ fontSize: 11, color: 'var(--muted3)', fontWeight: 500 }}>ราคา</div>
             <div style={{ marginTop: 2, fontSize: 18, fontWeight: 800, color: 'var(--accent)', letterSpacing: '-.01em' }}>{it.price}</div>
           </div>
-          <a
+          <Link
             href="/property"
             onMouseEnter={() => setDetailHover(true)}
             onMouseLeave={() => setDetailHover(false)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 14px', borderRadius: 9999, background: detailHover ? '#273c33' : 'var(--surface)', border: '1px solid #273c33', color: detailHover ? '#fff' : '#273c33', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all .2s' }}
           >
             ดูรายละเอียด
-          </a>
+          </Link>
         </div>
       </div>
     </div>
@@ -340,7 +341,7 @@ export function ListingBody({ preset = DEFAULT_PRESET }: { preset?: ListingPrese
     <>
       {/* BREADCRUMB */}
       <div style={{ maxWidth: '1320px', margin: '0 auto', padding: '16px 24px 0', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--muted2)' }}>
-        <a href="/" style={{ color: 'var(--muted2)' }}>หน้าแรก</a>
+        <Link href="/" style={{ color: 'var(--muted2)' }}>หน้าแรก</Link>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted3)" strokeWidth="2">
           <path d="M9 6l6 6-6 6" />
         </svg>

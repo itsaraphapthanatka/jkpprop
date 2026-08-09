@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { AuthShell, authInputWrap, authInput, authLeadIcon, authLabel, authBtn } from './AuthShell';
+import Link from 'next/link';
 
 /* Admin CMS forgot-password. Mock (no backend): submit → show a
    "reset link sent" success state. Layout provided by <AuthShell>. */
@@ -23,10 +24,10 @@ export function ForgotPassword() {
 
   const backToLogin = (
     <div style={{ marginTop: 26, textAlign: 'center' }}>
-      <a href="/admin/login" className="auth-back" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '13.5px', fontWeight: 600, color: 'var(--muted2)', transition: 'color .15s' }}>
+      <Link href="/admin/login" className="auth-back" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '13.5px', fontWeight: 600, color: 'var(--muted2)', transition: 'color .15s' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M19 12H5" /><path d="M11 6l-6 6 6 6" /></svg>
         กลับไปหน้าเข้าสู่ระบบ
-      </a>
+      </Link>
     </div>
   );
 
@@ -41,7 +42,7 @@ export function ForgotPassword() {
           เราได้ส่งลิงก์รีเซ็ตรหัสผ่านไปที่ <b style={{ color: 'var(--text)' }}>{email}</b> แล้ว กรุณาตรวจสอบกล่องจดหมาย (รวมถึงโฟลเดอร์สแปม)
         </p>
 
-        <a href="/admin/login" className="auth-btn" style={{ ...authBtn, marginTop: 26, textDecoration: 'none' }}>กลับไปเข้าสู่ระบบ</a>
+        <Link href="/admin/login" className="auth-btn" style={{ ...authBtn, marginTop: 26, textDecoration: 'none' }}>กลับไปเข้าสู่ระบบ</Link>
 
         <div style={{ marginTop: 18, textAlign: 'center', fontSize: '13.5px', color: 'var(--muted)' }}>
           ไม่ได้รับอีเมล?{' '}

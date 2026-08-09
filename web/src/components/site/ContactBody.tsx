@@ -1,6 +1,7 @@
 'use client';
 
 import { RequirementForm } from './RequirementForm';
+import Link from 'next/link';
 
 /* ============================================================
    Ported verbatim from Contact.dc.html — hero, info cards
@@ -43,7 +44,7 @@ export function ContactBody() {
 
       {/* BREADCRUMB */}
       <div style={{ maxWidth: '1320px', margin: '0 auto', padding: '16px 24px 0', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--muted2)' }}>
-        <a href="/" style={{ color: 'var(--muted2)' }}>หน้าแรก</a>
+        <Link href="/" style={{ color: 'var(--muted2)' }}>หน้าแรก</Link>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted3)" strokeWidth="2"><path d="M9 6l6 6-6 6" /></svg>
         <span style={{ color: 'var(--text)', fontWeight: 600 }}>ติดต่อเรา</span>
       </div>

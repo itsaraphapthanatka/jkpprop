@@ -50,16 +50,6 @@ const SUMMARY = [
   { label: 'แปลไม่ครบ 3 ภาษา', value: '12', color: '#C0392B' },
 ];
 
-const ROWS = [
-  { title: 'โกดังพร้อมสำนักงาน 2,700 ตร.ม.', code: 'JKP-SPK0042', type: 'โกดัง', typeIcon: WH_ICON, location: 'บางพลี, สมุทรปราการ', area: '2,700', listings: '2', trans: 'ครบ 3', transColor: '#0D6C3B', updated: 'วันนี้ 09:20' },
-  { title: 'โรงงาน ร.ง.4 บางนา กม.23', code: 'JKP0118', type: 'โรงงาน', typeIcon: FAC_ICON, location: 'บางนา, กรุงเทพฯ', area: '3,500', listings: '1', trans: 'ครบ 3', transColor: '#0D6C3B', updated: 'เมื่อวาน' },
-  { title: 'คลังสินค้าแหลมฉบัง โซน A', code: 'JKP-CBI0007', type: 'โกดัง', typeIcon: WH_ICON, location: 'ศรีราชา, ชลบุรี', area: '5,000', listings: '2', trans: 'ขาด ZH', transColor: '#D9A62B', updated: '2 วันก่อน' },
-  { title: 'ที่ดินอุตสาหกรรม วังน้อย', code: 'JKP-AYA0021', type: 'ที่ดิน', typeIcon: LAND_ICON, location: 'วังน้อย, อยุธยา', area: '12,000', listings: '1', trans: 'ขาด EN', transColor: '#D9A62B', updated: '3 วันก่อน' },
-  { title: 'โรงงานผลิตอาหาร นวนคร', code: 'JKP-PTE0033', type: 'โรงงาน', typeIcon: FAC_ICON, location: 'คลองหลวง, ปทุมธานี', area: '4,200', listings: '2', trans: 'ครบ 3', transColor: '#0D6C3B', updated: '4 วันก่อน' },
-  { title: 'โกดังให้เช่า มหาชัย', code: 'JKP-SKN0015', type: 'โกดัง', typeIcon: WH_ICON, location: 'เมือง, สมุทรสาคร', area: '1,800', listings: '1', trans: 'ร่าง', transColor: '#9B968D', updated: '5 วันก่อน' },
-  { title: 'โรงงาน + โกดัง ปิ่นทอง', code: 'JKP-CBI0019', type: 'โรงงาน', typeIcon: FAC_ICON, location: 'ศรีราชา, ชลบุรี', area: '6,800', listings: '2', trans: 'ครบ 3', transColor: '#0D6C3B', updated: '1 สัปดาห์ก่อน' },
-  { title: 'คลังสินค้าห้องเย็น บางปะกง', code: 'JKP-CCO0004', type: 'โกดัง', typeIcon: WH_ICON, location: 'บางปะกง, ฉะเชิงเทรา', area: '3,100', listings: '1', trans: 'ขาด ZH', transColor: '#D9A62B', updated: '1 สัปดาห์ก่อน' },
-];
 
 type FilterKey = 'type' | 'province' | 'status';
 const FILTER_DEFS: { key: FilterKey; label: string; opts: string[] }[] = [

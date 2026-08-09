@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { apiGet, apiPut, ApiClientError } from '@/lib/apiClient';
+import Link from 'next/link';
 
 /* Ported verbatim from AdminCMS.dc.html — content-type tabs, article
    list, multi-language editor (rich-text toolbar, category dropdown,
@@ -247,9 +248,9 @@ export function CMSBody() {
 
   const actions = (
     <div id="cms-actions" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <a href="/admin/page-builder" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>
+      <Link href="/admin/page-builder" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9"><path d="M4 4h16v16H4z" /><path d="M4 9h16M9 9v11" /></svg>Page Builder
-      </a>
+      </Link>
       <div onClick={openPreview} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></svg>Preview
       </div>

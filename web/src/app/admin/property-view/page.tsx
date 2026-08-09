@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { AdminShell } from '@/components/admin/AdminShell';
+import Link from 'next/link';
 
 export const metadata: Metadata = { title: 'Property View · JKP CMS', robots: { index: false } };
 
@@ -95,7 +96,7 @@ const pvCss = `
    rich content (a breadcrumb link + a code chip). AdminShell renders them as
    ReactNode, so we pass elements and satisfy TS with a cast. */
 const eyebrow = (
-  <><a href="/admin/properties" style={{ color: 'var(--muted2)' }}>Properties</a> / รายละเอียด</>
+  <><Link href="/admin/properties" style={{ color: 'var(--muted2)' }}>Properties</Link> / รายละเอียด</>
 );
 const title = (
   <span style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>โกดังพร้อมสำนักงาน 2,700 ตร.ม. <code style={{ fontSize: 12, fontWeight: 700, color: '#0D6C3B', background: '#E8F3EC', padding: '2px 8px', borderRadius: 6, fontFamily: "'JetBrains Mono',monospace" }}>JKP-SPK0042</code></span>
@@ -103,12 +104,12 @@ const title = (
 
 const actions = (
   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-    <a href="/property" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>
+    <Link href="/property" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9"><path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /></svg>ดูหน้าเว็บจริง
-    </a>
-    <a href="/admin/property-edit" className="admin-primary-btn" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>
+    </Link>
+    <Link href="/admin/property-edit" className="admin-primary-btn" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" /></svg>แก้ไขทรัพย์
-    </a>
+    </Link>
   </div>
 );
 
@@ -213,13 +214,13 @@ export default function AdminPropertyViewPage() {
             <div style={{ marginTop: 6, fontSize: 26, fontWeight: 800 }}>2 <span style={{ fontSize: 14, fontWeight: 600, color: '#C3FED5' }}>ประกาศ</span></div>
             <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
               {LISTINGS.map((l) => (
-                <a key={l.text} href="/admin/listings" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 13px', borderRadius: 11, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)' }}>
+                <Link key={l.text} href="/admin/listings" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 13px', borderRadius: 11, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)' }}>
                   <div>
                     <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{l.text}</div>
                     <div style={{ fontSize: '10.5px', color: '#B9C2BD' }}>{l.status}</div>
                   </div>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" strokeWidth="2.2"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-                </a>
+                </Link>
               ))}
             </div>
           </div>

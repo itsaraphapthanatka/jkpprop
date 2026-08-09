@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/unit/*.test.ts",
+    "test:api": "tsx --test tests/api/*.test.mts",
+    "test:all": "npm run test && npm run test:api",
+    "lint": "eslint src tests"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -18,11 +22,14 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.6",
     "@types/bcryptjs": "^2.4.6",
     "@types/leaflet": "^1.9.22",
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.3.0",
     "prisma": "^6.19.3",
     "tsx": "^4.23.9",
     "typescript": "^5.6.3"

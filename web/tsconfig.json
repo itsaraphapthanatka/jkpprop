@@ -13,9 +13,12 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+    // tests import with explicit .ts/.mts extensions because tsx runs them
+    // directly through the Node test runner, not through the bundler
+    "allowImportingTsExtensions": true,
     "plugins": [{ "name": "next" }],
     "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "**/*.mts", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]
 }

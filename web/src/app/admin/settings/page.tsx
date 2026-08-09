@@ -12,7 +12,7 @@ const ic = (paths: React.ReactNode, color: string) => (
 );
 
 const CARDS = [
-  { title: 'Users & Roles', desc: 'จัดการผู้ใช้ + สิทธิ์ RBAC 6 บทบาท', meta: '12 ผู้ใช้ · 6 roles', href: '/admin/users', iconBg: '#EEF4F3', icon: ic(<><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></>, '#034956') },
+  { title: 'Users & Roles', desc: 'จัดการผู้ใช้ + สิทธิ์ RBAC 7 บทบาท', meta: '7 roles · ขอบเขต + สิทธิ์พิเศษ', href: '/admin/users', iconBg: '#EEF4F3', icon: ic(<><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></>, '#034956') },
   { title: 'Geography & โซน', desc: 'จังหวัด/อำเภอ/ตำบล + นิคมอุตสาหกรรม', meta: '77 จังหวัด · 6 นิคม', href: '/admin/geography', iconBg: '#EEF4F3', icon: ic(<><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z" /><circle cx="12" cy="10" r="3" /></>, '#034956') },
   { title: 'Field Builder', desc: 'สร้างฟิลด์ทรัพย์เอง + ตัวเลือก dropdown', meta: 'no-code · ต่อ tenant', href: '/admin/field-builder', iconBg: '#F0ECF9', icon: ic(<path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" />, '#7A3FB0') },
   { title: 'Branding & Theme', desc: 'โลโก้ สี ฟอนต์ — พรีวิวสด multi-tenant', meta: '12 พรีเซ็ต', href: '/admin/branding', iconBg: '#E8F3EC', icon: ic(<><circle cx="13.5" cy="6.5" r="2.5" /><circle cx="17.5" cy="10.5" r="2.5" /><circle cx="8.5" cy="7.5" r="2.5" /><circle cx="6.5" cy="12.5" r="2.5" /><path d="M12 22a10 10 0 110-20 8 8 0 018 8c0 2-2 3-4 3h-2a2 2 0 00-1 3.7A2 2 0 0112 22z" /></>, '#0D6C3B') },

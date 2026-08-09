@@ -136,7 +136,7 @@ View: หน้าดูรายละเอียดหลังบ้าน (
 #### AdminSettings (hub) + Branding / Users / Geography / FieldBuilder / Audit / SEO
 - Settings: การ์ด 6 ลิงก์ไปหน้าตั้งค่า
 - Branding: 12 พรีเซ็ตธีม + เลือกสี/ฟอนต์/radius/โลโก้ + **live preview mini เว็บ** (desktop/mobile)
-- Users&Roles: ตาราง users + **RBAC matrix 6 บทบาท × 9 การกระทำ** + modal เชิญ
+- Users&Roles: ตาราง users + **RBAC matrix 7 บทบาท × ขอบเขตข้อมูล × สิทธิ์พิเศษ** + modal เชิญ (ตัวจริง: `web/src/lib/rbac.ts`)
 - Geography: cascade จังหวัด→อำเภอ→ตำบล + นิคมอุตสาหกรรม (toggle)
 - FieldBuilder: no-code สร้างฟิลด์ทรัพย์ + palette ชนิดฟิลด์ + toggle แสดงบนเว็บ
 - Audit: log ทุก mutation + before/after diff
@@ -152,7 +152,7 @@ View: หน้าดูรายละเอียดหลังบ้าน (
 - ทุก interaction ใน prototype ระบุ state ไว้ชัด (ดูใน logic class ของแต่ละ .dc.html)
 
 ## Cross-cutting rules (สำคัญ — จาก spec)
-- **RBAC ที่ API layer** ไม่ใช่แค่ซ่อน UI (6 roles: super_admin, listing_mgr, sales_agent, ops_coord, content_editor, translator)
+- **RBAC ที่ API layer** ไม่ใช่แค่ซ่อน UI (7 roles: owner, manager, agent, co_agent, ops, marketing, translator — ดู FRONTEND_API_SPEC.md §12)
 - **Audit ทุก mutation** เก็บ before/after JSON
 - **ซ่อนพิกัดจริง** — API ไม่ส่ง lat/long เมื่อ map_visibility ≠ exact
 - **SSR/SSG บังคับ** ฝั่ง public เพื่อ SEO/GEO (เนื้อหาครบใน HTML แรก)
