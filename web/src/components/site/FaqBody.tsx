@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from '@/i18n/LocaleLink';
 
 /* ============================================================
    Ported verbatim from FAQ.dc.html — hero, sticky category
@@ -98,7 +99,7 @@ export function FaqBody() {
 
       {/* BREADCRUMB */}
       <div style={{ maxWidth: '1320px', margin: '0 auto', padding: '16px 24px 0', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--muted2)' }}>
-        <a href="/" style={{ color: 'var(--muted2)' }}>หน้าแรก</a>
+        <Link href="/" style={{ color: 'var(--muted2)' }}>หน้าแรก</Link>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted3)" strokeWidth="2"><path d="M9 6l6 6-6 6" /></svg>
         <span style={{ color: 'var(--text)', fontWeight: 600 }}>คำถามที่พบบ่อย</span>
       </div>
@@ -175,7 +176,7 @@ export function FaqBody() {
                             onClick={(e) => {
                               e.stopPropagation();
                               try {
-                                navigator.clipboard && navigator.clipboard.writeText(question);
+                                if (navigator.clipboard) navigator.clipboard.writeText(question);
                               } catch {
                                 /* noop */
                               }
@@ -202,10 +203,10 @@ export function FaqBody() {
               <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>ยังหาคำตอบไม่เจอ?</div>
               <div style={{ marginTop: 4, fontSize: '13.5px', color: '#C3FED5' }}>ทีมงานของเราพร้อมช่วยตอบคำถามทุกข้อสงสัย ติดต่อเราได้ที่นี่</div>
             </div>
-            <a href="/contact" style={{ display: 'flex', alignItems: 'center', gap: 8, height: 48, padding: '0 24px', borderRadius: 9999, background: '#2DFB91', color: '#022310', fontSize: '14.5px', fontWeight: 800, flexShrink: 0 }}>
+            <Link href="/contact" style={{ display: 'flex', alignItems: 'center', gap: 8, height: 48, padding: '0 24px', borderRadius: 9999, background: '#2DFB91', color: '#022310', fontSize: '14.5px', fontWeight: 800, flexShrink: 0 }}>
               ติดต่อทีมงาน
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#022310" strokeWidth="2.6"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
-            </a>
+            </Link>
           </div>
         </div>
       </div>

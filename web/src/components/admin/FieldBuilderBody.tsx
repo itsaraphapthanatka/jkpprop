@@ -3,6 +3,8 @@
 import * as React from 'react';
 import { AdminShell, AdminBreadcrumb } from '@/components/admin/AdminShell';
 import { PROPERTY_TYPES, loadOverride, saveOverride, resolveFields, loadTypeConfig, saveTypeConfig, type FieldDef, type FieldKind, type SchemaOverride, type TypeConfig } from '@/lib/propertySchema';
+import { useSchemaSync } from '@/lib/schemaSync';
+import { apiPut, ApiClientError } from '@/lib/apiClient';
 
 /* Schema-driven Field Builder — edits the per-property-type field schema
    (enable/disable, reorder, add). Saves to localStorage; the create-property
@@ -65,8 +67,11 @@ export function FieldBuilderBody() {
   const cardRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
   const [typeConfig, setTypeConfig] = React.useState<TypeConfig>({ disabled: [] });
 
-  React.useEffect(() => { setOverride(loadOverride(scope)); setDirty(false); }, [scope]);
-  React.useEffect(() => { setTypeConfig(loadTypeConfig()); }, []);
+  // pull fresh schema from the API into the localStorage cache, then re-read
+  const schemaV = useSchemaSync();
+  const [saving, setSaving] = React.useState(false);
+  React.useEffect(() => { setOverride(loadOverride(scope)); setDirty(false); }, [scope, schemaV]);
+  React.useEffect(() => { setTypeConfig(loadTypeConfig()); }, [schemaV]);
 
   const type = PROPERTY_TYPES.find((t) => t.key === scope) || PROPERTY_TYPES[0];
   const fields = resolveFields(scope, override);
@@ -104,23 +109,45 @@ export function FieldBuilderBody() {
     setOverride((o) => ({ ...o, order: keys }));
     setDirty(true);
   };
-  const save = () => { saveOverride(scope, override); setDirty(false); flash(`บันทึกฟิลด์ของ "${scopeLabel}" แล้ว · เปิดใช้ ${enabledCount} ฟิลด์`); };
+  // PUT to the API (pending + error state per FRONTEND_API_SPEC §2.3); the
+  // server may re-issue custom-field keys, so we adopt what it returns.
+  const save = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const saved = await apiPut<SchemaOverride>(`/api/field-schema/${scope}`, override);
+      saveOverride(scope, saved); // refresh local cache with server-issued keys
+      setOverride(saved);
+      setDirty(false);
+      flash(`บันทึกฟิลด์ของ "${scopeLabel}" แล้ว · เปิดใช้ ${enabledCount} ฟิลด์`);
+    } catch (e) {
+      flash(e instanceof ApiClientError ? e.message : 'บันทึกไม่สำเร็จ กรุณาลองใหม่');
+    } finally {
+      setSaving(false);
+    }
+  };
 
-  // enable/disable an entire property type (auto-saved; affects front + back)
+  // enable/disable an entire property type — optimistic write to the API,
+  // rolled back if the server rejects it (affects front + back)
   const toggleType = (key: string) => {
-    setTypeConfig((tc) => {
-      const dis = new Set(tc.disabled);
-      if (dis.has(key)) dis.delete(key);
-      else {
-        const enabledLeft = PROPERTY_TYPES.filter((t) => !dis.has(t.key) && t.key !== key).length;
-        if (enabledLeft < 1) { flash('ต้องเปิดอย่างน้อย 1 ประเภททรัพย์'); return tc; }
-        dis.add(key);
-      }
-      const next = { disabled: [...dis] };
-      saveTypeConfig(next);
-      flash('อัปเดตประเภททรัพย์ที่เปิดใช้งานแล้ว · มีผลกับฟอร์มหน้าเว็บและหลังบ้าน');
-      return next;
-    });
+    const dis = new Set(typeConfig.disabled);
+    if (dis.has(key)) dis.delete(key);
+    else {
+      const enabledLeft = PROPERTY_TYPES.filter((t) => !dis.has(t.key) && t.key !== key).length;
+      if (enabledLeft < 1) { flash('ต้องเปิดอย่างน้อย 1 ประเภททรัพย์'); return; }
+      dis.add(key);
+    }
+    const prev = typeConfig;
+    const next = { disabled: [...dis] };
+    setTypeConfig(next);
+    saveTypeConfig(next);
+    apiPut<TypeConfig>('/api/property-types/config', next)
+      .then(() => flash('อัปเดตประเภททรัพย์ที่เปิดใช้งานแล้ว · มีผลกับฟอร์มหน้าเว็บและหลังบ้าน'))
+      .catch((e) => {
+        setTypeConfig(prev);
+        saveTypeConfig(prev);
+        flash(e instanceof ApiClientError ? e.message : 'บันทึกไม่สำเร็จ กรุณาลองใหม่');
+      });
   };
 
   const isCustom = (key: string) => override.extra.some((f) => f.key === key);
@@ -155,8 +182,8 @@ export function FieldBuilderBody() {
           </>
         )}
       </div>
-      <div id="fb-save" className="fb-save" onClick={save} style={{ height: 40, padding: '0 18px', borderRadius: 9999, background: dirty ? '#0D6C3B' : '#273c33', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'transform .2s,box-shadow .2s' }}>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2"><path d="M20 6L9 17l-5-5" /></svg>{dirty ? 'บันทึก *' : 'บันทึก'}
+      <div id="fb-save" className="fb-save" onClick={save} style={{ height: 40, padding: '0 18px', borderRadius: 9999, background: dirty ? '#0D6C3B' : '#273c33', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1, whiteSpace: 'nowrap', transition: 'transform .2s,box-shadow .2s' }}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2"><path d="M20 6L9 17l-5-5" /></svg>{saving ? 'กำลังบันทึก…' : dirty ? 'บันทึก *' : 'บันทึก'}
       </div>
     </div>
   );

@@ -1,6 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import Link from '@/i18n/LocaleLink';
+import { useRouter, usePathname } from 'next/navigation';
+import { useLocale } from '@/i18n/LocaleLink';
+import { localizePath } from '@/i18n/config';
 
 type Lang = 'th' | 'en' | 'zh';
 
@@ -72,7 +76,11 @@ export function PropertyHeader() {
   const [navFactory, setNavFactory] = useState(false);
   const [navWarehouse, setNavWarehouse] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
-  const [lang, setLang] = useState<Lang>('th');
+  // the URL is the source of truth for language — picking one navigates
+  const router = useRouter();
+  const pathname = usePathname();
+  const lang = useLocale() as Lang;
+  const setLang = (next: Lang) => router.push(localizePath(pathname ?? '/', next));
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -99,10 +107,10 @@ export function PropertyHeader() {
             justifyContent: 'space-between',
           }}
         >
-          <a href="/" style={{ display: 'flex', alignItems: 'center' }}>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/assets/jkp-logo-green.png" alt="JKP Property" style={{ height: 42, width: 'auto', display: 'block' }} />
-          </a>
+          </Link>
 
           <nav style={{ display: 'flex', alignItems: 'center', gap: 26 }}>
             {/* โรงงาน */}
@@ -113,8 +121,8 @@ export function PropertyHeader() {
               {navFactory && (
                 <div style={{ position: 'absolute', top: '100%', left: 0, paddingTop: 10, width: 150 }}>
                   <div style={ddPanel}>
-                    <a className="dd-item" href="/factory-rent" style={ddItem}>โรงงานให้เช่า</a>
-                    <a className="dd-item" href="/factory-sale" style={ddItem}>โรงงานสำหรับขาย</a>
+                    <Link className="dd-item" href="/factory-rent" style={ddItem}>โรงงานให้เช่า</Link>
+                    <Link className="dd-item" href="/factory-sale" style={ddItem}>โรงงานสำหรับขาย</Link>
                   </div>
                 </div>
               )}
@@ -128,15 +136,15 @@ export function PropertyHeader() {
               {navWarehouse && (
                 <div style={{ position: 'absolute', top: '100%', left: 0, paddingTop: 10, width: 150 }}>
                   <div style={ddPanel}>
-                    <a className="dd-item" href="/warehouse-rent" style={ddItem}>โกดังให้เช่า</a>
-                    <a className="dd-item" href="/warehouse-sale" style={ddItem}>โกดังสำหรับขาย</a>
+                    <Link className="dd-item" href="/warehouse-rent" style={ddItem}>โกดังให้เช่า</Link>
+                    <Link className="dd-item" href="/warehouse-sale" style={ddItem}>โกดังสำหรับขาย</Link>
                   </div>
                 </div>
               )}
             </div>
 
-            <a className="nav-link" href="/faq" style={navText}>คำถามพบบ่อย</a>
-            <a className="nav-link" href="/about" style={navText}>เกี่ยวกับเรา</a>
+            <Link className="nav-link" href="/faq" style={navText}>คำถามพบบ่อย</Link>
+            <Link className="nav-link" href="/about" style={navText}>เกี่ยวกับเรา</Link>
 
             {/* language */}
             <div style={{ position: 'relative' }}>
@@ -286,10 +294,10 @@ export function PropertyHeader() {
           </div>
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '10px 14px 20px' }}>
-          <a href="/factory-rent" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>โรงงานให้เช่า</a>
-          <a href="/warehouse-rent" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>โกดังให้เช่า</a>
-          <a href="/faq" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>คำถามพบบ่อย</a>
-          <a href="/about" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>เกี่ยวกับเรา</a>
+          <Link href="/factory-rent" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>โรงงานให้เช่า</Link>
+          <Link href="/warehouse-rent" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>โกดังให้เช่า</Link>
+          <Link href="/faq" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>คำถามพบบ่อย</Link>
+          <Link href="/about" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>เกี่ยวกับเรา</Link>
           <a href="#" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, borderRadius: 9999, background: '#2DFB91', color: '#022310', fontSize: '14.5px', fontWeight: 800 }}>ติดต่อทีมงาน</a>
         </div>
       </div>

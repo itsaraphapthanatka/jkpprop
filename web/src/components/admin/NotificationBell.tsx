@@ -1,7 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { buildAlerts, loadNotifyConfig, saveNotifyConfig, unreadCount, type LeaseAlert, type NotifyConfig } from '@/lib/leaseStore';
+import { buildAlerts, loadNotifyConfig, saveNotifyConfig, unreadCount, fetchLeaseData, type LeaseAlert, type NotifyConfig } from '@/lib/leaseStore';
+import { apiPost } from '@/lib/apiClient';
+import Link from 'next/link';
 
 /* Topbar notification bell — surfaces the lease-expiry alerts produced from
    Settings → การแจ้งเตือน. Config + alerts are read in an effect (never during
@@ -23,9 +25,14 @@ export function NotificationBell() {
   const [alerts, setAlerts] = React.useState<LeaseAlert[]>([]);
 
   const refresh = React.useCallback(() => {
+    // fast paint from the local cache, then reconcile with the server
     const c = loadNotifyConfig();
     setCfg(c);
     setAlerts(buildAlerts(c));
+    void fetchLeaseData().then(({ leases, cfg: remote }) => {
+      setCfg(remote);
+      setAlerts(buildAlerts(remote, leases));
+    });
   }, []);
 
   React.useEffect(() => { refresh(); }, [refresh]);
@@ -41,10 +48,13 @@ export function NotificationBell() {
 
   const markAllRead = () => {
     if (!cfg) return;
-    const next: NotifyConfig = { ...cfg, readIds: [...new Set([...cfg.readIds, ...alerts.map((a) => a.id)])] };
+    const ids = alerts.map((a) => a.id);
+    const next: NotifyConfig = { ...cfg, readIds: [...new Set([...cfg.readIds, ...ids])] };
     saveNotifyConfig(next);
     setCfg(next);
     setAlerts((prev) => prev.map((a) => ({ ...a, read: true })));
+    // per-user on the server (§11 #5) — fire and forget, local state already updated
+    void apiPost('/api/notifications/read', { ids }).catch(() => { /* offline — cache holds it */ });
   };
 
   return (
@@ -80,7 +90,7 @@ export function NotificationBell() {
             <div className="a-scroll" style={{ maxHeight: 340, overflowY: 'auto' }}>
               {!cfg?.enabled ? (
                 <div style={{ padding: '26px 18px', textAlign: 'center', fontSize: '12.5px', color: 'var(--muted2)' }}>
-                  ปิดการแจ้งเตือนอยู่ — เปิดได้ที่ <a href="/admin/notifications" style={{ color: 'var(--accent)', fontWeight: 700 }}>ตั้งค่าการแจ้งเตือน</a>
+                  ปิดการแจ้งเตือนอยู่ — เปิดได้ที่ <Link href="/admin/notifications" style={{ color: 'var(--accent)', fontWeight: 700 }}>ตั้งค่าการแจ้งเตือน</Link>
                 </div>
               ) : alerts.length === 0 ? (
                 <div style={{ padding: '26px 18px', textAlign: 'center', fontSize: '12.5px', color: 'var(--muted2)' }}>ยังไม่มีสัญญาที่เข้าเกณฑ์แจ้งเตือน</div>
@@ -104,10 +114,10 @@ export function NotificationBell() {
               )}
             </div>
 
-            <a href="/admin/notifications" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', fontSize: 12, fontWeight: 700, color: 'var(--text)', textDecoration: 'none', background: 'var(--bg)' }}>
+            <Link href="/admin/notifications" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', fontSize: 12, fontWeight: 700, color: 'var(--text)', textDecoration: 'none', background: 'var(--bg)' }}>
               ตั้งค่าการแจ้งเตือน
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-            </a>
+            </Link>
           </div>
         </>
       )}

@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { apiGet, apiPut, ApiClientError } from '@/lib/apiClient';
 
 /* ============================================================
    Ported from AdminBranding.dc.html — the DCLogic-driven theme
@@ -41,6 +42,11 @@ const hexA = (hex: string, a: number): string => {
 interface BrandingCtxValue {
   state: BrandState;
   setState: (patch: Partial<BrandState>) => void;
+  brandName: string;
+  setBrandName: (v: string) => void;
+  save: () => void | Promise<void>;
+  saving: boolean;
+  saved: boolean;
 }
 const BrandingContext = React.createContext<BrandingCtxValue | null>(null);
 
@@ -50,29 +56,63 @@ function useBranding(): BrandingCtxValue {
   return ctx;
 }
 
+const DEFAULT_THEME = { primary: '#034956', accent: '#034956', neon: '#2DFB91', pine: '#273c33', font: 'noto' as FontKey, radius: 'md' as Radius };
+
 export function BrandingProvider({ children }: { children: React.ReactNode }) {
-  const [state, setStateRaw] = React.useState<BrandState>({
-    primary: '#034956', accent: '#034956', neon: '#2DFB91', pine: '#273c33', font: 'noto', radius: 'md', device: 'desktop',
-  });
+  const [state, setStateRaw] = React.useState<BrandState>({ ...DEFAULT_THEME, device: 'desktop' });
+  const [brandName, setBrandName] = React.useState('JKP Property');
+  const [saving, setSaving] = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
+
   const setState = React.useCallback(
     (patch: Partial<BrandState>) => setStateRaw((s) => ({ ...s, ...patch })),
     [],
   );
-  return <BrandingContext.Provider value={{ state, setState }}>{children}</BrandingContext.Provider>;
+
+  // pull the stored theme after mount (defaults render identically on the server)
+  React.useEffect(() => {
+    apiGet<Partial<BrandState> & { brandName?: string }>('/api/branding')
+      .then((b) => {
+        setStateRaw((s) => ({ ...s, ...b, device: s.device }));
+        if (b.brandName) setBrandName(b.brandName);
+      })
+      .catch(() => { /* keep defaults */ });
+  }, []);
+
+  const save = React.useCallback(async () => {
+    setSaving(true);
+    try {
+      // `device` is a preview toggle, never persisted
+      const { device: _device, ...theme } = state;
+      await apiPut('/api/branding', { ...theme, brandName });
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 1800);
+    } catch (e) {
+      window.alert(e instanceof ApiClientError ? e.message : 'บันทึกธีมไม่สำเร็จ');
+    } finally {
+      setSaving(false);
+    }
+  }, [state, brandName]);
+
+  return (
+    <BrandingContext.Provider value={{ state, setState, brandName, setBrandName, save, saving, saved }}>
+      {children}
+    </BrandingContext.Provider>
+  );
 }
 
 /* --- topbar right cluster (design <header> right side) --- */
 export function BrandingHeaderActions() {
-  const { setState } = useBranding();
-  const resetTheme = () =>
-    setState({ primary: '#034956', accent: '#034956', neon: '#2DFB91', pine: '#273c33', font: 'noto', radius: 'md' });
+  const { setState, save, saving, saved } = useBranding();
+  const resetTheme = () => setState(DEFAULT_THEME);
   return (
     <div id="brand-actions" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <div onClick={resetTheme} style={{ height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--muted)', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2"><path d="M3 12a9 9 0 109-9 9 9 0 00-6.4 2.6L3 8"></path><path d="M3 3v5h5"></path></svg>รีเซ็ต
       </div>
-      <div className="admin-primary-btn" style={{ height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', transition: 'transform .2s,box-shadow .2s' }}>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2"><path d="M20 6L9 17l-5-5"></path></svg>บันทึกธีม
+      <div onClick={save} className="admin-primary-btn" style={{ height: 40, padding: '0 18px', borderRadius: 9999, background: saved ? '#0D6C3B' : '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1, transition: 'transform .2s,box-shadow .2s' }}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2"><path d="M20 6L9 17l-5-5"></path></svg>
+        {saving ? 'กำลังบันทึก…' : saved ? 'บันทึกแล้ว' : 'บันทึกธีม'}
       </div>
     </div>
   );
@@ -89,7 +129,7 @@ interface PreviewCard { title: string; price: string; img: string; }
 const card: React.CSSProperties = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 20 };
 
 export function BrandingBody() {
-  const { state: S, setState } = useBranding();
+  const { state: S, setState, brandName, setBrandName } = useBranding();
 
   const radiusMap: Record<Radius, string> = { sharp: '4px', sm: '10px', md: '16px', round: '22px' };
   const fontMap: Record<FontKey, string> = { noto: "'Noto Sans Thai',sans-serif", plex: "'IBM Plex Sans Thai',sans-serif", inter: "'Inter','Noto Sans Thai',sans-serif" };
@@ -182,7 +222,6 @@ export function BrandingBody() {
   const pine = S.pine;
   const neonGlow = hexA(S.neon, 0.18);
   const fontStack = fontMap[S.font];
-  const brandName = 'JKP Property';
   const pillRadius = radiusMap[S.radius] === '4px' ? '6px' : '9999px';
   const cardRadius = radiusMap[S.radius];
   const cardCols = S.device === 'mobile' ? '1fr' : '1fr 1fr';
@@ -284,7 +323,7 @@ export function BrandingBody() {
               <div style={{ fontSize: 11, color: 'var(--muted3)' }}>PNG โปร่งใส แนะนำสูง 80px</div>
             </div>
           </div>
-          <input placeholder="ชื่อแบรนด์" defaultValue="JKP Property" style={{ marginTop: 12, width: '100%', height: 42, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none' }} />
+          <input placeholder="ชื่อแบรนด์" value={brandName} onChange={(e) => setBrandName(e.target.value)} style={{ marginTop: 12, width: '100%', height: 42, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none' }} />
         </div>
       </div>
 

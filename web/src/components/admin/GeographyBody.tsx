@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { AdminShell, AdminBreadcrumb } from '@/components/admin/AdminShell';
+import { apiGet, apiPost, ApiClientError } from '@/lib/apiClient';
 
 /* Ported verbatim from AdminGeography.dc.html — interactive geography
    admin: a two-tab topbar (พื้นที่ 3 ระดับ / นิคมอุตสาหกรรม) that switches
@@ -81,10 +82,27 @@ export function GeographyBody() {
   const [dist, setDist] = React.useState(0);
   const [zoneOn, setZoneOn] = React.useState<Record<string, boolean>>({ z0: true, z1: true, z2: true, z3: false, z4: true, z5: true });
 
-  // editable data (start from the seed constants)
+  // editable data — starts from the porting-era constants (SSR-safe), then
+  // replaced by GET /api/geography once mounted
   const [provinces, setProvinces] = React.useState<ProvData[]>(PROV_DATA);
   const [subMap, setSubMap] = React.useState<Record<string, string[]>>(SUB_MAP);
   const [zones, setZones] = React.useState(ZONE_DATA);
+  const [saving, setSaving] = React.useState(false);
+  const [addError, setAddError] = React.useState('');
+
+  const reload = React.useCallback(async () => {
+    try {
+      const g = await apiGet<{ provinces: ProvData[]; subMap: Record<string, string[]>; zones: typeof ZONE_DATA }>('/api/geography');
+      if (Array.isArray(g.provinces) && g.provinces.length) {
+        setProvinces(g.provinces);
+        setSubMap(g.subMap || {});
+        setZones(Array.isArray(g.zones) ? g.zones : []);
+        setProv((p) => (p < g.provinces.length ? p : 0));
+        setDist(0);
+      }
+    } catch { /* keep local data (§2.2) */ }
+  }, []);
+  React.useEffect(() => { void reload(); }, [reload]);
 
   // add-area / add-zone modal
   const emptyForm = { th: '', en: '', code: '', zname: '', ztype: 'นิคมฯ', zprov: PROV_DATA[0].th, zcount: '' };
@@ -102,28 +120,31 @@ export function GeographyBody() {
   const openAdd = () => { setForm({ ...emptyForm, zprov: provinces[0]?.th || '' }); setLevel('prov'); setAddOpen(true); };
   const geoValid = level === 'sub' ? !!curDist && !!form.th.trim() : !!form.th.trim();
   const canSubmit = view === 'zones' ? !!form.zname.trim() : geoValid;
-  const submitAdd = () => {
-    if (view === 'zones') {
-      const name = form.zname.trim(); if (!name) return;
-      const key = 'z' + zones.length;
-      setZones((zs) => [...zs, { name, type: form.ztype, province: form.zprov, count: form.zcount.trim() || '0' }]);
-      setZoneOn((z) => ({ ...z, [key]: true }));
-    } else if (level === 'prov') {
-      const t = form.th.trim(); if (!t) return;
-      const idx = provinces.length;
-      setProvinces((ps) => [...ps, { th: t, en: form.en.trim() || t, code: (form.code.trim() || t.slice(0, 3)).toUpperCase(), districts: [] }]);
-      setProv(idx); setDist(0);
-    } else if (level === 'dist') {
-      const t = form.th.trim(); if (!t) return;
-      const idx = provinces[prov].districts.length;
-      setProvinces((ps) => ps.map((p, i) => (i === prov ? { ...p, districts: [...p.districts, t] } : p)));
-      setDist(idx);
-    } else {
-      const t = form.th.trim(); if (!t || !curDist) return;
-      setSubMap((m) => ({ ...m, [curDist]: [...(m[curDist] || []), t] }));
+  // persist via POST /api/geography, then re-pull the tree (pending + error
+  // state per FRONTEND_API_SPEC §2.3)
+  const submitAdd = async () => {
+    if (saving) return;
+    const payload =
+      view === 'zones'
+        ? { level: 'zone', th: form.zname.trim(), type: form.ztype, parent: form.zprov }
+        : level === 'prov'
+          ? { level: 'prov', th: form.th.trim(), en: form.en.trim(), code: (form.code.trim() || form.th.trim().slice(0, 3)).toUpperCase() }
+          : level === 'dist'
+            ? { level: 'dist', th: form.th.trim(), parent: provinces[prov]?.th || '' }
+            : { level: 'sub', th: form.th.trim(), parent: curDist || '' };
+    if (!payload.th) return;
+    setSaving(true);
+    setAddError('');
+    try {
+      await apiPost('/api/geography', payload);
+      await reload();
+      setAddOpen(false);
+      setForm(emptyForm);
+    } catch (e) {
+      setAddError(e instanceof ApiClientError ? e.message : 'บันทึกไม่สำเร็จ กรุณาลองใหม่');
+    } finally {
+      setSaving(false);
     }
-    setAddOpen(false);
-    setForm(emptyForm);
   };
 
   const actions = (
@@ -311,9 +332,10 @@ export function GeographyBody() {
             </div>
             <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
               <div onClick={() => setAddOpen(false)} style={{ height: 44, padding: '0 22px', borderRadius: 9999, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', cursor: 'pointer' }}>ยกเลิก</div>
-              <div onClick={submitAdd} style={{ height: 44, padding: '0 26px', borderRadius: 9999, background: canSubmit ? '#0D6C3B' : 'var(--border)', color: canSubmit ? '#fff' : 'var(--muted3)', display: 'flex', alignItems: 'center', gap: 7, fontSize: '13.5px', fontWeight: 700, cursor: canSubmit ? 'pointer' : 'default' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M12 5v14M5 12h14" /></svg>{view === 'zones' ? 'เพิ่มนิคม' : 'เพิ่มพื้นที่'}
+              <div onClick={submitAdd} style={{ height: 44, padding: '0 26px', borderRadius: 9999, background: canSubmit && !saving ? '#0D6C3B' : 'var(--border)', color: canSubmit && !saving ? '#fff' : 'var(--muted3)', display: 'flex', alignItems: 'center', gap: 7, fontSize: '13.5px', fontWeight: 700, cursor: canSubmit && !saving ? 'pointer' : 'default' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M12 5v14M5 12h14" /></svg>{saving ? 'กำลังบันทึก…' : view === 'zones' ? 'เพิ่มนิคม' : 'เพิ่มพื้นที่'}
               </div>
+              {addError && <div role="alert" style={{ marginTop: 10, fontSize: 12.5, color: '#C0392B', width: '100%' }}>{addError}</div>}
             </div>
           </div>
         </div>

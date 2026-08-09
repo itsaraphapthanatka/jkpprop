@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import Link from '@/i18n/LocaleLink';
 
 type RawListing = {
   slot: string;
@@ -145,7 +146,7 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
             <div style={{ fontSize: 12, color: 'var(--muted3)', fontWeight: 500 }}>ราคา</div>
             <div style={{ marginTop: 2, fontSize: 21, fontWeight: 800, color: 'var(--accent)', letterSpacing: '-.01em' }}>{it.price}</div>
           </div>
-          <a
+          <Link
             href="/property"
             onMouseEnter={() => setDetailHover(true)}
             onMouseLeave={() => setDetailHover(false)}
@@ -153,7 +154,7 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
           >
             ดูรายละเอียด
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
-          </a>
+          </Link>
         </div>
       </div>
     </div>
@@ -194,10 +195,10 @@ export function Featured() {
           <p style={{ margin: '8px 0 0', fontSize: 15, color: 'var(--muted2)' }}>คัดสรรทรัพย์คุณภาพที่ผ่านการตรวจสอบ อัปเดตใหม่ทุกสัปดาห์</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <a href="/listing" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 600, color: '#273c33' }}>
+          <Link href="/listing" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 600, color: '#273c33' }}>
             ดูทั้งหมด
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#273c33" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
-          </a>
+          </Link>
           <div style={{ display: 'flex', gap: 8 }}>
             <NavArrow onClick={scrollPrev} d="M15 6l-6 6 6 6" />
             <NavArrow onClick={scrollNext} d="M9 6l6 6-6 6" />
@@ -223,7 +224,7 @@ export function Featured() {
       </div>
 
       <div style={{ marginTop: 28, display: 'flex', justifyContent: 'center' }}>
-        <a
+        <Link
           href="/listing"
           onMouseEnter={() => setSeeAllHover(true)}
           onMouseLeave={() => setSeeAllHover(false)}
@@ -231,7 +232,7 @@ export function Featured() {
         >
           แสดงทั้งหมด
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
-        </a>
+        </Link>
       </div>
     </section>
   );

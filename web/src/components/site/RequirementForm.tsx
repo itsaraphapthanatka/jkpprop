@@ -3,6 +3,8 @@
 import * as React from 'react';
 import { PROPERTY_TYPES, requirementFields, enabledPropertyTypes, type FieldDef } from '@/lib/propertySchema';
 import { addLead, newLeadId, type ReqItem } from '@/lib/leadStore';
+import { useSchemaSync } from '@/lib/schemaSync';
+import { apiPost, ApiClientError } from '@/lib/apiClient';
 
 /* Public requirement-intake form (Contact page). Visitor picks a property
    type, fills the CURATED essential fields for that type, and submits — a
@@ -23,11 +25,13 @@ export function RequirementForm() {
   const [typeKey, setTypeKey] = React.useState('warehouse');
   // start from all types (SSR-safe), then narrow to the agency's enabled types on the client
   const [types, setTypes] = React.useState(PROPERTY_TYPES);
+  // public page → only pulls the (public) type config, not the authed schema
+  const schemaV = useSchemaSync({ publicOnly: true });
   React.useEffect(() => {
     const en = enabledPropertyTypes();
     setTypes(en);
     setTypeKey((k) => (en.some((t) => t.key === k) ? k : en[0].key));
-  }, []);
+  }, [schemaV]);
   const [values, setValues] = React.useState<Record<string, unknown>>({ deal_intent: 'เช่า' });
   const [name, setName] = React.useState('');
   const [phone, setPhone] = React.useState('');
@@ -37,6 +41,8 @@ export function RequirementForm() {
   const [message, setMessage] = React.useState('');
   const [error, setError] = React.useState('');
   const [submitted, setSubmitted] = React.useState(false);
+  const [sending, setSending] = React.useState(false);
+  const [website, setWebsite] = React.useState(''); // honeypot — never shown
   const timer = React.useRef<number | undefined>(undefined);
 
   const fields = requirementFields(typeKey);
@@ -97,17 +103,15 @@ export function RequirementForm() {
     return { req, dealIntent };
   };
 
-  const submit = () => {
+  const submit = async () => {
+    if (sending) return;
     if (!name.trim()) { setError('กรุณากรอกชื่อของคุณ'); return; }
     if (!phone.trim()) { setError('กรุณากรอกเบอร์โทรศัพท์ เพื่อให้ทีมงานติดต่อกลับได้'); return; }
     if (!respondent) { setError('กรุณาเลือกสถานะของผู้ตอบแบบสอบถาม'); return; }
     setError('');
     const t = PROPERTY_TYPES.find((p) => p.key === typeKey);
     const { req, dealIntent } = buildReq();
-    const createdAt = Date.now();
-    addLead({
-      id: newLeadId(createdAt),
-      createdAt,
+    const payload = {
       name: name.trim(),
       phone: phone.trim(),
       email: email.trim(),
@@ -118,8 +122,23 @@ export function RequirementForm() {
       typeLabel: t?.label || typeKey,
       dealIntent,
       req,
-      source: 'requirement form',
-    });
+      website, // honeypot — hidden field, humans leave it blank
+    };
+    setSending(true);
+    try {
+      await apiPost('/api/public/leads', payload);
+    } catch (e) {
+      // server rejected (validation / rate limit) → surface the Thai message;
+      // network failure → keep the lead locally so it is never lost (§2.2)
+      if (e instanceof ApiClientError && e.status > 0) {
+        setError(e.message);
+        setSending(false);
+        return;
+      }
+      const createdAt = Date.now();
+      addLead({ id: newLeadId(createdAt), createdAt, ...payload, source: 'requirement form' });
+    }
+    setSending(false);
     setSubmitted(true);
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
@@ -205,8 +224,11 @@ export function RequirementForm() {
 
       {error && <div style={{ marginTop: 12, fontSize: 12.5, color: '#C0392B', background: 'rgba(192,57,43,.08)', border: '1px solid rgba(192,57,43,.25)', borderRadius: 10, padding: '9px 12px' }}>{error}</div>}
 
-      <button type="submit" className="c-submit" style={{ marginTop: 16, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, padding: '0 30px', borderRadius: 9999, border: 0, background: '#04140C', color: '#2DFB91', fontSize: 14, fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer', transition: 'transform .2s,box-shadow .2s' }}>
-        ส่งความต้องการ
+      {/* honeypot — visually hidden; bots that fill it are silently dropped */}
+      <input type="text" name="website" value={website} onChange={(e) => setWebsite(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: 'absolute', left: -9999, width: 1, height: 1, opacity: 0 }} />
+
+      <button type="submit" className="c-submit" disabled={sending} style={{ marginTop: 16, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, padding: '0 30px', borderRadius: 9999, border: 0, background: '#04140C', color: '#2DFB91', fontSize: 14, fontWeight: 800, fontFamily: 'inherit', cursor: sending ? 'default' : 'pointer', opacity: sending ? 0.75 : 1, transition: 'transform .2s,box-shadow .2s' }}>
+        {sending ? 'กำลังส่ง…' : 'ส่งความต้องการ'}
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
       </button>
     </form>

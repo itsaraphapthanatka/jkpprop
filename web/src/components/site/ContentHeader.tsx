@@ -1,6 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import Link from '@/i18n/LocaleLink';
+import { useRouter, usePathname } from 'next/navigation';
+import { useLocale } from '@/i18n/LocaleLink';
+import { localizePath } from '@/i18n/config';
 
 /* ============================================================
    Shared header for the content pages (About / FAQ / Contact).
@@ -87,7 +91,11 @@ export function ContentHeader({ active }: { active?: 'about' | 'faq' }) {
   const [navFactory, setNavFactory] = useState(false);
   const [navWarehouse, setNavWarehouse] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
-  const [lang, setLang] = useState<Lang>('th');
+  // the URL is the source of truth for language — picking one navigates
+  const router = useRouter();
+  const pathname = usePathname();
+  const lang = useLocale() as Lang;
+  const setLang = (next: Lang) => router.push(localizePath(pathname ?? '/', next));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mFactory, setMFactory] = useState(false);
   const [mWarehouse, setMWarehouse] = useState(false);
@@ -116,10 +124,10 @@ export function ContentHeader({ active }: { active?: 'about' | 'faq' }) {
         }}
       >
         <div style={{ maxWidth: '1320px', margin: '0 auto', padding: '0 24px', height: '72px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <a href="/" style={{ display: 'flex', alignItems: 'center' }}>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/assets/jkp-logo-green.png" alt="JKP Property" style={{ height: 42, width: 'auto', display: 'block' }} />
-          </a>
+          </Link>
 
           <nav style={{ display: 'flex', alignItems: 'center', gap: 26 }}>
             {/* โรงงาน */}
@@ -130,8 +138,8 @@ export function ContentHeader({ active }: { active?: 'about' | 'faq' }) {
               {navFactory && (
                 <div style={{ position: 'absolute', top: '100%', left: 0, paddingTop: 10, width: 150 }}>
                   <div style={ddPanel}>
-                    <a className="dd-item" href="/factory-rent" style={ddItem}>โรงงานให้เช่า</a>
-                    <a className="dd-item" href="/factory-sale" style={ddItem}>โรงงานสำหรับขาย</a>
+                    <Link className="dd-item" href="/factory-rent" style={ddItem}>โรงงานให้เช่า</Link>
+                    <Link className="dd-item" href="/factory-sale" style={ddItem}>โรงงานสำหรับขาย</Link>
                   </div>
                 </div>
               )}
@@ -145,8 +153,8 @@ export function ContentHeader({ active }: { active?: 'about' | 'faq' }) {
               {navWarehouse && (
                 <div style={{ position: 'absolute', top: '100%', left: 0, paddingTop: 10, width: 150 }}>
                   <div style={ddPanel}>
-                    <a className="dd-item" href="/warehouse-rent" style={ddItem}>โกดังให้เช่า</a>
-                    <a className="dd-item" href="/warehouse-sale" style={ddItem}>โกดังสำหรับขาย</a>
+                    <Link className="dd-item" href="/warehouse-rent" style={ddItem}>โกดังให้เช่า</Link>
+                    <Link className="dd-item" href="/warehouse-sale" style={ddItem}>โกดังสำหรับขาย</Link>
                   </div>
                 </div>
               )}
@@ -200,7 +208,7 @@ export function ContentHeader({ active }: { active?: 'about' | 'faq' }) {
             </div>
 
             {/* contact */}
-            <a
+            <Link
               className="contact-btn"
               href="/contact"
               style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 20px', borderRadius: 9999, background: '#2DFB91', color: '#022310', fontSize: 13, fontWeight: 800, transition: 'transform .2s,box-shadow .2s' }}
@@ -210,7 +218,7 @@ export function ContentHeader({ active }: { active?: 'about' | 'faq' }) {
                 <path d="M5 12h14" />
                 <path d="M13 6l6 6-6 6" />
               </svg>
-            </a>
+            </Link>
 
             {/* mobile menu button */}
             <div
@@ -255,8 +263,8 @@ export function ContentHeader({ active }: { active?: 'about' | 'faq' }) {
           </div>
           {mFactory && (
             <div style={{ padding: '0 10px 10px 22px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <a href="/factory-rent" style={{ padding: '10px 12px', borderRadius: 10, fontSize: 14, fontWeight: 600, color: 'var(--muted)' }}>โรงงานให้เช่า</a>
-              <a href="/factory-sale" style={{ padding: '10px 12px', borderRadius: 10, fontSize: 14, fontWeight: 600, color: 'var(--muted)' }}>โรงงานสำหรับขาย</a>
+              <Link href="/factory-rent" style={{ padding: '10px 12px', borderRadius: 10, fontSize: 14, fontWeight: 600, color: 'var(--muted)' }}>โรงงานให้เช่า</Link>
+              <Link href="/factory-sale" style={{ padding: '10px 12px', borderRadius: 10, fontSize: 14, fontWeight: 600, color: 'var(--muted)' }}>โรงงานสำหรับขาย</Link>
             </div>
           )}
           <div onClick={() => setMWarehouse((v) => !v)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '15px 10px', borderRadius: 12, cursor: 'pointer' }}>
@@ -265,12 +273,12 @@ export function ContentHeader({ active }: { active?: 'about' | 'faq' }) {
           </div>
           {mWarehouse && (
             <div style={{ padding: '0 10px 10px 22px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <a href="/warehouse-rent" style={{ padding: '10px 12px', borderRadius: 10, fontSize: 14, fontWeight: 600, color: 'var(--muted)' }}>โกดังให้เช่า</a>
-              <a href="/warehouse-sale" style={{ padding: '10px 12px', borderRadius: 10, fontSize: 14, fontWeight: 600, color: 'var(--muted)' }}>โกดังสำหรับขาย</a>
+              <Link href="/warehouse-rent" style={{ padding: '10px 12px', borderRadius: 10, fontSize: 14, fontWeight: 600, color: 'var(--muted)' }}>โกดังให้เช่า</Link>
+              <Link href="/warehouse-sale" style={{ padding: '10px 12px', borderRadius: 10, fontSize: 14, fontWeight: 600, color: 'var(--muted)' }}>โกดังสำหรับขาย</Link>
             </div>
           )}
-          <a href="/faq" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>คำถามพบบ่อย</a>
-          <a href="/about" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>เกี่ยวกับเรา</a>
+          <Link href="/faq" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>คำถามพบบ่อย</Link>
+          <Link href="/about" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>เกี่ยวกับเรา</Link>
           <div style={{ marginTop: 12, paddingTop: 16, borderTop: '1px solid var(--border)', display: 'flex', gap: 8 }}>
             {LANG_DEFS.map((l) => (
               <div
@@ -282,13 +290,13 @@ export function ContentHeader({ active }: { active?: 'about' | 'faq' }) {
               </div>
             ))}
           </div>
-          <a href="/contact" style={{ marginTop: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, borderRadius: 9999, background: '#2DFB91', color: '#022310', fontSize: '14.5px', fontWeight: 800 }}>
+          <Link href="/contact" style={{ marginTop: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, borderRadius: 9999, background: '#2DFB91', color: '#022310', fontSize: '14.5px', fontWeight: 800 }}>
             ติดต่อทีมงาน
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#022310" strokeWidth="2.4">
               <path d="M5 12h14" />
               <path d="M13 6l6 6-6 6" />
             </svg>
-          </a>
+          </Link>
         </div>
       </div>
     </>

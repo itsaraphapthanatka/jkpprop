@@ -20,12 +20,19 @@
 |---|---|---|
 | **`design/`** (แตกจาก Design ของ JKP.zip) | **ดีไซน์จริง** — `*.dc.html` ทุกหน้า (pixel-level), `Design System.dc.html` + `CLAUDE.md` (tokens), `assets/` (โลโก้/แผนที่), `uploads/` (รูป/screenshot) | ทุกครั้งที่ทำ UI — เป็น **pixel source of truth** |
 | **`DESIGN.md`** | design authority: token ค่าจริง + หลักการ + สเปกคอมโพเนนต์ (self-contained) | ก่อนทำ component/หน้าใดๆ |
-| **`SPEC_PACK.md`** | requirement/functional spec + flow + UML + sequence + ER (Part 1–6) | เรื่อง behavior / data / RBAC / state machine |
+| **`SPEC_PACK.md`** | requirement/functional spec + flow + UML + sequence + ER (Part 1–6) | เรื่อง behavior / data / state machine |
+| **`FRONTEND_API_SPEC.md`** | สัญญาข้อมูล frontend ↔ API + **RBAC ฉบับที่ใช้จริง (§12)** | ตอนต่อ API / เรื่องสิทธิ์ |
+| **`web/BACKEND.md`** | schema · endpoint ทั้งหมด · กฎที่บังคับฝั่ง server | ตอนแก้ backend |
 | **`JKP_Property_Handoff.md`** | ภาพรวม screen ทุกหน้า + flow + สรุป token | ทำความเข้าใจโครงระบบ/ลำดับ section |
 | **`HOME_HANDOFF_CHECKLIST.md`** | สิ่งที่ต้องเติมเพื่อทำ Home ให้ 100% | ตอนทำหน้า Home |
-| **`README.md`** | สถานะ/วิธีรันโปรเจกต์ (อัปเดตเมื่อเริ่ม build) | ทั่วไป |
+| **`README.md`** | โครงสร้าง repo จริง + วิธีรัน + สถานะ | ทั่วไป |
 
 **ลำดับความสำคัญเมื่อขัดกัน:** requirement/behavior → `SPEC_PACK.md` · pixel/visual → `design/` (แล้ว `DESIGN.md`) · ภาพรวม → `JKP_Property_Handoff.md`
+
+> ⚠️ **ข้อยกเว้นเรื่อง RBAC** — `SPEC_PACK.md` §5 เขียนไว้ 6 บทบาท (`super_admin`…)
+> ซึ่ง**เลิกใช้แล้ว** ระบบจริงใช้ **7 บทบาท × ขอบเขตข้อมูล × สิทธิ์พิเศษ**
+> (`owner, manager, agent, co_agent, ops, marketing, translator`)
+> ตัวจริงอยู่ที่ `web/src/lib/rbac.ts` · อธิบายที่ `FRONTEND_API_SPEC.md` §12
 
 ## 4. Design fidelity stance (สำคัญ — เคยเข้าใจผิด)
 - เป้าหมายคือ **reproduce ดีไซน์ใน `design/*.dc.html` ให้ตรง (faithful / pixel-close)** — ดีไซน์นี้คือแบรนด์ที่ลูกค้าอนุมัติแล้ว

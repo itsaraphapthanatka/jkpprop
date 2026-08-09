@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { apiGet, apiDelete, apiFetch, ApiClientError } from '@/lib/apiClient';
 
 /* Ported from AdminMedia.dc.html <main> — Media Manager with folder
    sidebar, storage meter, search + tag filters, upload dropzone, and a
@@ -42,11 +43,64 @@ const MD: MediaItem[] = [
 const folderCat = ['all', 'hero', 'property', 'article', 'team'];
 const tagCat = ['all', 'hero', 'property', 'team'];
 
+type ApiMedia = { id: string; name: string; mime: string; size: number; src: string; createdAt: number };
+
+const fmtSize = (b: number) => (b >= 1048576 ? `${(b / 1048576).toFixed(1)}MB` : `${Math.max(1, Math.round(b / 1024))}KB`);
+
 export function MediaBody() {
   const [folder, setFolder] = React.useState(0);
   const [tag, setTag] = React.useState(0);
   const [sel, setSel] = React.useState<Record<string, boolean>>({});
 
+  // real uploads from the API — shown ahead of the porting-era demo grid
+  const [uploads, setUploads] = React.useState<ApiMedia[]>([]);
+  const [totalBytes, setTotalBytes] = React.useState(0);
+  const [busy, setBusy] = React.useState('');
+  const [error, setError] = React.useState('');
+  const fileInput = React.useRef<HTMLInputElement | null>(null);
+
+  const reload = React.useCallback(async () => {
+    try {
+      const r = await apiGet<{ items: ApiMedia[]; totalBytes: number }>('/api/media');
+      setUploads(Array.isArray(r.items) ? r.items : []);
+      setTotalBytes(r.totalBytes || 0);
+    } catch { /* keep current state (§2.2) */ }
+  }, []);
+  React.useEffect(() => { void reload(); }, [reload]);
+
+  const uploadFiles = async (files: FileList | File[]) => {
+    setError('');
+    for (const f of Array.from(files)) {
+      setBusy(`กำลังอัปโหลด ${f.name}…`);
+      try {
+        const form = new FormData();
+        form.append('file', f);
+        await apiFetch('/api/media', { method: 'POST', body: form });
+      } catch (e) {
+        setError(e instanceof ApiClientError ? e.message : `อัปโหลด ${f.name} ไม่สำเร็จ`);
+      }
+    }
+    setBusy('');
+    await reload();
+  };
+
+  const removeSelected = async () => {
+    const ids = uploads.filter((u) => sel[u.id]).map((u) => u.id);
+    if (!ids.length || busy) return;
+    setBusy('กำลังลบ…');
+    setError('');
+    for (const id of ids) {
+      try { await apiDelete(`/api/media/${id}`); } catch (e) {
+        setError(e instanceof ApiClientError ? e.message : 'ลบไฟล์ไม่สำเร็จ');
+        break;
+      }
+    }
+    setSel({});
+    setBusy('');
+    await reload();
+  };
+
+  const selCount = uploads.filter((u) => sel[u.id]).length;
   const fCat = folderCat[folder] || 'all';
   const tCat = tagCat[tag] || 'all';
   const media = MD.filter((m) => (fCat === 'all' || m.cat === fCat) && (tCat === 'all' || m.cat === tCat));
@@ -81,7 +135,7 @@ export function MediaBody() {
           <div style={{ marginTop: 8, height: 8, borderRadius: 9999, background: 'var(--bg)', overflow: 'hidden' }}>
             <div style={{ height: '100%', width: '42%', background: '#0D6C3B', borderRadius: 9999 }} />
           </div>
-          <div style={{ marginTop: 8, fontSize: '11.5px', color: 'var(--muted2)' }}>4.2 GB / 10 GB · 1,284 ไฟล์</div>
+          <div style={{ marginTop: 8, fontSize: '11.5px', color: 'var(--muted2)' }}>{(totalBytes / 1073741824).toFixed(2)} GB / 10 GB · {uploads.length + MD.length} ไฟล์</div>
         </div>
       </div>
 
@@ -108,19 +162,69 @@ export function MediaBody() {
           })}
         </div>
 
-        {/* upload dropzone */}
-        <div style={{ border: '1.5px dashed var(--border)', borderRadius: 16, padding: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 18, background: 'var(--surface)' }}>
+        {/* upload dropzone — click to pick, or drop files */}
+        <input ref={fileInput} type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,application/pdf" style={{ display: 'none' }} onChange={(e) => { if (e.target.files?.length) void uploadFiles(e.target.files); e.target.value = ''; }} />
+        <div
+          onClick={() => fileInput.current?.click()}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files?.length) void uploadFiles(e.dataTransfer.files); }}
+          style={{ border: '1.5px dashed var(--border)', borderRadius: 16, padding: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 18, background: 'var(--surface)', cursor: 'pointer' }}
+        >
           <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--tint)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><path d="M17 8l-5-5-5 5M12 3v12" /></svg>
           </div>
           <div>
-            <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)' }}>ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือก</div>
-            <div style={{ fontSize: 12, color: 'var(--muted3)' }}>JPG, PNG, WebP · สูงสุด 10MB ต่อไฟล์</div>
+            <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)' }}>{busy || 'ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือก'}</div>
+            <div style={{ fontSize: 12, color: error ? '#C0392B' : 'var(--muted3)' }}>{error || 'JPG, PNG, WebP · สูงสุด 10MB ต่อไฟล์'}</div>
           </div>
         </div>
 
-        {/* image grid */}
+        {/* selection toolbar for real uploads */}
+        {selCount > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+            <span style={{ fontSize: '12.5px', color: 'var(--muted)' }}>เลือกแล้ว {selCount} ไฟล์</span>
+            <div onClick={removeSelected} style={{ height: 34, padding: '0 14px', borderRadius: 9999, background: '#C0392B', color: '#fff', fontSize: 12.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" /></svg>
+              ลบที่เลือก
+            </div>
+          </div>
+        )}
+
+        {/* image grid — real uploads first, then the demo set */}
         <div id="media-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }}>
+          {uploads.map((m) => {
+            const on = !!sel[m.id];
+            const cardStyle: React.CSSProperties = {
+              borderRadius: 14, overflow: 'hidden',
+              border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'),
+              background: 'var(--surface)', cursor: 'pointer',
+              transition: 'transform .2s,box-shadow .2s',
+              boxShadow: on ? '0 8px 20px rgba(13,108,59,.15)' : undefined,
+            };
+            return (
+              <div key={m.id} onClick={() => setSel((prev) => ({ ...prev, [m.id]: !prev[m.id] }))} style={cardStyle}>
+                <div style={{ position: 'relative', aspectRatio: '1/1', background: 'var(--tint)' }}>
+                  {m.mime === 'application/pdf' ? (
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted2)' }}>
+                      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><path d="M14 2v6h6" /></svg>
+                    </div>
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={m.src} alt={m.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  )}
+                  {on && (
+                    <div style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 9999, background: '#0D6C3B', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,.3)' }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4"><path d="M20 6L9 17l-5-5" /></svg>
+                    </div>
+                  )}
+                </div>
+                <div style={{ padding: '9px 11px' }}>
+                  <div style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.name}</div>
+                  <div style={{ fontSize: 10, color: 'var(--muted3)' }}>{fmtSize(m.size)}</div>
+                </div>
+              </div>
+            );
+          })}
           {media.map((m) => {
             const on = !!sel[m.id];
             const cardStyle: React.CSSProperties = {

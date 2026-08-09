@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 /* ============================================================
    Ported verbatim from ClientShortlist.dc.html — a standalone
@@ -60,13 +61,76 @@ const fbIcon = (paths: React.ReactNode, color: string, size = 15) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.9">{paths}</svg>
 );
 
+/* GET /api/public/shortlists/:token item shape */
+type ApiItem = {
+  code: string; title: string; typeLabel: string; location: string;
+  area: number | null; priceRent: number | null; priceSale: number | null;
+  dealType: string; photo: string | null;
+};
+
+const money = (n: number) => `฿${n.toLocaleString('th-TH')}`;
+const FALLBACK_IMG = 'https://images.unsplash.com/photo-1553413077-190dd305871c?w=700&q=80';
+
 export function ClientShortlistBody() {
   const [view, setView] = useState<'cards' | 'compare'>('cards');
   const [fb, setFb] = useState<Record<string, FbKey>>({});
 
+  /* token link → real shortlist from the public API; no token → demo data */
+  const [apiItems, setApiItems] = useState<Item[] | null>(null);
+  const [apiCmp, setApiCmp] = useState<Cmp[] | null>(null);
+  const [notFound, setNotFound] = useState(false);
+  useEffect(() => {
+    const token = new URLSearchParams(window.location.search).get('token');
+    if (!token) return;
+    fetch(`/api/public/shortlists/${encodeURIComponent(token)}`)
+      .then(async (r) => {
+        if (!r.ok) { setNotFound(true); return; }
+        const d = (await r.json()) as { items: ApiItem[] };
+        const items = Array.isArray(d.items) ? d.items : [];
+        setApiItems(items.map((it, i) => ({
+          rank: String(i + 1),
+          img: it.photo || FALLBACK_IMG,
+          title: it.title,
+          code: it.code,
+          loc: it.location || '—',
+          price: it.priceRent !== null ? money(it.priceRent) : it.priceSale !== null ? money(it.priceSale) : 'ติดต่อสอบถาม',
+          unit: it.priceRent !== null ? '/เดือน' : '',
+          specs: [it.typeLabel, it.area !== null ? `${it.area.toLocaleString('th-TH')} ตร.ม.` : '', it.dealType].filter(Boolean),
+        })));
+        setApiCmp(items.map((it, i) => ({
+          rank: String(i + 1),
+          shortTitle: it.code,
+          img: it.photo || FALLBACK_IMG,
+          area: it.area !== null ? `${it.area.toLocaleString('th-TH')} ตร.ม.` : '—',
+          land: '—', floor: '—', height: '—', power: '—',
+          rent: it.priceRent !== null ? `${money(it.priceRent)}/ด.` : '—',
+          rentSqm: it.priceRent !== null && it.area ? `฿${Math.round(it.priceRent / it.area)}/ตร.ม.` : '—',
+          sale: it.priceSale !== null ? money(it.priceSale) : it.priceRent !== null ? 'ให้เช่าเท่านั้น' : '—',
+          deposit: '—', advance: '—', term: '—',
+        })));
+      })
+      .catch(() => { /* keep demo view (§2.2) */ });
+  }, []);
+
+  const itemsData = apiItems ?? ITEMS;
+  const cmpData = apiCmp ?? CMP;
+  const itemIds = apiItems ? apiItems.map((i) => i.code) : ITEM_IDS;
+
   const tab = (on: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 15px', borderRadius: 9999, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', background: on ? '#273c33' : 'transparent', color: on ? '#fff' : 'var(--muted)' });
 
   const cellStyle = (hi: boolean): React.CSSProperties => ({ padding: '13px 16px', borderBottom: '1px solid var(--border)', textAlign: 'center', fontSize: '12.5px', fontWeight: hi ? 800 : 600, color: hi ? '#034956' : 'var(--text)', background: hi ? 'rgba(3,73,86,.04)' : 'transparent' });
+
+  if (notFound) {
+    return (
+      <div style={{ width: '100%', background: 'var(--bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24, textAlign: 'center' }}>
+        <div style={{ width: 64, height: 64, borderRadius: 9999, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.9"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>
+        </div>
+        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>ไม่พบรายการนี้ หรือลิงก์หมดอายุแล้ว</div>
+        <div style={{ fontSize: '13.5px', color: 'var(--muted)' }}>กรุณาติดต่อทีมงาน JKP Property เพื่อขอลิงก์ใหม่</div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ width: '100%', background: 'var(--bg)', minHeight: '100vh' }}>
@@ -147,7 +211,7 @@ export function ClientShortlistBody() {
               <thead>
                 <tr>
                   <th style={{ padding: '16px 18px', textAlign: 'left', fontSize: 12, fontWeight: 800, color: 'var(--muted2)', textTransform: 'uppercase', letterSpacing: '.04em', background: 'var(--bg)', position: 'sticky', left: 0, zIndex: 2 }}>รายละเอียด</th>
-                  {CMP.map((c) => (
+                  {cmpData.map((c) => (
                     <th key={c.shortTitle} style={{ padding: 0, background: 'linear-gradient(135deg,#043F20,#022310)', minWidth: 200 }}>
                       <div style={{ padding: '16px 18px', color: '#fff' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -162,34 +226,34 @@ export function ClientShortlistBody() {
               <tbody>
                 <tr>
                   <td style={{ padding: '14px 18px', fontSize: '12.5px', fontWeight: 700, color: 'var(--text)', background: 'var(--bg)', position: 'sticky', left: 0 }}>รูปทรัพย์</td>
-                  {CMP.map((c) => (
+                  {cmpData.map((c) => (
                     <td key={c.shortTitle} style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)' }}>
-                      <a href="/property" style={{ display: 'block', height: 96, borderRadius: 11, overflow: 'hidden', background: 'var(--tint)' }}>
+                      <Link href="/property" style={{ display: 'block', height: 96, borderRadius: 11, overflow: 'hidden', background: 'var(--tint)' }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={c.img} alt={c.shortTitle} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                      </a>
-                      <a href="/property" style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, height: 30, borderRadius: 8, background: 'var(--tint)', color: 'var(--accent)', fontSize: '11.5px', fontWeight: 700 }}>ดูรายละเอียด<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"><path d="M5 12h14M13 6l6 6-6 6" /></svg></a>
+                      </Link>
+                      <Link href="/property" style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, height: 30, borderRadius: 8, background: 'var(--tint)', color: 'var(--accent)', fontSize: '11.5px', fontWeight: 700 }}>ดูรายละเอียด<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"><path d="M5 12h14M13 6l6 6-6 6" /></svg></Link>
                     </td>
                   ))}
                 </tr>
                 {ROWS.map((r) => (
                   <tr key={r.field}>
                     <td style={{ padding: '13px 18px', fontSize: '12.5px', fontWeight: 700, color: r.accent ? '#C0392B' : 'var(--text)', background: r.accent ? '#FBEEEC' : 'var(--bg)', position: 'sticky', left: 0 }}>{r.label}</td>
-                    {CMP.map((c) => (
+                    {cmpData.map((c) => (
                       <td key={c.shortTitle} style={cellStyle(!!r.hi)}>{c[r.field]}</td>
                     ))}
                   </tr>
                 ))}
                 <tr>
                   <td style={{ padding: '14px 18px', fontSize: '12.5px', fontWeight: 700, color: 'var(--text)', background: 'var(--bg)', position: 'sticky', left: 0 }}>ความเห็น</td>
-                  {CMP.map((c, i) => {
-                    const cur = fb[ITEM_IDS[i]];
+                  {cmpData.map((c, i) => {
+                    const cur = fb[itemIds[i]];
                     const def = FB_DEFS.find((x) => x.key === cur);
                     const active = !!cur;
                     const cycle = () => {
                       const order: FbKey[] = ['interested', 'undecided', 'not'];
                       const idx = order.indexOf(cur);
-                      setFb((f) => ({ ...f, [ITEM_IDS[i]]: order[(idx + 1) % 3] }));
+                      setFb((f) => ({ ...f, [itemIds[i]]: order[(idx + 1) % 3] }));
                     };
                     return (
                       <td key={c.shortTitle} style={{ padding: '12px 14px' }}>
@@ -210,7 +274,7 @@ export function ClientShortlistBody() {
       {/* ITEMS (cards) */}
       {view === 'cards' && (
         <section style={{ maxWidth: '1080px', margin: '0 auto', padding: '20px 24px 0', display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {ITEMS.map((it, i) => (
+          {itemsData.map((it, i) => (
             <div key={it.code} style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 20, overflow: 'hidden' }}>
               <div id="cs-item" style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 0 }}>
                 <div style={{ position: 'relative', minHeight: 220, background: 'var(--tint)' }}>
@@ -239,13 +303,13 @@ export function ClientShortlistBody() {
                     {it.specs.map((sp) => (
                       <span key={sp} style={{ height: 28, padding: '0 12px', borderRadius: 9, background: 'var(--bg)', border: '1px solid var(--border)', fontSize: 12, fontWeight: 600, color: 'var(--text)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>{sp}</span>
                     ))}
-                    <a href="/property" style={{ height: 28, padding: '0 12px', borderRadius: 9, background: 'var(--tint)', color: 'var(--accent)', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}>ดูรายละเอียด<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"><path d="M5 12h14M13 6l6 6-6 6" /></svg></a>
+                    <Link href="/property" style={{ height: 28, padding: '0 12px', borderRadius: 9, background: 'var(--tint)', color: 'var(--accent)', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}>ดูรายละเอียด<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"><path d="M5 12h14M13 6l6 6-6 6" /></svg></Link>
                   </div>
                   <div style={{ marginTop: 'auto', paddingTop: 18 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted2)', marginBottom: 8 }}>ความเห็นของคุณ</div>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       {FB_DEFS.map((d) => {
-                        const active = fb[ITEM_IDS[i]] === d.key;
+                        const active = fb[itemIds[i]] === d.key;
                         return (
                           <div key={d.key} onClick={() => setFb((f) => ({ ...f, [ITEM_IDS[i]]: d.key }))} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 38, padding: '0 16px', borderRadius: 9999, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', transition: 'all .15s', border: '1.5px solid ' + (active ? d.on : 'var(--border)'), background: active ? d.onBg : 'transparent', color: active ? d.on : 'var(--text)' }}>
                             {fbIcon(d.paths, active ? d.on : 'var(--muted2)')}

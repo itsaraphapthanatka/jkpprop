@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { ShortlistProvider, ShortlistActions, ShortlistMain } from '@/components/admin/ShortlistBody';
+import Link from 'next/link';
 
 export const metadata: Metadata = { title: 'Shortlists · JKP CMS', robots: { index: false } };
 
@@ -22,7 +23,7 @@ const slCss = `
 
 const eyebrowNode = (
   <>
-    <a href="/admin/requirements" style={{ color: 'var(--muted2)' }}>REQ-1042</a> / Shortlist
+    <Link href="/admin/requirements" style={{ color: 'var(--muted2)' }}>REQ-1042</Link> / Shortlist
   </>
 );
 

@@ -1,6 +1,8 @@
 'use client';
 
 import * as React from 'react';
+import { apiGet, apiPatch, ApiClientError } from '@/lib/apiClient';
+import Link from 'next/link';
 
 /* Ported verbatim from AdminVisit.dc.html <main> (+ the stateful topbar
    right cluster). Visit-plan detail: criteria gate (Flow C), appointment
@@ -32,14 +34,55 @@ const MAPS_URL =
   '&travelmode=driving';
 
 /* ---- Topbar right cluster: print route sheet + mark complete ---- */
+/* GET /api/visits item */
+type ApiVisit = {
+  id: string; date: number; status: string; note: string | null; gateConfirmed?: boolean;
+  stops: { code: string; title: string; result: string | null }[];
+};
+
+/* The topbar cluster and the body are separate components with no shared
+   provider, so the fetch is cached at module scope and both subscribe. */
+let visitCache: ApiVisit | null = null;
+let visitInflight: Promise<ApiVisit | null> | null = null;
+const VISIT_EVT = 'jkp:visit-loaded';
+
+function useLatestVisit(): ApiVisit | null {
+  const [visit, setVisit] = React.useState<ApiVisit | null>(null);
+  React.useEffect(() => {
+    const sync = () => setVisit(visitCache);
+    window.addEventListener(VISIT_EVT, sync);
+    if (visitCache) setVisit(visitCache);
+    else {
+      visitInflight ??= apiGet<{ items: ApiVisit[] }>('/api/visits')
+        .then((r) => (visitCache = r.items?.[0] ?? null))
+        .catch(() => null)
+        .finally(() => { visitInflight = null; window.dispatchEvent(new Event(VISIT_EVT)); });
+      void visitInflight;
+    }
+    return () => window.removeEventListener(VISIT_EVT, sync);
+  }, []);
+  return visit;
+}
+
 export function VisitActions() {
+  const visit = useLatestVisit();
   const [completed, setCompleted] = React.useState(false);
+  React.useEffect(() => { if (visit?.status === 'done') setCompleted(true); }, [visit]);
+
+  // the server refuses to close a plan whose availability gate is still open
+  const complete = () => {
+    if (!visit) { setCompleted(true); return; }
+    apiPatch(`/api/visits/${visit.id}`, { status: 'done' })
+      .then(() => { setCompleted(true); if (visitCache) visitCache.status = 'done'; })
+      .catch((e) => window.alert(e instanceof ApiClientError ? e.message : 'ปิดแผนไม่สำเร็จ'));
+  };
+
   return (
     <div id="visit-actions" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+      <div onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9"><path d="M9 17H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v7a2 2 0 01-2 2h-2" /><path d="M9 13h6M9 17h6" /></svg>พิมพ์ route sheet
       </div>
-      <div onClick={() => setCompleted(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 18px', borderRadius: 9999, background: completed ? '#273c33' : '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+      <div onClick={complete} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 18px', borderRadius: 9999, background: completed ? '#273c33' : '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M20 6L9 17l-5-5" /></svg>{completed ? 'ปิด plan แล้ว' : 'ปิด plan (completed)'}
       </div>
     </div>
@@ -48,9 +91,24 @@ export function VisitActions() {
 
 /* ---- Main content ---- */
 export function VisitBody() {
+  const visit = useLatestVisit();
   const [gateConfirmed, setGateConfirmed] = React.useState(false);
+  React.useEffect(() => { if (visit?.gateConfirmed) setGateConfirmed(true); }, [visit]);
+
+  const confirmGate = () => {
+    setGateConfirmed(true); // optimistic — it only unlocks a link
+    if (!visit) return;
+    apiPatch(`/api/visits/${visit.id}`, { gateConfirmed: true })
+      .then(() => { if (visitCache) visitCache.gateConfirmed = true; })
+      .catch((e) => {
+        setGateConfirmed(false);
+        window.alert(e instanceof ApiClientError ? e.message : 'ยืนยันไม่สำเร็จ');
+      });
+  };
+
   const gatePending = !gateConfirmed;
-  const overWarn = TOTAL_LISTINGS > 8;
+  // FR-VIS-04 soft warning — counts the real stops once a plan is loaded
+  const overWarn = (visit ? visit.stops.length : TOTAL_LISTINGS) > 8;
 
   const appointments: Appointment[] = [
     {
@@ -87,8 +145,8 @@ export function VisitBody() {
           )}
           {gatePending && (
             <div id="visit-gate-btns" style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-              <a href="/admin/requirements" style={{ height: 38, padding: '0 14px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center' }}>แก้ criteria</a>
-              <div onClick={() => setGateConfirmed(true)} style={{ height: 38, padding: '0 16px', borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>ยืนยันไม่เปลี่ยน</div>
+              <Link href="/admin/requirements" style={{ height: 38, padding: '0 14px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center' }}>แก้ criteria</Link>
+              <div onClick={confirmGate} style={{ height: 38, padding: '0 16px', borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>ยืนยันไม่เปลี่ยน</div>
             </div>
           )}
         </div>
@@ -192,7 +250,7 @@ export function VisitBody() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}><span style={{ fontSize: '12.5px', color: 'var(--muted)' }}>พิจารณาต่อ</span><span style={{ fontSize: 13, fontWeight: 800, color: '#D9A62B' }}>1</span></div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}><span style={{ fontSize: '12.5px', color: 'var(--muted)' }}>ไม่สนใจ</span><span style={{ fontSize: 13, fontWeight: 800, color: 'var(--muted3)' }}>1</span></div>
             </div>
-            <a href="/admin/deals" style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, height: 42, borderRadius: 11, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700 }}>ไปเจรจา (Deal)<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg></a>
+            <Link href="/admin/deals" style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, height: 42, borderRadius: 11, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700 }}>ไปเจรจา (Deal)<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg></Link>
           </div>
         </div>
       </div>

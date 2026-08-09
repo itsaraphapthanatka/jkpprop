@@ -20,18 +20,35 @@ const PIN_HTML = '<svg width="30" height="40" viewBox="0 0 30 40" xmlns="http://
 
 const fmt = (n: number) => n.toFixed(7);
 
-export function MapPicker({ label }: { label?: string }) {
+export type MapValue = { lat?: number; lng?: number; link?: string };
+
+export function MapPicker({ label, value, onChange }: { label?: string; value?: MapValue; onChange?: (v: MapValue) => void }) {
   const boxRef = React.useRef<HTMLDivElement | null>(null);
   const mapRef = React.useRef<LeafletMap | null>(null);
   const markerRef = React.useRef<LeafletMarker | null>(null);
+  // initial position: bound value (edit form) or the default pin
+  const init = React.useRef<{ lat: number; lng: number; link: string }>({
+    lat: Number.isFinite(value?.lat) ? (value!.lat as number) : DEFAULT_LAT,
+    lng: Number.isFinite(value?.lng) ? (value!.lng as number) : DEFAULT_LNG,
+    link: value?.link || '',
+  });
   // one combined "lat, lng" box (ops asked for a single coordinate field)
-  const [coords, setCoords] = React.useState(`${DEFAULT_LAT}, ${DEFAULT_LNG}`);
-  const [link, setLink] = React.useState('');
+  const [coords, setCoords] = React.useState(`${init.current.lat}, ${init.current.lng}`);
+  const [link, setLink] = React.useState(init.current.link);
   const [status, setStatus] = React.useState('');
+
+  const onChangeRef = React.useRef(onChange);
+  onChangeRef.current = onChange;
+  const emit = (la: number, ln: number, lk: string) => onChangeRef.current?.({ lat: la, lng: ln, link: lk });
 
   // keep latest setters available to leaflet handlers without re-init
   const sync = React.useRef((la: number, ln: number) => { setCoords(`${fmt(la)}, ${fmt(ln)}`); });
-  sync.current = (la, ln) => { setCoords(`${fmt(la)}, ${fmt(ln)}`); setLink(`https://www.google.com/maps?q=${fmt(la)},${fmt(ln)}`); };
+  sync.current = (la, ln) => {
+    const lk = `https://www.google.com/maps?q=${fmt(la)},${fmt(ln)}`;
+    setCoords(`${fmt(la)}, ${fmt(ln)}`);
+    setLink(lk);
+    emit(la, ln, lk);
+  };
 
   React.useEffect(() => {
     let cancelled = false;
@@ -39,11 +56,12 @@ export function MapPicker({ label }: { label?: string }) {
     (async () => {
       const L = (await import('leaflet')).default;
       if (cancelled || !boxRef.current || mapRef.current) return;
-      const map = L.map(boxRef.current, { center: [DEFAULT_LAT, DEFAULT_LNG], zoom: 14, scrollWheelZoom: false });
+      const start: [number, number] = [init.current.lat, init.current.lng];
+      const map = L.map(boxRef.current, { center: start, zoom: 14, scrollWheelZoom: false });
       mapRef.current = map;
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
       const icon = L.divIcon({ html: PIN_HTML, className: 'jkp-pin', iconSize: [30, 40], iconAnchor: [15, 40] });
-      const marker = L.marker([DEFAULT_LAT, DEFAULT_LNG], { draggable: true, icon }).addTo(map);
+      const marker = L.marker(start, { draggable: true, icon }).addTo(map);
       markerRef.current = marker;
       marker.on('dragend', () => { const p = marker.getLatLng(); sync.current(p.lat, p.lng); });
       map.on('click', (e: { latlng: { lat: number; lng: number } }) => { marker.setLatLng(e.latlng); sync.current(e.latlng.lat, e.latlng.lng); });
@@ -68,13 +86,18 @@ export function MapPicker({ label }: { label?: string }) {
     if (!m) return;
     const la = parseFloat(m[1]), ln = parseFloat(m[2]);
     applyCoords(la, ln);
-    if (Number.isFinite(la) && Number.isFinite(ln)) setLink(gmapLink(la, ln));
+    if (Number.isFinite(la) && Number.isFinite(ln)) { const lk = gmapLink(la, ln); setLink(lk); emit(la, ln, lk); }
   };
   // try to pull coords out of a pasted Google-Map link
   const onLink = (v: string) => {
     setLink(v);
     const m = v.match(/(-?\d{1,2}\.\d{3,})[,@ ]+(-?\d{1,3}\.\d{3,})/);
-    if (m) { const la = parseFloat(m[1]), ln = parseFloat(m[2]); setCoords(`${fmt(la)}, ${fmt(ln)}`); applyCoords(la, ln, true); }
+    if (m) {
+      const la = parseFloat(m[1]), ln = parseFloat(m[2]);
+      setCoords(`${fmt(la)}, ${fmt(ln)}`);
+      applyCoords(la, ln, true);
+      emit(la, ln, v);
+    }
   };
 
   const locateMe = () => {

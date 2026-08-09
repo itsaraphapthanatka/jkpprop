@@ -2,6 +2,10 @@
 
 import * as React from 'react';
 import { NotificationBell } from './NotificationBell';
+import { useMe, clearMeCache } from '@/lib/useMe';
+import { apiPost } from '@/lib/apiClient';
+import { ROLES } from '@/lib/rbac';
+import Link from 'next/link';
 
 /* ============================================================
    Shared admin CMS chrome — ported verbatim from the identical
@@ -108,6 +112,33 @@ const NAV: NavEntry[] = [
   { key: 'settings', label: 'Settings', href: '/admin/settings', icon: '<circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path>' },
 ];
 
+/* Sidebar footer — real session user (GET /api/me/permissions) + logout.
+   Hydration-safe: renders a neutral placeholder until the effect resolves. */
+function SidebarUser() {
+  const me = useMe();
+  const roleLabel = me ? (ROLES.find((r) => r.key === me.role)?.short ?? me.role) : '';
+  const logout = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    try { await apiPost('/api/auth/logout'); } catch { /* cookie may already be gone */ }
+    clearMeCache();
+    window.location.href = '/admin/login';
+  };
+  return (
+    <div style={{ padding: 14, borderTop: '1px solid rgba(255,255,255,.08)', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ width: 36, height: 36, borderRadius: 9999, background: '#273c33', color: '#2DFB91', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>
+        {me ? me.name.trim().charAt(0) : '·'}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{me ? me.name : 'กำลังโหลด…'}</div>
+        <div style={{ fontSize: 11, color: '#5E6B63' }}>{roleLabel}</div>
+      </div>
+      <Link href="/admin/login" onClick={logout} aria-label="ออกจากระบบ" style={{ display: 'flex', flexShrink: 0, color: '#5E6B63' }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></svg>
+      </Link>
+    </div>
+  );
+}
+
 function AdminSidebar({ active, mobileOpen, onClose }: { active?: AdminNavKey; mobileOpen: boolean; onClose: () => void }) {
   return (
     <aside id="admin-sidebar" className={mobileOpen ? 'admin-sidebar-open' : undefined} style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: 248, background: 'var(--sidebar)', display: 'flex', flexDirection: 'column', zIndex: 100 }}>
@@ -146,16 +177,7 @@ function AdminSidebar({ active, mobileOpen, onClose }: { active?: AdminNavKey; m
           );
         })}
       </nav>
-      <div style={{ padding: 14, borderTop: '1px solid rgba(255,255,255,.08)', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 36, height: 36, borderRadius: 9999, background: '#273c33', color: '#2DFB91', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>ก</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>กิตติพงษ์ พรหมทอง</div>
-          <div style={{ fontSize: 11, color: '#5E6B63' }}>Super admin</div>
-        </div>
-        <a href="/admin/login" aria-label="ออกจากระบบ" style={{ display: 'flex', flexShrink: 0, color: '#5E6B63' }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></svg>
-        </a>
-      </div>
+      <SidebarUser />
     </aside>
   );
 }
@@ -170,9 +192,9 @@ export function AdminTopbarDefaultActions() {
         <code style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '10.5px', color: 'var(--muted3)', border: '1px solid var(--border)', borderRadius: 5, padding: '1px 5px' }}>⌘K</code>
       </div>
       <NotificationBell />
-      <a id="admin-add-btn" href="/admin/properties" className="admin-primary-btn" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
+      <Link id="admin-add-btn" href="/admin/properties" className="admin-primary-btn" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M12 5v14M5 12h14" /></svg>เพิ่มทรัพย์
-      </a>
+      </Link>
     </div>
   );
 }

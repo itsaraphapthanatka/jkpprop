@@ -2,6 +2,8 @@
 
 import * as React from 'react';
 import { AdminShell } from '@/components/admin/AdminShell';
+import { apiGet, apiPut, ApiClientError } from '@/lib/apiClient';
+import Link from 'next/link';
 
 /* Ported verbatim from AdminCMS.dc.html — content-type tabs, article
    list, multi-language editor (rich-text toolbar, category dropdown,
@@ -109,6 +111,30 @@ const TOOLBAR: TbItem[] = [
 const stStyle = (bg: string, fg: string): React.CSSProperties => ({ height: 19, padding: '0 8px', borderRadius: 9999, background: bg, color: fg, fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center' });
 const langCodeStyle = (on: boolean): React.CSSProperties => ({ height: 17, padding: '0 6px', borderRadius: 5, fontSize: '9.5px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', background: on ? '#E8F3EC' : '#F0EEE9', color: on ? '#0D6C3B' : '#9B968D' });
 
+/* GET /api/cms item */
+type ApiArticle = {
+  id: string; kind: string; slug: string; title: string; category: string;
+  status: string; cover: string | null; links: string[]; body: string;
+  langs: Lang[]; updatedAt: number;
+};
+
+const relDate = (ms: number) => {
+  const d = Math.floor((Date.now() - ms) / 86400000);
+  if (d < 1) return 'วันนี้';
+  if (d === 1) return 'เมื่อวาน';
+  if (d < 30) return `${d} วัน`;
+  return `${Math.floor(d / 30)} เดือน`;
+};
+
+const apiToArticle = (a: ApiArticle): Article => ({
+  title: a.title,
+  status: a.status === 'published' ? 'เผยแพร่' : 'ร่าง',
+  statusK: a.status === 'published' ? 'pub' : 'draft',
+  cat: a.category || '—',
+  date: relDate(a.updatedAt),
+  langs: a.langs?.length === 3 ? a.langs : L1,
+});
+
 export function CMSBody() {
   const [type, setType] = React.useState('articles');
   const [selected, setSelected] = React.useState(0);
@@ -123,20 +149,70 @@ export function CMSBody() {
   const [links, setLinks] = React.useState<string[]>(['→ บริการ: หาทำเล', '→ พื้นที่: ระยอง']);
   const toastTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  /* live content — GET /api/cms?kind=…; the ported demo set is the fallback */
+  const [apiItems, setApiItems] = React.useState<ApiArticle[] | null>(null);
+  const [counts, setCounts] = React.useState<Record<string, number>>({});
+  const [saving, setSaving] = React.useState(false);
+  const [draftTitle, setDraftTitle] = React.useState('');
+  const [draftBody, setDraftBody] = React.useState('');
+  const bodyRef = React.useRef<HTMLDivElement | null>(null);
+
+  const reload = React.useCallback(async (kind: string) => {
+    try {
+      const r = await apiGet<{ items: ApiArticle[]; counts: Record<string, number> }>(`/api/cms?kind=${kind}`);
+      setCounts(r.counts || {});
+      setApiItems(Array.isArray(r.items) && r.items.length ? r.items : null);
+      setSelected(0);
+    } catch { setApiItems(null); }
+  }, []);
+  React.useEffect(() => { void reload(type); }, [type, reload]);
+
   const flash = (msg: string, ms: number) => {
     setToast(msg);
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(''), ms);
   };
-  const saveDraft = () => flash('บันทึกร่างแล้ว', 1800);
+
+  const apiCur = apiItems?.[selected] ?? null;
+
+  /* keep the editor fields in step with the selected record + language */
+  React.useEffect(() => {
+    if (!apiCur) return;
+    setDraftTitle(apiCur.title);
+    setDraftBody(apiCur.body || '');
+    setCatVal(null);
+    setLinks(apiCur.links?.length ? apiCur.links : []);
+    setCover(!!apiCur.cover);
+  }, [apiCur, lang]);
+
+  const persist = async (status?: 'draft' | 'published') => {
+    if (!apiCur || saving) return;
+    setSaving(true);
+    try {
+      const html = bodyRef.current?.innerHTML ?? draftBody;
+      await apiPut(`/api/cms/${apiCur.id}`, {
+        lang, title: draftTitle, body: html,
+        category: catVal ?? apiCur.category, links,
+        ...(status ? { status } : {}),
+      });
+      await reload(type);
+      flash(status === 'published' ? 'เผยแพร่บทความแล้ว — ขึ้นบนเว็บทันที' : 'บันทึกร่างแล้ว', 2000);
+    } catch (e) {
+      flash(e instanceof ApiClientError ? e.message : 'บันทึกไม่สำเร็จ กรุณาลองใหม่', 2600);
+    } finally {
+      setSaving(false);
+    }
+  };
+  const saveDraft = () => { if (apiCur) void persist(); else flash('บันทึกร่างแล้ว', 1800); };
   const doPublish = () => {
+    if (apiCur) { void persist('published'); return; }
     setPubOverride((prev) => ({ ...prev, [selected]: true }));
     flash('เผยแพร่บทความแล้ว — ขึ้นบนเว็บทันที', 2000);
   };
   const openPreview = () => setPreviewOpen(true);
   const closePreview = () => setPreviewOpen(false);
 
-  const artData = DATA_BY_TYPE[type] || DATA_BY_TYPE.articles;
+  const artData = apiItems ? apiItems.map(apiToArticle) : (DATA_BY_TYPE[type] || DATA_BY_TYPE.articles);
   const cur = artData[selected] || artData[0];
 
   const langDefs = [
@@ -158,20 +234,23 @@ export function CMSBody() {
     ? { height: 24, padding: '0 11px', borderRadius: 9999, background: '#E8F3EC', color: '#0D6C3B', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center' }
     : { height: 24, padding: '0 11px', borderRadius: 9999, background: '#FBF3E1', color: '#9A741C', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center' };
 
-  const slugBase = SLUG_BASE_MAP[cur.title] || 'content-' + (selected + 1);
+  const slugBase = apiCur?.slug || SLUG_BASE_MAP[cur.title] || 'content-' + (selected + 1);
   const seg = type === 'faq' ? 'faq' : type === 'certs' ? 'about' : type === 'pages' ? '' : 'useful-tips/';
   const slugMap: Record<string, string> = { th: '/th/' + seg + slugBase, en: '/en/' + seg + slugBase, zh: '/zh/' + seg + slugBase };
   const curSlug = slugMap[lang];
 
-  const genericBody = '<div style="font-size:19px;font-weight:800;margin-bottom:10px;">' + cur.title + '</div><p style="margin:0 0 12px;color:#5F5A52;">เนื้อหาของ "' + cur.title + '" (' + cur.cat + ') — คลิกในพื้นที่นี้เพื่อแก้ไขด้วย rich text editor รองรับหัวข้อ ย่อหน้า รายการ ลิงก์ รูปภาพ และตาราง</p><p style="margin:0;color:#9B968D;font-style:italic;">ยังไม่มีเนื้อหาฉบับเต็มสำหรับภาษานี้ — เริ่มพิมพ์เพื่อเพิ่ม</p>';
-  const curBody = BODY_MAP[cur.title] || genericBody;
+  // Titles are user data — escape before they go anywhere near an HTML string,
+  // otherwise a title typed in the CMS becomes stored XSS on this page.
+  const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
+  const genericBody = '<div style="font-size:19px;font-weight:800;margin-bottom:10px;">' + esc(cur.title) + '</div><p style="margin:0 0 12px;color:#5F5A52;">เนื้อหาของ "' + esc(cur.title) + '" (' + esc(cur.cat) + ') — คลิกในพื้นที่นี้เพื่อแก้ไขด้วย rich text editor รองรับหัวข้อ ย่อหน้า รายการ ลิงก์ รูปภาพ และตาราง</p><p style="margin:0;color:#9B968D;font-style:italic;">ยังไม่มีเนื้อหาฉบับเต็มสำหรับภาษานี้ — เริ่มพิมพ์เพื่อเพิ่ม</p>';
+  const curBody = apiCur ? (draftBody || genericBody) : (BODY_MAP[cur.title] || genericBody);
   const curCat = catVal || cur.cat;
 
   const actions = (
     <div id="cms-actions" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <a href="/admin/page-builder" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>
+      <Link href="/admin/page-builder" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9"><path d="M4 4h16v16H4z" /><path d="M4 9h16M9 9v11" /></svg>Page Builder
-      </a>
+      </Link>
       <div onClick={openPreview} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></svg>Preview
       </div>
@@ -195,7 +274,7 @@ export function CMSBody() {
             >
               <span dangerouslySetInnerHTML={{ __html: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="' + (on ? '#fff' : '#5F5A52') + '" stroke-width="1.9" style="margin-right:2px;">' + t.icon + '</svg>' }} />
               {t.label}
-              <span style={{ height: 19, minWidth: 19, padding: '0 6px', borderRadius: 9999, background: on ? 'rgba(255,255,255,.18)' : 'var(--bg)', color: on ? '#fff' : 'var(--muted2)', fontSize: '10.5px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{t.count}</span>
+              <span style={{ height: 19, minWidth: 19, padding: '0 6px', borderRadius: 9999, background: on ? 'rgba(255,255,255,.18)' : 'var(--bg)', color: on ? '#fff' : 'var(--muted2)', fontSize: '10.5px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{counts[t.key] ?? t.count}</span>
             </div>
           );
         })}
@@ -270,7 +349,12 @@ export function CMSBody() {
           <div className="a-scroll" style={{ maxHeight: 640, overflowY: 'auto', padding: 22 }}>
             {/* title */}
             <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>หัวข้อ ({langName})</label>
-            <input value={cur.title} readOnly style={{ marginTop: 6, width: '100%', height: 48, padding: '0 16px', borderRadius: 12, border: '1px solid var(--border)', fontSize: 16, fontWeight: 700, background: 'var(--bg)', outline: 'none' }} />
+            <input
+              value={apiCur ? draftTitle : cur.title}
+              onChange={(e) => setDraftTitle(e.target.value)}
+              readOnly={!apiCur}
+              style={{ marginTop: 6, width: '100%', height: 48, padding: '0 16px', borderRadius: 12, border: '1px solid var(--border)', fontSize: 16, fontWeight: 700, background: 'var(--bg)', outline: 'none' }}
+            />
             {/* slug */}
             <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 11, background: 'var(--tint)' }}>
               <span style={{ fontSize: 12, color: 'var(--muted2)' }}>slug:</span>
@@ -289,7 +373,17 @@ export function CMSBody() {
                   )
                 )}
               </div>
-              <div style={{ padding: '18px 20px', minHeight: 280, fontSize: 14, color: 'var(--text)', lineHeight: 1.8 }} dangerouslySetInnerHTML={{ __html: curBody }} />
+              {/* editable once the record comes from the API; the toolbar drives
+                  document.execCommand on this contentEditable region */}
+              <div
+                ref={bodyRef}
+                key={`${apiCur?.id ?? 'demo'}-${lang}`}
+                contentEditable={!!apiCur}
+                suppressContentEditableWarning
+                onBlur={() => setDraftBody(bodyRef.current?.innerHTML ?? '')}
+                style={{ padding: '18px 20px', minHeight: 280, fontSize: 14, color: 'var(--text)', lineHeight: 1.8, outline: 'none' }}
+                dangerouslySetInnerHTML={{ __html: curBody }}
+              />
             </div>
 
             {/* meta row */}

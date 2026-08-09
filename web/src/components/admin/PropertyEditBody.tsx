@@ -1,12 +1,30 @@
 'use client';
 
 import * as React from 'react';
+import { AdminShell } from './AdminShell';
 import { DynamicFieldForm } from './DynamicFieldForm';
 import { PROPERTY_TYPES, enabledPropertyTypes, propertyType } from '@/lib/propertySchema';
+import { useSchemaSync } from '@/lib/schemaSync';
+import { apiGet, apiPatch, ApiClientError } from '@/lib/apiClient';
+import Link from 'next/link';
 
-/* The property this mock form is editing (JKP-SPK0042) — its own type, which
-   stays selectable even if that type is later disabled for new intake. */
+/* Fallback type before the record loads (?code= missing → new-form preview);
+   the record's own type stays selectable even if disabled for new intake. */
 const RECORD_TYPE = 'warehouse';
+
+type ApiProperty = {
+  id: string;
+  publicCode: string;
+  typeKey: string;
+  title: string;
+  status: string;
+  values: Record<string, unknown>;
+};
+
+const editCss = `
+@media (max-width:1100px){ #ed-tabbar{position:static !important;top:auto !important;} }
+@media (max-width:640px){ #ed-grid{grid-template-columns:1fr !important;} #ed-media{grid-template-columns:repeat(2,1fr) !important;} }
+`;
 
 /* Property edit form — schema-driven. The "รายละเอียดทรัพย์" tab loads the
    field form for the selected property type (from the Field Builder schema in
@@ -44,18 +62,75 @@ export function PropertyEditBody() {
   // `offKeys` must start empty so the server render and the first client render
   // emit identical markup — reading the config during render would hydrate-mismatch.
   const [offKeys, setOffKeys] = React.useState<string[]>([]);
+
+  /* the record being edited — loaded from ?code= via GET /api/properties/:code */
+  const [record, setRecord] = React.useState<ApiProperty | null>(null);
+  const [title, setTitle] = React.useState('');
+  const valsRef = React.useRef<Record<string, unknown>>({});
+  const [saving, setSaving] = React.useState(false);
+  const [notice, setNotice] = React.useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+
+  React.useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get('code');
+    if (!code) return;
+    apiGet<ApiProperty>(`/api/properties/${encodeURIComponent(code)}`)
+      .then((p) => {
+        setRecord(p);
+        setSelType(p.typeKey);
+        setTitle(p.title);
+        valsRef.current = p.values;
+      })
+      .catch((e) => setNotice({ kind: 'err', text: e instanceof ApiClientError ? e.message : 'โหลดข้อมูลทรัพย์ไม่สำเร็จ' }));
+  }, []);
+
+  const save = async () => {
+    if (saving) return;
+    if (!record) {
+      setNotice({ kind: 'err', text: 'ไม่พบทรัพย์ที่แก้ไข — เปิดหน้านี้จากเมนู "แก้ไขทรัพย์" ในหน้า Properties' });
+      return;
+    }
+    setSaving(true);
+    setNotice(null);
+    try {
+      await apiPatch(`/api/properties/${record.id}`, { title, values: valsRef.current });
+      setNotice({ kind: 'ok', text: 'บันทึกแล้ว' });
+    } catch (e) {
+      setNotice({ kind: 'err', text: e instanceof ApiClientError ? e.message : 'บันทึกไม่สำเร็จ กรุณาลองใหม่' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Unlike the create form, the initial type here belongs to the EXISTING record.
   // Turning a type off is an intake policy, not a statement that old records of
   // that type are gone — so keep the record's own type in the picker (badged
   // "ปิดอยู่") instead of silently re-typing the property to the first enabled one.
+  const recType = record?.typeKey ?? RECORD_TYPE;
+  const schemaV = useSchemaSync();
   React.useEffect(() => {
     const en = enabledPropertyTypes();
-    const keep = en.some((t) => t.key === RECORD_TYPE) ? en : [...en, propertyType(RECORD_TYPE)];
+    const keep = en.some((t) => t.key === recType) ? en : [...en, propertyType(recType)];
     setTypes(keep);
     setOffKeys(keep.filter((t) => !en.some((e) => e.key === t.key)).map((t) => t.key));
-  }, []);
+  }, [schemaV, recType]);
+
+  const actions = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', rowGap: 8 }}>
+      {notice && (
+        <span role="alert" style={{ fontSize: '11.5px', fontWeight: 600, color: notice.kind === 'ok' ? '#0D6C3B' : '#C0392B', display: 'flex', alignItems: 'center', gap: 5 }}>
+          {notice.kind === 'ok' && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" strokeWidth="2"><path d="M20 6L9 17l-5-5" /></svg>}
+          {notice.text}
+        </span>
+      )}
+      <Link href="/admin/properties" style={{ height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center' }}>ยกเลิก</Link>
+      <div onClick={save} className="admin-primary-btn" style={{ height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1, whiteSpace: 'nowrap', transition: 'transform .2s,box-shadow .2s' }}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2"><path d="M20 6L9 17l-5-5" /></svg>{saving ? 'กำลังบันทึก…' : 'บันทึก'}
+      </div>
+    </div>
+  );
 
   return (
+    <AdminShell active="properties" eyebrow={`Properties / ${record?.publicCode ?? '…'} / แก้ไข`} title="แก้ไขทรัพย์" actions={actions} css={editCss}>
     <div style={{ margin: '-24px -28px -60px' }}>
       {/* TAB BAR */}
       <div id="ed-tabbar" className="a-scroll" style={{ position: 'sticky', top: 69, zIndex: 40, background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '0 28px', display: 'flex', gap: 8, overflowX: 'auto' }}>
@@ -101,21 +176,28 @@ export function PropertyEditBody() {
 
             <div style={{ background: 'var(--tint)', borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9" style={{ flexShrink: 0 }}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 10h18" /></svg>
-              <span style={{ fontSize: '12.5px', color: 'var(--accent)' }}>รหัสทรัพย์: <code style={{ fontWeight: 700 }}>JKP-SPK0042</code> (แก้ไขไม่ได้ — สร้างจากจังหวัดตอนบันทึกครั้งแรก)</span>
+              <span style={{ fontSize: '12.5px', color: 'var(--accent)' }}>รหัสทรัพย์: <code style={{ fontWeight: 700 }}>{record?.publicCode ?? '—'}</code> (แก้ไขไม่ได้ — สร้างจากจังหวัดตอนบันทึกครั้งแรก)</span>
             </div>
 
             <div>
               <label style={labelStyle}>ชื่อทรัพย์ (ไทย) *</label>
-              <input defaultValue="โกดังพร้อมสำนักงาน 2,700 ตร.ม." style={{ ...inputBase, fontSize: 14, fontWeight: 600 }} />
+              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="ชื่อทรัพย์" style={{ ...inputBase, fontSize: 14, fontWeight: 600 }} />
             </div>
 
-            {/* schema-driven fields for the selected type */}
+            {/* schema-driven fields for the selected type — keyed by record id so
+                the form remounts with the stored values once the record loads */}
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 18 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
                 <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text)' }}>รายละเอียด: {PROPERTY_TYPES.find((p) => p.key === selType)?.label}</div>
-                <a href="/admin/field-builder" style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--accent)', textDecoration: 'none' }}>ปรับฟิลด์ที่ Field Builder →</a>
+                <Link href="/admin/field-builder" style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--accent)', textDecoration: 'none' }}>ปรับฟิลด์ที่ Field Builder →</Link>
               </div>
-              <DynamicFieldForm typeKey={selType} code="JKP-SPK0042" />
+              <DynamicFieldForm
+                key={record?.id ?? 'new'}
+                typeKey={selType}
+                code={record?.publicCode}
+                initialValues={record?.values}
+                onValuesChange={(v) => { valsRef.current = v; }}
+              />
             </div>
           </div>
         )}
@@ -148,5 +230,6 @@ export function PropertyEditBody() {
         )}
       </div>
     </div>
+    </AdminShell>
   );
 }

@@ -1,19 +1,26 @@
 'use client';
 import * as React from 'react';
 import { loadLeads, relTime, type StoredLead } from '@/lib/leadStore';
+import { apiGet, apiPost, apiPatch, ApiClientError } from '@/lib/apiClient';
+import Link from 'next/link';
 
 /* Ported from AdminLeads.dc.html <main> — interactive leads split view:
    lead list + detail card (status/agent dropdowns), filter chips,
    follow-up tasks, and timeline/notes. Behavior mirrors the DCLogic.
-   Leads submitted from the public requirement form (localStorage) are
-   merged in on mount, newest first, with their own requirement summary. */
+   Real leads come from GET /api/leads (PII masked unless the caller has the
+   'pii' privilege — reveal via POST /api/leads/:id/reveal-contact); the
+   porting-era demo rows stay below them so the pipeline pages keep context. */
 
 type Lead = {
   name: string; company: string; country: string; initial: string;
   avBg: string; avFg: string; time: string; status: string; statusK: string;
   source: string; phone: string; email: string; agent: string;
   req?: { k: string; v: string }[]; message?: string; web?: boolean;
+  apiId?: string; piiMasked?: boolean;
 };
+
+/* GET /api/leads item — StoredLead shape + pipeline fields (leadDto) */
+type ApiLead = StoredLead & { status?: string; agentName?: string | null; piiMasked?: boolean };
 
 type Task = { title: string; due: string; color: string; done?: boolean };
 
@@ -42,12 +49,13 @@ const leadsData: Lead[] = [
 
 /* map a public requirement-form submission into a Lead row (defensive against
    malformed / hand-edited localStorage records) */
-function webToLead(sl: StoredLead): Lead {
+function webToLead(sl: ApiLead): Lead {
   const nm = (sl.name || '').trim();
   const org = (sl.company || '').trim();
   const who = (sl.respondentType || '').trim();
   const typeLabel = sl.typeLabel || sl.typeKey || 'ทรัพย์';
   const intent = sl.dealIntent || '';
+  const statusK = sl.status && stMap[sl.status] ? sl.status : 'new';
   // list convention: `name` = organisation, `company` = contact person · context
   const title = org || nm || 'ไม่ระบุชื่อ';
   return {
@@ -57,11 +65,11 @@ function webToLead(sl: StoredLead): Lead {
     initial: (title[0] || '?').toUpperCase(),
     avBg: '#273c33', avFg: '#2DFB91',
     time: relTime(sl.createdAt),
-    status: 'new', statusK: 'new',
+    status: statusK, statusK,
     source: sl.source || 'requirement form',
     phone: sl.phone || '—',
     email: sl.email || '—',
-    agent: 'มอบหมาย: ยังไม่มอบหมาย',
+    agent: 'มอบหมาย: ' + (sl.agentName || 'ยังไม่มอบหมาย'),
     req: [
       ...(who ? [{ k: 'สถานะผู้ติดต่อ', v: who }] : []),
       ...(org ? [{ k: 'บริษัท / องค์กร', v: org }] : []),
@@ -71,6 +79,8 @@ function webToLead(sl: StoredLead): Lead {
     ],
     message: sl.message || undefined,
     web: true,
+    apiId: typeof sl.id === 'string' && !sl.id.startsWith('web-') ? sl.id : undefined,
+    piiMasked: !!sl.piiMasked,
   };
 }
 
@@ -141,12 +151,24 @@ export function LeadsBody() {
   const [rows, setRows] = React.useState<Lead[]>(leadsData);
   const [webCount, setWebCount] = React.useState(0);
 
-  // merge leads submitted from the public requirement form (localStorage)
+  // real leads from the API, newest first; if the API is unreachable fall
+  // back to the localStorage queue the public form keeps offline (§2.2)
   React.useEffect(() => {
-    const web = loadLeads();
-    if (web.length) { setRows([...web.map(webToLead), ...leadsData]); setWebCount(web.length); }
+    let alive = true;
+    apiGet<{ items: ApiLead[] }>('/api/leads')
+      .then((r) => {
+        if (!alive || !Array.isArray(r.items)) return;
+        setRows([...r.items.map(webToLead), ...leadsData]);
+        setWebCount(r.items.length);
+      })
+      .catch(() => {
+        const web = loadLeads();
+        if (alive && web.length) { setRows([...web.map(webToLead), ...leadsData]); setWebCount(web.length); }
+      });
+    return () => { alive = false; };
   }, []);
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [creating, setCreating] = React.useState(false);
   const emptyForm = { name: '', contact: '', country: 'TH', phone: '', email: '', source: 'contact form', statusK: 'new', agent: 'อารยา' };
   const [form, setForm] = React.useState(emptyForm);
   const setF = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
@@ -195,10 +217,22 @@ export function LeadsBody() {
   const curStatus = statusVal || statusLabelMap[cur.statusK];
   const curAgent = agentVal || 'อารยา';
 
-  const statusOptions = ([['New', 'new'], ['Qualified', 'qualified'], ['Req. confirmed', 'req'], ['Shortlisted', 'shortlisted'], ['Negotiating', 'negotiating'], ['Won', 'won']] as [string, string][]).map(([label]) => ({
+  const statusOptions = ([['New', 'new'], ['Qualified', 'qualified'], ['Req. confirmed', 'requirements_confirmed'], ['Shortlisted', 'shortlisted'], ['Negotiating', 'negotiating'], ['Won', 'won']] as [string, string][]).map(([label, key]) => ({
     label,
     active: curStatus === label,
-    select: () => { setStatusVal(label); setStatusOpen(false); },
+    select: () => {
+      setStatusVal(label);
+      setStatusOpen(false);
+      // persist for real leads — pipeline is forward-only server-side
+      if (cur.apiId) {
+        apiPatch(`/api/leads/${cur.apiId}`, { status: key })
+          .then(() => setRows((r) => r.map((x, i) => (i === selected ? { ...x, status: key, statusK: stMap[key] ? key : x.statusK } : x))))
+          .catch((e) => {
+            setStatusVal(null); // roll back the label
+            window.alert(e instanceof ApiClientError ? e.message : 'บันทึกสถานะไม่สำเร็จ');
+          });
+      }
+    },
     style: dd(curStatus === label),
   }));
 
@@ -264,12 +298,47 @@ export function LeadsBody() {
   const toggleAgent = () => { setAgentOpen(!agentOpen); setStatusOpen(false); setOpenChip(null); };
 
   const addTask = () => setTaskAdding(!taskAdding);
-  const saveTask = () => { const v = taskText.trim(); if (!v) return; setExtraTasks([...extraTasks, { title: v, due: 'ยังไม่กำหนด', color: '#0D6C3B' }]); setTaskText(''); setTaskAdding(false); };
-  const saveNote = () => { const v = noteText.trim(); if (!v) return; setExtraNotes([v, ...extraNotes]); setNoteText(''); };
+  const saveTask = () => {
+    const v = taskText.trim();
+    if (!v) return;
+    setExtraTasks([...extraTasks, { title: v, due: 'ยังไม่กำหนด', color: '#0D6C3B' }]);
+    setTaskText('');
+    setTaskAdding(false);
+    if (cur.apiId) void apiPost(`/api/leads/${cur.apiId}/tasks`, { title: v }).catch(() => { /* stays local */ });
+  };
+  const saveNote = () => {
+    const v = noteText.trim();
+    if (!v) return;
+    setExtraNotes([v, ...extraNotes]);
+    setNoteText('');
+    if (cur.apiId) void apiPost(`/api/leads/${cur.apiId}/notes`, { text: v }).catch(() => { /* stays local */ });
+  };
 
-  const addLead = () => {
+  const addLead = async () => {
     const name = form.name.trim();
-    if (!name) return;
+    if (!name || creating) return;
+    setCreating(true);
+    let apiId: string | undefined;
+    let piiMasked = false;
+    try {
+      const created = await apiPost<ApiLead>('/api/leads', {
+        name,
+        company: form.contact.trim(),
+        phone: form.phone.trim(),
+        email: form.email.trim(),
+        source: form.source,
+        status: form.statusK,
+      });
+      apiId = typeof created.id === 'string' ? created.id : undefined;
+      piiMasked = !!created.piiMasked;
+    } catch (e) {
+      if (e instanceof ApiClientError && e.status > 0) {
+        window.alert(e.message);
+        setCreating(false);
+        return;
+      }
+      // network down → keep it locally so nothing typed is lost (§2.2)
+    }
     const nl: Lead = {
       name,
       company: (form.contact.trim() || '—') + ' · ' + form.country,
@@ -282,6 +351,8 @@ export function LeadsBody() {
       phone: form.phone.trim() || '—',
       email: form.email.trim() || '—',
       agent: 'มอบหมาย: ' + form.agent,
+      apiId,
+      piiMasked,
     };
     setRows((r) => [nl, ...r]);
     setSelected(0);
@@ -289,6 +360,7 @@ export function LeadsBody() {
     setAgentVal(form.agent);
     setCreateOpen(false);
     setForm(emptyForm);
+    setCreating(false);
   };
   const openCreate = () => { setForm(emptyForm); setCreateOpen(true); closeAll(); };
 
@@ -459,10 +531,26 @@ export function LeadsBody() {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 6l-10 7L2 6"></path><rect x="2" y="4" width="20" height="16" rx="2"></rect></svg>
                 {cur.email}
               </a>
-              <a id="lead-openreq" href="/admin/requirements" className="admin-primary-btn" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 36, padding: '0 16px', borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: '12.5px', fontWeight: 700, marginLeft: 'auto' }}>
+              {cur.piiMasked && cur.apiId && (
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    apiPost<{ phone: string; email: string }>(`/api/leads/${cur.apiId}/reveal-contact`)
+                      .then((full) => setRows((r) => r.map((x, i) => (i === selected ? { ...x, phone: full.phone || '—', email: full.email || '—', piiMasked: false } : x))))
+                      .catch((err) => window.alert(err instanceof ApiClientError ? err.message : 'เปิดดูข้อมูลติดต่อไม่สำเร็จ'));
+                  }}
+                  title="การเปิดดูจะถูกบันทึกลง Audit log ตาม PDPA"
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 14px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '12.5px', fontWeight: 700 }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></svg>
+                  ดูข้อมูลติดต่อเต็ม
+                </a>
+              )}
+              <Link id="lead-openreq" href="/admin/requirements" className="admin-primary-btn" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 36, padding: '0 16px', borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: '12.5px', fontWeight: 700, marginLeft: 'auto' }}>
                 เปิด Requirement
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
-              </a>
+              </Link>
             </div>
           </div>
 

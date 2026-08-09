@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Gallery } from './Gallery';
 import { InquiryBox } from './InquiryBox';
+import Link from '@/i18n/LocaleLink';
 
 /* ---- responsive helper (source media queries target #pd-* ids not in globals) ---- */
 function useMaxWidth(px: number) {
@@ -107,7 +108,7 @@ function ShareBtn({ children }: { children: React.ReactNode }) {
 function RelatedCard({ r }: { r: (typeof related)[number] }) {
   const [hover, setHover] = useState(false);
   return (
-    <a
+    <Link
       href="/property"
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
@@ -142,7 +143,7 @@ function RelatedCard({ r }: { r: (typeof related)[number] }) {
           </span>
         </div>
       </div>
-    </a>
+    </Link>
   );
 }
 
@@ -154,7 +155,7 @@ export function PropertyDetail() {
     <>
       {/* BREADCRUMB */}
       <div style={{ maxWidth: '1320px', margin: '0 auto', padding: '16px 24px 0', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--muted2)', flexWrap: 'wrap' }}>
-        <a href="/" style={{ color: 'var(--muted2)' }}>หน้าแรก</a>
+        <Link href="/" style={{ color: 'var(--muted2)' }}>หน้าแรก</Link>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted3)" strokeWidth="2"><path d="M9 6l6 6-6 6" /></svg>
         <a href="#" style={{ color: 'var(--muted2)' }}>อสังหาริมทรัพย์ทั้งหมด</a>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted3)" strokeWidth="2"><path d="M9 6l6 6-6 6" /></svg>

@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { AdminShell, AdminBreadcrumb } from '@/components/admin/AdminShell';
+import { apiGet, apiPut, apiDelete, apiFetch, ApiClientError } from '@/lib/apiClient';
 
 /* Ported from AdminSEO.dc.html — SEO · GEO · AEO Booster add-on page.
    Interactive: subscribe/unsubscribe toggle + llms.txt / robots.txt
@@ -26,9 +27,72 @@ const seoCss = `
 .up-drop:hover{border-color:#0D6C3B;}
 `;
 
+type SeoFileMeta = { filename: string; sizeBytes: number; uploadedAt: number };
+
+const fileMeta = (m: SeoFileMeta) => {
+  const kb = (m.sizeBytes / 1024).toFixed(1);
+  const mins = Math.floor((Date.now() - m.uploadedAt) / 60000);
+  const when = mins < 1 ? 'เมื่อสักครู่' : mins < 60 ? `${mins} นาทีที่แล้ว` : mins < 1440 ? `${Math.floor(mins / 60)} ชม.ที่แล้ว` : `${Math.floor(mins / 1440)} วันก่อน`;
+  return `${kb} KB · อัปโหลด${when}`;
+};
+
 export function SEOBody() {
-  const [subscribed, setSubscribed] = React.useState(true);
+  const [subscribed, setSubscribed] = React.useState(false);
   const [up, setUp] = React.useState({ llms: false, robots: false });
+  const [meta, setMeta] = React.useState<Record<string, SeoFileMeta>>({});
+  const [busy, setBusy] = React.useState('');
+  const pickRef = React.useRef<HTMLInputElement | null>(null);
+  const pickTarget = React.useRef<UpKey>('llms');
+
+  const reload = React.useCallback(async () => {
+    try {
+      const r = await apiGet<{ subscribed: boolean; files: Record<string, SeoFileMeta> }>('/api/seo');
+      setSubscribed(!!r.subscribed);
+      setMeta(r.files || {});
+      setUp({ llms: !!r.files?.llms, robots: !!r.files?.robots });
+    } catch { /* not signed in / offline */ }
+  }, []);
+  React.useEffect(() => { void reload(); }, [reload]);
+
+  const toggleSubscription = async () => {
+    const next = !subscribed;
+    setSubscribed(next); // optimistic
+    try {
+      await apiPut('/api/seo', { subscribed: next });
+    } catch (e) {
+      setSubscribed(!next);
+      window.alert(e instanceof ApiClientError ? e.message : 'บันทึกไม่สำเร็จ');
+    }
+  };
+
+  const pickFile = (key: UpKey) => { pickTarget.current = key; pickRef.current?.click(); };
+
+  const doUpload = async (file: File) => {
+    const key = pickTarget.current;
+    setBusy(key);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      await apiFetch(`/api/seo/files/${key}`, { method: 'POST', body: form });
+      await reload();
+    } catch (e) {
+      window.alert(e instanceof ApiClientError ? e.message : 'อัปโหลดไม่สำเร็จ');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const doRemove = async (key: UpKey) => {
+    setBusy(key);
+    try {
+      await apiDelete(`/api/seo/files/${key}`);
+      await reload();
+    } catch (e) {
+      window.alert(e instanceof ApiClientError ? e.message : 'ลบไม่สำเร็จ');
+    } finally {
+      setBusy('');
+    }
+  };
 
   const done = up.llms && up.robots;
   const some = up.llms || up.robots;
@@ -55,9 +119,11 @@ export function SEOBody() {
       ...u,
       done: d,
       pending: !d,
+      // real size/timestamp once the file exists; the const's string is only a placeholder
+      meta: meta[u.key] ? fileMeta(meta[u.key]) : busy === u.key ? 'กำลังอัปโหลด…' : u.meta,
       cardStyle: { background: 'var(--surface)', border: '1.5px solid ' + (d ? '#0D6C3B' : 'var(--border)'), borderRadius: 16, padding: 20 } as React.CSSProperties,
-      upload: () => setUp((prev) => ({ ...prev, [u.key]: true })),
-      remove: () => setUp((prev) => ({ ...prev, [u.key]: false })),
+      upload: () => pickFile(u.key),
+      remove: () => { void doRemove(u.key); },
     };
   });
 
@@ -71,6 +137,15 @@ export function SEOBody() {
   return (
     <AdminShell active="seo" eyebrow={<AdminBreadcrumb items={[{ label: 'Settings', href: '/admin/settings' }, { label: 'SEO · GEO · AEO' }]} />} title="SEO · GEO · AEO" actions={statusPill} css={seoCss}>
       <div style={{ maxWidth: 880 }}>
+        {/* one hidden picker shared by both dropzones (.txt only, 1MB — the
+            server enforces the same limits) */}
+        <input
+          ref={pickRef}
+          type="file"
+          accept=".txt,text/plain"
+          style={{ display: 'none' }}
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) void doUpload(f); e.target.value = ''; }}
+        />
         {/* ADD-ON BANNER */}
         <div style={{ position: 'relative', overflow: 'hidden', background: 'linear-gradient(135deg,#043F20 0%,#022310 100%)', borderRadius: 20, padding: '26px 28px', color: '#fff', marginBottom: 20 }}>
           <div style={{ position: 'absolute', top: -40, right: -20, width: 180, height: 180, borderRadius: 9999, background: 'rgba(45,251,145,.1)', pointerEvents: 'none' }} />
@@ -84,7 +159,7 @@ export function SEOBody() {
               <p style={{ margin: 0, fontSize: '13.5px', color: '#C3FED5', lineHeight: 1.7 }}>ดันเว็บให้ติดอันดับ Google และให้ AI (ChatGPT, Perplexity, Google AI) ดึงไปตอบและอ้างอิง — เนื้อหา + schema + llms.txt เสิร์ฟและอัปเดตอัตโนมัติจากระบบของเรา</p>
             </div>
             <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              <div style={subBtnStyle} onClick={() => setSubscribed((v) => !v)}>{subBtnLabel}</div>
+              <div style={subBtnStyle} onClick={toggleSubscription}>{subBtnLabel}</div>
             </div>
           </div>
         </div>

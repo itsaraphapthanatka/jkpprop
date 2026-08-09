@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import Link from '@/i18n/LocaleLink';
 
 /* ============================================================
    Ported verbatim from design/Listing.dc.html — markup + the
@@ -210,22 +211,64 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
             <div style={{ fontSize: 11, color: 'var(--muted3)', fontWeight: 500 }}>ราคา</div>
             <div style={{ marginTop: 2, fontSize: 18, fontWeight: 800, color: 'var(--accent)', letterSpacing: '-.01em' }}>{it.price}</div>
           </div>
-          <a
+          <Link
             href="/property"
             onMouseEnter={() => setDetailHover(true)}
             onMouseLeave={() => setDetailHover(false)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 14px', borderRadius: 9999, background: detailHover ? '#273c33' : 'var(--surface)', border: '1px solid #273c33', color: detailHover ? '#fff' : '#273c33', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all .2s' }}
           >
             ดูรายละเอียด
-          </a>
+          </Link>
         </div>
       </div>
     </div>
   );
 }
 
+/* GET /api/public/listings item */
+type ApiListing = {
+  code: string; title: string; deal: string; loc: string; price: string;
+  area: number | null; areaLabel: string; typeKey: string; img: string | null; photos: string;
+};
+
+/* preset filter key → API query (the demo set filters by regex on the title;
+   real data filters on deal_type + typeKey server-side) */
+const PRESET_QUERY: Record<ListingFilterKey, string> = {
+  'factory-rent': 'deal=rent&type=factory',
+  'factory-sale': 'deal=sale&type=factory',
+  'warehouse-rent': 'deal=rent&type=warehouse',
+  'warehouse-sale': 'deal=sale&type=warehouse',
+};
+
 export function ListingBody({ preset = DEFAULT_PRESET }: { preset?: ListingPreset }) {
-  const listings = deriveListings(preset.filterKey);
+  /* published inventory from the public API; the ported demo set stays as the
+     first paint and as the offline fallback (FRONTEND_API_SPEC §2.1/§2.2) */
+  const [listings, setListings] = useState<Listing[]>(() => deriveListings(preset.filterKey));
+  useEffect(() => {
+    let alive = true;
+    const q = preset.filterKey ? PRESET_QUERY[preset.filterKey] : '';
+    fetch(`/api/public/listings?${q}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { items: ApiListing[] } | null) => {
+        if (!alive || !d || !Array.isArray(d.items) || !d.items.length) return;
+        setListings(d.items.map((it) => ({
+          slot: it.code,
+          deal: it.deal,
+          photos: it.photos,
+          code: it.code,
+          title: it.title,
+          loc: it.loc,
+          price: it.price,
+          img: it.img || 'https://images.unsplash.com/photo-1553413077-190dd305871c?w=800&q=80',
+          credit: '',
+          creditHref: '',
+          type: it.typeKey === 'factory' ? 'โรงงาน' : 'โกดัง/คลังสินค้า',
+          area: it.areaLabel || '—',
+        })));
+      })
+      .catch(() => { /* keep the demo set */ });
+    return () => { alive = false; };
+  }, [preset.filterKey]);
   const [favs, setFavs] = useState<Record<string, boolean>>({});
   const [listingMode, setListingMode] = useState<Mode>(preset.listingMode ?? 'rent');
   const [secOpen, setSecOpen] = useState<Record<SecKey, boolean>>({ zone: true, type: true, size: true, price: true });
@@ -298,7 +341,7 @@ export function ListingBody({ preset = DEFAULT_PRESET }: { preset?: ListingPrese
     <>
       {/* BREADCRUMB */}
       <div style={{ maxWidth: '1320px', margin: '0 auto', padding: '16px 24px 0', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--muted2)' }}>
-        <a href="/" style={{ color: 'var(--muted2)' }}>หน้าแรก</a>
+        <Link href="/" style={{ color: 'var(--muted2)' }}>หน้าแรก</Link>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted3)" strokeWidth="2">
           <path d="M9 6l6 6-6 6" />
         </svg>

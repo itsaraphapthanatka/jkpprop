@@ -559,6 +559,37 @@ CRUD users + กำหนดหลาย role ได้ | ปิดใช้ง�
 
 ### 5. Permissions matrix (สรุป role × การกระทำ)
 
+> ⚠️ **แก้ไข 2026-08-09 — โมเดล RBAC เปลี่ยนเป็น 7 บทบาท**
+>
+> ตาราง 6 บทบาทด้านล่างเป็น**ของเดิม เก็บไว้อ้างอิงเท่านั้น** ระบบที่สร้างจริงใช้
+> โมเดล 3 ชั้น: **บทบาท ∧ ขอบเขตข้อมูล ∧ สิทธิ์พิเศษ** ออกแบบสำหรับเอเจนซี่สาขาเดียว
+> ที่มี co-agent ภายนอก
+>
+> | เดิม (เอกสารนี้) | ใหม่ (ที่ใช้จริง) |
+> |---|---|
+> | `super_admin` | `owner` |
+> | `listing_mgr` | `manager` |
+> | `sales_agent` | `agent` |
+> | `ops_coord` | `ops` |
+> | `content_editor` | `marketing` |
+> | `translator` | `translator` |
+> | — | `co_agent` (ใหม่ — บุคคลภายนอก ต้องมีวันหมดอายุ) |
+>
+> เพิ่ม **ขอบเขตข้อมูล** (`own` / `all`) และ **สิทธิ์พิเศษ 7 ตัว**
+> (`pii`, `publish`, `price`, `deal_unlock`, `internal_note`, `export`, `audit`)
+> ที่เปิด–ปิดรายคนได้
+>
+> **ตารางสิทธิ์ฉบับที่ใช้จริงอยู่ที่ `MATRIX` ใน `web/src/lib/rbac.ts`**
+> (5 หมวด) · คำอธิบายอยู่ที่ [`FRONTEND_API_SPEC.md`](./FRONTEND_API_SPEC.md) §12
+> · การบังคับใช้ฝั่ง server อยู่ที่ [`web/BACKEND.md`](./web/BACKEND.md)
+>
+> จุดที่ต่างจากเอกสารเดิมอย่างมีนัยสำคัญ:
+> - **`export` (CSV) เป็นสิทธิ์ของ `owner` เท่านั้น** ทุกบทบาทอื่นถูกปฏิเสธแม้ยิง API ตรง
+> - **PII ปิดบังเป็นค่าเริ่มต้น** ทุกบทบาท — ต้องมีสิทธิ์ `pii` และการเปิดดูถูกบันทึก audit ทุกครั้ง
+> - `deal_unlock` ไม่ผูกกับบทบาทแล้ว แต่เป็นสิทธิ์พิเศษที่ให้รายคน (owner/manager เท่านั้น)
+
+**ตารางเดิม (deprecated — ดูกรอบด้านบน):**
+
 | การกระทำ | super_admin | listing_mgr | sales_agent | ops_coord | content_editor | translator |
 | --- | :-: | :-: | :-: | :-: | :-: | :-: |
 | Property/Listing CRUD + publish | ✓ | ✓ | อ่าน | อ่าน | — | — |

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { AdminShell } from '@/components/admin/AdminShell';
 import DealBody, { DealProvider, DealTitle, DealActions } from '@/components/admin/DealBody';
+import Link from 'next/link';
 
 export const metadata: Metadata = { title: 'Deals · JKP CMS', robots: { index: false } };
 
@@ -22,7 +23,7 @@ const dealCss = `
 
 const eyebrow = (
   <>
-    <a href="/admin/leads" style={{ color: 'var(--muted2)' }}>Leads</a> / Negotiation → Deal
+    <Link href="/admin/leads" style={{ color: 'var(--muted2)' }}>Leads</Link> / Negotiation → Deal
   </>
 );
 

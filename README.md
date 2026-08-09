@@ -1,116 +1,103 @@
-# JKP Property — Frontend Monorepo
+# JKP Property
 
-Industrial property brokerage platform (public site + admin CMS). Next.js App
-Router · TypeScript (strict) · Tailwind + handoff design tokens · next-intl (th/en/zh).
+แพลตฟอร์มนายหน้าอสังหาริมทรัพย์อุตสาหกรรม (โรงงาน / โกดัง) — เว็บสาธารณะ + ระบบหลังบ้าน
+Next.js 15 · App Router · React 19 · TypeScript strict · PostgreSQL + Prisma
 
-> **Planning docs:** see [`FRONTEND_PLAN.md`](./FRONTEND_PLAN.md) (the build plan)
-> and [`SPEC_PACK.md`](./SPEC_PACK.md) (binding requirements — source of truth).
+> **เอกสารหลัก** — อ่าน [`AGENT.md`](./AGENT.md) ก่อนเป็นอันดับแรก แล้วดูตามนี้:
 >
-> **Design system:** per user directive (2026-07-22) this project follows the
-> design system in [`JKP_Property_Handoff.md`](./JKP_Property_Handoff.md) **ONLY**
-> (green-first / `green-brand-*` / doc 08 is deprecated here).
+> | เรื่อง | อ่านที่ |
+> |---|---|
+> | พฤติกรรม / ข้อมูล / RBAC / state | [`SPEC_PACK.md`](./SPEC_PACK.md) |
+> | สัญญาข้อมูลระหว่าง frontend กับ API | [`FRONTEND_API_SPEC.md`](./FRONTEND_API_SPEC.md) |
+> | Backend: schema · endpoints · กฎที่บังคับฝั่ง server | [`web/BACKEND.md`](./web/BACKEND.md) |
+> | ดีไซน์ (pixel / token / component) | [`design/`](./design/) → [`DESIGN.md`](./DESIGN.md) |
+> | ภาพรวมหน้าจอและ flow | [`JKP_Property_Handoff.md`](./JKP_Property_Handoff.md) |
 
-## Status — Phase FE-0 (Foundation) ✅
+## โครงสร้างจริงของ repo
 
-Scaffold is in place and builds green. What's wired:
+เป็น Next.js app เดียวใน `web/` **ไม่ใช่ monorepo** และ **ไม่ได้ใช้ Tailwind**
+(สไตล์เป็น CSS variables + inline style objects + injected `<style>` เพื่อรักษา
+pixel fidelity กับ prototype ใน `design/*.dc.html`)
 
-- **npm workspaces** monorepo (`apps/*`, `packages/*`). *(pnpm not installed on
-  this machine; layout stays pnpm-compatible — `pnpm import` later if desired.)*
-- **`packages/tokens`** — design tokens (CSS vars / Tailwind preset / typed theme /
-  JSON) codified from `JKP_Property_Handoff.md`: teal accent `#034956`, gold
-  `#D9A62B`, purple (admin), pill buttons, large radius. Values the handoff
-  doesn't specify are marked `(derived)` in `handoff-tokens.json`.
-- **`packages/domain`** — locked STATUS_ENUMS, lead-pipeline state-machine guard,
-  money/date/area formatters.
-- **`packages/ui`** — component library A1–A27 (30 components, Radix-backed,
-  handoff-styled) + Storybook (`npm run storybook -w @jkp/ui`). See
-  `packages/ui/CONVENTIONS.md`.
-- **`packages/api-client`** — `{ data, meta, errors }` envelope types + `fetchApi`
-  wrapper (concrete resource types generated from OpenAPI later).
-- **`apps/web`** — single Next.js app, two root layouts via route groups:
-  - `(site)/[locale]/…` → locale-prefixed public site (`/th`, `/en`, `/zh`);
-    `/` → 307 `/th`.
-  - `(admin)/admin/…` → admin shell (no locale prefix, near-black sidebar).
-  - **D1 redirects:** `/[locale]/property/*` and `/[locale]/listing-single/*`
-    → 301 `/[locale]/listing/*`.
-  - `sitemap.ts` (with hreflang alternates) + `robots.ts`.
+```
+web/
+  prisma/
+    schema.prisma        # 25 models — ดู web/BACKEND.md
+    seed.ts              # org + ผู้ใช้ + จังหวัด + เนื้อหาตัวอย่าง
+  src/
+    app/
+      [locale]/          # เว็บสาธารณะ /th /en /zh — home, listing, property, contact, landing pages
+      admin/             # ระบบหลังบ้าน 23 หน้า (ภาษาไทยล้วน, อยู่นอก [locale], noindex)
+      api/               # API routes ทั้งหมด (auth, properties, leads, cms, …)
+      sitemap.ts         # sitemap.xml + hreflang ครบ 3 ภาษา
+      llms.txt/ robots.txt/  # route handlers เสิร์ฟไฟล์ที่อัปโหลดใน /admin/seo
+    i18n/                # locale config, dictionaries, enum labels, LocaleLink
+    components/{admin,home,listing,property,site}/
+    lib/
+      server/            # db, auth+RBAC, audit, storage, dto — เฉพาะฝั่ง server
+      apiClient.ts       # fetch wrapper ตัวเดียวที่เข้าใจ error envelope
+      *.ts               # store เดิม — ตอนนี้เป็น cache ออฟไลน์ ไม่ใช่ source of truth
+    middleware.ts        # กัน /admin ที่ไม่มี session + redirect ไป locale เริ่มต้น
+design/                  # prototype .dc.html ที่ลูกค้า approve แล้ว (ต้อง reproduce ตรง)
+```
 
-Public pages render as SSG (SEO-ready); listing detail is dynamic.
+## เริ่มใช้งาน
 
-## Getting started
+ต้องมี PostgreSQL 16 และ Node 20+
 
 ```bash
-npm install          # install all workspaces
-npm run dev          # dev server → http://localhost:3000  (apps/web)
-npm run build        # production build (type-checks)
-npm run start        # serve the production build
-npm run typecheck    # tsc --noEmit (apps/web)
+brew services start postgresql@16     # หรือ Postgres ที่คุณใช้อยู่
+createdb jkpprop
+
+cd web
+npm install
+npx prisma migrate dev                # สร้างตาราง
+npx prisma db seed                    # ข้อมูลตั้งต้น + บัญชีทดสอบ
+npm run dev                           # → http://localhost:3000
 ```
 
-> Run npm scripts from the **repo root** (`C:\jkpprop`), not inside a package dir.
-
-Environment (create `apps/web/.env.local`):
+สร้าง `web/.env` (ไม่เข้า git):
 
 ```
-NEXT_PUBLIC_SITE_URL=https://your-domain.com   # used by sitemap/robots
-NEXT_PUBLIC_API_BASE_URL=/api/v1               # api-client base
+DATABASE_URL="postgresql://<user>@localhost:5432/jkpprop"
 ```
 
-## Layout
+**บัญชีทดสอบ** — รหัสผ่าน `jkp12345` ทุกบัญชี:
 
-```
-apps/web/                     # Next.js app (public + admin + api later)
-  src/app/(site)/[locale]/    # public, locale-prefixed
-  src/app/(admin)/admin/      # admin shell
-  src/i18n/                   # next-intl routing / request / navigation
-  messages/{th,en,zh}.json    # UI copy (no hardcoded strings — NFR-04)
-packages/tokens               # design tokens (handoff-based)
-packages/ui                   # component library (shadcn-based)
-packages/domain               # enums, state machines, formatters
-packages/api-client           # typed API envelope + fetch
-```
+| อีเมล | บทบาท | ขอบเขตข้อมูล |
+|---|---|---|
+| owner@jkp.local | เจ้าของระบบ | ทั้งหมด (สิทธิ์พิเศษครบ 7) |
+| manager@jkp.local | ผู้จัดการ | ทั้งหมด |
+| agent@jkp.local | เอเจนต์ขาย | เฉพาะของตัวเอง |
 
-## Storybook
+หน้าหลังบ้านทุกหน้าต้องล็อกอิน — เข้าที่ `/admin/login`
+
+## คำสั่ง
 
 ```bash
-npm run storybook -w @jkp/ui         # dev → http://localhost:6006
-npm run build-storybook -w @jkp/ui   # static build
+npm run dev          # dev server
+npm run build        # production build (type-check ด้วย)
+npm run start        # เสิร์ฟ build
+npm run typecheck    # tsc --noEmit
+npm run lint         # eslint
+npm test             # unit tests (50)
+npm run test:api     # API tests (20) — ต้องมี dev/start server รันอยู่
+npx prisma studio    # ดู/แก้ข้อมูลในฐานข้อมูล
 ```
 
-## Public pages (FE-2) ✅
+รันจากในโฟลเดอร์ `web/` (ไม่ใช่ root ของ repo)
 
-Home, Listing search (filters/sort/pagination/compare, empty→requirement),
-Listing detail (section contract + map-visibility privacy + 404 + inquiry),
-compare page, and the SEO layer (per-page metadata, hreflang, JSON-LD, noindex
-policy). Built on a **mock data layer** in `apps/web/src/data` (fixtures + a
-filter/query engine) designed to swap to `/api/v1` — nothing else changes in the
-pages when the real API lands.
+## สถานะปัจจุบัน
 
-## Conversion core (FE-3) ✅
+**หน้าจอครบทุกหน้า และต่อฐานข้อมูลจริงแล้วทั้งหมด** — ไม่มีหน้าไหนที่ยังอ่านจาก
+hardcoded array ในคอมโพเนนต์ รายละเอียด endpoint และกฎที่บังคับฝั่ง server
+อยู่ใน [`web/BACKEND.md`](./web/BACKEND.md)
 
-3-step Requirement wizard (react-hook-form + zod, search-prefill, review, success),
-Contact page + channels, and the listing-bound inquiry — all posting to a **real
-intake seam**: one shared zod schema validates on both client and server, and Next
-route handlers `POST /api/v1/public/{requirements,inquiries}` do server-side
-validation + honeypot + rate-limit and return the `{ data, meta, errors }` envelope
-(field-mapped errors). Three source channels: `contact_page`, `listing_inquiry`,
-`requirement_form`. Swap the in-memory route bodies for the CRM/DB later — the forms
-don't change.
+หัวข้อที่ยังไม่ได้ทำ (มีรายละเอียดใน `web/BACKEND.md` ท้ายไฟล์):
 
-## Admin / operations (FE-4) ✅
-
-Guarded admin app (`/admin`, single-language Thai, outside `[locale]`): mock cookie
-auth + RBAC + login (`/admin/login`), a dashboard (stat cards + pipeline funnel +
-activity/task feeds), and the **Leads workspace** — index (URL-driven filters) and
-master-detail with a status dropdown driven by the `@jkp/domain` lead **state
-machine** (`nextStatuses`), assignment, notes/tasks timeline, and a
-cancel-requirement dialog that requires a reason + field (FR-CRM-07). Interactions
-are optimistic/simulated; auth + mutations swap to real endpoints later.
-**Demo login:** any email + password → super_admin. Other admin nav entries
-(shortlists/visits/deals/properties/listings/CMS/SEO/users) are later phases and
-are not built yet.
-
-## Next up — Phase FE-5
-
-Shortlist builder + availability gate + the client shortlist token view (`/s/[token]`)
-with per-item feedback. See `FRONTEND_PLAN.md` §9.
+- **copy ภาษา EN / 中文** — โครง i18n เสร็จแล้ว (`/th /en /zh` + hreflang + สลับภาษาได้)
+  แต่ headline และเนื้อหาการตลาดภาษาอังกฤษ/จีนยังไม่มี — เป็น deliverable ของลูกค้า
+  แก้ได้ที่ `/admin/cms` โดยไม่ต้องแตะโค้ด
+- **ระบบส่งอีเมล** — เชิญผู้ใช้แล้วได้รหัสผ่านชั่วคราวมาให้ owner ส่งเอง
+- **ลายน้ำรูปอัตโนมัติ** (FR-ADM-09)
+- **dynamic route `[id]`** — หน้ารายละเอียดบางหน้ายังทำงานกับ "รายการล่าสุด"

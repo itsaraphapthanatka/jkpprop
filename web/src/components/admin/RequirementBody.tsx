@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { AdminShell } from '@/components/admin/AdminShell';
+import Link from 'next/link';
 
 /* Ported from AdminRequirement.dc.html — REQ-1042 detail page (Flow B:
    Requirement → Shortlist). Interactive: cancel-requirement modal with
@@ -123,7 +124,7 @@ export function RequirementBody() {
      satisfies the compiler — React renders the nodes correctly at runtime. */
   const eyebrowNode = (
     <>
-      <a href="/admin/leads" style={{ color: 'var(--muted2)' }}>Leads</a> / Requirement
+      <Link href="/admin/leads" style={{ color: 'var(--muted2)' }}>Leads</Link> / Requirement
     </>
   );
   const titleNode = (
@@ -196,7 +197,7 @@ export function RequirementBody() {
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 22 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>ความต้องการของลูกค้า</div>
-              <a href="/admin/leads" style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--accent)' }}>บ. ไทยโลจิสติกส์ →</a>
+              <Link href="/admin/leads" style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--accent)' }}>บ. ไทยโลจิสติกส์ →</Link>
             </div>
             <div id="req-fields" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               {REQ_FIELDS.map((f, i) => (
@@ -254,7 +255,7 @@ export function RequirementBody() {
             </div>
           </div>
 
-          <a href="/admin/shortlists" className="req-shortlist-card" style={{ background: 'var(--surface)', border: '1.5px solid #0D6C3B', borderRadius: 16, padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 14, transition: 'transform .2s,box-shadow .2s' }}>
+          <Link href="/admin/shortlists" className="req-shortlist-card" style={{ background: 'var(--surface)', border: '1.5px solid #0D6C3B', borderRadius: 16, padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 14, transition: 'transform .2s,box-shadow .2s' }}>
             <div style={{ width: 44, height: 44, borderRadius: 12, background: '#0D6C3B', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" /></svg>
             </div>
@@ -263,7 +264,7 @@ export function RequirementBody() {
               <div style={{ fontSize: 12, color: 'var(--muted)' }}>2 ทรัพย์ผ่านเงื่อนไขว่าง พร้อมคัด</div>
             </div>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-          </a>
+          </Link>
 
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 22px' }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', marginBottom: 12 }}>พื้นที่ที่ต้องการ (priority)</div>

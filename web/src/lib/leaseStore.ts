@@ -125,3 +125,35 @@ export function buildAlerts(cfg: NotifyConfig, leases: Lease[] = LEASES, now = D
 }
 
 export const unreadCount = (alerts: LeaseAlert[]) => alerts.filter((a) => !a.read).length;
+
+/* ---- API-backed loading -------------------------------------------------
+   The lease book + org thresholds now live on the server; localStorage keeps
+   working as an offline cache so the bell never renders empty (§2.2). */
+import { apiGet } from './apiClient';
+
+type ApiLease = Lease & { endDate?: string; status?: string };
+
+export async function fetchLeaseData(): Promise<{ leases: Lease[]; cfg: NotifyConfig }> {
+  try {
+    const [leaseRes, cfgRes] = await Promise.all([
+      apiGet<{ items: ApiLease[] }>('/api/leases?status=active'),
+      apiGet<NotifyConfig>('/api/notify-config'),
+    ]);
+    const leases: Lease[] = (Array.isArray(leaseRes.items) ? leaseRes.items : []).map((l) => ({
+      id: l.id, code: l.code, title: l.title, tenant: l.tenant,
+      endsInDays: typeof l.endsInDays === 'number' ? l.endsInDays : 0,
+      rent: l.rent, href: l.href || '/admin/deals',
+    }));
+    const cfg: NotifyConfig = {
+      enabled: typeof cfgRes.enabled === 'boolean' ? cfgRes.enabled : DEFAULT_NOTIFY.enabled,
+      months: Array.isArray(cfgRes.months) ? cfgRes.months : DEFAULT_NOTIFY.months,
+      includeExpired: typeof cfgRes.includeExpired === 'boolean' ? cfgRes.includeExpired : DEFAULT_NOTIFY.includeExpired,
+      readIds: Array.isArray(cfgRes.readIds) ? cfgRes.readIds : [],
+    };
+    saveNotifyConfig(cfg); // refresh the local cache
+    return { leases: leases.length ? leases : LEASES, cfg };
+  } catch {
+    // offline / not signed in → cached config + demo book
+    return { leases: LEASES, cfg: loadNotifyConfig() };
+  }
+}

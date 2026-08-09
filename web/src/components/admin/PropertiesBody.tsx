@@ -3,6 +3,10 @@
 import * as React from 'react';
 import { DynamicFieldForm } from './DynamicFieldForm';
 import { PROPERTY_TYPES, enabledPropertyTypes } from '@/lib/propertySchema';
+import { useSchemaSync } from '@/lib/schemaSync';
+import { apiGet, apiPost, apiDelete, ApiClientError } from '@/lib/apiClient';
+import { relTime } from '@/lib/leadStore';
+import Link from 'next/link';
 
 /* ============================================================
    AdminProperties.dc.html — ported <main> content (interactive):
@@ -47,16 +51,6 @@ const SUMMARY = [
   { label: 'แปลไม่ครบ 3 ภาษา', value: '12', color: '#C0392B' },
 ];
 
-const ROWS = [
-  { title: 'โกดังพร้อมสำนักงาน 2,700 ตร.ม.', code: 'JKP-SPK0042', type: 'โกดัง', typeIcon: WH_ICON, location: 'บางพลี, สมุทรปราการ', area: '2,700', listings: '2', trans: 'ครบ 3', transColor: '#0D6C3B', updated: 'วันนี้ 09:20' },
-  { title: 'โรงงาน ร.ง.4 บางนา กม.23', code: 'JKP0118', type: 'โรงงาน', typeIcon: FAC_ICON, location: 'บางนา, กรุงเทพฯ', area: '3,500', listings: '1', trans: 'ครบ 3', transColor: '#0D6C3B', updated: 'เมื่อวาน' },
-  { title: 'คลังสินค้าแหลมฉบัง โซน A', code: 'JKP-CBI0007', type: 'โกดัง', typeIcon: WH_ICON, location: 'ศรีราชา, ชลบุรี', area: '5,000', listings: '2', trans: 'ขาด ZH', transColor: '#D9A62B', updated: '2 วันก่อน' },
-  { title: 'ที่ดินอุตสาหกรรม วังน้อย', code: 'JKP-AYA0021', type: 'ที่ดิน', typeIcon: LAND_ICON, location: 'วังน้อย, อยุธยา', area: '12,000', listings: '1', trans: 'ขาด EN', transColor: '#D9A62B', updated: '3 วันก่อน' },
-  { title: 'โรงงานผลิตอาหาร นวนคร', code: 'JKP-PTE0033', type: 'โรงงาน', typeIcon: FAC_ICON, location: 'คลองหลวง, ปทุมธานี', area: '4,200', listings: '2', trans: 'ครบ 3', transColor: '#0D6C3B', updated: '4 วันก่อน' },
-  { title: 'โกดังให้เช่า มหาชัย', code: 'JKP-SKN0015', type: 'โกดัง', typeIcon: WH_ICON, location: 'เมือง, สมุทรสาคร', area: '1,800', listings: '1', trans: 'ร่าง', transColor: '#9B968D', updated: '5 วันก่อน' },
-  { title: 'โรงงาน + โกดัง ปิ่นทอง', code: 'JKP-CBI0019', type: 'โรงงาน', typeIcon: FAC_ICON, location: 'ศรีราชา, ชลบุรี', area: '6,800', listings: '2', trans: 'ครบ 3', transColor: '#0D6C3B', updated: '1 สัปดาห์ก่อน' },
-  { title: 'คลังสินค้าห้องเย็น บางปะกง', code: 'JKP-CCO0004', type: 'โกดัง', typeIcon: WH_ICON, location: 'บางปะกง, ฉะเชิงเทรา', area: '3,100', listings: '1', trans: 'ขาด ZH', transColor: '#D9A62B', updated: '1 สัปดาห์ก่อน' },
-];
 
 type FilterKey = 'type' | 'province' | 'status';
 const FILTER_DEFS: { key: FilterKey; label: string; opts: string[] }[] = [
@@ -121,20 +115,99 @@ export function PropertiesActions() {
   );
 }
 
+/* ---- API row shape (GET /api/properties) ---- */
+type ApiProperty = {
+  id: string;
+  publicCode: string;
+  typeKey: string;
+  typeLabel: string;
+  title: string;
+  status: string;
+  values: Record<string, unknown>;
+  location: string;
+  area: number | null;
+  updatedAt: number;
+};
+type ApiSummary = { total: number; published: number; draft: number; transIncomplete: number };
+
+const iconFor = (typeKey: string) =>
+  typeKey === 'factory' ? FAC_ICON : typeKey === 'land' ? LAND_ICON : WH_ICON;
+
 /* ---- main content ---- */
 export function PropertiesBody() {
   const { newOpen, setNewOpen } = useNew();
   const [tab, setTab] = React.useState('main');
   const [selType, setSelType] = React.useState('house');
   const [types, setTypes] = React.useState(PROPERTY_TYPES);
+  const schemaV = useSchemaSync();
   React.useEffect(() => {
     const en = enabledPropertyTypes();
     setTypes(en);
     setSelType((k) => (en.some((t) => t.key === k) ? k : en[0].key));
-  }, []);
+  }, [schemaV]);
   const [openMenu, setOpenMenu] = React.useState<number | null>(null);
   const [openFilter, setOpenFilter] = React.useState<FilterKey | null>(null);
   const [filterVals, setFilterVals] = React.useState<Record<FilterKey, string>>({ type: 'ทั้งหมด', province: 'ทั้งหมด', status: 'ทั้งหมด' });
+
+  /* live data — GET /api/properties with the chip filters + search */
+  const [items, setItems] = React.useState<ApiProperty[] | null>(null);
+  const [summary, setSummary] = React.useState<ApiSummary | null>(null);
+  const [q, setQ] = React.useState('');
+  const reload = React.useCallback(async (fv: Record<FilterKey, string>, query: string) => {
+    try {
+      const params = new URLSearchParams();
+      if (fv.type !== 'ทั้งหมด') params.set('type', fv.type);
+      if (fv.province !== 'ทั้งหมด') params.set('province', fv.province);
+      if (fv.status !== 'ทั้งหมด') params.set('status', fv.status);
+      if (query.trim()) params.set('q', query.trim());
+      const r = await apiGet<{ items: ApiProperty[]; summary: ApiSummary }>(`/api/properties?${params}`);
+      setItems(r.items);
+      setSummary(r.summary);
+    } catch { /* keep last data (§2.2) */ }
+  }, []);
+  React.useEffect(() => {
+    const t = window.setTimeout(() => { void reload(filterVals, q); }, q ? 300 : 0);
+    return () => window.clearTimeout(t);
+  }, [filterVals, q, reload]);
+
+  /* create-form state (values stream from DynamicFieldForm) */
+  const [newTitle, setNewTitle] = React.useState('');
+  const newVals = React.useRef<Record<string, unknown>>({});
+  const [saving, setSaving] = React.useState(false);
+  const [saveError, setSaveError] = React.useState('');
+  const saveNew = async () => {
+    if (saving) return;
+    setSaving(true);
+    setSaveError('');
+    try {
+      await apiPost('/api/properties', { typeKey: selType, title: newTitle, values: newVals.current, status: 'draft' });
+      setNewOpen(false);
+      setNewTitle('');
+      newVals.current = {};
+      await reload(filterVals, q);
+    } catch (e) {
+      setSaveError(e instanceof ApiClientError ? e.message : 'บันทึกไม่สำเร็จ กรุณาลองใหม่');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remove = async (p: ApiProperty) => {
+    if (!window.confirm(`ลบทรัพย์ ${p.publicCode} · ${p.title}?`)) return;
+    try {
+      await apiDelete(`/api/properties/${p.id}`);
+      await reload(filterVals, q);
+    } catch (e) {
+      window.alert(e instanceof ApiClientError ? e.message : 'ลบไม่สำเร็จ');
+    }
+  };
+
+  const summaryCards = [
+    { label: 'ทรัพย์ทั้งหมด', value: summary ? String(summary.total) : SUMMARY[0].value, color: '#28251D' },
+    { label: 'มีประกาศเผยแพร่', value: summary ? String(summary.published) : SUMMARY[1].value, color: '#0D6C3B' },
+    { label: 'ร่าง / รอข้อมูล', value: summary ? String(summary.draft) : SUMMARY[2].value, color: '#D9A62B' },
+    { label: 'แปลไม่ครบ 3 ภาษา', value: summary ? String(summary.transIncomplete) : SUMMARY[3].value, color: '#C0392B' },
+  ];
 
   const stopP = (e: React.MouseEvent) => e.stopPropagation();
 
@@ -142,7 +215,7 @@ export function PropertiesBody() {
     <>
       {/* SUMMARY STRIP */}
       <div style={{ display: 'flex', gap: 14, marginBottom: 18, flexWrap: 'wrap' }}>
-        {SUMMARY.map((s) => (
+        {summaryCards.map((s) => (
           <div key={s.label} style={{ flex: 1, minWidth: 160, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px' }}>
             <div style={{ fontSize: 12, color: 'var(--muted)' }}>{s.label}</div>
             <div style={{ marginTop: 4, fontSize: 24, fontWeight: 800, letterSpacing: '-.02em', color: s.color }}>{s.value}</div>
@@ -154,7 +227,7 @@ export function PropertiesBody() {
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '14px 16px', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: 40, padding: '0 14px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--border)', flex: 1, minWidth: 220 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
-          <input placeholder="ค้นหาด้วยรหัส (JKP…) หรือชื่อทรัพย์" style={{ border: 0, outline: 'none', background: 'transparent', fontSize: 13, color: 'var(--text)', flex: 1, minWidth: 0 }} />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาด้วยรหัส (JKP…) หรือชื่อทรัพย์" style={{ border: 0, outline: 'none', background: 'transparent', fontSize: 13, color: 'var(--text)', flex: 1, minWidth: 0 }} />
         </div>
         {FILTER_DEFS.map((f) => {
           const val = filterVals[f.key];
@@ -201,33 +274,37 @@ export function PropertiesBody() {
                 <th style={thBase}>ประเภท</th>
                 <th style={thBase}>ทำเล</th>
                 <th style={{ ...thBase, textAlign: 'right' }}>พื้นที่</th>
-                <th style={{ ...thBase, textAlign: 'center' }}>ประกาศ</th>
+                <th style={{ ...thBase, textAlign: 'center' }}>สถานะ</th>
                 <th style={{ ...thBase, textAlign: 'center' }}>แปล</th>
                 <th style={thBase}>อัปเดต</th>
                 <th style={{ padding: '13px 16px', width: 44 }} />
               </tr>
             </thead>
             <tbody>
-              {ROWS.map((r, i) => {
+              {(items ?? []).map((r, i) => {
                 const menuOpen = openMenu === i;
                 return (
-                  <tr key={r.code} className="prop-row" style={{ borderTop: '1px solid var(--border)', transition: 'background .15s' }}>
+                  <tr key={r.id} className="prop-row" style={{ borderTop: '1px solid var(--border)', transition: 'background .15s' }}>
                     <td style={{ padding: '14px 16px' }}><div style={{ width: 16, height: 16, borderRadius: 5, border: '1.5px solid var(--border)' }} /></td>
                     <td style={{ padding: '14px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--tint)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }} dangerouslySetInnerHTML={{ __html: r.typeIcon }} />
+                        <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--tint)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }} dangerouslySetInnerHTML={{ __html: iconFor(r.typeKey) }} />
                         <div>
                           <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', maxWidth: 280, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.title}</div>
-                          <code style={{ fontSize: '11.5px', color: '#0D6C3B', fontWeight: 700 }}>{r.code}</code>
+                          <code style={{ fontSize: '11.5px', color: '#0D6C3B', fontWeight: 700 }}>{r.publicCode}</code>
                         </div>
                       </div>
                     </td>
-                    <td style={{ padding: '14px 16px' }}><span style={{ height: 24, padding: '0 10px', borderRadius: 9999, background: 'var(--bg2,#F3F0EC)', border: '1px solid var(--border)', fontSize: '11.5px', fontWeight: 600, color: 'var(--text)', display: 'inline-flex', alignItems: 'center' }}>{r.type}</span></td>
-                    <td style={{ padding: '14px 16px', fontSize: '12.5px', color: 'var(--muted)' }}>{r.location}</td>
-                    <td style={{ padding: '14px 16px', textAlign: 'right', fontSize: '12.5px', fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: 'var(--text)' }}>{r.area}</td>
-                    <td style={{ padding: '14px 16px', textAlign: 'center' }}><span style={{ height: 22, minWidth: 22, padding: '0 7px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: '11.5px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{r.listings}</span></td>
-                    <td style={{ padding: '14px 16px', textAlign: 'center' }}><span style={{ fontSize: '11.5px', fontWeight: 700, color: r.transColor }}>{r.trans}</span></td>
-                    <td style={{ padding: '14px 16px', fontSize: 12, color: 'var(--muted3)' }}>{r.updated}</td>
+                    <td style={{ padding: '14px 16px' }}><span style={{ height: 24, padding: '0 10px', borderRadius: 9999, background: 'var(--bg2,#F3F0EC)', border: '1px solid var(--border)', fontSize: '11.5px', fontWeight: 600, color: 'var(--text)', display: 'inline-flex', alignItems: 'center' }}>{r.typeLabel}</span></td>
+                    <td style={{ padding: '14px 16px', fontSize: '12.5px', color: 'var(--muted)' }}>{r.location || '—'}</td>
+                    <td style={{ padding: '14px 16px', textAlign: 'right', fontSize: '12.5px', fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: 'var(--text)' }}>{r.area !== null ? r.area.toLocaleString('th-TH') : '—'}</td>
+                    <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                      <span style={{ height: 24, padding: '0 10px', borderRadius: 9999, fontSize: '11.5px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: r.status === 'active' ? 'rgba(13,108,59,.08)' : 'var(--bg2,#F3F0EC)', color: r.status === 'active' ? '#0D6C3B' : 'var(--muted2)' }}>
+                        {r.status === 'active' ? 'เผยแพร่' : r.status === 'draft' ? 'ร่าง' : r.status === 'hidden' ? 'ซ่อน' : 'เก็บถาวร'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '14px 16px', textAlign: 'center' }}><span style={{ fontSize: '11.5px', fontWeight: 700, color: '#9B968D' }}>—</span></td>
+                    <td style={{ padding: '14px 16px', fontSize: 12, color: 'var(--muted3)' }}>{relTime(r.updatedAt)}</td>
                     <td style={{ padding: '14px 16px', textAlign: 'center', position: 'relative' }}>
                       <div
                         onClick={(e) => { e.stopPropagation(); setOpenMenu(menuOpen ? null : i); }}
@@ -238,27 +315,40 @@ export function PropertiesBody() {
                       </div>
                       {menuOpen && (
                         <div onClick={stopP} style={{ position: 'absolute', top: 44, right: 14, zIndex: 30, width: 210, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, boxShadow: '0 20px 44px rgba(0,0,0,.18)', padding: 7, textAlign: 'left' }}>
-                          {ROW_MENU.map((mi, mIdx) =>
-                            mi.divider ? (
-                              <div key={mIdx} style={{ height: 1, background: 'var(--border)', margin: '6px 4px' }} />
-                            ) : (
-                              <a key={mIdx} href={mi.href} style={menuItemStyle(mi.danger)}>
+                          {ROW_MENU.map((mi, mIdx) => {
+                            if (mi.divider) return <div key={mIdx} style={{ height: 1, background: 'var(--border)', margin: '6px 4px' }} />;
+                            if (mi.danger) {
+                              return (
+                                <a key={mIdx} href="#" onClick={(e) => { e.preventDefault(); setOpenMenu(null); void remove(r); }} style={menuItemStyle(true)}>
+                                  <span style={{ display: 'flex', width: 16, height: 16, flexShrink: 0 }} dangerouslySetInnerHTML={{ __html: mi.icon }} />
+                                  {mi.label}
+                                </a>
+                              );
+                            }
+                            const href = mi.href === '#' ? '#' : `${mi.href}?code=${encodeURIComponent(r.publicCode)}`;
+                            return (
+                              <a key={mIdx} href={href} style={menuItemStyle(false)}>
                                 <span style={{ display: 'flex', width: 16, height: 16, flexShrink: 0 }} dangerouslySetInnerHTML={{ __html: mi.icon }} />
                                 {mi.label}
                               </a>
-                            )
-                          )}
+                            );
+                          })}
                         </div>
                       )}
                     </td>
                   </tr>
                 );
               })}
+              {items !== null && items.length === 0 && (
+                <tr style={{ borderTop: '1px solid var(--border)' }}>
+                  <td colSpan={9} style={{ padding: '28px 16px', textAlign: 'center', fontSize: 13, color: 'var(--muted3)' }}>ไม่พบทรัพย์ตามเงื่อนไขที่เลือก</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderTop: '1px solid var(--border)', flexWrap: 'wrap', rowGap: 10 }}>
-          <div style={{ fontSize: '12.5px', color: 'var(--muted)' }}>แสดง 1–8 จาก 246 ทรัพย์</div>
+          <div style={{ fontSize: '12.5px', color: 'var(--muted)' }}>แสดง {items?.length ?? 0} จาก {summary?.total ?? 0} ทรัพย์</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             <div style={{ width: 34, height: 34, borderRadius: 9, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted3)' }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M15 6l-6 6 6 6" /></svg></div>
             <div style={{ width: 34, height: 34, borderRadius: 9, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>1</div>
@@ -331,15 +421,15 @@ export function PropertiesBody() {
                     <span style={{ fontSize: '12.5px', color: 'var(--accent)' }}>รหัสตัวอย่าง: <code style={{ fontWeight: 700 }}>JKP-SPK0043</code> — ระบบสร้างให้อัตโนมัติเมื่อบันทึก</span>
                   </div>
 
-                  <div><label style={fieldLabel}>ชื่อทรัพย์ (ไทย) *</label><input placeholder="เช่น บ้านเดี่ยว 2 ชั้น หมู่บ้านเดอะแกรนด์" style={drawerInput} /></div>
+                  <div><label style={fieldLabel}>ชื่อทรัพย์ (ไทย) *</label><input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="เช่น บ้านเดี่ยว 2 ชั้น หมู่บ้านเดอะแกรนด์" style={drawerInput} /></div>
 
                   {/* schema-driven fields for the selected type */}
                   <div style={{ borderTop: '1px solid var(--border)', paddingTop: 18 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
                       <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text)' }}>รายละเอียด: {PROPERTY_TYPES.find((p) => p.key === selType)?.label}</div>
-                      <a href="/admin/field-builder" style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--accent)', textDecoration: 'none' }}>ปรับฟิลด์ที่ Field Builder →</a>
+                      <Link href="/admin/field-builder" style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--accent)', textDecoration: 'none' }}>ปรับฟิลด์ที่ Field Builder →</Link>
                     </div>
-                    <DynamicFieldForm typeKey={selType} />
+                    <DynamicFieldForm typeKey={selType} onValuesChange={(v) => { newVals.current = v; }} />
                   </div>
                 </div>
               )}
@@ -370,9 +460,10 @@ export function PropertiesBody() {
               )}
             </div>
 
-            <div style={{ padding: '16px 24px', background: 'var(--surface)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+            <div style={{ padding: '16px 24px', background: 'var(--surface)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              {saveError && <span role="alert" style={{ fontSize: 12.5, color: '#C0392B', marginRight: 'auto' }}>{saveError}</span>}
               <div onClick={() => setNewOpen(false)} style={{ height: 44, padding: '0 22px', borderRadius: 9999, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', cursor: 'pointer' }}>ยกเลิก</div>
-              <div style={{ height: 44, padding: '0 26px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>บันทึกร่าง</div>
+              <div onClick={saveNew} style={{ height: 44, padding: '0 26px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', fontSize: '13.5px', fontWeight: 700, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1 }}>{saving ? 'กำลังบันทึก…' : 'บันทึกร่าง'}</div>
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { AdminShell, AdminBreadcrumb } from '@/components/admin/AdminShell';
+import { apiGet, apiPut, apiPost, apiPatch, ApiClientError } from '@/lib/apiClient';
 import {
   ROLES, role as roleOf, PRIVILEGES, MATRIX, scopeLabel, privAllowed, initialPrivs,
   type RoleKey, type Scope, type PrivKey, type Cell,
@@ -56,6 +57,11 @@ const USERS_CSS = `
 }
 `;
 
+/* GET /api/users row */
+type ApiUser = { id: string; name: string; email: string; role: RoleKey; scope: Scope; privileges: PrivKey[]; expiresAt: string; active: boolean };
+
+const AV_COLORS: [string, string][] = [['#273c33', '#2DFB91'], ['#E8F3EC', '#0D6C3B'], ['#EEF4F3', '#034956'], ['#FBF3E1', '#9A741C'], ['#EAF3F6', '#1E5AA8'], ['#F0ECF9', '#7A3FB0'], ['#F0EEE9', '#5F5A52']];
+
 export function UsersBody() {
   const [view, setView] = React.useState<'users' | 'roles'>('users');
   const [users, setUsers] = React.useState<UserRow[]>(SEED);
@@ -63,6 +69,30 @@ export function UsersBody() {
   const [draft, setDraft] = React.useState<{ role: RoleKey; scope: Scope; privs: PrivKey[]; expires: string }>({ role: 'agent', scope: 'own', privs: [], expires: '' });
   const [inviteOpen, setInviteOpen] = React.useState(false);
   const [inviteRole, setInviteRole] = React.useState<RoleKey>('agent');
+  const [inviteEmail, setInviteEmail] = React.useState('');
+  const [inviteExpires, setInviteExpires] = React.useState('');
+  const [saving, setSaving] = React.useState(false);
+  const [idByEmail, setIdByEmail] = React.useState<Record<string, string>>({});
+
+  /* real users — GET /api/users (owner-only; other roles keep the demo rows) */
+  const reload = React.useCallback(async () => {
+    try {
+      const r = await apiGet<{ items: ApiUser[] }>('/api/users');
+      if (!Array.isArray(r.items) || !r.items.length) return;
+      setIdByEmail(Object.fromEntries(r.items.map((u) => [u.email, u.id])));
+      setUsers(r.items.map((u, i) => {
+        const [avBg, avFg] = AV_COLORS[i % AV_COLORS.length];
+        return {
+          name: u.name, email: u.email, initial: (u.name.trim()[0] || '?').toUpperCase(),
+          avBg, avFg,
+          role: u.role, scope: u.scope, privs: u.privileges,
+          expires: u.expiresAt || undefined,
+          lastLogin: '—', active: u.active,
+        };
+      }));
+    } catch { /* not owner / offline → keep demo rows (§2.2) */ }
+  }, []);
+  React.useEffect(() => { void reload(); }, [reload]);
 
   const stop = (e: React.MouseEvent) => e.stopPropagation();
   const cur = users.find((u) => u.email === editing) || null;
@@ -81,12 +111,68 @@ export function UsersBody() {
     if (!privAllowed(draft.role, p)) return;
     setDraft((d) => ({ ...d, privs: d.privs.includes(p) ? d.privs.filter((x) => x !== p) : [...d.privs, p] }));
   };
-  const saveEdit = () => {
-    if (!editing) return;
+  /* PUT the permissions — the server re-validates FORBIDDEN_PRIVS, the scope
+     lock and the co-agent expiry, so a rejection here is authoritative. */
+  const saveEdit = async () => {
+    if (!editing || saving) return;
+    const id = idByEmail[editing];
+    if (id) {
+      setSaving(true);
+      try {
+        await apiPut(`/api/users/${id}/permissions`, {
+          role: draft.role,
+          scope: draft.scope,
+          privileges: draft.privs,
+          expiresAt: roleOf(draft.role).external ? draft.expires : '',
+        });
+      } catch (e) {
+        window.alert(e instanceof ApiClientError ? e.message : 'บันทึกสิทธิ์ไม่สำเร็จ');
+        setSaving(false);
+        return;
+      }
+      setSaving(false);
+    }
     setUsers((list) => list.map((u) => (u.email === editing
       ? { ...u, role: draft.role, scope: draft.scope, privs: draft.privs, expires: roleOf(draft.role).external ? draft.expires || undefined : undefined }
       : u)));
     setEditing(null);
+  };
+
+  /* deactivating also kills that user's sessions server-side */
+  const toggleActive = async (u: UserRow) => {
+    const id = idByEmail[u.email];
+    const next = !u.active;
+    setUsers((list) => list.map((x) => (x.email === u.email ? { ...x, active: next } : x)));
+    if (!id) return;
+    try {
+      await apiPatch(`/api/users/${id}/status`, { active: next });
+    } catch (e) {
+      setUsers((list) => list.map((x) => (x.email === u.email ? { ...x, active: u.active } : x)));
+      window.alert(e instanceof ApiClientError ? e.message : 'เปลี่ยนสถานะไม่สำเร็จ');
+    }
+  };
+
+  /* v1 has no mail transport — the API returns a one-time temp password
+     for the owner to hand over in person (see /api/users/invite). */
+  const sendInvite = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const r = await apiPost<{ tempPassword: string; email: string }>('/api/users/invite', {
+        email: inviteEmail.trim(),
+        role: inviteRole,
+        expiresAt: roleOf(inviteRole).external ? inviteExpires : '',
+      });
+      window.alert(`สร้างบัญชี ${r.email} แล้ว\nรหัสผ่านชั่วคราว: ${r.tempPassword}\n(แสดงครั้งเดียว — กรุณาส่งให้ผู้ใช้และให้เปลี่ยนทันที)`);
+      setInviteOpen(false);
+      setInviteEmail('');
+      setInviteExpires('');
+      await reload();
+    } catch (e) {
+      window.alert(e instanceof ApiClientError ? e.message : 'เชิญผู้ใช้ไม่สำเร็จ');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const summary = [
@@ -171,7 +257,16 @@ export function UsersBody() {
                                 {u.privs.length} สิทธิ์
                               </span>}
                         </td>
-                        <td style={{ padding: '13px 16px', textAlign: 'center' }}><span style={u.active ? STATUS_ON : STATUS_OFF}>{u.active ? 'ใช้งาน' : 'ปิดใช้งาน'}</span></td>
+                        <td style={{ padding: '13px 16px', textAlign: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => toggleActive(u)}
+                            title={u.active ? 'คลิกเพื่อปิดใช้งาน' : 'คลิกเพื่อเปิดใช้งาน'}
+                            style={{ ...(u.active ? STATUS_ON : STATUS_OFF), border: 0, cursor: 'pointer', fontFamily: 'inherit' }}
+                          >
+                            {u.active ? 'ใช้งาน' : 'ปิดใช้งาน'}
+                          </button>
+                        </td>
                         <td style={{ padding: '13px 16px', textAlign: 'right' }}>
                           <button type="button" className="users-edit" onClick={() => openEdit(u)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 13px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" /></svg>
@@ -367,7 +462,13 @@ export function UsersBody() {
               </button>
             </div>
             <label style={{ ...fieldLabel, marginTop: 18 }}>อีเมล</label>
-            <input placeholder="name@jkp.co" style={{ width: '100%', height: 44, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: '13.5px', background: 'var(--bg)', outline: 'none', fontFamily: 'inherit' }} />
+            <input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="name@jkp.co" style={{ width: '100%', height: 44, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: '13.5px', background: 'var(--bg)', outline: 'none', fontFamily: 'inherit' }} />
+            {roleOf(inviteRole).external && (
+              <>
+                <label style={{ ...fieldLabel, marginTop: 16 }}>วันหมดอายุ (บังคับสำหรับบุคคลภายนอก)</label>
+                <input type="date" value={inviteExpires} onChange={(e) => setInviteExpires(e.target.value)} style={{ width: '100%', height: 44, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: '13.5px', background: 'var(--bg)', outline: 'none', fontFamily: 'inherit' }} />
+              </>
+            )}
             <label style={{ ...fieldLabel, marginTop: 16 }}>บทบาท (เลือก 1)</label>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {ROLES.map((r) => {
@@ -380,8 +481,8 @@ export function UsersBody() {
             </div>
             <div style={{ marginTop: 20, display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               <button type="button" onClick={() => setInviteOpen(false)} style={{ height: 44, padding: '0 20px', borderRadius: 9999, border: '1.5px solid var(--border)', background: 'var(--surface)', fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', cursor: 'pointer', fontFamily: 'inherit' }}>ยกเลิก</button>
-              <button type="button" style={{ height: 44, padding: '0 22px', borderRadius: 9999, border: 0, background: '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', gap: 7, fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z" /></svg>ส่งคำเชิญ
+              <button type="button" onClick={sendInvite} disabled={saving} style={{ height: 44, padding: '0 22px', borderRadius: 9999, border: 0, background: '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', gap: 7, fontSize: '13.5px', fontWeight: 700, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1, fontFamily: 'inherit' }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z" /></svg>{saving ? 'กำลังส่ง…' : 'ส่งคำเชิญ'}
               </button>
             </div>
           </div>
