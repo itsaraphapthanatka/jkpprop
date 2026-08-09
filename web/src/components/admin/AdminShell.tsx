@@ -7,6 +7,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { apiPost } from '@/lib/apiClient';
 import { ROLES } from '@/lib/rbac';
 import Link from 'next/link';
+import Image from 'next/image';
 
 /* ============================================================
    Shared admin CMS chrome — ported verbatim from the identical
@@ -145,8 +146,7 @@ function AdminSidebar({ active, mobileOpen, onClose }: { active?: AdminNavKey; m
     <aside id="admin-sidebar" className={mobileOpen ? 'admin-sidebar-open' : undefined} style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: 248, background: 'var(--sidebar)', display: 'flex', flexDirection: 'column', zIndex: 100 }}>
       <div style={{ padding: '22px 20px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, borderBottom: '1px solid rgba(255,255,255,.08)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/assets/jkp-logo-white.png" alt="JKP" style={{ height: 30, width: 'auto', flexShrink: 0 }} />
+          <Image width={226} height={100} src="/assets/jkp-logo-white.png" alt="JKP" style={{ height: 30, width: 'auto', flexShrink: 0 }} />
           <span style={{ fontSize: 11, fontWeight: 700, color: '#5E6B63', borderLeft: '1px solid rgba(255,255,255,.14)', paddingLeft: 9, whiteSpace: 'nowrap' }}>CMS</span>
         </div>
         <div id="admin-sidebar-close" onClick={onClose} aria-label="ปิดเมนู" style={{ display: 'none', width: 32, height: 32, borderRadius: 9999, alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'rgba(255,255,255,.08)', color: '#AEB8B1', flexShrink: 0 }}>

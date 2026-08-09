@@ -69,7 +69,7 @@ export function Steps() {
         </div>
 
         {/* cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 22, marginTop: 16 }}>
+        <div className="rs-cols-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 22, marginTop: 16 }}>
           {STEP_DEFS.map((d, i) => {
             const on = i === active;
             const ghostColor = on ? 'rgba(45,251,145,.14)' : 'rgba(40,37,29,.05)';

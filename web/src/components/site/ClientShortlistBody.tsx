@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 /* ============================================================
    Ported verbatim from ClientShortlist.dc.html — a standalone
@@ -137,8 +138,7 @@ export function ClientShortlistBody() {
       {/* TOP BAR (broker) */}
       <header style={{ background: '#0A0E0C', padding: '14px 24px' }}>
         <div style={{ maxWidth: '1080px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/assets/jkp-logo-white.png" alt="JKP Property" style={{ height: 32, width: 'auto', display: 'block' }} />
+          <Image width={226} height={100} src="/assets/jkp-logo-white.png" alt="JKP Property" style={{ height: 32, width: 'auto', display: 'block' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, height: 34, padding: '0 13px', borderRadius: 9999, background: 'rgba(45,251,145,.14)', border: '1px solid rgba(45,251,145,.3)' }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>
             <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#2DFB91' }}>ลิงก์ส่วนตัว · ไม่ต้องเข้าสู่ระบบ</span>

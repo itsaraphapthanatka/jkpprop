@@ -115,7 +115,7 @@ export function AboutBody() {
             </div>
           </div>
 
-          <div id="about-pillars" style={{ marginTop: 36, paddingTop: 32, borderTop: '1px solid var(--border)', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 28 }}>
+          <div className="rs-cols-3" id="about-pillars" style={{ marginTop: 36, paddingTop: 32, borderTop: '1px solid var(--border)', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 28 }}>
             {pillars.map((p) => (
               <div key={p.num}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted3)' }}>{p.num}</div>

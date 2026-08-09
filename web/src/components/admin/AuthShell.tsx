@@ -1,4 +1,5 @@
 import * as React from 'react';
+import Image from 'next/image';
 
 /* ============================================================
    Shared split-screen auth layout for the admin CMS (login,
@@ -52,8 +53,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
           <div style={{ position: 'absolute', bottom: -120, left: -80, width: 340, height: 340, borderRadius: 9999, background: 'radial-gradient(circle,rgba(3,73,86,.5),rgba(3,73,86,0) 70%)', pointerEvents: 'none' }} />
 
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 10 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/assets/jkp-logo-white.png" alt="JKP Property" style={{ height: 34, width: 'auto', display: 'block' }} />
+            <Image width={226} height={100} src="/assets/jkp-logo-white.png" alt="JKP Property" style={{ height: 34, width: 'auto', display: 'block' }} />
             <span style={{ fontSize: 11, fontWeight: 700, color: '#5E6B63', borderLeft: '1px solid rgba(255,255,255,.14)', paddingLeft: 10 }}>CMS</span>
           </div>
 
@@ -82,8 +82,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         <div id="auth-formpanel" style={{ background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
           <div style={{ width: '100%', maxWidth: 380 }}>
             <div id="auth-mobilelogo" style={{ display: 'none', alignItems: 'center', gap: 10, marginBottom: 26 }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/assets/jkp-logo-green.png" alt="JKP Property" style={{ height: 34, width: 'auto', display: 'block' }} />
+              <Image width={226} height={100} src="/assets/jkp-logo-green.png" alt="JKP Property" style={{ height: 34, width: 'auto', display: 'block' }} />
               <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted3)', borderLeft: '1px solid var(--border)', paddingLeft: 10 }}>CMS</span>
             </div>
             {children}

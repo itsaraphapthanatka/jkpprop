@@ -218,7 +218,7 @@ export function PropertyDetail({ property }: { property?: PublicProperty }) {
             </div>
 
             {/* QUICK SPECS */}
-            <div id="pd-specs" style={{ marginTop: 22, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+            <div className="rs-cols-4" id="pd-specs" style={{ marginTop: 22, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
               {quickSpecs.map((q) => (
                 <div key={q.label} style={{ background: 'var(--bg)', borderRadius: 14, padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>{q.icon}</div>
@@ -317,7 +317,7 @@ export function PropertyDetail({ property }: { property?: PublicProperty }) {
           <span style={{ width: 26, height: 2, background: '#273c33', borderRadius: 2 }} />
           <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>อสังหาริมทรัพย์ที่คล้ายกัน</h2>
         </div>
-        <div id="pd-related" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+        <div className="rs-cols-3" id="pd-related" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
           {related.map((r) => (
             <RelatedCard key={r.id} r={r} />
           ))}

@@ -5,6 +5,7 @@ import Link from '@/i18n/LocaleLink';
 import { useRouter, usePathname } from 'next/navigation';
 import { useLocale } from '@/i18n/LocaleLink';
 import { localizePath } from '@/i18n/config';
+import Image from 'next/image';
 
 type Lang = 'th' | 'en' | 'zh';
 
@@ -108,8 +109,7 @@ export function PropertyHeader() {
           }}
         >
           <Link href="/" style={{ display: 'flex', alignItems: 'center' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/assets/jkp-logo-green.png" alt="JKP Property" style={{ height: 42, width: 'auto', display: 'block' }} />
+            <Image width={226} height={100} src="/assets/jkp-logo-green.png" alt="JKP Property" style={{ height: 42, width: 'auto', display: 'block' }} />
           </Link>
 
           <nav style={{ display: 'flex', alignItems: 'center', gap: 26 }}>
@@ -285,8 +285,7 @@ export function PropertyHeader() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 20px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/assets/jkp-logo-green.png" alt="JKP" style={{ height: 32, width: 'auto', display: 'block' }} />
+          <Image width={226} height={100} src="/assets/jkp-logo-green.png" alt="JKP" style={{ height: 32, width: 'auto', display: 'block' }} />
           <div onClick={() => setMobileOpen(false)} style={{ width: 34, height: 34, borderRadius: 9999, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--muted)' }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M18 6L6 18M6 6l12 12" />

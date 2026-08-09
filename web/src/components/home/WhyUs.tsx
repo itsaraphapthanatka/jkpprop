@@ -65,7 +65,7 @@ export function WhyUs() {
   return (
     <div style={{ width: '100%', background: 'var(--bg)' }}>
       <section data-anim="1" style={{ maxWidth: '1200px', margin: '0 auto', padding: '88px 24px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '0.92fr 1.08fr', gap: 52, alignItems: 'center' }}>
+        <div className="rs-split-r" style={{ display: 'grid', gridTemplateColumns: '0.92fr 1.08fr', gap: 52, alignItems: 'center' }}>
           {/* image card */}
           <div style={{ position: 'relative', height: '480px', borderRadius: '20px', overflow: 'hidden', background: 'var(--bg2)', boxShadow: '0 24px 50px rgba(2,35,16,.16)' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -109,7 +109,7 @@ export function WhyUs() {
             <h2 style={{ margin: '10px 0 12px', fontSize: 34, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>เหตุผลที่ลูกค้าเลือกเรา</h2>
             <p style={{ margin: '0 0 28px', fontSize: 15, color: 'var(--muted)', lineHeight: 1.7, maxWidth: '560px' }}>เราได้รับความไว้วางใจจากทั้งนักลงทุนต่างชาติและเจ้าของทรัพย์ไทย ด้วยความเชี่ยวชาญ ความโปร่งใส และเทคโนโลยีที่ช่วยให้ทุกดีลเดินหน้าได้จริง</p>
             {/* KPI count-up strip */}
-            <div ref={kpiRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, padding: '22px 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
+            <div className="rs-cols-3" ref={kpiRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, padding: '22px 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
               {kpis.map((k, i) => (
                 <div key={i}>
                   <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--accent)', letterSpacing: '-.02em', lineHeight: 1 }}>{k.value}</div>
@@ -121,7 +121,7 @@ export function WhyUs() {
         </div>
 
         {/* feature cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 18, marginTop: 44 }}>
+        <div className="rs-cols-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 18, marginTop: 44 }}>
           {FEATURE_DEFS.map((f, i) => {
             const on = i === fhover;
             const ghost = on ? 'rgba(45,251,145,.14)' : 'rgba(40,37,29,.05)';

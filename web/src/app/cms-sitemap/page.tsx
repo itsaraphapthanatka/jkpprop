@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import * as React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export const metadata: Metadata = { title: 'CMS Sitemap · JKP Property', robots: { index: false } };
 
@@ -127,8 +128,7 @@ export default function CmsSitemapPage() {
       <header style={{ position: 'sticky', top: 0, zIndex: 200, background: 'rgba(249,248,245,.92)', WebkitBackdropFilter: 'blur(16px) saturate(1.5)', backdropFilter: 'blur(16px) saturate(1.5)', borderBottom: '1px solid var(--border)' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', height: 68, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/assets/jkp-logo-green.png" alt="JKP Property" style={{ height: 32, width: 'auto', display: 'block' }} />
+            <Image width={226} height={100} src="/assets/jkp-logo-green.png" alt="JKP Property" style={{ height: 32, width: 'auto', display: 'block' }} />
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted2)', borderLeft: '1px solid var(--border)', paddingLeft: 10 }}>CMS Sitemap</span>
           </Link>
           <Link href="/site-index" className="smx-doclink" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 38, padding: '0 16px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: 13, fontWeight: 700 }}>สารบัญทั้งหมด →</Link>
@@ -182,7 +182,7 @@ export default function CmsSitemapPage() {
 
       {/* DOMAIN GRID */}
       <section style={{ ...section, padding: '24px 24px 0' }}>
-        <div id="dom-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 16 }}>
+        <div className="rs-cols-2" id="dom-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 16 }}>
           {domains.map((dom) => (
             <div key={dom.title} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '18px 20px', borderBottom: '1px solid var(--border)', background: dom.headBg }}>

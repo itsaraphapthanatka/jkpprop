@@ -46,7 +46,7 @@ export function Certifications() {
         </div>
         <h2 style={{ margin: '0 0 8px', textAlign: 'center', fontSize: 34, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>ใบรับรองและการกำกับดูแล</h2>
         <p style={{ margin: '0 auto 44px', textAlign: 'center', maxWidth: '520px', fontSize: 15, color: 'var(--muted2)' }}>ดำเนินงานภายใต้มาตรฐานวิชาชีพและการกำกับดูแลที่ตรวจสอบได้ทุกขั้นตอน</p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+        <div className="rs-cols-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
           {certDefs.map((c, i) => {
             const on = i === chover;
             return (

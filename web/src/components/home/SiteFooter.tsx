@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import Link from '@/i18n/LocaleLink';
+import Image from 'next/image';
 
 export function SiteFooter() {
   const footerRef = useRef<HTMLElement | null>(null);
@@ -83,7 +84,7 @@ export function SiteFooter() {
         }}
       >
         <div
-          style={{
+ className="rs-footer-cols"          style={{
             maxWidth: '1200px',
             margin: '0 auto',
             padding: '96px 24px 52px',
@@ -93,8 +94,7 @@ export function SiteFooter() {
           }}
         >
           <div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/assets/jkp-logo-white.png" alt="JKP Property" style={{ height: 46, width: 'auto', display: 'block' }} />
+            <Image width={226} height={100} src="/assets/jkp-logo-white.png" alt="JKP Property" style={{ height: 46, width: 'auto', display: 'block' }} />
 
             <p style={{ margin: '16px 0 0', fontSize: 14, lineHeight: 1.7, color: '#8E8B84', maxWidth: 280 }}>
               แพลตฟอร์มนายหน้าโรงงานและโกดังอุตสาหกรรม เชื่อมนักลงทุนกับทรัพย์ที่ผ่านการคัดกรองทั่วประเทศไทย

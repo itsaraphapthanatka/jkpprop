@@ -96,7 +96,7 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
 
   return (
     <div
-      onMouseEnter={() => setHover(true)}
+ className="rs-card-third"      onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
         position: 'relative', flex: '0 0 calc(33.3333% - 16px)', background: 'var(--surface)',

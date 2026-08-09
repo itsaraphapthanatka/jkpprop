@@ -5,6 +5,7 @@ import Link from '@/i18n/LocaleLink';
 import { useRouter, usePathname } from 'next/navigation';
 import { useLocale } from '@/i18n/LocaleLink';
 import { localizePath } from '@/i18n/config';
+import Image from 'next/image';
 
 /* ============================================================
    Shared header for the content pages (About / FAQ / Contact).
@@ -125,8 +126,7 @@ export function ContentHeader({ active }: { active?: 'about' | 'faq' }) {
       >
         <div style={{ maxWidth: '1320px', margin: '0 auto', padding: '0 24px', height: '72px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/assets/jkp-logo-green.png" alt="JKP Property" style={{ height: 42, width: 'auto', display: 'block' }} />
+            <Image width={226} height={100} src="/assets/jkp-logo-green.png" alt="JKP Property" style={{ height: 42, width: 'auto', display: 'block' }} />
           </Link>
 
           <nav style={{ display: 'flex', alignItems: 'center', gap: 26 }}>
@@ -247,8 +247,7 @@ export function ContentHeader({ active }: { active?: 'about' | 'faq' }) {
         style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: '84%', maxWidth: 340, zIndex: 300, background: 'var(--bg)', display: 'flex', flexDirection: 'column', boxShadow: '-20px 0 50px rgba(0,0,0,.25)', transform: mobileOpen ? 'translateX(0)' : 'translateX(100%)', transition: 'transform .35s cubic-bezier(.2,.8,.3,1)' }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 20px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/assets/jkp-logo-green.png" alt="JKP Property" style={{ height: 32, width: 'auto', display: 'block' }} />
+          <Image width={226} height={100} src="/assets/jkp-logo-green.png" alt="JKP Property" style={{ height: 32, width: 'auto', display: 'block' }} />
           <div className="mdrawer-close" onClick={() => setMobileOpen(false)} style={{ width: 34, height: 34, borderRadius: 9999, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--muted)', transition: 'background .2s,color .2s' }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M18 6L6 18" />

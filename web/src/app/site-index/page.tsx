@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import * as React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export const metadata: Metadata = { title: 'สารบัญทั้งหมด · JKP Property', robots: { index: false } };
 
@@ -91,8 +92,7 @@ export default function SiteIndexPage() {
       <section style={{ background: 'linear-gradient(135deg,#043F20 0%,#022310 100%)', color: '#fff', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: -60, right: 60, width: 280, height: 280, borderRadius: 9999, background: 'rgba(45,251,145,.1)', pointerEvents: 'none' }} />
         <div className="wrap" style={{ padding: '52px 28px 48px', position: 'relative' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/assets/jkp-logo-white.png" alt="JKP Property" style={{ height: 42, width: 'auto', display: 'block', marginBottom: 22 }} />
+          <Image width={226} height={100} src="/assets/jkp-logo-white.png" alt="JKP Property" style={{ height: 42, width: 'auto', display: 'block', marginBottom: 22 }} />
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 30, padding: '0 14px', borderRadius: 9999, background: 'rgba(45,251,145,.14)', border: '1px solid rgba(45,251,145,.35)' }}>
             <span style={{ width: 8, height: 8, borderRadius: 9999, background: '#2DFB91' }} />
             <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#2DFB91' }}>สารบัญหน้าทั้งหมด · เว็บไซต์ + ระบบหลังบ้าน</span>

@@ -34,33 +34,10 @@ svg[fill="none"] { stroke-width:1.7px !important; }
   #mobile-menu-btn { display:flex !important; }
 }
 @media (max-width:980px) {
-  header nav a:not([style*="border-radius:9999px"]) { display:none !important; }
-  [style*="grid-template-columns:0.82fr 1.18fr"] { grid-template-columns:1fr !important; }
-  [style*="grid-template-columns:0.92fr 1.08fr"] { grid-template-columns:1fr !important; }
-  [style*="grid-template-columns:1.08fr 0.92fr"] { grid-template-columns:1fr !important; }
-  [style*="grid-template-columns:repeat(3, 1fr)"] { grid-template-columns:repeat(2,1fr) !important; }
-  [style*="grid-template-columns:repeat(4, 1fr)"] { grid-template-columns:repeat(2,1fr) !important; }
-  [style*="grid-template-columns:1.4fr 1fr 1fr 1.4fr"] { grid-template-columns:1fr 1fr !important; }
-  [style*="height:52px"][style*="position:relative"] { display:none !important; }
-  [style*="height:560px"] { height:auto !important; min-height:500px !important; }
-  [style*="calc(33.3333% - 16px)"] { flex:0 0 46% !important; }
-  [style*="padding:52px 52px 52px 56px"] { padding:40px 32px !important; }
-  h1[style*="font-size:44px"] { font-size:34px !important; }
+  /* below 980px only the pill CTA survives in the desktop nav */
+  header nav a:not(.contact-btn) { display:none !important; }
 }
 @media (max-width:640px) {
-  [style*="grid-template-columns:repeat(2, 1fr)"] { grid-template-columns:1fr !important; }
-  [style*="grid-template-columns:repeat(3, 1fr)"] { grid-template-columns:1fr !important; }
-  [style*="grid-template-columns:repeat(4, 1fr)"] { grid-template-columns:1fr !important; }
-  [style*="grid-template-columns:1.4fr 1fr 1fr 1.4fr"] { grid-template-columns:1fr !important; }
-  [style*="grid-template-columns:0.82fr 1.18fr"] { grid-template-columns:1fr !important; }
-  [style*="grid-template-columns:0.92fr 1.08fr"] { grid-template-columns:1fr !important; }
-  [style*="grid-template-columns:1.08fr 0.92fr"] { grid-template-columns:1fr !important; }
-  [style*="calc(33.3333% - 16px)"] { flex:0 0 84% !important; }
-  [style*="max-width:1200px"] { padding-left:16px !important; padding-right:16px !important; }
-  [style*="padding:52px 52px 52px 56px"] { padding:32px 22px !important; }
-  h1[style*="font-size:44px"] { font-size:28px !important; }
-  h2[style*="font-size:34px"] { font-size:25px !important; }
-  h2[style*="font-size:30px"] { font-size:23px !important; }
   #hero-rotator { height:1.05em !important; vertical-align:-0.12em !important; }
   #hero-rotator span { height:1.05em !important; }
   #cta-band-grid { grid-template-columns:1fr !important; }
@@ -99,3 +76,27 @@ svg[fill="none"] { stroke-width:1.7px !important; }
 .close-btn:hover { background: #273c33; color: #fff; }
 .mdrawer-close:hover { background: #273c33; color: #fff; }
 .scroll-indicator:hover { }
+
+/* ---------------------------------------------------------------------------
+   Responsive grid helpers.
+
+   These replace `[style*="grid-template-columns:…"]` rules that matched the
+   SERIALIZED inline style string. That broke on any formatting change — and
+   had: the rule looked for "repeat(2, 1fr)" while the components emit
+   "repeat(2,1fr)", so those grids never collapsed on a phone at all.
+
+   The desktop columns stay in each component's inline style (the ported
+   design is the pixel source). Inline styles outrank a stylesheet, so the
+   breakpoint overrides still need !important — but they now key off a stable
+   class instead of a string that a reformat can silently invalidate.
+   --------------------------------------------------------------------------- */
+@media (max-width:980px) {
+  .rs-cols-3, .rs-cols-4 { grid-template-columns:repeat(2,1fr) !important; }
+  .rs-split-l, .rs-split-r { grid-template-columns:1fr !important; }
+  .rs-footer-cols { grid-template-columns:1fr 1fr !important; }
+  .rs-card-third { flex:0 0 46% !important; }
+}
+@media (max-width:640px) {
+  .rs-cols-2, .rs-cols-3, .rs-cols-4, .rs-footer-cols { grid-template-columns:1fr !important; }
+  .rs-card-third { flex:0 0 84% !important; }
+}

@@ -140,7 +140,7 @@ export function LocationFinder() {
       <section data-anim="1" style={{ maxWidth: '1200px', margin: '0 auto', padding: '88px 24px' }}>
         <div style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600, letterSpacing: '.06em', color: 'var(--accent)', textTransform: 'uppercase' }}>ทำเลยุทธศาสตร์</div>
         <h2 style={{ margin: '8px 0 40px', textAlign: 'center', fontSize: '30px', fontWeight: 700, color: 'var(--text)' }}>ค้นหาทำเลธุรกิจที่เหมาะกับคุณ</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: '0.82fr 1.18fr', gap: '32px', alignItems: 'stretch' }}>
+        <div className="rs-split-l" style={{ display: 'grid', gridTemplateColumns: '0.82fr 1.18fr', gap: '32px', alignItems: 'stretch' }}>
 
           {/* LEFT: factor selector */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

@@ -436,7 +436,7 @@ export function ListingBody({ preset = DEFAULT_PRESET }: { preset?: ListingPrese
         </aside>
 
         {/* GRID */}
-        <div id="listing-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 22 }}>
+        <div className="rs-cols-3" id="listing-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 22 }}>
           {listings.map((it) => (
             <ListingCard
               key={it.slot}

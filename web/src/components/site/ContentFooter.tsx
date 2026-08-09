@@ -1,5 +1,6 @@
 'use client';
 import Link from '@/i18n/LocaleLink';
+import Image from 'next/image';
 
 /* ============================================================
    Shared in-flow footer for the content pages (About / FAQ /
@@ -50,10 +51,9 @@ export function ContentFooter({
 
   return (
     <footer style={{ background: '#000000', color: '#C9C5BD', borderTopLeftRadius: '34px', borderTopRightRadius: '34px' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '96px 24px 52px', display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1.4fr', gap: 48 }}>
+      <div className="rs-footer-cols" style={{ maxWidth: '1200px', margin: '0 auto', padding: '96px 24px 52px', display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1.4fr', gap: 48 }}>
         <div>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/assets/jkp-logo-white.png" alt="JKP Property" style={{ height: 46, width: 'auto', display: 'block' }} />
+          <Image width={226} height={100} src="/assets/jkp-logo-white.png" alt="JKP Property" style={{ height: 46, width: 'auto', display: 'block' }} />
           <p style={{ margin: '16px 0 0', fontSize: 14, lineHeight: 1.7, color: '#8E8B84', maxWidth: 280 }}>
             แพลตฟอร์มนายหน้าโรงงานและโกดังอุตสาหกรรม เชื่อมนักลงทุนกับทรัพย์ที่ผ่านการคัดกรองทั่วประเทศไทย
           </p>
