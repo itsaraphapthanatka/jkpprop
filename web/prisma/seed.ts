@@ -113,6 +113,80 @@ async function main() {
     }
   }
 
+  // --- CMS content ---------------------------------------------------------
+  const cms: [string, string, string, string, string][] = [
+    // kind, slug, title, category, status
+    ['pages', 'home', 'หน้าแรก (Home)', 'หน้าหลัก', 'published'],
+    ['pages', 'about', 'เกี่ยวกับเรา', 'หน้าหลัก', 'published'],
+    ['pages', 'contact', 'ติดต่อเรา', 'หน้าหลัก', 'published'],
+    ['articles', 'why-port-location', 'ทำไมทำเลใกล้ท่าเรือจึงสำคัญต่อธุรกิจนำเข้า-ส่งออก', 'EEC & โลจิสติกส์', 'draft'],
+    ['articles', 'choose-warehouse', 'เลือกโกดังอย่างไรให้เหมาะกับธุรกิจ', 'คู่มือผู้เช่า', 'published'],
+    ['faq', 'rg4-license', 'ขอใบ ร.ง.4 ต้องเตรียมอะไรบ้าง', 'เอกสาร & ใบอนุญาต', 'published'],
+    ['certs', 'treba', 'สมาชิก TREBA', 'การรับรอง', 'published'],
+  ];
+  for (const [kind, slug, title, category, status] of cms) {
+    await db.cmsPage.upsert({
+      where: { orgId_kind_slug: { orgId, kind, slug } },
+      update: {},
+      create: {
+        orgId, kind, slug, title, category, status,
+        content: { th: { title, body: `<p>${title}</p>`, done: true } } as Prisma.InputJsonValue,
+      },
+    });
+  }
+
+  // --- Page sections (shared by Page Builder and the Sections screen) ------
+  const sections: [string, string, string, string, string, string][] = [
+    // pageKey, key, type, name, headline, sub
+    ['home', 'h', 'hero', 'Hero', 'ค้นหาโกดังที่เหมาะกับคุณ หรือโรงงานทั่วประเทศไทย', 'รวมรายการโรงงานและโกดังให้เช่า–ขายทั่วประเทศ'],
+    ['home', 'n', 'section', 'ทรัพย์มาใหม่', 'อสังหาริมทรัพย์ล่าสุด', 'คัดสรรทรัพย์คุณภาพที่ผ่านการตรวจสอบ'],
+    ['home', 'l', 'section', 'ค้นหาตามทำเล', 'เลือกทำเลที่ใช่', 'ครอบคลุมนิคมอุตสาหกรรมและเขต EEC'],
+    ['home', 'w', 'section', 'ทำไมต้องเรา', 'ทำไมลูกค้าเลือก JKP Property', 'ประสบการณ์ตรงในตลาดอุตสาหกรรม'],
+    ['home', 'c', 'section', 'CTA band', 'ให้เราช่วยหาทำเลให้คุณ', 'ทีมงานติดต่อกลับภายใน 24 ชั่วโมง'],
+    ['about', 'ah', 'hero', 'Hero', 'เกี่ยวกับ JKP Property', 'นายหน้าอสังหาริมทรัพย์อุตสาหกรรม'],
+    ['about', 'as', 'section', 'ทีมงาน', 'ทีมที่อยู่กับตลาดนี้มานาน', 'รู้จักพื้นที่ รู้จักเจ้าของ'],
+    ['contact', 'ch', 'hero', 'Hero', 'ติดต่อเรา', 'บอกความต้องการ แล้วให้เราหาให้'],
+    ['contact', 'cm', 'section', 'แผนที่ & ช่องทาง', 'ช่องทางติดต่อ', 'โทร อีเมล หรือกรอกแบบฟอร์ม'],
+  ];
+  for (let i = 0; i < sections.length; i++) {
+    const [pageKey, key, type, name, headline, sub] = sections[i];
+    await db.pageSection.upsert({
+      where: { orgId_pageKey_key: { orgId, pageKey, key } },
+      update: {},
+      create: {
+        orgId, pageKey, key, type, name, sort: i, enabled: true,
+        content: { th: { eyebrow: name, headline, sub } } as Prisma.InputJsonValue,
+      },
+    });
+  }
+
+  await db.branding.upsert({ where: { orgId }, update: {}, create: { orgId } });
+  await db.seoConfig.upsert({ where: { orgId }, update: {}, create: { orgId, subscribed: false } });
+
+  // --- one open shortlist / visit / deal so the pipeline pages have a record -
+  const seedProps = await db.property.findMany({ where: { orgId }, take: 2 });
+  if (seedProps.length && !(await db.shortlist.count({ where: { orgId } }))) {
+    await db.shortlist.create({
+      data: {
+        orgId, name: 'ตัวเลือกสำหรับลูกค้ารายแรก', token: 'demo-shortlist-token',
+        items: { create: seedProps.map((p, i) => ({ propertyId: p.id, sort: i })) },
+      },
+    });
+  }
+  if (seedProps.length && !(await db.visit.count({ where: { orgId } }))) {
+    await db.visit.create({
+      data: {
+        orgId, date: new Date(Date.now() + 3 * day),
+        stops: { create: seedProps.map((p, i) => ({ propertyId: p.id, sort: i })) },
+      },
+    });
+  }
+  if (!(await db.deal.count({ where: { orgId } }))) {
+    await db.deal.create({
+      data: { orgId, title: 'เช่าโกดังบางพลี — บ. ไทยโลจิสติกส์', amount: 385000, propertyId: seedProps[0]?.id ?? null },
+    });
+  }
+
   console.log('Seeded org', orgId);
   console.log('Login: owner@jkp.local / jkp12345 (manager@…, agent@… same password)');
 }

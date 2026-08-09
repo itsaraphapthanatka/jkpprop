@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { AdminShell } from '@/components/admin/AdminShell';
+import { apiGet, apiPut, ApiClientError } from '@/lib/apiClient';
 
 /* Ported from AdminSections.dc.html <main> — CMS "จัดการ Section หน้าเว็บ".
    Interactive: the topbar page tabs (หน้าแรก/เกี่ยวกับเรา/ติดต่อเรา) swap the
@@ -61,13 +62,76 @@ const sectionsCss = `
 @media (max-width:640px){ #sec-actions{flex-wrap:wrap !important;width:100% !important;row-gap:8px !important;} }
 `;
 
+/* GET /api/sections item — same table the Page Builder writes */
+type ApiSection = {
+  key: string; name: string; desc: string; enabled: boolean; img: string | null;
+  content: Record<string, { eyebrow?: string; headline?: string; sub?: string; cta?: string }>;
+};
+
 export function SectionsBody() {
   const [page, setPage] = React.useState<PageKey>('home');
   const [selected, setSelected] = React.useState(0);
-  const [on, setOn] = React.useState<Record<string, boolean>>({ s0: true, s1: true, s2: true, s3: true, s4: true, s5: true });
+  // enablement is keyed by section KEY, not list index — the old 's{i}' keys
+  // leaked toggles across pages
+  const [on, setOn] = React.useState<Record<string, boolean>>({});
+  const [apiList, setApiList] = React.useState<ApiSection[] | null>(null);
+  const [headline, setHeadline] = React.useState('');
+  const [sub, setSub] = React.useState('');
+  const [saving, setSaving] = React.useState(false);
+  const [notice, setNotice] = React.useState('');
 
-  const list = SEC_DATA[page];
-  const cur = list[selected];
+  React.useEffect(() => {
+    let alive = true;
+    apiGet<{ items: ApiSection[] }>(`/api/sections?page=${page}`)
+      .then((r) => {
+        if (!alive || !Array.isArray(r.items) || !r.items.length) { setApiList(null); return; }
+        setApiList(r.items);
+        setOn(Object.fromEntries(r.items.map((s) => [s.key, s.enabled])));
+        setSelected(0);
+      })
+      .catch(() => setApiList(null));
+    return () => { alive = false; };
+  }, [page]);
+
+  const list: Section[] = apiList
+    ? apiList.map((s) => ({
+      name: s.name,
+      desc: s.desc,
+      img: s.img ?? undefined,
+      noImage: !s.img,
+      headline: s.content?.th?.headline ?? s.name,
+      sub: s.content?.th?.sub ?? '',
+    }))
+    : SEC_DATA[page];
+  const cur = list[selected] || list[0];
+  const curKey = apiList?.[selected]?.key ?? 's' + selected;
+
+  // reload the editor fields whenever the selection or page changes
+  React.useEffect(() => { setHeadline(cur?.headline ?? ''); setSub(cur?.sub ?? ''); }, [cur]);
+
+  const saveSection = async () => {
+    if (!apiList || saving) return;
+    setSaving(true);
+    setNotice('');
+    try {
+      await apiPut('/api/sections', {
+        page,
+        sections: apiList.map((s) => ({
+          key: s.key, name: s.name, desc: s.desc, img: s.img,
+          enabled: on[s.key] !== false,
+          content: s.key === curKey
+            ? { ...s.content, th: { ...(s.content?.th ?? {}), headline, sub } }
+            : s.content,
+        })),
+      });
+      setNotice('บันทึกแล้ว');
+      window.setTimeout(() => setNotice(''), 1800);
+    } catch (e) {
+      setNotice(e instanceof ApiClientError ? e.message : 'บันทึกไม่สำเร็จ');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const actions = (
     <div id="sec-actions" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -98,7 +162,7 @@ export function SectionsBody() {
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.9"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>คลิก section เพื่อแก้รูป/ข้อความ — ลากเพื่อจัดลำดับ · เปิด/ปิดแสดงผลได้
           </div>
           {list.map((s, i) => {
-            const sk = 's' + i;
+            const sk = apiList?.[i]?.key ?? 's' + i;
             const isOn = on[sk] !== false;
             const hasImage = !s.noImage;
             const cardStyle: React.CSSProperties = {
@@ -186,9 +250,9 @@ export function SectionsBody() {
             </div>
 
             <label style={{ display: 'block', marginTop: 18, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>หัวข้อ (Headline)</label>
-            <input key={page + '-' + selected + '-h'} defaultValue={cur.headline} style={{ marginTop: 6, width: '100%', height: 44, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: '13.5px', fontWeight: 600, background: 'var(--bg)', outline: 'none' }} />
+            <input value={headline} onChange={(e) => setHeadline(e.target.value)} style={{ marginTop: 6, width: '100%', height: 44, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: '13.5px', fontWeight: 600, background: 'var(--bg)', outline: 'none' }} />
             <label style={{ display: 'block', marginTop: 14, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>คำโปรย (Subheadline)</label>
-            <textarea key={page + '-' + selected + '-s'} defaultValue={cur.sub} style={{ marginTop: 6, width: '100%', height: 70, padding: '12px 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none', resize: 'none' }} />
+            <textarea value={sub} onChange={(e) => setSub(e.target.value)} style={{ marginTop: 6, width: '100%', height: 70, padding: '12px 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none', resize: 'none' }} />
 
             <div style={{ marginTop: 16, padding: '14px 16px', borderRadius: 12, background: 'var(--tint)', display: 'flex', alignItems: 'center', gap: 10 }}>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9" style={{ flexShrink: 0 }}><path d="M12 2a7 7 0 00-7 7c0 2.4 1.2 4.2 2.5 5.3.4.3.5.8.5 1.2v1c0 .8.7 1.5 1.5 1.5h5c.8 0 1.5-.7 1.5-1.5v-1c0-.4.1-.9.5-1.2C17.8 13.2 19 11.4 19 9a7 7 0 00-7-7z" /><path d="M10 22h4" /></svg>
@@ -197,7 +261,7 @@ export function SectionsBody() {
 
             <div style={{ marginTop: 18, display: 'flex', gap: 10 }}>
               <div style={{ flex: 1, height: 44, borderRadius: 11, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: 'var(--text)', cursor: 'pointer' }}>ดูตัวอย่าง</div>
-              <div style={{ flex: 1, height: 44, borderRadius: 11, background: '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>บันทึก section</div>
+              <div onClick={saveSection} style={{ flex: 1, height: 44, borderRadius: 11, background: '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1 }}>{saving ? 'กำลังบันทึก…' : notice || 'บันทึก section'}</div>
             </div>
           </div>
         </div>

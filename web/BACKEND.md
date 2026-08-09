@@ -55,11 +55,17 @@ DATABASE_URL="postgresql://<user>@localhost:5432/jkpprop"
 | Media | `GET|POST /api/media` · `DELETE /api/media/:id` · `GET /api/media/:id/raw` |
 | Properties | `GET|POST /api/properties` · `GET|PATCH|DELETE /api/properties/:id` |
 | Leads | `POST /api/public/leads` 🔵 · `GET|POST /api/leads` · `PATCH /api/leads/:id` · `POST /api/leads/:id/{notes,tasks,reveal-contact}` |
-| Pipeline | `GET /api/listings` · `PATCH /api/listings/:code` · `GET|POST /api/shortlists` · `GET /api/public/shortlists/:token` 🔵 · `GET|POST /api/visits` · `GET|POST /api/deals` · `PATCH /api/deals/:id` |
+| Pipeline | `GET /api/listings` · `PATCH /api/listings/:code` · `GET|POST /api/shortlists` · `GET|PATCH /api/shortlists/:id` · `GET /api/public/shortlists/:token` 🔵 · `GET|POST /api/visits` · `PATCH /api/visits/:id` · `GET|POST /api/deals` · `PATCH /api/deals/:id` · `GET|POST /api/deals/:id/offers` |
 | Leases | `GET /api/leases` · `GET|PUT /api/notify-config` · `POST /api/notifications/read` |
 | Social | `GET /api/social` · `PUT /api/social/:code` · `POST|DELETE /api/social/channels` |
 | Users | `GET /api/users` · `POST /api/users/invite` · `PUT /api/users/:id/permissions` · `PATCH /api/users/:id/status` |
 | Audit | `GET /api/audit` |
+| Dashboard | `GET /api/dashboard` (การ์ดสรุป · funnel · งานค้าง · กิจกรรม · ทรัพย์ล่าสุด) |
+| CMS | `GET|POST /api/cms` · `PUT /api/cms/:id` |
+| Sections | `GET|PUT /api/sections` (ใช้ร่วมกันทั้ง Page Builder และหน้า Sections) |
+| Branding | `GET /api/branding` 🔵 · `PUT /api/branding` |
+| SEO | `GET|PUT /api/seo` · `POST|DELETE /api/seo/files/:key` · `/llms.txt` 🔵 · `/robots.txt` 🔵 |
+| Public site | `GET /api/public/listings` 🔵 · `GET /api/public/properties/:code` 🔵 |
 
 🔵 = public (rate-limited, ไม่ต้องล็อกอิน)
 
@@ -77,6 +83,10 @@ DATABASE_URL="postgresql://<user>@localhost:5432/jkpprop"
 - **publish gate** — ต้องมีชื่อทรัพย์ + รูป ≥ 1 และมีสิทธิ์ `publish`
 - **shortlist สาธารณะ** ไม่ส่งพิกัด/ข้อมูลผู้ให้เช่า/โน้ตภายใน
 - **audit log** ทุก mutation พร้อม before/after JSON
+- **ส่ง shortlist ต้องผ่าน availability gate** (FR-AVL-04) — ถ้ามีทรัพย์ที่ไม่ว่างแล้ว server ปฏิเสธพร้อมบอกรหัสทรัพย์
+- **ปิดแผนเข้าชมต้องยืนยัน gate ก่อน** — `AVAILABILITY_REQUIRED` ถ้ายังไม่ยืนยัน
+- **เผยแพร่เนื้อหา CMS ต้องมีสิทธิ์ `publish`** เช่นเดียวกับประกาศ
+- **ไฟล์ SEO รับเฉพาะ .txt ≤ 1MB** และ **สีแบรนด์ต้องเป็น `#RRGGBB`** — ตรวจฝั่ง server ไม่ใช่แค่ UI
 
 ## รูปแบบการต่อ API ฝั่ง client
 
@@ -84,4 +94,8 @@ DATABASE_URL="postgresql://<user>@localhost:5432/jkpprop"
 
 ## ยังไม่ได้ทำ
 
-CMS / Page Builder / Sections / SEO / Branding (§10 ข้อ 9) ยังเป็น mock · ระบบส่งอีเมลจริง (ตอนนี้ invite คืนรหัสผ่านชั่วคราวมาให้ owner ส่งเอง) · ลายน้ำรูป · i18n EN/ZH
+- **i18n EN/ZH** — โครงเก็บเนื้อหา 3 ภาษาพร้อมแล้ว (`CmsPage.content` / `PageSection.content` แยกตาม lang) แต่หน้าเว็บยังไม่มี `[locale]` route และค่าที่แสดงผลบางส่วนยังเป็นข้อความไทยใน payload (§11 ข้อ 4)
+- **ระบบส่งอีเมลจริง** — invite คืนรหัสผ่านชั่วคราวมาให้ owner ส่งเอง; แจ้งเตือนสัญญาเช่ายังเป็นกระดิ่งในระบบเท่านั้น (§11 ข้อ 7)
+- **ลายน้ำรูปอัตโนมัติ** (FR-ADM-09)
+- **หน้ารายละเอียดยังไม่มี dynamic route** — `/property` และหน้า admin อย่าง deal/visit/shortlist ยังทำงานกับ "รายการล่าสุด" เพราะ route ยังไม่มี `[id]`
+- **Requirements** ยังใช้ข้อมูลจาก lead โดยตรง ยังไม่มี entity แยก

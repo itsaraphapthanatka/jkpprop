@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { apiGet, apiPatch, ApiClientError } from '@/lib/apiClient';
 
 /* ============================================================
    Ported from AdminShortlist.dc.html — interactive shortlist
@@ -60,7 +61,14 @@ interface ShortlistState {
   itemCount: number;
   reorder: (fromKey: string, toKey: string) => void;
   setAvailability: (key: string, status: Avail) => void;
+  /** the tokenized client link, once the shortlist exists server-side */
+  shareUrl: string;
+  sending: boolean;
+  sent: boolean;
+  confirmSend: () => void;
 }
+
+type ApiShortlist = { id: string; name: string; token: string; url: string; status: string };
 
 const ShortlistCtx = React.createContext<ShortlistState | null>(null);
 
@@ -137,6 +145,34 @@ export function ShortlistProvider({ children }: { children: React.ReactNode }) {
     setRechecked((prev) => ({ ...prev, [key]: true }));
   };
 
+  /* the shortlist record behind this screen (no :id segment yet, so the most
+     recent open one) — gives us the real token link and the send action */
+  const [record, setRecord] = React.useState<ApiShortlist | null>(null);
+  const [sending, setSending] = React.useState(false);
+  const [sent, setSent] = React.useState(false);
+  React.useEffect(() => {
+    apiGet<{ items: ApiShortlist[] }>('/api/shortlists')
+      .then((r) => {
+        const s = r.items?.[0];
+        if (!s) return;
+        setRecord(s);
+        setSent(s.status === 'sent');
+      })
+      .catch(() => { /* none yet — the demo link stays */ });
+  }, []);
+
+  const confirmSend = () => {
+    if (sending) return;
+    if (!record) { setSendOpen(false); setSent(true); return; }
+    setSending(true);
+    // the server re-checks availability (FR-AVL-04) and refuses to send a
+    // shortlist containing a listing that is no longer on the market
+    apiPatch<ApiShortlist>(`/api/shortlists/${record.id}`, { status: 'sent' })
+      .then(() => { setSent(true); setSendOpen(false); })
+      .catch((e) => window.alert(e instanceof ApiClientError ? e.message : 'ส่ง shortlist ไม่สำเร็จ'))
+      .finally(() => setSending(false));
+  };
+
   const value: ShortlistState = {
     sendOpen,
     openSend: () => setSendOpen(true),
@@ -146,6 +182,10 @@ export function ShortlistProvider({ children }: { children: React.ReactNode }) {
     itemCount: items.length,
     reorder,
     setAvailability,
+    shareUrl: record ? `${typeof window === 'undefined' ? '' : window.location.origin}${record.url}` : 'jkp.co/s/SL-208-x9f2a1',
+    sending,
+    sent,
+    confirmSend,
   };
 
   return <ShortlistCtx.Provider value={value}>{children}</ShortlistCtx.Provider>;
@@ -296,7 +336,7 @@ function ShortlistItem({ it }: { it: ItemVal }) {
 
 /* Ported <main> content. */
 export function ShortlistMain() {
-  const { candidates, items, sendOpen, closeSend } = useShortlist();
+  const { candidates, items, sendOpen, closeSend, shareUrl, sending, sent, confirmSend } = useShortlist();
 
   return (
     <>
@@ -387,12 +427,12 @@ export function ShortlistMain() {
             <h3 style={{ margin: '16px 0 0', fontSize: 19, fontWeight: 800, color: 'var(--text)' }}>ส่ง Shortlist ให้ลูกค้า</h3>
             <p style={{ margin: '8px 0 0', fontSize: '13.5px', color: 'var(--muted)', lineHeight: 1.6 }}>ระบบจะสร้างลิงก์แบบ token (ลูกค้าเปิดได้โดยไม่ต้อง login) และเปลี่ยนสถานะเป็น <b>sent</b></p>
             <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 11, padding: '11px 14px' }}>
-              <code style={{ fontFamily: MONO, flex: 1, fontSize: 12, color: 'var(--accent)', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>jkp.co/s/SL-208-x9f2a1</code>
-              <div style={{ height: 30, padding: '0 12px', borderRadius: 8, background: 'var(--tint)', color: 'var(--accent)', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>คัดลอก</div>
+              <code style={{ fontFamily: MONO, flex: 1, fontSize: 12, color: 'var(--accent)', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{shareUrl}</code>
+              <div onClick={() => navigator.clipboard?.writeText(shareUrl)} style={{ height: 30, padding: '0 12px', borderRadius: 8, background: 'var(--tint)', color: 'var(--accent)', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>คัดลอก</div>
             </div>
             <div style={{ marginTop: 20, display: 'flex', gap: 12 }}>
               <div onClick={closeSend} style={{ flex: 1, height: 46, borderRadius: 9999, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', cursor: 'pointer' }}>ยกเลิก</div>
-              <div style={{ flex: 1, height: 46, borderRadius: 9999, background: '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>ยืนยันส่ง</div>
+              <div onClick={confirmSend} style={{ flex: 1, height: 46, borderRadius: 9999, background: '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13.5px', fontWeight: 700, cursor: sending ? 'default' : 'pointer', opacity: sending ? 0.7 : 1 }}>{sending ? 'กำลังส่ง…' : sent ? 'ส่งแล้ว' : 'ยืนยันส่ง'}</div>
             </div>
           </div>
         </div>

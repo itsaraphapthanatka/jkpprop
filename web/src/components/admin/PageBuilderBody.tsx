@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { AdminShell } from '@/components/admin/AdminShell';
+import { apiGet, apiPut, ApiClientError } from '@/lib/apiClient';
 
 /* ============================================================
    Ported from AdminPageBuilder.dc.html — interactive CMS page
@@ -29,6 +30,13 @@ interface Sec {
   credit?: string;
   creditHref?: string;
 }
+
+/* GET /api/sections item */
+type ApiSection = {
+  id: string; pageKey: string; key: string; type: string; name: string;
+  desc: string; sort: number; enabled: boolean; img: string | null;
+  content: Record<string, { eyebrow?: string; headline?: string; sub?: string; cta?: string }>;
+};
 
 type EditEntry = { headline?: string; sub?: string; cta?: string; img?: string; eyebrow?: string; on?: boolean };
 
@@ -75,6 +83,35 @@ export function PageBuilderBody() {
   const [removed, setRemoved] = React.useState<Record<string, boolean>>({});
   const [pageData, setPageData] = React.useState<Record<PageKey, Sec[]>>(INITIAL_PAGE_DATA);
 
+  const [saving, setSaving] = React.useState(false);
+  const [notice, setNotice] = React.useState('');
+
+  /* load the stored sections for this page; the ported defaults are the
+     first paint and the offline fallback (§2.1/§2.2) */
+  React.useEffect(() => {
+    let alive = true;
+    apiGet<{ items: ApiSection[] }>(`/api/sections?page=${page}`)
+      .then((r) => {
+        if (!alive || !Array.isArray(r.items) || !r.items.length) return;
+        setPageData((prev) => ({
+          ...prev,
+          [page]: r.items.map((s) => {
+            const c = s.content?.th ?? {};
+            return {
+              id: s.key, type: s.type === 'hero' ? 'hero' : 'section', name: s.name,
+              on: s.enabled, eyebrow: c.eyebrow ?? '', headline: c.headline ?? s.name,
+              sub: c.sub ?? '', cta: c.cta, img: s.img ?? '', credit: '', creditHref: '',
+            } as Sec;
+          }),
+        }));
+        setEdits({});
+        setRemoved({});
+        setSel(0);
+      })
+      .catch(() => { /* keep the ported defaults */ });
+    return () => { alive = false; };
+  }, [page]);
+
   const rawSecs = (pageData[page] || []).filter((s) => !removed[s.id]);
 
   const ov = (id: string | undefined, field: keyof EditEntry, fallback: string | undefined): string | undefined => {
@@ -87,6 +124,41 @@ export function PageBuilderBody() {
     if (!id) return;
     const key = page + '_' + id;
     setEdits((prev) => ({ ...prev, [key]: { ...(prev[key] || {}), [field]: val } }));
+  };
+
+  /* PUT the whole page — array order becomes the display order, and the
+     sections dropped here are deleted server-side */
+  const publish = async () => {
+    if (saving) return;
+    setSaving(true);
+    setNotice('');
+    try {
+      await apiPut('/api/sections', {
+        page,
+        sections: rawSecs.map((s) => ({
+          key: s.id,
+          type: s.type,
+          name: s.name,
+          enabled: (edits[page + '_' + s.id]?.on) ?? s.on,
+          img: ov(s.id, 'img', s.img) || null,
+          content: {
+            // one language at a time — the other two keep whatever is stored
+            [lang]: {
+              eyebrow: ov(s.id, 'eyebrow', s.eyebrow) ?? '',
+              headline: ov(s.id, 'headline', s.headline) ?? '',
+              sub: ov(s.id, 'sub', s.sub) ?? '',
+              cta: ov(s.id, 'cta', s.cta) ?? '',
+            },
+          },
+        })),
+      });
+      setNotice('เผยแพร่แล้ว');
+      window.setTimeout(() => setNotice(''), 1800);
+    } catch (e) {
+      setNotice(e instanceof ApiClientError ? e.message : 'บันทึกไม่สำเร็จ');
+    } finally {
+      setSaving(false);
+    }
   };
   const secOn = (s: Sec): boolean => {
     const e = edits[page + '_' + s.id];
@@ -172,8 +244,9 @@ export function PageBuilderBody() {
           <div key={p.label} onClick={p.select} style={p.style}>{p.label}</div>
         ))}
       </div>
-      <div className="admin-primary-btn" style={{ height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'transform .2s,box-shadow .2s' }}>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2"><path d="M20 6L9 17l-5-5"></path></svg>เผยแพร่
+      {notice && <span style={{ fontSize: '11.5px', fontWeight: 700, color: notice === 'เผยแพร่แล้ว' ? '#0D6C3B' : '#C0392B' }}>{notice}</span>}
+      <div onClick={publish} className="admin-primary-btn" style={{ height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1, whiteSpace: 'nowrap', transition: 'transform .2s,box-shadow .2s' }}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2"><path d="M20 6L9 17l-5-5"></path></svg>{saving ? 'กำลังบันทึก…' : 'เผยแพร่'}
       </div>
     </div>
   );

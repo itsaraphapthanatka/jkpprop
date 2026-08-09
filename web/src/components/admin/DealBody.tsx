@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
+import { apiGet, apiPost, apiPatch, ApiClientError } from '@/lib/apiClient';
 
 /* ============================================================
    Ported from AdminDeal.dc.html — Flow D "Negotiation → Deal".
@@ -20,9 +21,17 @@ interface DealCtx {
   closeDialogOpen: boolean;
   openClose: () => void;
   closeDialog: () => void;
-  confirmClose: () => void;
+  /** outcome + note are sent to the server, which locks the financials */
+  confirmClose: (outcome: string, note: string) => void;
   openUnlock: () => void;
+  /** the record being edited (null while loading or when none exists yet) */
+  dealId: string | null;
+  offers: ApiOffer[];
+  addOffer: (o: { side: string; amount: string; terms: string }) => Promise<boolean>;
 }
+
+export type ApiOffer = { id: string; side: string; amount: string; terms: string; createdAt: number };
+type ApiDeal = { id: string; title: string; amount: number; status: string; locked: boolean; note: string | null };
 
 const DealContext = createContext<DealCtx | null>(null);
 
@@ -35,16 +44,62 @@ function useDeal(): DealCtx {
 export function DealProvider({ children }: { children: React.ReactNode }) {
   const [closed, setClosed] = useState(false);
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
+  const [dealId, setDealId] = useState<string | null>(null);
+  const [offers, setOffers] = useState<ApiOffer[]>([]);
+
+  /* the route has no :id segment yet — work the most recently updated deal */
+  useEffect(() => {
+    let alive = true;
+    apiGet<{ items: ApiDeal[] }>('/api/deals')
+      .then(async (r) => {
+        const d = r.items?.[0];
+        if (!alive || !d) return;
+        setDealId(d.id);
+        setClosed(d.locked || d.status !== 'negotiating');
+        const o = await apiGet<{ items: ApiOffer[] }>(`/api/deals/${d.id}/offers`).catch(() => null);
+        if (alive && o) setOffers(o.items ?? []);
+      })
+      .catch(() => { /* no deals yet — the page stays on its demo content */ });
+    return () => { alive = false; };
+  }, []);
+
   const value: DealCtx = {
     closed,
     closeDialogOpen,
+    dealId,
+    offers,
     openClose: () => setCloseDialogOpen(true),
     closeDialog: () => setCloseDialogOpen(false),
-    confirmClose: () => {
+    confirmClose: (outcome, note) => {
       setCloseDialogOpen(false);
-      setClosed(true);
+      setClosed(true); // optimistic; the server locks the financials
+      if (!dealId) return;
+      apiPatch(`/api/deals/${dealId}`, { status: outcome === 'ไม่สำเร็จ' ? 'lost' : 'won', note })
+        .catch((e) => {
+          setClosed(false);
+          window.alert(e instanceof ApiClientError ? e.message : 'ปิดดีลไม่สำเร็จ');
+        });
     },
-    openUnlock: () => {},
+    openUnlock: () => {
+      if (!dealId) return;
+      // deal_unlock is audited with a reason — the server rejects an empty one
+      const reason = window.prompt('ระบุเหตุผลในการปลดล็อกดีล (บันทึกลง Audit log)');
+      if (!reason || !reason.trim()) return;
+      apiPatch(`/api/deals/${dealId}`, { unlock: true, reason })
+        .then(() => setClosed(false))
+        .catch((e) => window.alert(e instanceof ApiClientError ? e.message : 'ปลดล็อกไม่สำเร็จ'));
+    },
+    addOffer: async (o) => {
+      if (!dealId) return true; // demo mode — let the local timeline handle it
+      try {
+        const created = await apiPost<ApiOffer>(`/api/deals/${dealId}/offers`, o);
+        setOffers((prev) => [...prev, created]);
+        return true;
+      } catch (e) {
+        window.alert(e instanceof ApiClientError ? e.message : 'บันทึกข้อเสนอไม่สำเร็จ');
+        return false;
+      }
+    },
   };
   return <DealContext.Provider value={value}>{children}</DealContext.Provider>;
 }
@@ -130,7 +185,7 @@ const DOCS = [
 ];
 
 export default function DealBody() {
-  const { closed, closeDialogOpen, closeDialog, confirmClose } = useDeal();
+  const { closed, closeDialogOpen, closeDialog, confirmClose, dealId, offers: apiOffers, addOffer } = useDeal();
   const [addOfferOpen, setAddOfferOpen] = useState(false);
   const [offerSide, setOfferSide] = useState('ฝั่งลูกค้า');
   const [offerAmount, setOfferAmount] = useState('');
@@ -150,12 +205,17 @@ export default function DealBody() {
     { side: 'ฝั่งลูกค้า', sideStyle: sideC('#EEF4F3', '#034956'), amount: '฿375,000/ด.', terms: 'ขอกลางทาง + ประกัน 2 เดือน', time: '17 ก.ค. 09:30', dotBg: '#EEF4F3', icon: oi(PLUS, '#034956'), line: true },
     { side: 'ตกลง', sideStyle: sideC('#E8F3EC', '#0D6C3B'), amount: '฿385,000/ด.', terms: 'ตกลงราคาสุดท้าย fit-out 1.5 เดือน ประกัน 2 เดือน', time: '17 ก.ค. 16:40', dotBg: '#E8F3EC', icon: oi(CHECK, '#0D6C3B'), line: false },
   ];
-  const extra: Offer[] = extraOffers.map((o) => {
+  // once a real deal is loaded its offers ARE the timeline; the ported rows
+  // only stand in for the empty demo state
+  const extra: Offer[] = (dealId
+    ? apiOffers.map((o) => ({ side: o.side, amount: o.amount, terms: o.terms || '—' }))
+    : extraOffers
+  ).map((o) => {
     const own = o.side === 'ฝั่งเจ้าของ';
     return { side: o.side, sideStyle: sideC(own ? '#FBF3E1' : '#EEF4F3', own ? '#9A741C' : '#034956'), amount: o.amount, terms: o.terms, time: 'เมื่อสักครู่', dotBg: own ? '#FBF3E1' : '#EEF4F3', icon: oi(PLUS, own ? '#9A741C' : '#034956'), line: false };
   });
   if (extra.length) base[base.length - 1] = { ...base[base.length - 1], line: true };
-  const offers: Offer[] = base.concat(extra.map((e, i) => ({ ...e, line: i < extra.length - 1 })));
+  const offers: Offer[] = (dealId ? [] : base).concat(extra.map((e, i) => ({ ...e, line: i < extra.length - 1 })));
 
   const sideOpts = (['ฝั่งลูกค้า', 'ฝั่งเจ้าของ'] as const).map((label) => {
     const sel = offerSide === label;
@@ -166,10 +226,12 @@ export default function DealBody() {
     };
   });
 
-  const saveOffer = () => {
+  const saveOffer = async () => {
     const a = offerAmount.trim();
     if (!a) return;
-    setExtraOffers([...extraOffers, { side: offerSide, amount: a, terms: offerTerms.trim() || '—' }]);
+    const okSaved = await addOffer({ side: offerSide, amount: a, terms: offerTerms.trim() || '—' });
+    if (!okSaved) return; // server rejected (e.g. the deal is locked)
+    if (!dealId) setExtraOffers([...extraOffers, { side: offerSide, amount: a, terms: offerTerms.trim() || '—' }]);
     setOfferAmount('');
     setOfferTerms('');
     setAddOfferOpen(false);
@@ -365,7 +427,7 @@ export default function DealBody() {
             </div>
             <div style={{ marginTop: 18, display: 'flex', gap: 12 }}>
               <div onClick={closeDialog} style={{ flex: 1, height: 46, borderRadius: 9999, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', cursor: 'pointer' }}>ยกเลิก</div>
-              <div onClick={confirmClose} style={{ flex: 1, height: 46, borderRadius: 9999, background: '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>ยืนยันปิดดีล</div>
+              <div onClick={() => confirmClose(closeOutcome, closeNote)} style={{ flex: 1, height: 46, borderRadius: 9999, background: '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>ยืนยันปิดดีล</div>
             </div>
           </div>
         </div>

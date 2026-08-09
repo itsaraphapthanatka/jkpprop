@@ -207,13 +207,15 @@ model ShortlistItem {
 }
 
 model Visit {
-  id        String   @id @default(cuid())
-  orgId     String
-  leadId    String?
-  date      DateTime
-  status    String   @default("scheduled") // scheduled|done|cancelled
-  note      String?
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  orgId         String
+  leadId        String?
+  date          DateTime
+  status        String   @default("scheduled") // scheduled|done|cancelled
+  note          String?
+  // FR-AVL-04: the availability gate must be cleared before the route is usable
+  gateConfirmed Boolean  @default(false)
+  createdAt     DateTime @default(now())
 
   stops VisitStop[]
 }
@@ -225,6 +227,19 @@ model VisitStop {
   propertyId String
   sort       Int    @default(0)
   result     String? // feedback after the visit
+}
+
+// Negotiation timeline on a deal (ฝั่งลูกค้า / ฝั่งเจ้าของ / ตกลง)
+model DealOffer {
+  id        String   @id @default(cuid())
+  dealId    String
+  deal      Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  side      String // ฝั่งลูกค้า | ฝั่งเจ้าของ | ตกลง
+  amount    String // free text — "฿385,000/ด." keeps the unit the ops team types
+  terms     String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([dealId])
 }
 
 model Deal {
@@ -240,6 +255,8 @@ model Deal {
   locked     Boolean   @default(false) // financials read-only after close (deal_unlock to reopen)
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
+
+  offers DealOffer[]
 
   @@index([orgId, status])
 }
@@ -290,17 +307,79 @@ model SocialPost {
   @@id([orgId, code, channelKey])
 }
 
+// CMS content item — one row per page / article / FAQ entry / certificate.
+// The three CMS screens all read this table.
 model CmsPage {
   id        String   @id @default(cuid())
   orgId     String
-  slug      String
+  kind      String   @default("articles") // pages|articles|faq|certs
+  slug      String // base slug; the locale prefix is derived per language
   title     String
+  category  String   @default("")
   status    String   @default("draft") // draft|published
-  content   Json     @default("{}") // per-language sections
+  cover     String? // media src
+  links     String[] @default([]) // internal links shown on the article
+  // per-language body + translation completeness:
+  // { th: { title, body, done }, en: {…}, zh: {…} }
+  content   Json     @default("{}")
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
 
-  @@unique([orgId, slug])
+  @@unique([orgId, kind, slug])
+  @@index([orgId, kind])
+}
+
+// Page Builder / Sections — one canonical section row shared by both screens
+// (they were two incompatible mock shapes; this is the superset).
+model PageSection {
+  id      String  @id @default(cuid())
+  orgId   String
+  pageKey String // home|about|contact
+  key     String // stable per-page id: h, n, l, w, c, ah, as, ch, cm, custom…
+  type    String  @default("section") // hero|section
+  name    String
+  desc    String  @default("")
+  sort    Int     @default(0)
+  enabled Boolean @default(true)
+  img     String?
+  // { th: { eyebrow, headline, sub, cta }, en: {…}, zh: {…} }
+  content Json    @default("{}")
+
+  @@unique([orgId, pageKey, key])
+  @@index([orgId, pageKey])
+}
+
+// Branding — one row per tenant (12 presets live in the UI; this stores the
+// resolved values). `device` is UI-only and deliberately not persisted.
+model Branding {
+  orgId     String   @id
+  brandName String   @default("JKP Property")
+  primary   String   @default("#034956")
+  accent    String   @default("#034956")
+  neon      String   @default("#2DFB91")
+  pine      String   @default("#273c33")
+  font      String   @default("noto") // noto|plex|inter
+  radius    String   @default("md") // sharp|sm|md|round
+  logo      String? // media src
+  updatedAt DateTime @updatedAt
+}
+
+// SEO / GEO add-on: subscription flag + the two AI-readable files
+model SeoConfig {
+  orgId      String   @id
+  subscribed Boolean  @default(false)
+  updatedAt  DateTime @updatedAt
+}
+
+model SeoFile {
+  orgId      String
+  key        String // llms | robots
+  filename   String
+  sizeBytes  Int
+  body       String // .txt content, served verbatim at /llms.txt and /robots.txt
+  uploadedAt DateTime @default(now())
+
+  @@id([orgId, key])
 }
 
 // Audit log — every mutation, before/after JSON (SPEC_PACK cross-cutting rule)
