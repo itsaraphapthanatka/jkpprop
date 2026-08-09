@@ -26,16 +26,18 @@ web/
     seed.ts              # org + ผู้ใช้ + จังหวัด + เนื้อหาตัวอย่าง
   src/
     app/
+      [locale]/          # เว็บสาธารณะ /th /en /zh — home, listing, property, contact, landing pages
+      admin/             # ระบบหลังบ้าน 23 หน้า (ภาษาไทยล้วน, อยู่นอก [locale], noindex)
       api/               # API routes ทั้งหมด (auth, properties, leads, cms, …)
-      admin/             # ระบบหลังบ้าน 23 หน้า (ภาษาไทยล้วน, noindex)
-      (หน้าอื่น ๆ)        # เว็บสาธารณะ: /, /listing, /property, /contact, landing pages
+      sitemap.ts         # sitemap.xml + hreflang ครบ 3 ภาษา
       llms.txt/ robots.txt/  # route handlers เสิร์ฟไฟล์ที่อัปโหลดใน /admin/seo
+    i18n/                # locale config, dictionaries, enum labels, LocaleLink
     components/{admin,home,listing,property,site}/
     lib/
       server/            # db, auth+RBAC, audit, storage, dto — เฉพาะฝั่ง server
       apiClient.ts       # fetch wrapper ตัวเดียวที่เข้าใจ error envelope
       *.ts               # store เดิม — ตอนนี้เป็น cache ออฟไลน์ ไม่ใช่ source of truth
-    middleware.ts        # กันทุก /admin ที่ไม่มี session cookie
+    middleware.ts        # กัน /admin ที่ไม่มี session + redirect ไป locale เริ่มต้น
 design/                  # prototype .dc.html ที่ลูกค้า approve แล้ว (ต้อง reproduce ตรง)
 ```
 
@@ -77,6 +79,9 @@ npm run dev          # dev server
 npm run build        # production build (type-check ด้วย)
 npm run start        # เสิร์ฟ build
 npm run typecheck    # tsc --noEmit
+npm run lint         # eslint
+npm test             # unit tests (50)
+npm run test:api     # API tests (20) — ต้องมี dev/start server รันอยู่
 npx prisma studio    # ดู/แก้ข้อมูลในฐานข้อมูล
 ```
 
