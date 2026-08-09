@@ -10,6 +10,7 @@ Next.js 15 · App Router · React 19 · TypeScript strict · PostgreSQL + Prisma
 > | พฤติกรรม / ข้อมูล / RBAC / state | [`SPEC_PACK.md`](./SPEC_PACK.md) |
 > | สัญญาข้อมูลระหว่าง frontend กับ API | [`FRONTEND_API_SPEC.md`](./FRONTEND_API_SPEC.md) |
 > | Backend: schema · endpoints · กฎที่บังคับฝั่ง server | [`web/BACKEND.md`](./web/BACKEND.md) |
+> | เอกสาร API เปิดดู/ทดลองยิงได้ | `/admin/api-docs` · [`web/openapi.yaml`](./web/openapi.yaml) |
 > | ดีไซน์ (pixel / token / component) | [`design/`](./design/) → [`DESIGN.md`](./DESIGN.md) |
 > | ภาพรวมหน้าจอและ flow | [`JKP_Property_Handoff.md`](./JKP_Property_Handoff.md) |
 

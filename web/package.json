@@ -10,7 +10,8 @@
     "test": "tsx --test tests/unit/*.test.ts",
     "test:api": "tsx --test tests/api/*.test.mts",
     "test:all": "npm run test && npm run test:api",
-    "lint": "eslint src tests"
+    "lint": "eslint src tests",
+    "openapi": "tsx scripts/gen-openapi.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -34,7 +35,8 @@
     "prisma": "^6.19.3",
     "tsx": "^4.23.9",
     "typescript": "^5.6.3",
-    "wait-on": "^9.1.0"
+    "wait-on": "^9.1.0",
+    "yaml": "^2.9.0"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

@@ -45,6 +45,18 @@ DATABASE_URL="postgresql://<user>@localhost:5432/jkpprop"
 
 สำเร็จ → payload ตรง ๆ · ผิดพลาด → `{ error: { code, message, fields? } }` (`message` ภาษาไทยพร้อมแสดง)
 
+## เอกสาร API
+
+| ที่ | คืออะไร |
+|---|---|
+| `/admin/api-docs` | เปิดดูทุก endpoint และ **ทดลองยิง request** ด้วย session ปัจจุบัน (สิทธิ์เท่ากับตอนใช้งานจริง) |
+| `GET /api/openapi.json` | OpenAPI 3.1 · เปิดได้โดยไม่ต้องล็อกอิน |
+| `web/openapi.yaml` | ไฟล์ที่ commit ไว้ — generate ด้วย `npm run openapi` |
+
+ตัวจริงเขียนอยู่ที่ `web/src/lib/openapi.ts` และ `tests/unit/openapi.test.ts` บังคับว่า
+**ทุก route ในโค้ดต้องมีในเอกสาร และทุกอย่างในเอกสารต้องมีจริงในโค้ด** — เพิ่มหรือลบ endpoint
+โดยไม่แก้เอกสารจะทำให้ CI แดง (กันไม่ให้เอกสารหลุดจากความจริงแบบที่ README เดิมเคยเป็น)
+
 ## Endpoints
 
 | กลุ่ม | Endpoint |
