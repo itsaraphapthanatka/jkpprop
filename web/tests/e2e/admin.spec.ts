@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 /* The admin app, driven through the browser.
 
@@ -135,7 +136,9 @@ test.describe('API reference', () => {
     await page.getByText('/api/me/permissions').first().click();
     await page.getByRole('button', { name: 'ส่ง request' }).click();
 
-    await expect(page.getByText('200', { exact: true })).toBeVisible();
-    await expect(page.locator('pre')).toContainText('owner');
+    // the documentation panel lists response codes too, so assert on the
+    // result badge itself rather than on the text "200"
+    await expect(page.locator('#try-status')).toHaveText('200');
+    await expect(page.locator('#try-response')).toContainText('owner');
   });
 });

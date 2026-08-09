@@ -275,11 +275,11 @@ export function ApiDocsBody() {
                     {result && (
                       <div style={{ marginTop: 12 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ height: 20, padding: '0 8px', borderRadius: 6, background: result.status >= 200 && result.status < 300 ? '#E8F3EC' : '#F9E4E1', color: result.status >= 200 && result.status < 300 ? '#0D6C3B' : '#C0392B', fontFamily: mono, fontSize: 11, fontWeight: 800, display: 'inline-flex', alignItems: 'center' }}>
+                          <span id="try-status" style={{ height: 20, padding: '0 8px', borderRadius: 6, background: result.status >= 200 && result.status < 300 ? '#E8F3EC' : '#F9E4E1', color: result.status >= 200 && result.status < 300 ? '#0D6C3B' : '#C0392B', fontFamily: mono, fontSize: 11, fontWeight: 800, display: 'inline-flex', alignItems: 'center' }}>
                             {result.status || 'ERR'}
                           </span>
                         </div>
-                        <pre style={{ marginTop: 8, padding: 12, borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--border)', fontFamily: mono, fontSize: 11.5, lineHeight: 1.6, maxHeight: 300, overflow: 'auto', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{result.text}</pre>
+                        <pre id="try-response" style={{ marginTop: 8, padding: 12, borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--border)', fontFamily: mono, fontSize: 11.5, lineHeight: 1.6, maxHeight: 300, overflow: 'auto', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{result.text}</pre>
                       </div>
                     )}
                   </div>

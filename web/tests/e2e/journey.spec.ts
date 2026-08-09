@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 /* Journeys that cross the whole system. These are the ones worth having:
    each spans the public site, the API, the database and the admin app, so a
@@ -81,12 +82,21 @@ test('a shortlist sent to a client opens without logging in', async ({ page, req
   const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
   const headers = { cookie, 'Content-Type': 'application/json' };
 
-  const listing = await (await request.get('/api/public/listings')).json();
-  test.skip(!listing.items.length, 'no published inventory to shortlist');
+  // create the inventory this test needs instead of assuming another test
+  // left some behind — ambient data made this skip at random
+  const prop = await (await request.post('/api/properties', {
+    headers,
+    data: {
+      typeKey: 'warehouse',
+      title: `ทดสอบ shortlist ${Date.now()}`,
+      status: 'active',
+      values: { province: 'ชลบุรี', price_rent: 99000, photos: ['/api/media/demo/raw'] },
+    },
+  })).json();
 
   const shortlist = await (await request.post('/api/shortlists', {
     headers,
-    data: { name: `ทดสอบส่งลูกค้า ${Date.now()}`, codes: [listing.items[0].code] },
+    data: { name: `ทดสอบส่งลูกค้า ${Date.now()}`, codes: [prop.publicCode] },
   })).json();
 
   // the client view uses only the token — no session at all
@@ -94,8 +104,10 @@ test('a shortlist sent to a client opens without logging in', async ({ page, req
   const clientPage = await anon.newPage();
   await clientPage.goto(`/client-shortlist?token=${shortlist.token}`);
   await expect(clientPage.getByText('ลิงก์ส่วนตัว · ไม่ต้องเข้าสู่ระบบ')).toBeVisible();
-  await expect(clientPage.locator('body')).toContainText(listing.items[0].code);
+  await expect(clientPage.locator('body')).toContainText(prop.publicCode);
   await anon.close();
+
+  await request.delete(`/api/properties/${prop.id}`, { headers });
 });
 
 test('an uploaded photo is watermarked before the public ever sees it', async ({ page, request }) => {
