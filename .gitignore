@@ -38,3 +38,7 @@ yarn-error.log*
 # Zip files
 *.zip
 web/uploads/
+
+# Playwright
+web/test-results/
+web/playwright-report/

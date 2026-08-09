@@ -101,6 +101,17 @@ DATABASE_URL="postgresql://<user>@localhost:5432/jkpprop"
 - **เผยแพร่เนื้อหา CMS ต้องมีสิทธิ์ `publish`** เช่นเดียวกับประกาศ
 - **ไฟล์ SEO รับเฉพาะ .txt ≤ 1MB** และ **สีแบรนด์ต้องเป็น `#RRGGBB`** — ตรวจฝั่ง server ไม่ใช่แค่ UI
 
+## การทดสอบ
+
+| ชุด | จำนวน | ครอบอะไร |
+|---|---:|---|
+| `npm test` | 57 | ตรรกะล้วน — ตาราง privilege, milestone แจ้งเตือน, การกัน internalOnly หลุด, i18n, OpenAPI drift |
+| `npm run test:api` | 25 | ยิง HTTP จริง — auth, RBAC, PII masking, publish gate, availability gate, deal lock, ลายน้ำ |
+| `npm run test:e2e` | 48 | ขับ Chromium จริง (desktop + mobile) — guard, ฟอร์ม, การเรนเดอร์ทุกหน้า, วงจรข้ามระบบ |
+
+ชุด e2e จับสิ่งที่อีกสองชุดมองไม่เห็น: ปุ่มที่ไม่มี handler, ฟอร์มที่กดแล้วไม่ส่ง,
+hydration mismatch, หน้าที่ crash และ layout ที่ล้นจอบนมือถือ
+
 ## รูปแบบการต่อ API ฝั่ง client
 
 `src/lib/apiClient.ts` เป็นตัวเดียวที่เข้าใจ error envelope · store เดิมใน `src/lib/*.ts` ยังอยู่ในฐานะ **cache แบบออฟไลน์** (ถ้า API ล่ม UI ไม่พังและไม่ว่างเปล่า ตาม §2.2) · ทุก loader ยังอ่านค่าใน `useEffect` ไม่ใช่ตอน render เพื่อกัน hydration mismatch (§2.1)

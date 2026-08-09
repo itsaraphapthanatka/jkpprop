@@ -81,8 +81,10 @@ npm run build        # production build (type-check ด้วย)
 npm run start        # เสิร์ฟ build
 npm run typecheck    # tsc --noEmit
 npm run lint         # eslint
-npm test             # unit tests (50)
-npm run test:api     # API tests (20) — ต้องมี dev/start server รันอยู่
+npm test             # unit tests (57) — ตรรกะล้วน ไม่ต้องมี server
+npm run test:api     # API tests (25) — ยิงผ่าน HTTP จริง
+npm run test:e2e     # browser tests (48) — ขับ Chromium จริง desktop + mobile
+npm run test:e2e:ui  # เปิด Playwright UI ไล่ดูทีละ step
 npx prisma studio    # ดู/แก้ข้อมูลในฐานข้อมูล
 ```
 
