@@ -280,6 +280,58 @@ describe('pipeline gates', () => {
   });
 });
 
+describe('watermarking (FR-ADM-09)', () => {
+  /* a 4x4 PNG is enough: the point is that the served bytes differ from the
+     stored ones, and that the original needs a session */
+  const tinyPng = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAFUlEQVR42mNk+M9QzwAFjDAGACwLA/8AAAAASUVORK5CYII=',
+    'base64',
+  );
+
+  const upload = async (watermarkType: string) => {
+    const form = new FormData();
+    form.append('file', new File([new Uint8Array(tinyPng)], 'wm.png', { type: 'image/png' }));
+    form.append('watermarkType', watermarkType);
+    const res = await fetch(`${BASE}/api/media`, { method: 'POST', headers: { cookie: jar.owner }, body: form });
+    assert.equal(res.status, 200, 'upload should succeed');
+    return (await res.json()) as { id: string; watermarkType: string };
+  };
+
+  test('a watermarked upload serves different bytes than it stores', { skip: skip() }, async () => {
+    const asset = await upload('corner');
+    assert.equal(asset.watermarkType, 'corner');
+
+    const shown = Buffer.from(await (await call(`/api/media/${asset.id}/raw`)).arrayBuffer());
+    const original = Buffer.from(await (await call(`/api/media/${asset.id}/raw?original=1`, jar.owner)).arrayBuffer());
+    assert.ok(!shown.equals(original), 'the public file must not be the original');
+    assert.ok(original.equals(tinyPng), 'the stored original must be untouched');
+
+    await call(`/api/media/${asset.id}`, jar.owner, { method: 'DELETE' });
+  });
+
+  test('the original is not reachable without a session', { skip: skip() }, async () => {
+    const asset = await upload('tiled');
+    assert.equal((await call(`/api/media/${asset.id}/raw?original=1`)).status, 401);
+    assert.equal((await call(`/api/media/${asset.id}/raw`)).status, 200, 'the watermarked file stays public');
+    await call(`/api/media/${asset.id}`, jar.owner, { method: 'DELETE' });
+  });
+
+  test('none leaves the file alone', { skip: skip() }, async () => {
+    const asset = await upload('none');
+    const shown = Buffer.from(await (await call(`/api/media/${asset.id}/raw`)).arrayBuffer());
+    assert.ok(shown.equals(tinyPng));
+    await call(`/api/media/${asset.id}`, jar.owner, { method: 'DELETE' });
+  });
+
+  test('an unknown watermark style is rejected', { skip: skip() }, async () => {
+    const form = new FormData();
+    form.append('file', new File([new Uint8Array(tinyPng)], 'wm.png', { type: 'image/png' }));
+    form.append('watermarkType', 'rainbow');
+    const res = await fetch(`${BASE}/api/media`, { method: 'POST', headers: { cookie: jar.owner }, body: form });
+    assert.equal(res.status, 400);
+  });
+});
+
 describe('input validation the UI only advertises', () => {
   test('at least one property type must stay enabled', { skip: skip() }, async () => {
     const res = await call('/api/property-types/config', jar.owner, {

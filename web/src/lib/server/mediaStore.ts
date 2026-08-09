@@ -27,6 +27,10 @@ export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // "สูงสุด 10MB �
 
 export const objectKey = (id: string, mime: string) => `${id}.${EXT_BY_MIME[mime] ?? 'bin'}`;
 
+/* FR-ADM-09 keeps the untouched file next to the watermarked one: `objectKey`
+   is what the public sees, `originalKey` is what admins can still download. */
+export const originalKey = (id: string, mime: string) => `${id}-original.${EXT_BY_MIME[mime] ?? 'bin'}`;
+
 /** legacy name kept so existing imports keep working */
 export const diskPathFor = (id: string, mime: string) => path.join(UPLOAD_DIR, objectKey(id, mime));
 
@@ -106,8 +110,7 @@ export async function ensureUploadDir() {
   await mkdir(UPLOAD_DIR, { recursive: true });
 }
 
-export async function putObject(id: string, mime: string, body: Buffer) {
-  const key = objectKey(id, mime);
+export async function putObject(id: string, mime: string, body: Buffer, key = objectKey(id, mime)) {
   if (!usingS3) {
     await ensureUploadDir();
     await writeFile(path.join(UPLOAD_DIR, key), body);
@@ -117,16 +120,14 @@ export async function putObject(id: string, mime: string, body: Buffer) {
   if (!res.ok) throw new Error(`S3 upload failed: ${res.status} ${await res.text().catch(() => '')}`);
 }
 
-export async function getObject(id: string, mime: string): Promise<Buffer | null> {
-  const key = objectKey(id, mime);
+export async function getObject(id: string, mime: string, key = objectKey(id, mime)): Promise<Buffer | null> {
   if (!usingS3) return readFile(path.join(UPLOAD_DIR, key)).catch(() => null);
   const res = await signedFetch('GET', key);
   if (!res.ok) return null;
   return Buffer.from(await res.arrayBuffer());
 }
 
-export async function removeObject(id: string, mime: string) {
-  const key = objectKey(id, mime);
+export async function removeObject(id: string, mime: string, key = objectKey(id, mime)) {
   if (!usingS3) {
     await unlink(path.join(UPLOAD_DIR, key)).catch(() => { /* already gone */ });
     return;

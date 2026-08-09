@@ -57,6 +57,9 @@ export function MediaBody() {
   const [totalBytes, setTotalBytes] = React.useState(0);
   const [busy, setBusy] = React.useState('');
   const [error, setError] = React.useState('');
+  // FR-ADM-09: the style is chosen at upload time and baked into the file
+  // that gets served publicly
+  const [watermark, setWatermark] = React.useState<'none' | 'corner' | 'tiled'>('corner');
   const fileInput = React.useRef<HTMLInputElement | null>(null);
 
   const reload = React.useCallback(async () => {
@@ -75,6 +78,7 @@ export function MediaBody() {
       try {
         const form = new FormData();
         form.append('file', f);
+        form.append('watermarkType', watermark);
         await apiFetch('/api/media', { method: 'POST', body: form });
       } catch (e) {
         setError(e instanceof ApiClientError ? e.message : `อัปโหลด ${f.name} ไม่สำเร็จ`);
@@ -160,6 +164,23 @@ export function MediaBody() {
               <div key={label} onClick={() => setTag(i)} style={style}>{label}</div>
             );
           })}
+        </div>
+
+        {/* watermark style — applied before the file is served publicly */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--muted)' }}>ลายน้ำตอนอัปโหลด</span>
+          {([['corner', 'มุมภาพ'], ['tiled', 'ทั้งภาพ'], ['none', 'ไม่ใส่']] as const).map(([key, label]) => {
+            const on = watermark === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setWatermark(key)}
+                style={{ height: 32, padding: '0 13px', borderRadius: 9999, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? 'rgba(13,108,59,.06)' : 'var(--surface)', color: on ? '#0D6C3B' : 'var(--text)' }}
+              >{label}</button>
+            );
+          })}
+          <span style={{ fontSize: 11, color: 'var(--muted3)' }}>ไฟล์ต้นฉบับถูกเก็บไว้ให้ทีมงานเสมอ · หน้าเว็บเห็นเฉพาะไฟล์ที่ใส่ลายน้ำแล้ว</span>
         </div>
 
         {/* upload dropzone — click to pick, or drop files */}

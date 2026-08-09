@@ -4,7 +4,7 @@ import { ok, handler, ApiError } from '@/lib/server/api';
 import { requireUser, requireRole } from '@/lib/server/auth';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
-import { removeObject } from '@/lib/server/mediaStore';
+import { removeObject, originalKey } from '@/lib/server/mediaStore';
 
 export const runtime = 'nodejs';
 
@@ -18,6 +18,7 @@ export const DELETE = handler(async (_req: Request, ctx: { params: Promise<{ id:
 
   await db.mediaAsset.delete({ where: { id } });
   await removeObject(asset.id, asset.mime);
+  await removeObject(asset.id, asset.mime, originalKey(asset.id, asset.mime));
 
   await audit({
     user, orgId: user.orgId, action: 'media.delete', entity: 'mediaAsset', entityId: id,

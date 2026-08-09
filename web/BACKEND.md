@@ -77,6 +77,7 @@ DATABASE_URL="postgresql://<user>@localhost:5432/jkpprop"
 - **`internalOnly`** ถูกตัดออกถ้าไม่มีสิทธิ์ `internal_note` และ**ตัดออกเสมอ**บน endpoint สาธารณะ
 - **`co_agent.expiresAt`** ตรวจทุก request (หมดอายุ = ปฏิเสธทันที ไม่รอ cron)
 - **`export`** = owner เท่านั้น
+- **ลายน้ำ (FR-ADM-09)** — เลือกได้ 2 แบบตอนอัปโหลด (`corner` มุมภาพ / `tiled` ทั้งภาพ) หรือ `none` · **หน้าเว็บเห็นเฉพาะไฟล์ที่ใส่ลายน้ำแล้ว** ต้นฉบับเก็บแยกและขอได้ที่ `?original=1` ซึ่งต้องล็อกอิน
 - **`public_code`** ออกโดย server จากจังหวัด (`JKP0001` / `JKP-SPK0042`) ผ่านตัวนับต่อ prefix · แก้ไม่ได้หลังสร้าง
 - **lead pipeline เดินหน้าอย่างเดียว** — ถอยกลับได้เฉพาะ owner/manager
 - **ดีลที่ปิดแล้วล็อก** — แก้ต้องมีสิทธิ์ `deal_unlock` + ระบุเหตุผล + ลง audit
@@ -97,6 +98,5 @@ DATABASE_URL="postgresql://<user>@localhost:5432/jkpprop"
 - **i18n — โครงเสร็จแล้ว เหลือ "เนื้อหา"** · `[locale]` route (`/th /en /zh`) + hreflang + sitemap + ตัวสลับภาษาใช้งานได้จริง · UI chrome แปลครบ 3 ภาษาใน `src/i18n/dictionaries.ts` · ค่า option (ประเภทประกาศ / ผังเมือง / ประเภททรัพย์) แปลผ่าน `src/i18n/enums.ts` โดยไม่ต้อง migrate ข้อมูลเดิม
   **ที่ยังขาดคือ copy จริง** — headline / เนื้อหาการตลาด / คำตอบ FAQ ภาษา EN-ZH เป็น deliverable ของลูกค้า (HOME_HANDOFF_CHECKLIST §M ระบุว่า handoff ไม่มี copy จริงเลยสักภาษา) เนื้อหาพวกนี้เก็บใน CMS (`CmsPage.content` / `PageSection.content` แยกตาม lang อยู่แล้ว) แก้ที่ `/admin/cms` ไม่ใช่ในโค้ด
 - **ระบบส่งอีเมลจริง** — invite คืนรหัสผ่านชั่วคราวมาให้ owner ส่งเอง; แจ้งเตือนสัญญาเช่ายังเป็นกระดิ่งในระบบเท่านั้น (§11 ข้อ 7)
-- **ลายน้ำรูปอัตโนมัติ** (FR-ADM-09)
 - **หน้ารายละเอียดยังไม่มี dynamic route** — `/property` และหน้า admin อย่าง deal/visit/shortlist ยังทำงานกับ "รายการล่าสุด" เพราะ route ยังไม่มี `[id]`
 - **Requirements** ยังใช้ข้อมูลจาก lead โดยตรง ยังไม่มี entity แยก

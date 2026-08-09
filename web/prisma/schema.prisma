@@ -95,6 +95,10 @@ model MediaAsset {
   size       Int
   path       String // public URL path, e.g. /uploads/xxxx.webp
   uploaderId String?
+  // FR-ADM-09: two watermark styles per image. `none` keeps the file as-is;
+  // the others produce a derivative that is the ONLY thing served publicly,
+  // while the untouched original stays available to signed-in admins.
+  watermarkType String @default("none") // none | corner | tiled
   createdAt  DateTime @default(now())
 
   @@index([orgId])
