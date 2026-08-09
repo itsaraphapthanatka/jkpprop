@@ -6,6 +6,7 @@ import { PROPERTY_TYPES, enabledPropertyTypes } from '@/lib/propertySchema';
 import { useSchemaSync } from '@/lib/schemaSync';
 import { apiGet, apiPost, apiDelete, ApiClientError } from '@/lib/apiClient';
 import { relTime } from '@/lib/leadStore';
+import Link from 'next/link';
 
 /* ============================================================
    AdminProperties.dc.html — ported <main> content (interactive):
@@ -426,7 +427,7 @@ export function PropertiesBody() {
                   <div style={{ borderTop: '1px solid var(--border)', paddingTop: 18 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
                       <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text)' }}>รายละเอียด: {PROPERTY_TYPES.find((p) => p.key === selType)?.label}</div>
-                      <a href="/admin/field-builder" style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--accent)', textDecoration: 'none' }}>ปรับฟิลด์ที่ Field Builder →</a>
+                      <Link href="/admin/field-builder" style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--accent)', textDecoration: 'none' }}>ปรับฟิลด์ที่ Field Builder →</Link>
                     </div>
                     <DynamicFieldForm typeKey={selType} onValuesChange={(v) => { newVals.current = v; }} />
                   </div>

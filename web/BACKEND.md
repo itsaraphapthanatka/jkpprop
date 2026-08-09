@@ -94,7 +94,8 @@ DATABASE_URL="postgresql://<user>@localhost:5432/jkpprop"
 
 ## ยังไม่ได้ทำ
 
-- **i18n EN/ZH** — โครงเก็บเนื้อหา 3 ภาษาพร้อมแล้ว (`CmsPage.content` / `PageSection.content` แยกตาม lang) แต่หน้าเว็บยังไม่มี `[locale]` route และค่าที่แสดงผลบางส่วนยังเป็นข้อความไทยใน payload (§11 ข้อ 4)
+- **i18n — โครงเสร็จแล้ว เหลือ "เนื้อหา"** · `[locale]` route (`/th /en /zh`) + hreflang + sitemap + ตัวสลับภาษาใช้งานได้จริง · UI chrome แปลครบ 3 ภาษาใน `src/i18n/dictionaries.ts` · ค่า option (ประเภทประกาศ / ผังเมือง / ประเภททรัพย์) แปลผ่าน `src/i18n/enums.ts` โดยไม่ต้อง migrate ข้อมูลเดิม
+  **ที่ยังขาดคือ copy จริง** — headline / เนื้อหาการตลาด / คำตอบ FAQ ภาษา EN-ZH เป็น deliverable ของลูกค้า (HOME_HANDOFF_CHECKLIST §M ระบุว่า handoff ไม่มี copy จริงเลยสักภาษา) เนื้อหาพวกนี้เก็บใน CMS (`CmsPage.content` / `PageSection.content` แยกตาม lang อยู่แล้ว) แก้ที่ `/admin/cms` ไม่ใช่ในโค้ด
 - **ระบบส่งอีเมลจริง** — invite คืนรหัสผ่านชั่วคราวมาให้ owner ส่งเอง; แจ้งเตือนสัญญาเช่ายังเป็นกระดิ่งในระบบเท่านั้น (§11 ข้อ 7)
 - **ลายน้ำรูปอัตโนมัติ** (FR-ADM-09)
 - **หน้ารายละเอียดยังไม่มี dynamic route** — `/property` และหน้า admin อย่าง deal/visit/shortlist ยังทำงานกับ "รายการล่าสุด" เพราะ route ยังไม่มี `[id]`

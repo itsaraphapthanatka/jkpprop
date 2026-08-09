@@ -1,7 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import Link from '@/i18n/LocaleLink';
+import { useRouter, usePathname } from 'next/navigation';
+import { useLocale } from '@/i18n/LocaleLink';
+import { localizePath } from '@/i18n/config';
 
 type Lang = 'th' | 'en' | 'zh';
 
@@ -101,7 +104,11 @@ export function ListingHeader() {
   const [navFactory, setNavFactory] = useState(false);
   const [navWarehouse, setNavWarehouse] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
-  const [lang, setLang] = useState<Lang>('th');
+  // the URL is the source of truth for language — picking one navigates
+  const router = useRouter();
+  const pathname = usePathname();
+  const lang = useLocale() as Lang;
+  const setLang = (next: Lang) => router.push(localizePath(pathname ?? '/', next));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mFactory, setMFactory] = useState(false);
   const [mWarehouse, setMWarehouse] = useState(false);

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Gallery } from './Gallery';
 import { InquiryBox } from './InquiryBox';
-import Link from 'next/link';
+import Link from '@/i18n/LocaleLink';
 
 /* ---- responsive helper (source media queries target #pd-* ids not in globals) ---- */
 function useMaxWidth(px: number) {

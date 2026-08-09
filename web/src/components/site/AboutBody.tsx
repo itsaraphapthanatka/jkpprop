@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
-import Link from 'next/link';
+import Link from '@/i18n/LocaleLink';
 
 /* ============================================================
    Ported verbatim from About.dc.html — hero, story card + pillars,

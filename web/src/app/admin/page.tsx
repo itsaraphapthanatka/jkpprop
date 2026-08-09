@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { currentUser } from '@/lib/server/auth';
 import { buildDashboard } from '@/lib/server/dashboard';
+import Link from 'next/link';
 
 export const metadata: Metadata = { title: 'Dashboard · JKP CMS', robots: { index: false } };
 
@@ -77,7 +78,7 @@ export default async function AdminDashboardPage() {
                 <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>Lead Pipeline</div>
                 <div style={{ fontSize: 12, color: 'var(--muted2)' }}>สถานะ lead ทั้งหมดในระบบ</div>
               </div>
-              <a href="/admin/leads" style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--accent)' }}>ดู leads ทั้งหมด →</a>
+              <Link href="/admin/leads" style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--accent)' }}>ดู leads ทั้งหมด →</Link>
             </div>
             <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 11 }}>
               {data.funnel.map((f) => (

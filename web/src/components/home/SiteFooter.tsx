@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import Link from '@/i18n/LocaleLink';
 
 export function SiteFooter() {
   const footerRef = useRef<HTMLElement | null>(null);
@@ -121,19 +122,19 @@ export function SiteFooter() {
           <div>
             <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 16 }}>อสังหาริมทรัพย์</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 11, fontSize: 14 }}>
-              <a href="/factory-rent" style={{ color: '#C9C5BD' }}>โรงงานให้เช่า</a>
-              <a href="/warehouse-rent" style={{ color: '#C9C5BD' }}>โกดังให้เช่า</a>
+              <Link href="/factory-rent" style={{ color: '#C9C5BD' }}>โรงงานให้เช่า</Link>
+              <Link href="/warehouse-rent" style={{ color: '#C9C5BD' }}>โกดังให้เช่า</Link>
               <a href="#" style={{ color: '#C9C5BD' }}>ที่ดินอุตสาหกรรม</a>
-              <a href="/factory-sale" style={{ color: '#C9C5BD' }}>โรงงานขาย</a>
+              <Link href="/factory-sale" style={{ color: '#C9C5BD' }}>โรงงานขาย</Link>
             </div>
           </div>
           <div>
             <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 16 }}>บริษัท</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 11, fontSize: 14 }}>
-              <a href="/about" style={{ color: '#C9C5BD' }}>เกี่ยวกับเรา</a>
+              <Link href="/about" style={{ color: '#C9C5BD' }}>เกี่ยวกับเรา</Link>
               <a href="#" style={{ color: '#C9C5BD' }}>บริการ</a>
               <a href="#" style={{ color: '#C9C5BD' }}>บทความ</a>
-              <a href="/contact" style={{ color: '#C9C5BD' }}>ติดต่อเรา</a>
+              <Link href="/contact" style={{ color: '#C9C5BD' }}>ติดต่อเรา</Link>
             </div>
           </div>
           <div>
@@ -161,7 +162,7 @@ export function SiteFooter() {
                 กรุงเทพมหานคร, ประเทศไทย
               </div>
             </div>
-            <a
+            <Link
               href="/contact"
               onMouseEnter={contactEnter}
               onMouseLeave={contactLeave}
@@ -185,7 +186,7 @@ export function SiteFooter() {
                 <path d="M5 12h14" />
                 <path d="M13 6l6 6-6 6" />
               </svg>
-            </a>
+            </Link>
           </div>
         </div>
         <div style={{ borderTop: '1px solid rgba(255,255,255,.1)' }}>

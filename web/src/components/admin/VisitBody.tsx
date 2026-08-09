@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { apiGet, apiPatch, ApiClientError } from '@/lib/apiClient';
+import Link from 'next/link';
 
 /* Ported verbatim from AdminVisit.dc.html <main> (+ the stateful topbar
    right cluster). Visit-plan detail: criteria gate (Flow C), appointment
@@ -144,7 +145,7 @@ export function VisitBody() {
           )}
           {gatePending && (
             <div id="visit-gate-btns" style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-              <a href="/admin/requirements" style={{ height: 38, padding: '0 14px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center' }}>แก้ criteria</a>
+              <Link href="/admin/requirements" style={{ height: 38, padding: '0 14px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center' }}>แก้ criteria</Link>
               <div onClick={confirmGate} style={{ height: 38, padding: '0 16px', borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>ยืนยันไม่เปลี่ยน</div>
             </div>
           )}
@@ -249,7 +250,7 @@ export function VisitBody() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}><span style={{ fontSize: '12.5px', color: 'var(--muted)' }}>พิจารณาต่อ</span><span style={{ fontSize: 13, fontWeight: 800, color: '#D9A62B' }}>1</span></div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}><span style={{ fontSize: '12.5px', color: 'var(--muted)' }}>ไม่สนใจ</span><span style={{ fontSize: 13, fontWeight: 800, color: 'var(--muted3)' }}>1</span></div>
             </div>
-            <a href="/admin/deals" style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, height: 42, borderRadius: 11, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700 }}>ไปเจรจา (Deal)<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg></a>
+            <Link href="/admin/deals" style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, height: 42, borderRadius: 11, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700 }}>ไปเจรจา (Deal)<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg></Link>
           </div>
         </div>
       </div>

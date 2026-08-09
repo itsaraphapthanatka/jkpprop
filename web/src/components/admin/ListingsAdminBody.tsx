@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { apiGet } from '@/lib/apiClient';
 import { relTime } from '@/lib/leadStore';
+import Link from 'next/link';
 
 /* ============================================================
    AdminListings.dc.html — ported <main> content (interactive):
@@ -375,7 +376,7 @@ export function ListingsAdminBody() {
             </div>
             <div id="lc-footer" style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
               <div onClick={() => setCreateOpen(false)} style={{ height: 44, padding: '0 22px', borderRadius: 9999, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', cursor: 'pointer', whiteSpace: 'nowrap' }}>ยกเลิก</div>
-              <a href="/admin/property-edit" style={{ height: 44, padding: '0 26px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontSize: '13.5px', fontWeight: 700, whiteSpace: 'nowrap' }}>สร้างและแก้ไขต่อ<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg></a>
+              <Link href="/admin/property-edit" style={{ height: 44, padding: '0 26px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontSize: '13.5px', fontWeight: 700, whiteSpace: 'nowrap' }}>สร้างและแก้ไขต่อ<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg></Link>
             </div>
           </div>
         </div>

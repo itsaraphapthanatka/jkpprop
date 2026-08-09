@@ -5,6 +5,7 @@ import { NotificationBell } from './NotificationBell';
 import { useMe, clearMeCache } from '@/lib/useMe';
 import { apiPost } from '@/lib/apiClient';
 import { ROLES } from '@/lib/rbac';
+import Link from 'next/link';
 
 /* ============================================================
    Shared admin CMS chrome — ported verbatim from the identical
@@ -131,9 +132,9 @@ function SidebarUser() {
         <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{me ? me.name : 'กำลังโหลด…'}</div>
         <div style={{ fontSize: 11, color: '#5E6B63' }}>{roleLabel}</div>
       </div>
-      <a href="/admin/login" onClick={logout} aria-label="ออกจากระบบ" style={{ display: 'flex', flexShrink: 0, color: '#5E6B63' }}>
+      <Link href="/admin/login" onClick={logout} aria-label="ออกจากระบบ" style={{ display: 'flex', flexShrink: 0, color: '#5E6B63' }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></svg>
-      </a>
+      </Link>
     </div>
   );
 }
@@ -191,9 +192,9 @@ export function AdminTopbarDefaultActions() {
         <code style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '10.5px', color: 'var(--muted3)', border: '1px solid var(--border)', borderRadius: 5, padding: '1px 5px' }}>⌘K</code>
       </div>
       <NotificationBell />
-      <a id="admin-add-btn" href="/admin/properties" className="admin-primary-btn" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
+      <Link id="admin-add-btn" href="/admin/properties" className="admin-primary-btn" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M12 5v14M5 12h14" /></svg>เพิ่มทรัพย์
-      </a>
+      </Link>
     </div>
   );
 }

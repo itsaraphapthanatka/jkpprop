@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import * as React from 'react';
+import Link from 'next/link';
 
 export const metadata: Metadata = { title: 'สารบัญทั้งหมด · JKP Property', robots: { index: false } };
 
@@ -98,10 +99,10 @@ export default function SiteIndexPage() {
           </div>
           <h1 className="idx-h1" style={{ margin: '16px 0 10px', fontSize: 34, fontWeight: 800, letterSpacing: '-.01em' }}>JKP Property — ทุกหน้าในระบบ</h1>
           <p style={{ margin: 0, maxWidth: 620, fontSize: 15, color: '#C3FED5', lineHeight: 1.7 }}>คลิกเข้าดูได้ทุกหน้า — เว็บไซต์ (ส่วนลูกค้า) และระบบหลังบ้าน (CMS) เชื่อมโยงกันจริง แต่ละหน้ากดนำทางต่อได้</p>
-          <a href="/cms-sitemap" className="idx-cta" style={{ marginTop: 22, display: 'inline-flex', alignItems: 'center', gap: 8, height: 46, padding: '0 22px', borderRadius: 9999, background: '#2DFB91', color: '#022310', fontSize: 14, fontWeight: 800, transition: 'transform .2s,box-shadow .2s' }}>
+          <Link href="/cms-sitemap" className="idx-cta" style={{ marginTop: 22, display: 'inline-flex', alignItems: 'center', gap: 8, height: 46, padding: '0 22px', borderRadius: 9999, background: '#2DFB91', color: '#022310', fontSize: 14, fontWeight: 800, transition: 'transform .2s,box-shadow .2s' }}>
             ดูแผนผังระบบหลังบ้าน (CMS Sitemap)
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#022310" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-          </a>
+          </Link>
         </div>
       </section>
 

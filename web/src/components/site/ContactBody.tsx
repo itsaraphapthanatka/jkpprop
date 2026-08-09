@@ -1,7 +1,7 @@
 'use client';
 
 import { RequirementForm } from './RequirementForm';
-import Link from 'next/link';
+import Link from '@/i18n/LocaleLink';
 
 /* ============================================================
    Ported verbatim from Contact.dc.html — hero, info cards

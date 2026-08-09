@@ -2,6 +2,7 @@
 import * as React from 'react';
 import { loadLeads, relTime, type StoredLead } from '@/lib/leadStore';
 import { apiGet, apiPost, apiPatch, ApiClientError } from '@/lib/apiClient';
+import Link from 'next/link';
 
 /* Ported from AdminLeads.dc.html <main> — interactive leads split view:
    lead list + detail card (status/agent dropdowns), filter chips,
@@ -546,10 +547,10 @@ export function LeadsBody() {
                   ดูข้อมูลติดต่อเต็ม
                 </a>
               )}
-              <a id="lead-openreq" href="/admin/requirements" className="admin-primary-btn" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 36, padding: '0 16px', borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: '12.5px', fontWeight: 700, marginLeft: 'auto' }}>
+              <Link id="lead-openreq" href="/admin/requirements" className="admin-primary-btn" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 36, padding: '0 16px', borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: '12.5px', fontWeight: 700, marginLeft: 'auto' }}>
                 เปิด Requirement
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
-              </a>
+              </Link>
             </div>
           </div>
 
