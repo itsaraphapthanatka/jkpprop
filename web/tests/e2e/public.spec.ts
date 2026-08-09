@@ -71,6 +71,9 @@ test.describe('layout', () => {
     // silently; this is the symptom that would have caught it
     for (const path of ['/th', '/th/listing', '/th/about', '/th/contact']) {
       await page.goto(path);
+      // measure only once the webfont has landed — Thai falls back to very
+      // different metrics until then, which makes this flake per-environment
+      await page.evaluate(() => document.fonts.ready);
       const overflow = await page.evaluate(() =>
         document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(overflow, `${path} scrolls horizontally by ${overflow}px`).toBeLessThanOrEqual(1);
