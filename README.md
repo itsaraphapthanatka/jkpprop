@@ -42,7 +42,9 @@ web/
 design/                  # prototype .dc.html ที่ลูกค้า approve แล้ว (ต้อง reproduce ตรง)
 ```
 
-## เริ่มใช้งาน
+> **ขึ้น production บน VPS** — ดู [`DEPLOY.md`](./DEPLOY.md) (Docker Compose + TLS อัตโนมัติ)
+
+## เริ่มใช้งาน (เครื่องพัฒนา)
 
 ต้องมี PostgreSQL 16 และ Node 20+
 

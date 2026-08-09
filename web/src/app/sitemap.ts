@@ -7,7 +7,9 @@ import { db } from '@/lib/server/db';
 
 export const dynamic = 'force-dynamic';
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'http://localhost:3000';
+// read at runtime (this route is force-dynamic) so changing the domain does
+// not require rebuilding the image — NEXT_PUBLIC_* would be inlined at build
+const SITE = (process.env.SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
 
 /* every locale-prefixed public route */
 const STATIC_PATHS = [

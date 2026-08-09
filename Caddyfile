@@ -1,0 +1,31 @@
+# TLS is obtained and renewed automatically for {$DOMAIN}. This is not
+# optional comfort: the session cookie is issued with `secure`, so over plain
+# http a login succeeds and then every following request arrives without the
+# cookie — an endless bounce back to /admin/login.
+
+{
+	email {$TLS_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# uploaded media is content-addressed by id and never changes
+	@media path /api/media/*/raw
+	header @media Cache-Control "public, max-age=31536000, immutable"
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# uploads can be 10MB each and several at once
+	request_body {
+		max_size 25MB
+	}
+
+	reverse_proxy app:3000
+}

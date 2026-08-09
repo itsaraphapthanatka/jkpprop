@@ -1,0 +1,19 @@
+# One-shot container that brings the database up to date before the app boots.
+#
+# Kept separate from the runtime image because `prisma migrate deploy` needs
+# the CLI and the migration files, neither of which belong in a production
+# image that only has to serve requests.
+FROM node:22-slim
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
+
+COPY package.json package-lock.json ./
+COPY prisma ./prisma
+# only what the CLI needs, not the whole dependency tree
+RUN npm ci --omit=dev --ignore-scripts \
+  && npm i --no-save prisma@6 tsx bcryptjs \
+  && npx prisma generate
+
+# `migrate deploy` applies committed migrations and never prompts or resets —
+# the only safe variant against a database with real data in it
+CMD ["npx", "prisma", "migrate", "deploy"]

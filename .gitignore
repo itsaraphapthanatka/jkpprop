@@ -42,3 +42,7 @@ web/uploads/
 # Playwright
 web/test-results/
 web/playwright-report/
+
+# deploy
+.env
+backups/
