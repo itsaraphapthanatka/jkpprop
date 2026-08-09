@@ -147,9 +147,37 @@ function RelatedCard({ r }: { r: (typeof related)[number] }) {
   );
 }
 
-export function PropertyDetail() {
+/* GET /api/public/properties/:code — the headline fields. Everything below
+   the fold is still the ported design's content until the field-by-field
+   render lands; passing `property` swaps the parts that identify the record
+   so /property/<code> shows the right one. */
+export type PublicProperty = {
+  code: string; title: string; typeLabel: string; location: string;
+  area: number | null; dealType: string; priceRent: number | null; priceSale: number | null;
+};
+
+const baht = (n: number) => `฿${n.toLocaleString('th-TH')}`;
+
+export function PropertyDetail({ property }: { property?: PublicProperty }) {
   const w980 = useMaxWidth(980);
   const w640 = useMaxWidth(640);
+
+  const code = property?.code ?? 'JKP-SPK0042';
+  const heading = property?.title ?? 'โรงงานพร้อมสำนักงาน พื้นที่ 2,700 ตร.ม. ให้เช่า ที่บางนา กรุงเทพฯ';
+  const place = property?.location || 'บางนา, กรุงเทพมหานคร';
+  const isRent = property ? property.priceRent !== null : true;
+  const priceLabel = property
+    ? (isRent ? 'ราคาเช่า' : 'ราคาขาย')
+    : 'ราคาเช่า';
+  const priceValue = property
+    ? (property.priceRent !== null ? baht(property.priceRent)
+      : property.priceSale !== null ? baht(property.priceSale) : 'ติดต่อสอบถาม')
+    : '฿405,000';
+  const priceUnit = property
+    ? (property.priceRent !== null
+      ? `/ เดือน${property.area ? ` · ฿${Math.round(property.priceRent / property.area)}/ตร.ม.` : ''}`
+      : '')
+    : '/ เดือน · ฿150/ตร.ม.';
 
   return (
     <>
@@ -159,7 +187,7 @@ export function PropertyDetail() {
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted3)" strokeWidth="2"><path d="M9 6l6 6-6 6" /></svg>
         <a href="#" style={{ color: 'var(--muted2)' }}>อสังหาริมทรัพย์ทั้งหมด</a>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted3)" strokeWidth="2"><path d="M9 6l6 6-6 6" /></svg>
-        <span style={{ color: 'var(--text)', fontWeight: 600 }}>JKP-SPK0042</span>
+        <span style={{ color: 'var(--text)', fontWeight: 600 }}>{code}</span>
       </div>
 
       {/* GALLERY */}
@@ -176,16 +204,16 @@ export function PropertyDetail() {
           <div style={sectionCard}>
             <div id="pd-titlerow" style={{ display: 'flex', alignItems: w640 ? 'flex-start' : 'flex-start', justifyContent: 'space-between', gap: w640 ? 12 : 20, flexDirection: w640 ? 'column' : 'row' }}>
               <div>
-                <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--text)', letterSpacing: '-.01em', lineHeight: 1.3 }}>โรงงานพร้อมสำนักงาน พื้นที่ 2,700 ตร.ม. ให้เช่า ที่บางนา กรุงเทพฯ</h1>
+                <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--text)', letterSpacing: '-.01em', lineHeight: 1.3 }}>{heading}</h1>
                 <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '13.5px', color: 'var(--muted)' }}>{pin(15, 'var(--accent)')}บางนา, กรุงเทพมหานคร</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted2)' }}>รหัสทรัพย์: <code style={{ fontWeight: 700, color: '#0D6C3B' }}>JKP-SPK0042</code></span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '13.5px', color: 'var(--muted)' }}>{pin(15, 'var(--accent)')}{place}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted2)' }}>รหัสทรัพย์: <code style={{ fontWeight: 700, color: '#0D6C3B' }}>{code}</code></span>
                 </div>
               </div>
               <div style={{ textAlign: w640 ? 'left' : 'right', flexShrink: 0 }}>
-                <div style={{ fontSize: 12, color: 'var(--muted2)' }}>ราคาเช่า</div>
-                <div style={{ fontSize: 26, fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: '#034956' }}>฿405,000</div>
-                <div style={{ fontSize: '12.5px', color: 'var(--muted)' }}>/ เดือน · ฿150/ตร.ม.</div>
+                <div style={{ fontSize: 12, color: 'var(--muted2)' }}>{priceLabel}</div>
+                <div style={{ fontSize: 26, fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: '#034956' }}>{priceValue}</div>
+                <div style={{ fontSize: '12.5px', color: 'var(--muted)' }}>{priceUnit}</div>
               </div>
             </div>
 

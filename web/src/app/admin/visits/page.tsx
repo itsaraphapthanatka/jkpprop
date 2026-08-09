@@ -1,49 +1,10 @@
 import type { Metadata } from 'next';
-import { AdminShell } from '@/components/admin/AdminShell';
-import { VisitActions, VisitBody } from '@/components/admin/VisitBody';
-import Link from 'next/link';
+import { VisitPage } from '@/components/admin/VisitPage';
 
 export const metadata: Metadata = { title: 'Visits · JKP CMS', robots: { index: false } };
 
-/* Ported from AdminVisit.dc.html — visit-plan detail (VP-064). Interactive,
-   so the <main> content and the stateful topbar right cluster live in the
-   client component VisitBody.tsx. */
-
-const visitCss = `
-@media (max-width:1100px){ #visit-split{grid-template-columns:1fr !important;} #visit-side{position:static !important;} }
-@media (max-width:640px){
-  #visit-plan-meta{grid-template-columns:1fr !important;}
-  #admin-main > main{ padding:16px 14px 44px !important; }
-  #visit-actions{ width:100%; flex-wrap:wrap; row-gap:8px; }
-  #visit-actions > div{ flex:1 1 auto; justify-content:center; }
-  #visit-gate-row{ flex-wrap:wrap; }
-  #visit-gate-btns{ flex:1 1 100% !important; margin-top:12px; }
-  #visit-gate-btns > *{ flex:1 1 auto; justify-content:center; }
-}
-`;
-
-/* Topbar eyebrow (breadcrumb) + title (with a status code badge) contain rich
-   markup; AdminShell types them as string, so cast the nodes through unknown. */
-const eyebrowNode = (
-  <><Link href="/admin/shortlists" style={{ color: 'var(--muted2)' }}>SL-208</Link> / Visit Plan</>
-);
-
-const titleNode = (
-  <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-    VP-064 <code style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 12, fontWeight: 700, color: '#034956', background: '#EEF4F3', padding: '2px 8px', borderRadius: 6 }}>confirming</code>
-  </span>
-);
-
-export default function AdminVisitsPage() {
-  return (
-    <AdminShell
-      active="visits"
-      eyebrow={eyebrowNode as unknown as string}
-      title={titleNode as unknown as string}
-      actions={<VisitActions />}
-      css={visitCss}
-    >
-      <VisitBody />
-    </AdminShell>
-  );
+/* No id in the URL → the newest plan. Use the topbar picker or
+   /admin/visits/<id> to open a specific one. */
+export default function AdminVisitsIndexPage() {
+  return <VisitPage />;
 }

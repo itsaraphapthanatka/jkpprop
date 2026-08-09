@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { NotificationBell } from './NotificationBell';
 import { useMe, clearMeCache } from '@/lib/useMe';
+import { useRouter, usePathname } from 'next/navigation';
 import { apiPost } from '@/lib/apiClient';
 import { ROLES } from '@/lib/rbac';
 import Link from 'next/link';
@@ -228,6 +229,17 @@ export interface AdminShellProps {
 }
 
 export function AdminShell({ active, eyebrow, title, actions, css, children }: AdminShellProps) {
+  // An account on an admin-issued temporary password may not use the system
+  // until the password is replaced (see /api/me/password).
+  const me = useMe();
+  const router = useRouter();
+  const pathname = usePathname();
+  React.useEffect(() => {
+    if (me?.mustChangePassword && pathname !== '/admin/change-password') {
+      router.replace('/admin/change-password?forced=1');
+    }
+  }, [me, pathname, router]);
+
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
   return (

@@ -40,6 +40,10 @@ model User {
   active       Boolean   @default(true)
   // lease-alert ids the user marked read (§7.2 readIds)
   readAlertIds String[]  @default([])
+  // set when an admin issues a temporary password — blocks everything until
+  // the user picks their own, so a handed-over password can't become permanent
+  mustChangePassword Boolean @default(false)
+  passwordChangedAt  DateTime?
   createdAt    DateTime  @default(now())
 
   sessions Session[]

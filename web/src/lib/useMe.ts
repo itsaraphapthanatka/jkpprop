@@ -15,6 +15,7 @@ export type Me = {
   scope: Scope;
   privileges: PrivKey[];
   expiresAt: string | null;
+  mustChangePassword?: boolean;
 };
 
 let cache: Me | null = null;

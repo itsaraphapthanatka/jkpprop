@@ -15,5 +15,6 @@ export const GET = handler(async () => {
     // effective set — FORBIDDEN_PRIVS already applied server-side
     privileges: PRIVILEGES.map((p) => p.key).filter((k) => hasPriv(u, k)),
     expiresAt: u.expiresAt ? u.expiresAt.toISOString() : null,
+    mustChangePassword: u.mustChangePassword,
   });
 });

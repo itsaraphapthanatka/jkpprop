@@ -46,6 +46,14 @@ let visitCache: ApiVisit | null = null;
 let visitInflight: Promise<ApiVisit | null> | null = null;
 const VISIT_EVT = 'jkp:visit-loaded';
 
+/* /admin/visits/<id> pins a plan; the plain route falls back to the newest.
+   The id is module-scoped because the topbar and the body are separate
+   components with no shared provider. */
+let pinnedVisitId: string | undefined;
+export function setPinnedVisit(id?: string) {
+  if (id !== pinnedVisitId) { pinnedVisitId = id; visitCache = null; }
+}
+
 function useLatestVisit(): ApiVisit | null {
   const [visit, setVisit] = React.useState<ApiVisit | null>(null);
   React.useEffect(() => {
@@ -54,7 +62,7 @@ function useLatestVisit(): ApiVisit | null {
     if (visitCache) setVisit(visitCache);
     else {
       visitInflight ??= apiGet<{ items: ApiVisit[] }>('/api/visits')
-        .then((r) => (visitCache = r.items?.[0] ?? null))
+        .then((r) => (visitCache = (pinnedVisitId ? r.items?.find((v) => v.id === pinnedVisitId) : r.items?.[0]) ?? null))
         .catch(() => null)
         .finally(() => { visitInflight = null; window.dispatchEvent(new Event(VISIT_EVT)); });
       void visitInflight;

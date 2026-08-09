@@ -41,18 +41,18 @@ function useDeal(): DealCtx {
   return ctx;
 }
 
-export function DealProvider({ children }: { children: React.ReactNode }) {
+export function DealProvider({ children, dealId: fixedId }: { children: React.ReactNode; dealId?: string }) {
   const [closed, setClosed] = useState(false);
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
   const [dealId, setDealId] = useState<string | null>(null);
   const [offers, setOffers] = useState<ApiOffer[]>([]);
 
-  /* the route has no :id segment yet — work the most recently updated deal */
+  /* /admin/deals/<id> pins a record; /admin/deals falls back to the newest */
   useEffect(() => {
     let alive = true;
     apiGet<{ items: ApiDeal[] }>('/api/deals')
       .then(async (r) => {
-        const d = r.items?.[0];
+        const d = fixedId ? r.items?.find((x) => x.id === fixedId) : r.items?.[0];
         if (!alive || !d) return;
         setDealId(d.id);
         setClosed(d.locked || d.status !== 'negotiating');
@@ -61,7 +61,7 @@ export function DealProvider({ children }: { children: React.ReactNode }) {
       })
       .catch(() => { /* no deals yet — the page stays on its demo content */ });
     return () => { alive = false; };
-  }, []);
+  }, [fixedId]);
 
   const value: DealCtx = {
     closed,
@@ -106,14 +106,14 @@ export function DealProvider({ children }: { children: React.ReactNode }) {
 
 /* ---- Topbar title (h1 content): DEAL-089 + dynamic status badge ---- */
 export function DealTitle() {
-  const { closed } = useDeal();
+  const { closed, dealId } = useDeal();
   const statusLabel = closed ? 'closed · won' : 'contract_review';
   const statusBadge: React.CSSProperties = closed
     ? { fontSize: 12, fontWeight: 700, color: '#fff', background: '#0D6C3B', padding: '2px 8px', borderRadius: 6 }
     : { fontSize: 12, fontWeight: 700, color: '#034956', background: '#EEF4F3', padding: '2px 8px', borderRadius: 6 };
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-      DEAL-089 <code style={statusBadge}>{statusLabel}</code>
+      {dealId ? `DEAL-${dealId.slice(-6).toUpperCase()}` : 'DEAL'} <code style={statusBadge}>{statusLabel}</code>
     </span>
   );
 }

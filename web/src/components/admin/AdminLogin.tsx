@@ -26,7 +26,12 @@ export function AdminLogin() {
     setLoading(true);
     setError('');
     try {
-      await apiPost('/api/auth/login', { email, password });
+      const res = await apiPost<{ mustChangePassword?: boolean }>('/api/auth/login', { email, password });
+      if (res.mustChangePassword) {
+        // temporary password — the account is unusable until it is replaced
+        router.push('/admin/change-password?forced=1');
+        return;
+      }
       const next = search.get('next');
       router.push(next && next.startsWith('/admin') ? next : '/admin');
     } catch (err) {

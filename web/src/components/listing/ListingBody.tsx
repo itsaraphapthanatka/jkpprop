@@ -212,7 +212,7 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
             <div style={{ marginTop: 2, fontSize: 18, fontWeight: 800, color: 'var(--accent)', letterSpacing: '-.01em' }}>{it.price}</div>
           </div>
           <Link
-            href="/property"
+            href={`/property/${encodeURIComponent(it.code)}`}
             onMouseEnter={() => setDetailHover(true)}
             onMouseLeave={() => setDetailHover(false)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 14px', borderRadius: 9999, background: detailHover ? '#273c33' : 'var(--surface)', border: '1px solid #273c33', color: detailHover ? '#fff' : '#273c33', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all .2s' }}

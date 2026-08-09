@@ -78,7 +78,7 @@ function useShortlist(): ShortlistState {
   return ctx;
 }
 
-export function ShortlistProvider({ children }: { children: React.ReactNode }) {
+export function ShortlistProvider({ children, shortlistId }: { children: React.ReactNode; shortlistId?: string }) {
   const [sendOpen, setSendOpen] = React.useState(false);
   const [added, setAdded] = React.useState<Record<string, boolean>>({});
   const [removed, setRemoved] = React.useState<Record<string, boolean>>({});
@@ -153,13 +153,14 @@ export function ShortlistProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     apiGet<{ items: ApiShortlist[] }>('/api/shortlists')
       .then((r) => {
-        const s = r.items?.[0];
+        // /admin/shortlists/<id> pins a record; the plain route takes the newest
+        const s = shortlistId ? r.items?.find((x) => x.id === shortlistId) : r.items?.[0];
         if (!s) return;
         setRecord(s);
         setSent(s.status === 'sent');
       })
       .catch(() => { /* none yet — the demo link stays */ });
-  }, []);
+  }, [shortlistId]);
 
   const confirmSend = () => {
     if (sending) return;

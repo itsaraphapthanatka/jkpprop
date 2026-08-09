@@ -71,6 +71,45 @@ describe('authentication', () => {
   });
 });
 
+describe('temporary passwords cannot become permanent ones', () => {
+  test('an invited user must replace the issued password before anything else', { skip: skip() }, async () => {
+    const email = `pwtest-${Date.now()}@jkp.local`;
+    const invited = await (await call('/api/users/invite', jar.owner, {
+      method: 'POST', body: JSON.stringify({ email, name: 'ทดสอบ', role: 'ops' }),
+    })).json() as { tempPassword: string };
+
+    const first = await (await call('/api/auth/login', undefined, {
+      method: 'POST', body: JSON.stringify({ email, password: invited.tempPassword }),
+    })).json() as { mustChangePassword?: boolean };
+    assert.equal(first.mustChangePassword, true, 'the flag must be raised on a temp password');
+
+    const cookie = await login(email, invited.tempPassword);
+
+    // rejected: too short, mismatched confirmation, wrong current password
+    for (const body of [
+      { currentPassword: invited.tempPassword, newPassword: 'short1', confirmPassword: 'short1' },
+      { currentPassword: invited.tempPassword, newPassword: 'longenough1', confirmPassword: 'different22' },
+      { currentPassword: 'not-the-password', newPassword: 'longenough1', confirmPassword: 'longenough1' },
+    ]) {
+      assert.equal((await call('/api/me/password', cookie, { method: 'POST', body: JSON.stringify(body) })).status, 400);
+    }
+
+    const chosen = 'chosen-password-1';
+    assert.equal((await call('/api/me/password', cookie, {
+      method: 'POST', body: JSON.stringify({ currentPassword: invited.tempPassword, newPassword: chosen, confirmPassword: chosen }),
+    })).status, 200);
+
+    // the handed-over password stops working; the chosen one clears the flag
+    assert.equal((await call('/api/auth/login', undefined, {
+      method: 'POST', body: JSON.stringify({ email, password: invited.tempPassword }),
+    })).status, 401);
+    const after = await (await call('/api/auth/login', undefined, {
+      method: 'POST', body: JSON.stringify({ email, password: chosen }),
+    })).json() as { mustChangePassword?: boolean };
+    assert.equal(after.mustChangePassword, false);
+  });
+});
+
 describe('RBAC is enforced at the API, not the UI', () => {
   test('a non-owner cannot list users', { skip: skip() }, async () => {
     const res = await call('/api/users', jar.agent);

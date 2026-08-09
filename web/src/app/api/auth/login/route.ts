@@ -46,5 +46,6 @@ export const POST = handler(async (req: Request) => {
   return ok({
     ok: true,
     user: { id: user.id, name: user.name, email: user.email, role: user.role, scope: user.scope, privileges: user.privileges },
+    mustChangePassword: user.mustChangePassword,
   });
 });

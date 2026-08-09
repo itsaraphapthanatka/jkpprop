@@ -38,6 +38,8 @@ export const POST = handler(async (req: Request) => {
       email,
       name: String(body?.name || email.split('@')[0]).slice(0, 120),
       passwordHash: await hashPassword(tempPassword),
+      // the temp password is a one-time handover, not an account password
+      mustChangePassword: true,
       role: roleDef.key,
       scope: roleDef.defaultScope,
       privileges: initialPrivs(roleDef.key as RoleKey),
