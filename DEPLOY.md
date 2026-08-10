@@ -3,6 +3,10 @@
 รันทั้งระบบด้วย 4 container: **app** (Next.js), **db** (PostgreSQL 16),
 **migrate** (รันครั้งเดียวก่อน app ขึ้น), **caddy** (reverse proxy + TLS อัตโนมัติ)
 
+> ⚠️ ใช้ได้กับ **VPS เปล่า** เท่านั้น ถ้าเครื่องปลายทางมี nginx/Apache หรือเว็บอื่นรันอยู่แล้ว
+> Caddy ในชุดนี้จะไปแย่งพอร์ต 80/443 และ**ทำให้เว็บเดิมล่ม** — ให้ใช้
+> [DEPLOY_NGINX.md](DEPLOY_NGINX.md) กับ `docker-compose.behind-nginx.yml` แทน
+
 ---
 
 ## ⚠️ อ่านก่อน: ต้องมี HTTPS ไม่ใช่ทางเลือก
