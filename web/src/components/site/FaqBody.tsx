@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from '@/i18n/LocaleLink';
+import type { FaqCategory } from '@/lib/server/faqCopy';
 
 /* ============================================================
    Ported verbatim from FAQ.dc.html — hero, sticky category
@@ -14,7 +15,8 @@ import Link from '@/i18n/LocaleLink';
 type QA = [string, string];
 interface CatDef { key: string; title: string; qs: QA[] }
 
-const CATS: CatDef[] = [
+/* fallback set — used until the team publishes FAQ entries in /admin/cms */
+const FALLBACK_CATS: CatDef[] = [
   { key: 'basics', title: 'เริ่มต้นใช้งาน', qs: [
     ['สมัครใช้งานเว็บไซต์อย่างไร?', 'สมัครสมาชิกได้ฟรีผ่านปุ่ม "ติดต่อทีมงาน" หรือกรอกฟอร์มค้นหาทรัพย์ ทีมงานจะติดต่อกลับภายใน 24 ชั่วโมง'],
     ['ต้องเสียค่าใช้จ่ายในการค้นหาทรัพย์หรือไม่?', 'ไม่มีค่าใช้จ่ายในการค้นหาหรือปรึกษากับทีมงานของเรา'],
@@ -59,7 +61,8 @@ const CATS: CatDef[] = [
   ] },
 ];
 
-export function FaqBody() {
+export function FaqBody({ cats }: { cats?: FaqCategory[] }) {
+  const CATS = cats && cats.length ? cats : FALLBACK_CATS;
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState('');
 

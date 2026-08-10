@@ -1,10 +1,19 @@
 import type { Metadata } from 'next';
+import { loadPageCopy, section } from '@/lib/server/sectionCopy';
+import { isLocale, DEFAULT_LOCALE } from '@/i18n/config';
+import { getDictionary } from '@/i18n/dictionaries';
 import { ContentHeader } from '@/components/site/ContentHeader';
 import { ContentFooter } from '@/components/site/ContentFooter';
 import { AboutBody } from '@/components/site/AboutBody';
 import { CONTENT_CSS } from '@/components/site/contentCss';
 
-export const metadata: Metadata = { title: 'เกี่ยวกับเรา | JKP Property' };
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale: raw } = await params;
+  const locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
+  const copy = await loadPageCopy('about', locale).catch(() => ({}));
+  const d = getDictionary(locale);
+  return { title: `${section(copy, 'ah').headline || d.about.hero} | JKP Property` };
+}
 
 /* About-specific responsive rules ported from About.dc.html <style>.
    #about-pillars is forced to 3 columns to override the globals.css
@@ -28,12 +37,20 @@ const aboutCss =
 }
 `;
 
-export default function AboutPage() {
+export default async function AboutPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale: raw } = await params;
+  const locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
+  const c = await loadPageCopy('about', locale).catch(() => ({}));
+  const copy = {
+    ah: section(c, 'ah'), st: section(c, 'st'), pl: section(c, 'pl'),
+    as: section(c, 'as'), aw: section(c, 'aw'), pr: section(c, 'pr'),
+  };
+
   return (
     <div style={{ width: '100%', background: 'var(--bg)', minHeight: '100vh' }}>
       <style dangerouslySetInnerHTML={{ __html: aboutCss }} />
       <ContentHeader active="about" />
-      <AboutBody />
+      <AboutBody copy={copy} />
       <ContentFooter />
     </div>
   );

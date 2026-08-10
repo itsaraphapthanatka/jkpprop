@@ -143,10 +143,16 @@ async function main() {
     ['home', 'l', 'section', 'ค้นหาตามทำเล', 'เลือกทำเลที่ใช่', 'ครอบคลุมนิคมอุตสาหกรรมและเขต EEC'],
     ['home', 'w', 'section', 'ทำไมต้องเรา', 'ทำไมลูกค้าเลือก JKP Property', 'ประสบการณ์ตรงในตลาดอุตสาหกรรม'],
     ['home', 'c', 'section', 'CTA band', 'ให้เราช่วยหาทำเลให้คุณ', 'ทีมงานติดต่อกลับภายใน 24 ชั่วโมง'],
-    ['about', 'ah', 'hero', 'Hero', 'เกี่ยวกับ JKP Property', 'นายหน้าอสังหาริมทรัพย์อุตสาหกรรม'],
-    ['about', 'as', 'section', 'ทีมงาน', 'ทีมที่อยู่กับตลาดนี้มานาน', 'รู้จักพื้นที่ รู้จักเจ้าของ'],
-    ['contact', 'ch', 'hero', 'Hero', 'ติดต่อเรา', 'บอกความต้องการ แล้วให้เราหาให้'],
-    ['contact', 'cm', 'section', 'แผนที่ & ช่องทาง', 'ช่องทางติดต่อ', 'โทร อีเมล หรือกรอกแบบฟอร์ม'],
+    // one row per block the About page actually renders — the page used to
+    // have two sections while showing six, so four of them had no way in
+    ['about', 'ah', 'hero', 'Hero', '', ''],
+    ['about', 'st', 'section', 'เรื่องราวของเรา', '', ''],
+    ['about', 'pl', 'section', 'จุดแข็ง 3 ข้อ', '', ''],
+    ['about', 'as', 'section', 'ทีมงาน', '', ''],
+    ['about', 'aw', 'section', 'รางวัล', '', ''],
+    ['about', 'pr', 'section', 'ได้รับการนำเสนอใน', '', ''],
+    ['contact', 'ch', 'hero', 'Hero', '', ''],
+    ['contact', 'cm', 'section', 'แผนที่ & ช่องทาง', '', ''],
   ];
   for (let i = 0; i < sections.length; i++) {
     const [pageKey, key, type, name, headline, sub] = sections[i];

@@ -1,10 +1,19 @@
 import type { Metadata } from 'next';
+import { loadPageCopy, section } from '@/lib/server/sectionCopy';
+import { isLocale, DEFAULT_LOCALE } from '@/i18n/config';
+import { getDictionary } from '@/i18n/dictionaries';
 import { ContentHeader } from '@/components/site/ContentHeader';
 import { ContentFooter } from '@/components/site/ContentFooter';
 import { ContactBody } from '@/components/site/ContactBody';
 import { CONTENT_CSS } from '@/components/site/contentCss';
 
-export const metadata: Metadata = { title: 'ติดต่อเรา | JKP Property' };
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale: raw } = await params;
+  const locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
+  const copy = await loadPageCopy('contact', locale).catch(() => ({}));
+  const d = getDictionary(locale);
+  return { title: `${section(copy, 'ch').headline || d.contact.hero} | JKP Property` };
+}
 
 /* Contact-specific responsive + hover rules ported from Contact.dc.html <style>.
    The pill/social style-hover attributes become .c-* helper classes here. */
@@ -35,12 +44,17 @@ input::placeholder,textarea::placeholder{color:var(--muted3);}
 }
 `;
 
-export default function ContactPage() {
+export default async function ContactPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale: raw } = await params;
+  const locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
+  const c = await loadPageCopy('contact', locale).catch(() => ({}));
+  const copy = { ch: section(c, 'ch'), cm: section(c, 'cm') };
+
   return (
     <div style={{ width: '100%', background: 'var(--bg)', minHeight: '100vh' }}>
       <style dangerouslySetInnerHTML={{ __html: contactCss }} />
       <ContentHeader />
-      <ContactBody />
+      <ContactBody copy={copy} />
       <ContentFooter email="atsokoproperty@gmail.com" phone="+66 80-830-4005" location="สมุทรปราการ, ประเทศไทย" />
     </div>
   );

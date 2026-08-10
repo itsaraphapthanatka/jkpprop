@@ -33,9 +33,10 @@ const socialBase: React.CSSProperties = {
 export function ContentFooter({
   email = 'info@thaiindustrialproperty.com',
   phone = '+66 90-000-0000',
-  location = 'กรุงเทพมหานคร, ประเทศไทย',
+  location,
 }: ContentFooterProps) {
   const d = useDict();
+  const place = location ?? d.common.address;
   const socialEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.currentTarget.style.background = '#034956';
     e.currentTarget.style.color = '#fff';
@@ -57,7 +58,7 @@ export function ContentFooter({
         <div>
           <Image width={226} height={100} src="/assets/jkp-logo-white.png" alt="JKP Property" style={{ height: 46, width: 'auto', display: 'block' }} />
           <p style={{ margin: '16px 0 0', fontSize: 14, lineHeight: 1.7, color: '#8E8B84', maxWidth: 280 }}>
-            แพลตฟอร์มนายหน้าโรงงานและโกดังอุตสาหกรรม เชื่อมนักลงทุนกับทรัพย์ที่ผ่านการคัดกรองทั่วประเทศไทย
+            {d.footer.tagline}
           </p>
           <div style={{ marginTop: 20, display: 'flex', gap: 10 }}>
             <a href="#" onMouseEnter={socialEnter} onMouseLeave={socialLeave} style={socialBase}>
@@ -118,7 +119,7 @@ export function ContentFooter({
                 <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z" />
                 <circle cx="12" cy="10" r="3" />
               </svg>
-              {location}
+              {place}
             </div>
           </div>
           <Link
@@ -127,7 +128,7 @@ export function ContentFooter({
             onMouseLeave={contactLeave}
             style={{ marginTop: 20, display: 'inline-flex', alignItems: 'center', gap: 8, height: 44, padding: '0 22px', borderRadius: 9999, background: '#2DFB91', color: '#04140C', fontSize: 14, fontWeight: 800, transition: 'box-shadow .2s' }}
           >
-            ติดต่อเรา
+            {d.nav.contact}
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
               <path d="M5 12h14" />
               <path d="M13 6l6 6-6 6" />

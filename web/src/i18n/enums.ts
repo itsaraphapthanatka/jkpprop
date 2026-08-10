@@ -155,6 +155,20 @@ const dict: Record<string, Row> = {
   'สนามบินดอนเมือง': { en: 'Don Mueang Airport', zh: '廊曼机场' },
   'สนามบินสุวรรณภูมิ': { en: 'Suvarnabhumi Airport', zh: '素万那普机场' },
 
+  /* requirement-form field labels (lib/propertySchema) */
+  'ประเภททรัพย์ที่ต้องการ': { en: 'Property type', zh: '房源类型' },
+  'ความต้องการ': { en: 'Looking to', zh: '需求类型' },
+  'จังหวัดที่สนใจ': { en: 'Province of interest', zh: '意向府' },
+  'งบประมาณ': { en: 'Budget', zh: '预算' },
+  'ทำเล': { en: 'Location', zh: '区位' },
+  'พื้นที่ใช้สอยที่ต้องการ': { en: 'Floor area needed', zh: '所需使用面积' },
+  'ขนาดที่ดินที่ต้องการ': { en: 'Land size needed', zh: '所需土地面积' },
+  'จำนวนห้องนอน': { en: 'Bedrooms', zh: '卧室数量' },
+  'ประเภทห้อง': { en: 'Room type', zh: '房型' },
+  'ระบบไฟ': { en: 'Power supply', zh: '供电' },
+  'ต้องขอใบ ร.ง.4': { en: 'Needs a factory licence (Rg.4)', zh: '需要工厂许可证' },
+  'ผังเมืองสีอะไร': { en: 'Zoning colour', zh: '城市规划分区' },
+
   /* misc option values that surface publicly */
   'อื่นๆ': { en: 'Other', zh: '其他' },
   'ไม่ระบุ': { en: 'Not specified', zh: '未指定' },

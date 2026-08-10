@@ -84,10 +84,32 @@ export type Dictionary = {
     namePh: string; emailPh: string; phonePh: string;
     send: string; sent: string;
   };
+  about: {
+    hero: string; breadcrumb: string;
+    storyEyebrow: string; storyHeading: string; storyBody: string; storyCaption: string;
+    statFounded: string; statListings: string; statTeamYears: string;
+    pillars: { title: string; desc: string }[];
+    teamEyebrow: string; teamHeading: string; teamSub: string; teamBlurb: string;
+    awardEyebrow: string; awardHeading: string; awardBody: string; awardCaption: string;
+    pressHeading: string; pressEyebrow: string;
+  };
+  contact: {
+    hero: string; sub: string; breadcrumb: string;
+    reachUs: string; ourPhone: string; salesEnquiry: string; generalEnquiry: string;
+    ourLocation: string; contactAt: string; hours: string; weekdays: string; hoursValue: string;
+    address: string; langNote: string;
+  };
+  requirement: {
+    heading: string; sub: string; respondentStatus: string; agent: string; customer: string;
+    choose: string; wanted: string; notSpecified: string; company: string; companyPh: string;
+    namePh: string; details: string; detailsPh: string; sent: string;
+  };
+  faq: { searchPlaceholder: string; noResults: string; copied: string; copyQuestion: string };
   form: {
     name: string; phone: string; email: string; company: string;
     message: string; submit: string; sending: string;
     required: string; success: string; successBody: string;
+    errName: string; errPhone: string; errRespondent: string;
   };
 };
 
@@ -212,11 +234,52 @@ const th: Dictionary = {
     namePh: 'ชื่อของคุณ', emailPh: 'อีเมล', phonePh: 'เบอร์โทรศัพท์',
     send: 'ส่งคำถาม', sent: 'ส่งแล้ว',
   },
+  about: {
+    hero: 'เกี่ยวกับเรา', breadcrumb: 'เกี่ยวกับเรา',
+    storyEyebrow: 'ก่อตั้ง', storyHeading: 'เรื่องราวของเรา',
+    storyBody: 'JKP Property ก่อตั้งขึ้นเพื่อเป็นตัวกลางที่น่าเชื่อถือระหว่างนักลงทุนและเจ้าของทรัพย์อสังหาริมทรัพย์อุตสาหกรรมทั่วประเทศไทย ด้วยความเข้าใจตลาดโรงงานและโกดังอย่างลึกซึ้ง ทีมงานของเราคัดกรองทรัพย์ทุกรายการก่อนเผยแพร่ พร้อมดูแลลูกค้าตั้งแต่ค้นหาจนปิดดีลอย่างโปร่งใสและเป็นธรรม',
+    storyCaption: 'JKP Property · Founded by ทีมผู้ก่อตั้ง',
+    statFounded: 'ก่อตั้ง', statListings: 'ทรัพย์ในระบบ', statTeamYears: 'ประสบการณ์ทีมงาน',
+    pillars: [
+      { title: 'การสื่อสาร', desc: 'สื่อสารได้ทั้งไทย อังกฤษ และจีน ไม่มีช่องว่างด้านภาษา' },
+      { title: 'ความน่าเชื่อถือ', desc: 'ประสบการณ์กว่า 12 ปีในธุรกิจอสังหาริมทรัพย์อุตสาหกรรม' },
+      { title: 'ความรู้ตลาด', desc: 'เข้าใจทำเลและกฎระเบียบของทุกจังหวัดในประเทศไทย' },
+    ],
+    teamEyebrow: 'ทีมงาน', teamHeading: 'พบกับทีมงานของเรา',
+    teamSub: 'ทีมผู้เชี่ยวชาญด้านอสังหาริมทรัพย์อุตสาหกรรมที่เชื่อถือได้ทั่วประเทศไทย',
+    teamBlurb: 'ทีมผู้เชี่ยวชาญที่คัดเลือกด้วยความรอบคอบทุกด้าน ด้านอสังหาริมทรัพย์อุตสาหกรรมในประเทศไทย ด้วยความเข้าใจในพื้นที่และความชำนาญในการให้บริการ เรามีประสบการณ์การทำงานที่หลากหลายเพื่อสร้างความไว้วางใจให้กับลูกค้าทุกท่าน',
+    awardEyebrow: 'รางวัล', awardHeading: 'เอเจนต์อสังหาริมทรัพย์อุตสาหกรรมที่ดีที่สุด',
+    awardBody: 'JKP Property ได้รับรางวัล The Best Agent in Industrial Property จากสมาคมอสังหาริมทรัพย์ไทย ตอกย้ำความมุ่งมั่นในการให้บริการที่มีคุณภาพและความโปร่งใสในธุรกิจอสังหาริมทรัพย์อุตสาหกรรมของไทย',
+    awardCaption: 'Founder · กรุงเทพฯ – ชลบุรี',
+    pressHeading: 'ได้รับการนำเสนอใน', pressEyebrow: 'การรับรองจากวงการ',
+  },
+  contact: {
+    hero: 'ติดต่อเรา', sub: 'ติดต่อสอบถามข้อมูลเกี่ยวกับอสังหาริมทรัพย์ของเรา', breadcrumb: 'ติดต่อเรา',
+    reachUs: 'ติดต่อเราได้ที่', ourPhone: 'โทรศัพท์ของเรา',
+    salesEnquiry: 'สอบถามการขาย:', generalEnquiry: 'สอบถามทั่วไป:',
+    ourLocation: 'ที่ตั้งของเรา', contactAt: 'ติดต่อเราที่:',
+    hours: 'เวลาทำการ', weekdays: 'จันทร์ - ศุกร์:', hoursValue: '9:00 - 18:00 น.',
+    address: '41/6 หมู่ 7 ถ.บางนาตราด กม. 16.5 ต.บางโฉลง อ.บางพลี จ.สมุทรปราการ 10540 (สำนักงานใหญ่)',
+    langNote: '(English / ไทย)',
+  },
+  requirement: {
+    heading: 'แจ้งความต้องการ',
+    sub: 'เลือกประเภททรัพย์ที่สนใจ แล้วกรอกเฉพาะรายละเอียดที่จำเป็น — ทีมงานจะติดต่อกลับ',
+    respondentStatus: 'สถานะของผู้ตอบแบบสอบถาม', agent: 'เป็น Agent ตัวแทน', customer: 'เป็น ลูกค้า (ผู้เช่า)',
+    choose: 'เลือก…', wanted: 'ต้องการ', notSpecified: 'ไม่ระบุ',
+    company: 'ชื่อบริษัท / องค์กรของคุณ', companyPh: 'เช่น บ. ไทยโลจิสติกส์',
+    namePh: 'กรอกชื่อของคุณ', details: 'รายละเอียดเพิ่มเติม',
+    detailsPh: 'บอกเราเกี่ยวกับความต้องการของคุณเพิ่มเติม…', sent: 'ส่งความต้องการแล้ว',
+  },
+  faq: { searchPlaceholder: 'ค้นหาคำถาม…', noResults: 'ไม่พบคำถามที่ตรงกับคำค้น', copied: 'คัดลอกแล้ว', copyQuestion: 'คัดลอกคำถาม' },
   form: {
     name: 'ชื่อผู้ติดต่อ', phone: 'เบอร์โทรศัพท์', email: 'อีเมล', company: 'บริษัท / องค์กร',
     message: 'รายละเอียดเพิ่มเติม', submit: 'ส่งความต้องการ', sending: 'กำลังส่ง…',
     required: 'จำเป็น', success: 'ส่งความต้องการแล้ว',
     successBody: 'ทีมงาน JKP Property ได้รับข้อมูลของคุณแล้ว และจะติดต่อกลับโดยเร็วที่สุด',
+    errName: 'กรุณากรอกชื่อของคุณ',
+    errPhone: 'กรุณากรอกเบอร์โทรศัพท์ เพื่อให้ทีมงานติดต่อกลับได้',
+    errRespondent: 'กรุณาเลือกสถานะของผู้ตอบแบบสอบถาม',
   },
 };
 
@@ -341,11 +404,52 @@ const en: Dictionary = {
     namePh: 'Your name', emailPh: 'Email', phonePh: 'Phone number',
     send: 'Send enquiry', sent: 'Sent',
   },
+  about: {
+    hero: 'About us', breadcrumb: 'About us',
+    storyEyebrow: 'Founded', storyHeading: 'Our story',
+    storyBody: 'JKP Property was founded to be a broker that both sides can rely on — investors looking for industrial space, and the owners who hold it. We know the factory and warehouse market in depth, we vet every property before it is published, and we stay with the client from the first search through to signing, openly and fairly.',
+    storyCaption: 'JKP Property · Founded by our partners',
+    statFounded: 'Founded', statListings: 'Listings', statTeamYears: 'Team experience',
+    pillars: [
+      { title: 'Communication', desc: 'We work in Thai, English and Chinese — no language gap.' },
+      { title: 'Track record', desc: 'Over 12 years in industrial property.' },
+      { title: 'Market knowledge', desc: 'We know the locations and the regulations in every province of Thailand.' },
+    ],
+    teamEyebrow: 'The team', teamHeading: 'Meet the team',
+    teamSub: 'Industrial property specialists you can rely on, nationwide.',
+    teamBlurb: 'A carefully chosen team of specialists in Thai industrial property. We combine local knowledge with hands-on service, and a breadth of experience that earns our clients\' trust.',
+    awardEyebrow: 'Award', awardHeading: 'Best agent in industrial property',
+    awardBody: 'JKP Property received the Best Agent in Industrial Property award from the Thai Real Estate Association — recognition of our commitment to quality of service and transparency in Thailand\'s industrial property market.',
+    awardCaption: 'Founder · Bangkok – Chonburi',
+    pressHeading: 'Featured in', pressEyebrow: 'Industry recognition',
+  },
+  contact: {
+    hero: 'Contact us', sub: 'Get in touch about any of our properties.', breadcrumb: 'Contact',
+    reachUs: 'Reach us at', ourPhone: 'Phone',
+    salesEnquiry: 'Sales enquiries:', generalEnquiry: 'General enquiries:',
+    ourLocation: 'Our office', contactAt: 'Contact us at:',
+    hours: 'Opening hours', weekdays: 'Monday – Friday:', hoursValue: '9:00 – 18:00',
+    address: '41/6 Moo 7, Bangna-Trad Rd km 16.5, Bang Chalong, Bang Phli, Samut Prakan 10540 (head office)',
+    langNote: '(English / Thai)',
+  },
+  requirement: {
+    heading: 'Tell us what you need',
+    sub: 'Pick the type of property, fill in only what matters — our team will get back to you.',
+    respondentStatus: 'You are', agent: 'An agent', customer: 'A client (tenant)',
+    choose: 'Select…', wanted: 'Required', notSpecified: 'Not specified',
+    company: 'Company / organisation', companyPh: 'e.g. Thai Logistics Co.',
+    namePh: 'Your name', details: 'Additional details',
+    detailsPh: 'Tell us more about what you are looking for…', sent: 'Enquiry sent',
+  },
+  faq: { searchPlaceholder: 'Search the questions…', noResults: 'No questions match your search', copied: 'Copied', copyQuestion: 'Copy question' },
   form: {
     name: 'Contact name', phone: 'Phone number', email: 'Email', company: 'Company',
     message: 'Additional details', submit: 'Send enquiry', sending: 'Sending…',
     required: 'required', success: 'Enquiry sent',
     successBody: 'The JKP Property team has received your details and will be in touch shortly.',
+    errName: 'Please enter your name',
+    errPhone: 'Please enter a phone number so our team can call you back',
+    errRespondent: 'Please tell us whether you are an agent or a client',
   },
 };
 
@@ -470,11 +574,52 @@ const zh: Dictionary = {
     namePh: '您的姓名', emailPh: '电子邮箱', phonePh: '电话号码',
     send: '发送咨询', sent: '已发送',
   },
+  about: {
+    hero: '关于我们', breadcrumb: '关于我们',
+    storyEyebrow: '成立', storyHeading: '我们的故事',
+    storyBody: 'JKP Property 成立的目的，是在寻找工业厂房的投资者与持有物业的业主之间，做一个双方都能信赖的中介。我们深入了解泰国的厂房与仓库市场，每一处房源在发布前都经过核验，并从初次寻找一路陪伴客户到签约，全程公开、公平。',
+    storyCaption: 'JKP Property · 由创始团队创立',
+    statFounded: '成立年份', statListings: '在库房源', statTeamYears: '团队经验',
+    pillars: [
+      { title: '沟通无碍', desc: '可用泰文、英文与中文沟通，没有语言隔阂。' },
+      { title: '可靠履历', desc: '深耕工业地产超过 12 年。' },
+      { title: '市场理解', desc: '熟悉泰国各府的区位条件与法规要求。' },
+    ],
+    teamEyebrow: '团队', teamHeading: '认识我们的团队',
+    teamSub: '值得信赖的泰国工业地产专业团队。',
+    teamBlurb: '一支经过精心挑选的泰国工业地产专业团队。我们兼具在地了解与实务服务经验，以扎实的工作积累赢得客户信任。',
+    awardEyebrow: '奖项', awardHeading: '最佳工业地产经纪',
+    awardBody: 'JKP Property 获得泰国房地产协会颁发的「最佳工业地产经纪」奖，肯定我们在泰国工业地产市场对服务品质与透明度的坚持。',
+    awardCaption: '创始人 · 曼谷 – 春武里',
+    pressHeading: '媒体报道', pressEyebrow: '行业认可',
+  },
+  contact: {
+    hero: '联系我们', sub: '欢迎就任何房源与我们联系。', breadcrumb: '联系我们',
+    reachUs: '联系方式', ourPhone: '联系电话',
+    salesEnquiry: '销售咨询：', generalEnquiry: '一般咨询：',
+    ourLocation: '办公地址', contactAt: '联系我们：',
+    hours: '营业时间', weekdays: '周一至周五：', hoursValue: '9:00 – 18:00',
+    address: '41/6 Moo 7, Bangna-Trad Rd km 16.5, Bang Chalong, Bang Phli, Samut Prakan 10540（总部）',
+    langNote: '（英文 / 泰文）',
+  },
+  requirement: {
+    heading: '提交需求',
+    sub: '选择房源类型，只需填写必要信息 — 我们的团队会与您联系。',
+    respondentStatus: '您的身份', agent: '中介代理', customer: '客户（承租方）',
+    choose: '请选择…', wanted: '需要', notSpecified: '不限',
+    company: '公司 / 机构名称', companyPh: '例如：泰国物流有限公司',
+    namePh: '您的姓名', details: '补充说明',
+    detailsPh: '请告诉我们更多您的需求…', sent: '已提交需求',
+  },
+  faq: { searchPlaceholder: '搜索问题…', noResults: '没有符合搜索条件的问题', copied: '已复制', copyQuestion: '复制问题' },
   form: {
     name: '联系人姓名', phone: '电话号码', email: '电子邮箱', company: '公司名称',
     message: '补充说明', submit: '提交需求', sending: '提交中…',
     required: '必填', success: '已提交',
     successBody: 'JKP Property 团队已收到您的信息，我们会尽快与您联系。',
+    errName: '请填写您的姓名',
+    errPhone: '请填写电话号码，以便我们的团队与您联系',
+    errRespondent: '请选择您的身份',
   },
 };
 

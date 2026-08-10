@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import { loadFaq } from '@/lib/server/faqCopy';
+import { isLocale, DEFAULT_LOCALE } from '@/i18n/config';
 import { ContentHeader } from '@/components/site/ContentHeader';
 import { ContentFooter } from '@/components/site/ContentFooter';
 import { FaqBody } from '@/components/site/FaqBody';
@@ -20,12 +22,16 @@ const faqCss =
 }
 `;
 
-export default function FaqPage() {
+export default async function FaqPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale: raw } = await params;
+  const locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
+  const cats = await loadFaq(locale).catch(() => []);
+
   return (
     <div style={{ width: '100%', background: 'var(--bg)', minHeight: '100vh' }}>
       <style dangerouslySetInnerHTML={{ __html: faqCss }} />
       <ContentHeader active="faq" />
-      <FaqBody />
+      <FaqBody cats={cats} />
       <ContentFooter />
     </div>
   );

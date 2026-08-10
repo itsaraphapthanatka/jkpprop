@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { apiGet, apiPut, ApiClientError } from '@/lib/apiClient';
+import type { Locale } from '@/i18n/config';
 
 /* Ported from AdminSections.dc.html <main> — CMS "จัดการ Section หน้าเว็บ".
    Interactive: the topbar page tabs (หน้าแรก/เกี่ยวกับเรา/ติดต่อเรา) swap the
@@ -63,10 +64,14 @@ const sectionsCss = `
 `;
 
 /* GET /api/sections item — same table the Page Builder writes */
+type Block = { eyebrow?: string; headline?: string; sub?: string; cta?: string };
 type ApiSection = {
   key: string; name: string; desc: string; enabled: boolean; img: string | null;
-  content: Record<string, { eyebrow?: string; headline?: string; sub?: string; cta?: string }>;
+  content: Record<string, Block>;
 };
+const LANGS: { key: Locale; label: string }[] = [
+  { key: 'th', label: 'ไทย' }, { key: 'en', label: 'EN' }, { key: 'zh', label: '中文' },
+];
 
 export function SectionsBody() {
   const [page, setPage] = React.useState<PageKey>('home');
@@ -75,8 +80,14 @@ export function SectionsBody() {
   // leaked toggles across pages
   const [on, setOn] = React.useState<Record<string, boolean>>({});
   const [apiList, setApiList] = React.useState<ApiSection[] | null>(null);
-  const [headline, setHeadline] = React.useState('');
-  const [sub, setSub] = React.useState('');
+  /* the edit panel used to write s.content.th only, while the hint below it
+     promised TH/EN/ZH tabs. The tabs are real now — draft holds one block per
+     locale and only the edited locales are written back. */
+  const [lang, setLang] = React.useState<Locale>('th');
+  const [draft, setDraft] = React.useState<Record<string, Block>>({});
+  const [img, setImg] = React.useState<string>('');
+  const [pickerOpen, setPickerOpen] = React.useState(false);
+  const [mediaItems, setMediaItems] = React.useState<{ id: string; src: string; name: string }[]>([]);
   const [saving, setSaving] = React.useState(false);
   const [notice, setNotice] = React.useState('');
 
@@ -107,7 +118,24 @@ export function SectionsBody() {
   const curKey = apiList?.[selected]?.key ?? 's' + selected;
 
   // reload the editor fields whenever the selection or page changes
-  React.useEffect(() => { setHeadline(cur?.headline ?? ''); setSub(cur?.sub ?? ''); }, [cur]);
+  const curApi = apiList?.[selected];
+  React.useEffect(() => {
+    setDraft((curApi?.content ?? {}) as Record<string, Block>);
+    setImg(curApi?.img ?? '');
+  }, [curApi]);
+
+  const field = (name: keyof Block) => draft[lang]?.[name] ?? '';
+  const setField = (name: keyof Block, v: string) =>
+    setDraft((prev) => ({ ...prev, [lang]: { ...(prev[lang] ?? {}), [name]: v } }));
+
+  const openPicker = async () => {
+    setPickerOpen(true);
+    if (mediaItems.length) return;
+    try {
+      const r = await apiGet<{ items: { id: string; src: string; name: string }[] }>('/api/media');
+      setMediaItems(Array.isArray(r.items) ? r.items : []);
+    } catch { setMediaItems([]); }
+  };
 
   const saveSection = async () => {
     if (!apiList || saving) return;
@@ -117,11 +145,10 @@ export function SectionsBody() {
       await apiPut('/api/sections', {
         page,
         sections: apiList.map((s) => ({
-          key: s.key, name: s.name, desc: s.desc, img: s.img,
+          key: s.key, name: s.name, desc: s.desc,
           enabled: on[s.key] !== false,
-          content: s.key === curKey
-            ? { ...s.content, th: { ...(s.content?.th ?? {}), headline, sub } }
-            : s.content,
+          img: s.key === curKey ? (img || null) : s.img,
+          content: s.key === curKey ? draft : s.content,
         })),
       });
       setNotice('บันทึกแล้ว');
@@ -249,14 +276,68 @@ export function SectionsBody() {
               ))}
             </div>
 
-            <label style={{ display: 'block', marginTop: 18, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>หัวข้อ (Headline)</label>
-            <input value={headline} onChange={(e) => setHeadline(e.target.value)} style={{ marginTop: 6, width: '100%', height: 44, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: '13.5px', fontWeight: 600, background: 'var(--bg)', outline: 'none' }} />
+            <label style={{ display: 'block', marginTop: 18, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>รูปประกอบ</label>
+            <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
+              <input
+                value={img}
+                onChange={(e) => setImg(e.target.value)}
+                placeholder="เลือกจากคลังสื่อ หรือวาง URL"
+                style={{ flex: 1, height: 44, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none' }}
+              />
+              <div onClick={openPicker} style={{ height: 44, padding: '0 16px', borderRadius: 11, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>เลือกรูป</div>
+            </div>
+            {pickerOpen && (
+              <div style={{ marginTop: 8, padding: 10, borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', maxHeight: 220, overflowY: 'auto' }}>
+                {mediaItems.length === 0 ? (
+                  <div style={{ fontSize: 12, color: 'var(--muted2)', padding: 8 }}>ยังไม่มีรูปในคลัง — อัปโหลดที่หน้า “คลังสื่อ” ก่อน</div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                    {mediaItems.map((m) => (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        key={m.id}
+                        src={m.src}
+                        alt={m.name}
+                        onClick={() => { setImg(m.src); setPickerOpen(false); }}
+                        style={{ width: '100%', height: 64, objectFit: 'cover', borderRadius: 8, cursor: 'pointer', border: img === m.src ? '2px solid #0D6C3B' : '1px solid var(--border)' }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{ marginTop: 18, display: 'flex', gap: 6 }}>
+              {LANGS.map((l) => (
+                <div
+                  key={l.key}
+                  onClick={() => setLang(l.key)}
+                  style={{ flex: 1, height: 34, borderRadius: 9, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, border: '1.5px solid ' + (lang === l.key ? '#0D6C3B' : 'var(--border)'), background: lang === l.key ? '#0D6C3B' : 'transparent', color: lang === l.key ? '#fff' : 'var(--text)' }}
+                >
+                  {l.label}
+                  {/* a dot marks a language that already has copy */}
+                  {(draft[l.key]?.headline || draft[l.key]?.sub) && (
+                    <span style={{ width: 5, height: 5, borderRadius: 9999, background: lang === l.key ? '#2DFB91' : '#0D6C3B' }} />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <label style={{ display: 'block', marginTop: 14, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>ป้ายเล็กเหนือหัวข้อ (Eyebrow)</label>
+            <input value={field('eyebrow')} onChange={(e) => setField('eyebrow', e.target.value)} style={{ marginTop: 6, width: '100%', height: 40, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none' }} />
+
+            <label style={{ display: 'block', marginTop: 14, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>หัวข้อ (Headline)</label>
+            <input value={field('headline')} onChange={(e) => setField('headline', e.target.value)} style={{ marginTop: 6, width: '100%', height: 44, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: '13.5px', fontWeight: 600, background: 'var(--bg)', outline: 'none' }} />
+
             <label style={{ display: 'block', marginTop: 14, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>คำโปรย (Subheadline)</label>
-            <textarea value={sub} onChange={(e) => setSub(e.target.value)} style={{ marginTop: 6, width: '100%', height: 70, padding: '12px 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none', resize: 'none' }} />
+            <textarea value={field('sub')} onChange={(e) => setField('sub', e.target.value)} style={{ marginTop: 6, width: '100%', height: 70, padding: '12px 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none', resize: 'none' }} />
+
+            <label style={{ display: 'block', marginTop: 14, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>ข้อความปุ่ม / บรรทัดเสริม (CTA)</label>
+            <input value={field('cta')} onChange={(e) => setField('cta', e.target.value)} style={{ marginTop: 6, width: '100%', height: 40, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none' }} />
 
             <div style={{ marginTop: 16, padding: '14px 16px', borderRadius: 12, background: 'var(--tint)', display: 'flex', alignItems: 'center', gap: 10 }}>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9" style={{ flexShrink: 0 }}><path d="M12 2a7 7 0 00-7 7c0 2.4 1.2 4.2 2.5 5.3.4.3.5.8.5 1.2v1c0 .8.7 1.5 1.5 1.5h5c.8 0 1.5-.7 1.5-1.5v-1c0-.4.1-.9.5-1.2C17.8 13.2 19 11.4 19 9a7 7 0 00-7-7z" /><path d="M10 22h4" /></svg>
-              <span style={{ fontSize: 12, color: 'var(--accent)', lineHeight: 1.5 }}>แก้ที่นี่ = อัปเดตทั้ง 3 ภาษาผ่าน tab ภาษาใน section (สลับ TH/EN/ZH ได้)</span>
+              <span style={{ fontSize: 12, color: 'var(--accent)', lineHeight: 1.5 }}>เว้นช่องไหนว่างไว้ หน้าเว็บจะใช้ข้อความตั้งต้นของภาษานั้นแทน — จุดเขียวบนแท็บคือภาษาที่กรอกแล้ว</span>
             </div>
 
             <div style={{ marginTop: 18, display: 'flex', gap: 10 }}>

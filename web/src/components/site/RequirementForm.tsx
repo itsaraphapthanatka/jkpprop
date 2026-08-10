@@ -5,6 +5,8 @@ import { PROPERTY_TYPES, requirementFields, enabledPropertyTypes, type FieldDef 
 import { addLead, newLeadId, type ReqItem } from '@/lib/leadStore';
 import { useSchemaSync } from '@/lib/schemaSync';
 import { apiPost, ApiClientError } from '@/lib/apiClient';
+import { useI18n } from '@/i18n/useDict';
+import { enumLabel } from '@/i18n/enums';
 
 /* Public requirement-intake form (Contact page). Visitor picks a property
    type, fills the CURATED essential fields for that type, and submits — a
@@ -19,9 +21,11 @@ const isFull = (f: FieldDef) => ['dealtype', 'boolean', 'multiselect'].includes(
 
 /* Asked for EVERY property type — who is filling this in (ported from the
    JKP "แบบสอบถามความต้องการใช้โกดังและโรงงาน" intake form). */
-const RESPONDENT_OPTS = ['เป็น Agent ตัวแทน', 'เป็น ลูกค้า (ผู้เช่า)'];
+
 
 export function RequirementForm() {
+  const { d, locale } = useI18n();
+  const RESPONDENT_OPTS = [d.requirement.agent, d.requirement.customer];
   const [typeKey, setTypeKey] = React.useState('warehouse');
   // start from all types (SSR-safe), then narrow to the agency's enabled types on the client
   const [types, setTypes] = React.useState(PROPERTY_TYPES);
@@ -53,7 +57,7 @@ export function RequirementForm() {
   // reset per-type answers but PRESERVE the universal rent/buy intent
   const pickType = (k: string) => { setTypeKey(k); setValues((p) => ({ deal_intent: (p.deal_intent as string) ?? 'เช่า' })); };
 
-  const lbl = (f: FieldDef) => (<label style={labelStyle}>{f.label}{f.unit ? ` (${f.unit})` : ''}{f.required ? reqMark : null}</label>);
+  const lbl = (f: FieldDef) => (<label style={labelStyle}>{enumLabel(f.label, locale)}{f.unit ? ` (${f.unit})` : ''}{f.required ? reqMark : null}</label>);
 
   const renderField = (f: FieldDef) => {
     switch (f.kind) {
@@ -70,13 +74,13 @@ export function RequirementForm() {
           </div>
         );
       case 'select':
-        return (<div>{lbl(f)}<select value={(values[f.key] as string) ?? ''} onChange={(e) => setV(f.key, e.target.value)} style={selectStyle}><option value="">เลือก…</option>{(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}</select></div>);
+        return (<div>{lbl(f)}<select value={(values[f.key] as string) ?? ''} onChange={(e) => setV(f.key, e.target.value)} style={selectStyle}><option value="">{d.requirement.choose}</option>{(f.options || []).map((o) => <option key={o} value={o}>{enumLabel(o, locale)}</option>)}</select></div>);
       case 'boolean':
         return (
           <div>
             {lbl(f)}
-            <button type="button" role="switch" aria-checked={!!values[f.key]} aria-label={f.label} onClick={() => setV(f.key, !values[f.key])} style={{ width: '100%', height: 46, padding: '0 14px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', fontFamily: 'inherit' }}>
-              <span style={{ fontSize: 13, color: 'var(--text)' }}>{values[f.key] ? 'ต้องการ' : 'ไม่ระบุ'}</span>
+            <button type="button" role="switch" aria-checked={!!values[f.key]} aria-label={enumLabel(f.label, locale)} onClick={() => setV(f.key, !values[f.key])} style={{ width: '100%', height: 46, padding: '0 14px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', fontFamily: 'inherit' }}>
+              <span style={{ fontSize: 13, color: 'var(--text)' }}>{values[f.key] ? d.requirement.wanted : d.requirement.notSpecified}</span>
               <div style={{ width: 40, height: 23, borderRadius: 9999, background: values[f.key] ? '#0D6C3B' : 'var(--border)', position: 'relative', transition: 'background .2s' }}><div style={{ position: 'absolute', top: '2.5px', left: values[f.key] ? '19px' : '2.5px', width: 18, height: 18, borderRadius: 9999, background: '#fff', transition: 'left .2s' }} /></div>
             </button>
           </div>
@@ -105,9 +109,9 @@ export function RequirementForm() {
 
   const submit = async () => {
     if (sending) return;
-    if (!name.trim()) { setError('กรุณากรอกชื่อของคุณ'); return; }
-    if (!phone.trim()) { setError('กรุณากรอกเบอร์โทรศัพท์ เพื่อให้ทีมงานติดต่อกลับได้'); return; }
-    if (!respondent) { setError('กรุณาเลือกสถานะของผู้ตอบแบบสอบถาม'); return; }
+    if (!name.trim()) { setError(d.form.errName); return; }
+    if (!phone.trim()) { setError(d.form.errPhone); return; }
+    if (!respondent) { setError(d.form.errRespondent); return; }
     setError('');
     const t = PROPERTY_TYPES.find((p) => p.key === typeKey);
     const { req, dealIntent } = buildReq();
@@ -154,30 +158,30 @@ export function RequirementForm() {
         <div style={{ width: 64, height: 64, borderRadius: 9999, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" strokeWidth="2.6"><path d="M20 6L9 17l-5-5" /></svg>
         </div>
-        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>ส่งความต้องการแล้ว</div>
-        <div style={{ fontSize: '13.5px', color: 'var(--muted)', maxWidth: 320 }}>ทีมงาน JKP Property ได้รับข้อมูลของคุณแล้ว และจะติดต่อกลับโดยเร็วที่สุด</div>
+        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>{d.requirement.sent}</div>
+        <div style={{ fontSize: '13.5px', color: 'var(--muted)', maxWidth: 320 }}>{d.form.successBody}</div>
       </div>
     );
   }
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); submit(); }} noValidate>
-      <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>แจ้งความต้องการ</div>
-      <div style={{ fontSize: '12.5px', color: 'var(--muted2)', marginTop: 3, marginBottom: 16 }}>เลือกประเภททรัพย์ที่สนใจ แล้วกรอกเฉพาะรายละเอียดที่จำเป็น — ทีมงานจะติดต่อกลับ</div>
+      <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>{d.requirement.heading}</div>
+      <div style={{ fontSize: '12.5px', color: 'var(--muted2)', marginTop: 3, marginBottom: 16 }}>{d.requirement.sub}</div>
 
       {/* contact */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12 }}>
-        <div style={{ minWidth: 0 }}><label style={labelStyle}>ชื่อของคุณ{reqMark}</label><input value={name} onChange={(e) => { setName(e.target.value); clearErr(); }} placeholder="กรอกชื่อของคุณ" style={inputStyle} /></div>
-        <div style={{ minWidth: 0 }}><label style={labelStyle}>เบอร์โทรศัพท์{reqMark}</label><input value={phone} onChange={(e) => { setPhone(e.target.value); clearErr(); }} type="tel" inputMode="tel" autoComplete="tel" placeholder="08x-xxx-xxxx" style={inputStyle} /></div>
+        <div style={{ minWidth: 0 }}><label style={labelStyle}>{d.form.name}{reqMark}</label><input value={name} onChange={(e) => { setName(e.target.value); clearErr(); }} placeholder={d.requirement.namePh} style={inputStyle} /></div>
+        <div style={{ minWidth: 0 }}><label style={labelStyle}>{d.form.phone}{reqMark}</label><input value={phone} onChange={(e) => { setPhone(e.target.value); clearErr(); }} type="tel" inputMode="tel" autoComplete="tel" placeholder="08x-xxx-xxxx" style={inputStyle} /></div>
       </div>
       <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12 }}>
-        <div style={{ minWidth: 0 }}><label style={labelStyle}>อีเมล</label><input value={email} onChange={(e) => { setEmail(e.target.value); clearErr(); }} placeholder="name@email.com" style={inputStyle} /></div>
-        <div style={{ minWidth: 0 }}><label style={labelStyle}>ชื่อบริษัท / องค์กรของคุณ</label><input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="เช่น บ. ไทยโลจิสติกส์" style={inputStyle} /></div>
+        <div style={{ minWidth: 0 }}><label style={labelStyle}>{d.form.email}</label><input value={email} onChange={(e) => { setEmail(e.target.value); clearErr(); }} placeholder="name@email.com" style={inputStyle} /></div>
+        <div style={{ minWidth: 0 }}><label style={labelStyle}>{d.requirement.company}</label><input value={company} onChange={(e) => setCompany(e.target.value)} placeholder={d.requirement.companyPh} style={inputStyle} /></div>
       </div>
 
       {/* respondent status — asked for every property type */}
-      <div style={{ marginTop: 16 }} role="radiogroup" aria-label="สถานะของผู้ตอบแบบสอบถาม">
-        <label style={labelStyle}>สถานะของผู้ตอบแบบสอบถาม{reqMark}</label>
+      <div style={{ marginTop: 16 }} role="radiogroup" aria-label={d.requirement.respondentStatus}>
+        <label style={labelStyle}>{d.requirement.respondentStatus}{reqMark}</label>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {RESPONDENT_OPTS.map((opt) => {
             const on = respondent === opt;
@@ -202,7 +206,7 @@ export function RequirementForm() {
             return (
               <button type="button" key={pt.key} onClick={() => pickType(pt.key)} aria-pressed={on} style={{ flex: '1 1 auto', minWidth: 108, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 12, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? 'rgba(13,108,59,.06)' : 'var(--bg)', color: on ? '#0D6C3B' : 'var(--text)' }}>
                 <span style={{ display: 'flex', width: 16, height: 16 }} dangerouslySetInnerHTML={{ __html: pt.icon }} />
-                {pt.label}
+                {enumLabel(pt.label, locale)}
               </button>
             );
           })}
@@ -218,8 +222,8 @@ export function RequirementForm() {
 
       {/* message */}
       <div style={{ marginTop: 12 }}>
-        <label style={labelStyle}>รายละเอียดเพิ่มเติม</label>
-        <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="บอกเราเกี่ยวกับความต้องการของคุณเพิ่มเติม…" style={{ width: '100%', height: 110, padding: '12px 14px', borderRadius: 12, border: '1px solid var(--border)', fontSize: '13.5px', color: 'var(--text)', outline: 'none', resize: 'none', fontFamily: 'inherit', background: 'var(--bg)' }} />
+        <label style={labelStyle}>{d.requirement.details}</label>
+        <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder={d.requirement.detailsPh} style={{ width: '100%', height: 110, padding: '12px 14px', borderRadius: 12, border: '1px solid var(--border)', fontSize: '13.5px', color: 'var(--text)', outline: 'none', resize: 'none', fontFamily: 'inherit', background: 'var(--bg)' }} />
       </div>
 
       {error && <div style={{ marginTop: 12, fontSize: 12.5, color: '#C0392B', background: 'rgba(192,57,43,.08)', border: '1px solid rgba(192,57,43,.25)', borderRadius: 10, padding: '9px 12px' }}>{error}</div>}
@@ -228,7 +232,7 @@ export function RequirementForm() {
       <input type="text" name="website" value={website} onChange={(e) => setWebsite(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: 'absolute', left: -9999, width: 1, height: 1, opacity: 0 }} />
 
       <button type="submit" className="c-submit" disabled={sending} style={{ marginTop: 16, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, padding: '0 30px', borderRadius: 9999, border: 0, background: '#04140C', color: '#2DFB91', fontSize: 14, fontWeight: 800, fontFamily: 'inherit', cursor: sending ? 'default' : 'pointer', opacity: sending ? 0.75 : 1, transition: 'transform .2s,box-shadow .2s' }}>
-        {sending ? 'กำลังส่ง…' : 'ส่งความต้องการ'}
+        {sending ? d.form.sending : d.form.submit}
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
       </button>
     </form>
