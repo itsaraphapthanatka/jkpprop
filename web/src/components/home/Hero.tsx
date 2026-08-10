@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useI18n } from '@/i18n/useDict';
+import { enumLabel } from '@/i18n/enums';
 
 type FilterTab = 'type' | 'size' | 'price';
 type PropType = 'warehouse' | 'factory';
@@ -55,6 +57,7 @@ const checkIcon = (
 );
 
 export function Hero() {
+  const { d, locale } = useI18n();
   const [listingMode, setListingMode] = useState<'rent' | 'sale'>('rent');
   const [propType, setPropType] = useState<PropType>('warehouse');
   const [sizeSel, setSizeSel] = useState<string | null>(null);
@@ -95,7 +98,7 @@ export function Hero() {
       <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', borderBottomRightRadius: '72px' }}>
         <div id="hero-parallax" style={{ position: 'absolute', inset: 0 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="https://images.unsplash.com/photo-1553413077-190dd305871c?w=1600&q=80" alt="โกดัง/โรงงาน" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          <img src="https://images.unsplash.com/photo-1553413077-190dd305871c?w=1600&q=80" alt={d.nav.warehouse} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         </div>
       </div>
 
@@ -110,26 +113,26 @@ export function Hero() {
         <h1 style={{ margin: '0 auto', maxWidth: '760px', fontSize: '44px', lineHeight: 1.2, fontWeight: 700, color: '#FFFFFF' }}>
           <span style={{ display: 'block', overflow: 'hidden', paddingBottom: '.08em' }}>
             <span style={{ display: 'inline-block', animation: 'lineUp .85s cubic-bezier(.16,.8,.24,1) both' }}>
-              ค้นหา
+              {d.common.search}
               <span id="hero-rotator" style={{ display: 'inline-flex', flexDirection: 'column', height: '1.18em', overflow: 'hidden', verticalAlign: 'bottom' }}>
                 <span style={{ display: 'block', color: '#2DFB91', animation: 'rotWords 9s cubic-bezier(.7,0,.2,1) infinite' }}>
-                  <span style={{ display: 'block', height: '1.18em' }}>โกดัง</span>
-                  <span style={{ display: 'block', height: '1.18em' }}>โรงงาน</span>
-                  <span style={{ display: 'block', height: '1.18em' }}>คลังสินค้า</span>
-                  <span style={{ display: 'block', height: '1.18em' }}>ที่ดิน</span>
-                  <span style={{ display: 'block', height: '1.18em' }}>โกดัง</span>
+                  <span style={{ display: 'block', height: '1.18em' }}>{enumLabel('โกดัง', locale)}</span>
+                  <span style={{ display: 'block', height: '1.18em' }}>{enumLabel('โรงงาน', locale)}</span>
+                  <span style={{ display: 'block', height: '1.18em' }}>{enumLabel('คลังสินค้า', locale)}</span>
+                  <span style={{ display: 'block', height: '1.18em' }}>{enumLabel('ที่ดิน', locale)}</span>
+                  <span style={{ display: 'block', height: '1.18em' }}>{enumLabel('โกดัง', locale)}</span>
                 </span>
               </span>
-              ที่เหมาะกับคุณ
+              {d.hero.headlineTail}
             </span>
           </span>
           <span style={{ display: 'block', overflow: 'hidden', paddingBottom: '.08em' }}>
-            <span style={{ display: 'inline-block', animation: 'lineUp .85s cubic-bezier(.16,.8,.24,1) .13s both' }}>หรือโรงงานทั่วประเทศไทย</span>
+            <span style={{ display: 'inline-block', animation: 'lineUp .85s cubic-bezier(.16,.8,.24,1) .13s both' }}>{d.hero.headline2}</span>
           </span>
         </h1>
 
         <p style={{ margin: '16px auto 0', maxWidth: '560px', fontSize: 16, color: '#E8FFF0', animation: 'fadeUp .8s ease .34s both' }}>
-          รวมรายการโรงงานและโกดังให้เช่า–ขายทั่วประเทศ ที่ผ่านการตรวจสอบและคัดกรองโดยทีมงานมืออาชีพ
+          {d.hero.sub}
         </p>
 
         {/* search panel */}
@@ -137,35 +140,35 @@ export function Hero() {
           <div id="hero-search-bar" style={{ background: 'var(--surface)', borderRadius: 12, boxShadow: '0 6px 16px rgba(0,0,0,.12)', padding: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
             <div id="hero-search-textwrap" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7A7974" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
-              <span style={{ fontSize: 15, color: 'var(--muted2)' }}>ค้นหาตามทำเล, จังหวัด, รหัสทรัพย์…</span>
+              <span style={{ fontSize: 15, color: 'var(--muted2)' }}>{d.hero.searchPlaceholder}</span>
             </div>
-            <button id="hero-search-btn" className="search-btn" style={{ border: 0, height: 44, padding: '0 26px', background: '#2DFB91', color: '#022310', fontFamily: 'inherit', fontSize: 15, fontWeight: 700, borderRadius: 8, cursor: 'pointer', transition: 'transform .15s', flexShrink: 0 }}>ค้นหา</button>
+            <button id="hero-search-btn" className="search-btn" style={{ border: 0, height: 44, padding: '0 26px', background: '#2DFB91', color: '#022310', fontFamily: 'inherit', fontSize: 15, fontWeight: 700, borderRadius: 8, cursor: 'pointer', transition: 'transform .15s', flexShrink: 0 }}>{d.common.search}</button>
           </div>
 
           <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
             <div onClick={() => setListingMode('rent')} style={listingMode === 'rent' ? activeChip : idleChip}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18" /><path d="M5 21V9l7-5 7 5v12" /><path d="M9 21v-6h6v6" /></svg>
-              สำหรับเช่า
+              {d.nav.forRent}
             </div>
             <div onClick={() => setListingMode('sale')} style={listingMode === 'sale' ? activeChip : idleChip}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M20.6 13.4L13 21a2 2 0 01-2.8 0l-7-7A2 2 0 013 12.6V4h8.6a2 2 0 011.4.6l7.6 7.6a2 2 0 010 2.8z" /><circle cx="7.5" cy="7.5" r="1.2" /></svg>
-              สำหรับขาย
+              {d.nav.forSale}
             </div>
             <div onClick={() => openFilter('type')} style={propType === 'factory' ? activeChip : idleChip}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21V8l9-5 9 5v13" /><path d="M3 21h18" /><path d="M7 21v-8h10v8" /></svg>
-              {propType === 'factory' ? 'โรงงาน' : 'โกดัง'}
+              {enumLabel(propType === 'factory' ? 'โรงงาน' : 'โกดัง', locale)}
             </div>
             <div onClick={() => openFilter('size')} style={sizeSel ? activeChip : idleChip}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" /></svg>
-              {sizeSel || 'ขนาดพื้นที่'}
+              {sizeSel ? enumLabel(sizeSel, locale) : d.hero.size}
             </div>
             <div onClick={() => openFilter('price')} style={priceSel ? activeChip : idleChip}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M14.5 9a2.5 2.5 0 00-2.5-1.8c-1.4 0-2.5.9-2.5 2s1.1 2 2.5 2 2.5.9 2.5 2-1.1 2-2.5 2A2.5 2.5 0 019.5 15" /><path d="M12 6v1.2M12 16.8V18" /></svg>
-              {priceSel || 'ช่วงราคา'}
+              {priceSel ? enumLabel(priceSel, locale) : d.hero.priceRange}
             </div>
             <div onClick={() => setMoreOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 36, padding: '0 16px', borderRadius: 9999, background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.42)', color: '#fff', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16" /><path d="M4 12h16" /><path d="M4 18h16" /><circle cx="9" cy="6" r="2" fill="#fff" /><circle cx="15" cy="12" r="2" fill="#fff" /><circle cx="8" cy="18" r="2" fill="#fff" /></svg>
-              ตัวกรองเพิ่มเติม
+              {d.hero.moreFilters}
             </div>
           </div>
         </div>
@@ -176,7 +179,7 @@ export function Hero() {
         <div style={{ position: 'relative', width: 22, height: 34, border: '2px solid #273c33', borderRadius: 12, flexShrink: 0 }}>
           <div style={{ position: 'absolute', left: '50%', top: 6, transform: 'translateX(-50%)', width: 3, height: 7, borderRadius: 2, background: '#273c33', animation: 'scrollDot 1.7s ease-in-out infinite' }} />
         </div>
-        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap' }}>สำรวจอสังหาริมทรัพย์อุตสาหกรรม</span>
+        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap' }}>{d.hero.headline1}</span>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 9999, background: '#034956', flexShrink: 0 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'chevPulse 1.7s ease-in-out infinite' }}><path d="M6 9l6 6 6-6" /></svg>
         </div>
@@ -187,19 +190,19 @@ export function Hero() {
         <div onClick={() => setMoreOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 900, background: 'rgba(2,14,8,.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '480px', maxHeight: '86vh', display: 'flex', flexDirection: 'column', background: 'var(--surface)', borderRadius: 22, boxShadow: '0 40px 80px rgba(0,0,0,.4)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '22px 24px', flexShrink: 0 }}>
-              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>ตัวกรองเพิ่มเติม</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>{d.hero.moreFilters}</div>
               <CloseBtn onClick={() => setMoreOpen(false)} />
             </div>
             <div style={{ overflow: 'auto', padding: '0 24px', flex: 1 }}>
               {/* zone */}
-              <MoreSection title="โซน" open={secOpen.zone} onToggle={() => setSecOpen((s) => ({ ...s, zone: !s.zone }))} icon="zone">
+              <MoreSection title={d.hero.zone} open={secOpen.zone} onToggle={() => setSecOpen((s) => ({ ...s, zone: !s.zone }))} icon="zone">
                 <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr', gap: 4 }}>
                   {ZONE_ITEMS.map((label) => {
                     const on = zoneSel.includes(label);
                     return (
                       <div key={label} onClick={() => setZoneSel((a) => toggleIn(a, label))} style={rowSelStyle(on)}>
                         <div style={boxStyle(on)}>{on && checkIcon}</div>
-                        <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{label}</div>
+                        <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{enumLabel(label, locale)}</div>
                       </div>
                     );
                   })}
@@ -215,8 +218,8 @@ export function Hero() {
                         <div style={boxStyle(on)}>{on && checkIcon}</div>
                         <div style={{ width: 22, height: 22, borderRadius: 6, flexShrink: 0, background: z.color, border: '1px solid rgba(0,0,0,.14)' }} />
                         <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{z.name}</div>
-                          <div style={{ fontSize: 11, color: 'var(--muted2)' }}>{z.desc}</div>
+                          <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{enumLabel(z.name, locale)}</div>
+                          <div style={{ fontSize: 11, color: 'var(--muted2)' }}>{enumLabel(z.desc, locale)}</div>
                         </div>
                       </div>
                     );
@@ -224,14 +227,14 @@ export function Hero() {
                 </div>
               </MoreSection>
               {/* feature */}
-              <MoreSection title="คุณสมบัติ" open={secOpen.feature} onToggle={() => setSecOpen((s) => ({ ...s, feature: !s.feature }))} icon="feature">
+              <MoreSection title={d.hero.features} open={secOpen.feature} onToggle={() => setSecOpen((s) => ({ ...s, feature: !s.feature }))} icon="feature">
                 <div id="hero-feature-grid" style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
                   {FEATURE_ITEMS.map((label) => {
                     const on = featureSel.includes(label);
                     return (
                       <div key={label} onClick={() => setFeatureSel((a) => toggleIn(a, label))} style={rowSelStyle(on)}>
                         <div style={boxStyle(on)}>{on && checkIcon}</div>
-                        <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{label}</div>
+                        <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{enumLabel(label, locale)}</div>
                       </div>
                     );
                   })}
@@ -245,7 +248,7 @@ export function Hero() {
                     return (
                       <div key={key} onClick={() => setLoadSel(key)} style={rowSelStyle(on)}>
                         <div style={boxStyle(on, true)}>{on && checkIcon}</div>
-                        <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{label}</div>
+                        <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{enumLabel(label, locale)}</div>
                       </div>
                     );
                   })}
@@ -253,8 +256,8 @@ export function Hero() {
               </MoreSection>
             </div>
             <div style={{ display: 'flex', gap: 12, padding: '18px 24px 24px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
-              <div onClick={() => { setZoneSel([]); setColorSel([]); setFeatureSel([]); setLoadSel('any'); }} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, border: '1.5px solid var(--border)', color: 'var(--text)', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>ล้างค่า</div>
-              <div onClick={() => setMoreOpen(false)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>นำไปใช้</div>
+              <div onClick={() => { setZoneSel([]); setColorSel([]); setFeatureSel([]); setLoadSel('any'); }} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, border: '1.5px solid var(--border)', color: 'var(--text)', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>{d.common.clear}</div>
+              <div onClick={() => setMoreOpen(false)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>{d.common.apply}</div>
             </div>
           </div>
         </div>
@@ -265,13 +268,13 @@ export function Hero() {
         <div onClick={() => setFilterOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 900, background: 'rgba(2,14,8,.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '480px', maxHeight: '86vh', display: 'flex', flexDirection: 'column', background: 'var(--surface)', borderRadius: 22, boxShadow: '0 40px 80px rgba(0,0,0,.4)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '22px 24px 0', flexShrink: 0 }}>
-              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>ตัวกรองการค้นหา</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>{d.hero.filters}</div>
               <CloseBtn onClick={() => setFilterOpen(false)} />
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 22, marginTop: 18, padding: '0 24px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-              {tabDef('type', 'ประเภทอสังหา')}
-              {tabDef('size', 'ขนาดพื้นที่')}
-              {tabDef('price', 'ช่วงราคา')}
+              {tabDef('type', d.hero.propertyType)}
+              {tabDef('size', d.hero.size)}
+              {tabDef('price', d.hero.priceRange)}
             </div>
             <div style={{ padding: 24, overflow: 'auto', flex: 1 }}>
               {filterTab === 'type' && (
@@ -287,7 +290,7 @@ export function Hero() {
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 21h20" /><path d="M4 21V10l5 3V10l5 3V10l5 3v8" /><path d="M6 6h.01M10 6h.01" /></svg>
                           )}
                         </div>
-                        <div style={{ flex: 1, fontSize: '14.5px', fontWeight: 600 }}>{label}</div>
+                        <div style={{ flex: 1, fontSize: '14.5px', fontWeight: 600 }}>{enumLabel(label, locale)}</div>
                         <div style={{ width: 20, height: 20, borderRadius: 9999, border: '2px solid ' + (on ? '#273c33' : 'var(--border)'), background: on ? '#273c33' : 'transparent', boxShadow: on ? 'inset 0 0 0 3px var(--surface)' : 'none' }} />
                       </div>
                     );
@@ -298,7 +301,7 @@ export function Hero() {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                   {SIZE_VALS.map((label) => {
                     const on = sizeSel === label;
-                    return <div key={label} onClick={() => setSizeSel(on ? null : label)} style={pillStyle(on)}>{label}</div>;
+                    return <div key={label} onClick={() => setSizeSel(on ? null : label)} style={pillStyle(on)}>{enumLabel(label, locale)}</div>;
                   })}
                 </div>
               )}
@@ -306,14 +309,14 @@ export function Hero() {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                   {PRICE_VALS.map((label) => {
                     const on = priceSel === label;
-                    return <div key={label} onClick={() => setPriceSel(on ? null : label)} style={pillStyle(on)}>{label}</div>;
+                    return <div key={label} onClick={() => setPriceSel(on ? null : label)} style={pillStyle(on)}>{enumLabel(label, locale)}</div>;
                   })}
                 </div>
               )}
             </div>
             <div style={{ display: 'flex', gap: 12, padding: '18px 24px 24px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
-              <div onClick={() => { setPropType('warehouse'); setSizeSel(null); setPriceSel(null); }} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, border: '1.5px solid var(--border)', color: 'var(--text)', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>ล้างค่า</div>
-              <div onClick={() => setFilterOpen(false)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>นำไปใช้</div>
+              <div onClick={() => { setPropType('warehouse'); setSizeSel(null); setPriceSel(null); }} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, border: '1.5px solid var(--border)', color: 'var(--text)', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>{d.common.clear}</div>
+              <div onClick={() => setFilterOpen(false)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>{d.common.apply}</div>
             </div>
           </div>
         </div>

@@ -140,6 +140,21 @@ const dict: Record<string, Row> = {
   'สมุทรสาคร': { en: 'Samut Sakhon', zh: '龙仔厝' },
   'พระนครศรีอยุธยา': { en: 'Ayutthaya', zh: '大城' },
 
+  'สนามบิน': { en: 'Airport', zh: '机场' },
+  'ท่าเรือ': { en: 'Port', zh: '港口' },
+  'ใจกลางกรุงเทพฯ': { en: 'Central Bangkok', zh: '曼谷市中心' },
+  '8 กม.': { en: '8 km', zh: '8 公里' },
+  '12 กม.': { en: '12 km', zh: '12 公里' },
+  '15 กม.': { en: '15 km', zh: '15 公里' },
+
+  /* SEO/area page breadcrumbs */
+  'โรงงานให้เช่า': { en: 'Factories for rent', zh: '工厂出租' },
+  'โรงงานสำหรับขาย': { en: 'Factories for sale', zh: '工厂出售' },
+  'โกดังสำหรับเช่า': { en: 'Warehouses for rent', zh: '仓库出租' },
+  'โกดังสำหรับขาย': { en: 'Warehouses for sale', zh: '仓库出售' },
+  'สนามบินดอนเมือง': { en: 'Don Mueang Airport', zh: '廊曼机场' },
+  'สนามบินสุวรรณภูมิ': { en: 'Suvarnabhumi Airport', zh: '素万那普机场' },
+
   /* misc option values that surface publicly */
   'อื่นๆ': { en: 'Other', zh: '其他' },
   'ไม่ระบุ': { en: 'Not specified', zh: '未指定' },

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useDict } from '@/i18n/useDict';
 
-const PROPERTY_CODE = 'JKP-SPK0042';
 
 const inputStyle: React.CSSProperties = {
   height: 44,
@@ -53,11 +53,12 @@ const SOCIALS: Social[] = [
 ];
 
 function SocialButton({ s }: { s: Social }) {
+  const d = useDict();
   const [hover, setHover] = useState(false);
   return (
     <a
       href="#"
-      aria-label={'ติดต่อผ่าน ' + s.label}
+      aria-label={d.inquiry.contactVia + s.label}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
@@ -79,11 +80,15 @@ function SocialButton({ s }: { s: Social }) {
   );
 }
 
-export function InquiryBox({ topOffset = 88, stacked = false }: { topOffset?: number; stacked?: boolean }) {
+/* `code` identifies the property being asked about. It was a module-level
+   constant, so an enquiry sent from any property page arrived naming
+   JKP-SPK0042 — the sales team could not tell what the lead was about. */
+export function InquiryBox({ code = '', topOffset = 88, stacked = false }: { code?: string; topOffset?: number; stacked?: boolean }) {
+  const d = useDict();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [message, setMessage] = useState(`สนใจทรัพย์ ${PROPERTY_CODE}`);
+  const [message, setMessage] = useState(`${d.inquiry.interestedIn} ${code}`.trim());
   const [sent, setSent] = useState(false);
   const [btnHover, setBtnHover] = useState(false);
 
@@ -95,14 +100,14 @@ export function InquiryBox({ topOffset = 88, stacked = false }: { topOffset?: nu
   return (
     <div id="pd-inquiry" style={{ position: stacked ? 'static' : 'sticky', top: stacked ? 'auto' : topOffset, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, padding: 24 }}>
-        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>ขอข้อมูลเพิ่มเติม</div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>{d.inquiry.heading}</div>
 
         {/* agent */}
         <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, background: 'var(--bg)' }}>
           <div style={{ width: 46, height: 46, borderRadius: 12, background: '#273c33', color: '#2DFB91', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, flexShrink: 0 }}>JKP</div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>JKP Property</div>
-            <div style={{ fontSize: 12, color: 'var(--muted)' }}>ทีมขายพร้อมดูแล จ–ศ 9:00–18:00</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)' }}>{d.inquiry.hours}</div>
           </div>
         </div>
 
@@ -116,18 +121,18 @@ export function InquiryBox({ topOffset = 88, stacked = false }: { topOffset?: nu
         {/* divider */}
         <div style={{ margin: '16px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-          <span style={{ fontSize: '11.5px', color: 'var(--muted3)' }}>หรือกรอกฟอร์ม</span>
+          <span style={{ fontSize: '11.5px', color: 'var(--muted3)' }}>{d.inquiry.orFillIn}</span>
           <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
         </div>
 
         {/* form */}
         <form onSubmit={onSubmit}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <input placeholder="ชื่อของคุณ" value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
-            <input placeholder="อีเมล" value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} />
-            <input placeholder="เบอร์โทรศัพท์" value={phone} onChange={(e) => setPhone(e.target.value)} style={inputStyle} />
+            <input placeholder={d.inquiry.namePh} value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
+            <input placeholder={d.inquiry.emailPh} value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} />
+            <input placeholder={d.inquiry.phonePh} value={phone} onChange={(e) => setPhone(e.target.value)} style={inputStyle} />
             <textarea
-              placeholder={`สนใจทรัพย์ ${PROPERTY_CODE} ต้องการข้อมูลเพิ่มเติม…`}
+              placeholder={`${d.inquiry.interestedIn} ${code} ${d.inquiry.wantMore}`.trim()}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               style={{ height: 88, padding: '12px 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: '13.5px', background: 'var(--bg)', outline: 'none', resize: 'none' }}
@@ -161,14 +166,14 @@ export function InquiryBox({ topOffset = 88, stacked = false }: { topOffset?: nu
           >
             {sent ? (
               <>
-                ส่งแล้ว
+                {d.inquiry.sent}
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6">
                   <path d="M20 6L9 17l-5-5" />
                 </svg>
               </>
             ) : (
               <>
-                ส่งคำถาม
+                {d.inquiry.send}
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4">
                   <path d="M22 2L11 13M22 2l-7 20-4-9-9-4z" />
                 </svg>

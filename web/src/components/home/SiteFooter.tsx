@@ -161,7 +161,7 @@ export function SiteFooter() {
                   <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z" />
                   <circle cx="12" cy="10" r="3" />
                 </svg>
-                กรุงเทพมหานคร, ประเทศไทย
+                {d.common.address}
               </div>
             </div>
             <Link
@@ -183,7 +183,7 @@ export function SiteFooter() {
                 transition: 'box-shadow .2s',
               }}
             >
-              ติดต่อเรา
+              {d.nav.contact}
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M5 12h14" />
                 <path d="M13 6l6 6-6 6" />

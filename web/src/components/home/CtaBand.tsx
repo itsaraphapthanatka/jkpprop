@@ -1,6 +1,8 @@
 'use client';
+import { useDict } from '@/i18n/useDict';
 
 export function CtaBand() {
+  const d = useDict();
   const primaryEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.currentTarget.style.boxShadow = '0 12px 34px rgba(45,251,145,.5)';
   };
@@ -93,13 +95,13 @@ export function CtaBand() {
               <span style={{ position: 'absolute', inset: 0, borderRadius: 9999, background: '#2DFB91', animation: 'pinPulse 1.8s ease-out infinite' }} />
               <span style={{ position: 'relative', width: 7, height: 7, borderRadius: 9999, background: '#2DFB91' }} />
             </span>
-            ปรึกษาฟรี ไม่มีค่าใช้จ่าย
+            {d.cta.eyebrow}
           </div>
           <h2 style={{ margin: '18px 0 0', fontSize: 38, fontWeight: 800, color: '#fff', letterSpacing: '-.01em', lineHeight: 1.22 }}>
-            พร้อมหาโรงงานหรือโกดัง<br />ที่ใช่ <span style={{ color: '#2DFB91' }}>ให้เราช่วยคุณ</span>
+            {d.cta.headline}<span style={{ color: '#2DFB91' }}>{d.cta.headlineAccent}</span>
           </h2>
           <p style={{ margin: '14px 0 0', fontSize: 15, color: '#B9C2BD', maxWidth: 440, lineHeight: 1.65 }}>
-            ให้ทีมผู้เชี่ยวชาญของเราช่วยคัดทรัพย์ที่ตรงโจทย์ที่สุด พร้อมดูแลตั้งแต่ค้นหาจนปิดดีล
+            {d.cta.sub}
           </p>
           <div style={{ marginTop: 26, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
             <a
@@ -120,7 +122,7 @@ export function CtaBand() {
                 transition: 'transform .25s cubic-bezier(.2,.7,.3,1),box-shadow .2s',
               }}
             >
-              ปรึกษาฟรีวันนี้
+              {d.cta.primary}
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#04140C" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M5 12h14" />
                 <path d="M13 6l6 6-6 6" />
@@ -148,7 +150,7 @@ export function CtaBand() {
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z" />
               </svg>
-              โทรเลย
+              {d.cta.call}
             </a>
           </div>
         </div>
@@ -168,7 +170,7 @@ export function CtaBand() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="https://images.unsplash.com/photo-1521791136064-7986c2920216?w=1000&q=80"
-              alt="วางรูปทีมงานใส่สูท"
+              alt={d.cta.photoAlt}
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'saturate(.9) brightness(.95)' }}
             />
             <div
@@ -202,11 +204,11 @@ export function CtaBand() {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#04140C" strokeWidth="2.2">
               <path d="M13 2L3 14h7l-1 8 11-14h-7z" />
             </svg>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#04140C', whiteSpace: 'nowrap' }}>ปรึกษาฟรี!</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#04140C', whiteSpace: 'nowrap' }}>{d.cta.freeShort}</div>
           </div>
           <div style={{ display: 'none' }}>
             <div style={{ position: 'relative', textAlign: 'center', fontSize: 13, fontWeight: 800, color: '#0A0E0C', lineHeight: 1.15 }}>
-              ปรึกษา<br />ฟรี!
+              {d.cta.freeShort}
             </div>
           </div>
           {/* floating team badge */}
@@ -246,8 +248,8 @@ export function CtaBand() {
               </svg>
             </div>
             <div style={{ lineHeight: 1.2 }}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#0A0E0C' }}>ทีมผู้เชี่ยวชาญ 12 คน</div>
-              <div style={{ fontSize: 12, color: '#5F5A52' }}>พร้อมดูแลคุณทุกขั้นตอน</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#0A0E0C' }}>{d.cta.teamCount}</div>
+              <div style={{ fontSize: 12, color: '#5F5A52' }}>{d.cta.teamNote}</div>
             </div>
           </div>
         </div>

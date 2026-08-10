@@ -6,6 +6,7 @@ import { InquiryBox } from './InquiryBox';
 import Link from '@/i18n/LocaleLink';
 import { PhotoPlaceholder } from '@/components/common/PhotoPlaceholder';
 import type { SpecRow } from '@/lib/server/propertySpecs';
+import { useDict } from '@/i18n/useDict';
 
 /* ---- responsive helper (source media queries target #pd-* ids not in globals) ---- */
 function useMaxWidth(px: number) {
@@ -84,6 +85,7 @@ function ShareBtn({ children }: { children: React.ReactNode }) {
 }
 
 function RelatedCard({ r }: { r: RelatedProperty }) {
+  const d = useDict();
   const [hover, setHover] = useState(false);
   return (
     <Link
@@ -118,7 +120,7 @@ function RelatedCard({ r }: { r: RelatedProperty }) {
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: 15, fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: '#034956' }}>{r.price}</span>
           <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 4 }}>
-            ดูรายละเอียด
+            {d.common.viewDetail}
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
           </span>
         </div>
@@ -145,27 +147,28 @@ const baht = (n: number) => `฿${n.toLocaleString('th-TH')}`;
    not resolve, so there is no case to fall back to — the old optional prop
    carried a full demo record as its default. */
 export function PropertyDetail({ property }: { property: PublicProperty }) {
+  const d = useDict();
   const w980 = useMaxWidth(980);
   const w640 = useMaxWidth(640);
 
   const { code, title: heading, specs, zoning, related } = property;
   const place = property.location;
   const isRent = property.priceRent !== null;
-  const priceLabel = isRent ? 'ราคาเช่า' : 'ราคาขาย';
+  const priceLabel = isRent ? d.property.priceRent : d.property.priceSale;
   const priceValue = property.priceRent !== null ? baht(property.priceRent)
     : property.priceSale !== null ? baht(property.priceSale)
-      : 'ติดต่อสอบถาม';
+      : d.common.priceOnRequest;
   const priceUnit = property.priceRent !== null
-    ? `/ เดือน${property.area ? ` · ฿${Math.round(property.priceRent / property.area)}/ตร.ม.` : ''}`
+    ? `${d.common.perMonth}${property.area ? ` · ฿${Math.round(property.priceRent / property.area)}/ตร.ม.` : ''}`
     : '';
 
   return (
     <>
       {/* BREADCRUMB */}
       <div style={{ maxWidth: '1320px', margin: '0 auto', padding: '16px 24px 0', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--muted2)', flexWrap: 'wrap' }}>
-        <Link href="/" style={{ color: 'var(--muted2)' }}>หน้าแรก</Link>
+        <Link href="/" style={{ color: 'var(--muted2)' }}>{d.common.home}</Link>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted3)" strokeWidth="2"><path d="M9 6l6 6-6 6" /></svg>
-        <a href="#" style={{ color: 'var(--muted2)' }}>อสังหาริมทรัพย์ทั้งหมด</a>
+        <a href="#" style={{ color: 'var(--muted2)' }}>{d.listing.title}</a>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted3)" strokeWidth="2"><path d="M9 6l6 6-6 6" /></svg>
         <span style={{ color: 'var(--text)', fontWeight: 600 }}>{code}</span>
       </div>
@@ -187,7 +190,7 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
                 <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--text)', letterSpacing: '-.01em', lineHeight: 1.3 }}>{heading}</h1>
                 <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '13.5px', color: 'var(--muted)' }}>{pin(15, 'var(--accent)')}{place}</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted2)' }}>รหัสทรัพย์: <code style={{ fontWeight: 700, color: '#0D6C3B' }}>{code}</code></span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted2)' }}>{d.property.code}: <code style={{ fontWeight: 700, color: '#0D6C3B' }}>{code}</code></span>
                 </div>
               </div>
               <div style={{ textAlign: w640 ? 'left' : 'right', flexShrink: 0 }}>
@@ -213,7 +216,7 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
             )}
 
             <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-              <div style={{ fontSize: 12, color: 'var(--muted2)' }}>อัปเดตล่าสุด {property.updatedAt} · <span style={{ color: 'var(--muted3)' }}>ราคา/สถานะไม่การันตี ต้องตรวจสอบอีกครั้ง</span></div>
+              <div style={{ fontSize: 12, color: 'var(--muted2)' }}>{d.property.updatedAt} {property.updatedAt} · <span style={{ color: 'var(--muted3)' }}>{d.property.notGuaranteed}</span></div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <ShareBtn>
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.8 8.6a5.5 5.5 0 00-9-1.8L12 8l-.1-.1a5.5 5.5 0 10-7.8 7.8l7.9 7.9 7.9-7.9a5.5 5.5 0 00.9-7z" /></svg>
@@ -228,7 +231,7 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
           {/* SPEC TABLE */}
           {specs.rows.length > 0 && (
             <div style={sectionCard}>
-              {sectionHead('รายละเอียดทรัพย์')}
+              {sectionHead(d.property.specs)}
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {specs.rows.map((r) => (
                   <div key={r.key} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
@@ -243,7 +246,7 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
           {/* FEATURES */}
           {specs.features.length > 0 && (
             <div style={sectionCard}>
-              {sectionHead('คุณสมบัติของทรัพย์')}
+              {sectionHead(d.property.features)}
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 {specs.features.map((f) => (
                   <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 9, height: 44, padding: '0 16px', borderRadius: 12, background: 'var(--bg)', border: '1px solid var(--border)' }}>
@@ -258,7 +261,7 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
           {/* ZONE */}
           {zoning && (
             <div style={sectionCard}>
-              {sectionHead('ประเภทโซน')}
+              {sectionHead(d.property.zoneType)}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 46, padding: '0 18px', borderRadius: 12, background: 'var(--tint)', width: 'fit-content' }}>
                 {pin(18, 'var(--accent)')}
                 <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--accent)' }}>{zoning}</span>
@@ -272,8 +275,8 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
               published area is at least what it claims to be. */}
           {place && (
             <div style={sectionCard}>
-              {sectionHead('ตำแหน่งทรัพย์', 8)}
-              <p style={{ margin: '0 0 16px', fontSize: '12.5px', color: 'var(--muted2)' }}>แสดงระดับพื้นที่เพื่อความเป็นส่วนตัว — {place}</p>
+              {sectionHead(d.property.location, 8)}
+              <p style={{ margin: '0 0 16px', fontSize: '12.5px', color: 'var(--muted2)' }}>{d.property.areaLevelNote} — {place}</p>
               <div id="pd-location-grid" style={{ display: 'grid', gridTemplateColumns: w640 || !specs.nearby.length ? '1fr' : '1.5fr 1fr', gap: 16 }}>
                 <a
                   href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place)}`}
@@ -282,11 +285,11 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
                   style={{ borderRadius: 16, height: 120, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, color: 'var(--accent)', fontSize: '13.5px', fontWeight: 700 }}
                 >
                   {pin(18, 'var(--accent)')}
-                  เปิดพื้นที่นี้ใน Google Maps
+                  {d.property.openInMaps}
                 </a>
                 {specs.nearby.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>สถานที่ใกล้เคียง</div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>{d.property.nearby}</div>
                     {specs.nearby.map((n) => (
                       <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, borderRadius: 12, background: 'var(--bg)' }}>
                         <div style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', flexShrink: 0 }}>{nearbyIcon}</div>
@@ -304,7 +307,7 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
             to a single column at ≤980, the sidebar sits below a long left
             column, so stickiness is unset via the `stacked` prop instead of
             fighting the box's own layout with an extra CSS pass) */}
-        <InquiryBox stacked={w980} />
+        <InquiryBox code={code} stacked={w980} />
       </div>
 
       {/* RELATED — other published properties of the same type. Was three
@@ -313,7 +316,7 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
         <section style={{ maxWidth: '1320px', margin: '0 auto', padding: '0 24px 80px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
             <span style={{ width: 26, height: 2, background: '#273c33', borderRadius: 2 }} />
-            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>อสังหาริมทรัพย์ที่คล้ายกัน</h2>
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>{d.property.similar}</h2>
           </div>
           <div className="rs-cols-3" id="pd-related" style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(3, related.length)}, 1fr)`, gap: 20 }}>
             {related.map((r) => (

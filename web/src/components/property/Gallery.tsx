@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { PhotoPlaceholder } from '@/components/common/PhotoPlaceholder';
+import { useDict } from '@/i18n/useDict';
 
 /* The property's own photos.
  *
@@ -38,6 +39,7 @@ export function Gallery({
   dealLabel?: string;
   typeLabel?: string;
 }) {
+  const d = useDict();
   const [mainSrc, setMainSrc] = useState<string | null>(photos[0] ?? null);
 
   const thumbs = photos.slice(1, 1 + MAX_THUMBS);
@@ -54,8 +56,8 @@ export function Gallery({
         <div id="pd-gallery-main" style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', background: 'var(--tint)' }}>
           {mainSrc
             ? /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={mainSrc} alt="รูปทรัพย์หลัก" style={fillImg} />
-            : <PhotoPlaceholder label="ยังไม่มีรูปทรัพย์นี้" />}
+              <img src={mainSrc} alt={d.property.code} style={fillImg} />
+            : <PhotoPlaceholder label={d.property.noPhotos} />}
           <div style={{ position: 'absolute', top: 16, left: 16, display: 'flex', gap: 8 }}>
             {dealLabel && (
               <span style={{ height: 30, padding: '0 14px', borderRadius: 9999, background: 'rgba(255,255,255,.95)', color: '#0D6C3B', fontSize: '12.5px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -73,7 +75,7 @@ export function Gallery({
                 <circle cx="8.5" cy="8.5" r="1.5" />
                 <path d="M21 15l-5-5L5 21" />
               </svg>
-              {photos.length} รูป
+              {photos.length} {d.property.photos}
             </div>
           )}
         </div>
@@ -88,7 +90,7 @@ export function Gallery({
                 style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', background: 'var(--tint)', minHeight: 0, cursor: 'pointer' }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={src} alt="รูปทรัพย์" style={fillImg} />
+                <img src={src} alt={d.property.code} style={fillImg} />
                 {i === thumbs.length - 1 && overflow > 0 && (
                   <div style={{ position: 'absolute', inset: 0, background: 'rgba(2,29,14,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 16, fontWeight: 800 }}>+{overflow}</div>
                 )}

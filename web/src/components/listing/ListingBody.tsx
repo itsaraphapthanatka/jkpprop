@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import Link from '@/i18n/LocaleLink';
 import { PhotoPlaceholder } from '@/components/common/PhotoPlaceholder';
+import { useI18n } from '@/i18n/useDict';
+import { enumLabel } from '@/i18n/enums';
 
 /* ============================================================
    Ported verbatim from design/Listing.dc.html — markup + the
@@ -17,17 +19,9 @@ type SortKey = 'new' | 'price_asc' | 'price_desc' | 'size_asc' | 'size_desc';
 type Mode = 'rent' | 'sale';
 type SecKey = 'zone' | 'type' | 'size' | 'price';
 
-const SORT_DEFS: { key: SortKey; label: string }[] = [
-  { key: 'new', label: 'ใหม่ล่าสุด' },
-  { key: 'price_asc', label: 'ราคา (น้อย → มาก)' },
-  { key: 'price_desc', label: 'ราคา (มาก → น้อย)' },
-  { key: 'size_asc', label: 'ขนาด (เล็ก → ใหญ่)' },
-  { key: 'size_desc', label: 'ขนาด (ใหญ่ → เล็ก)' },
-];
-
 const SHARE_DEFS: { key: string; label: string; char: string; bg: string; color: string }[] = [
-  { key: 'copy', label: 'คัดลอกลิงก์', char: '⛓', bg: 'var(--tint)', color: 'var(--accent)' },
-  { key: 'email', label: 'อีเมล', char: '✉', bg: '#FDECC8', color: '#D9A62B' },
+  { key: 'copy', label: '', char: '⛓', bg: 'var(--tint)', color: 'var(--accent)' },
+  { key: 'email', label: '', char: '✉', bg: '#FDECC8', color: '#D9A62B' },
   { key: 'line', label: 'Line', char: 'L', bg: '#E3F5DC', color: '#06C755' },
   { key: 'whatsapp', label: 'Whatsapp', char: 'W', bg: '#DCF3E5', color: '#25D366' },
   { key: 'wechat', label: 'Wechat', char: '微', bg: '#DDF0DD', color: '#1AAD19' },
@@ -107,7 +101,7 @@ export interface ListingPreset {
   /** area pages narrow to one province; matched against the property's own */
   province?: string;
 }
-const DEFAULT_PRESET: ListingPreset = { breadcrumb: 'อสังหาริมทรัพย์ทั้งหมด' };
+const DEFAULT_PRESET: ListingPreset = { breadcrumb: '' };
 
 const PER_PAGE = 9;
 
@@ -171,6 +165,7 @@ const checkIcon = (
 );
 
 function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: string; onToggleFav: () => void }) {
+  const { d, locale } = useI18n();
   const [hover, setHover] = useState(false);
   const [favHover, setFavHover] = useState(false);
   const [detailHover, setDetailHover] = useState(false);
@@ -202,7 +197,7 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(2,35,16,.24) 0%,rgba(2,35,16,0) 34%,rgba(2,35,16,0) 62%,rgba(2,35,16,.38) 100%)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', alignItems: 'center', gap: 6, height: 26, padding: '0 11px', borderRadius: 9999, background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.42)', color: '#fff', fontSize: '11.5px', fontWeight: 700, pointerEvents: 'none', backdropFilter: 'blur(6px)' }}>
           <span style={{ width: 5, height: 5, borderRadius: 9999, background: '#fff' }} />
-          {it.deal}
+          {enumLabel(it.deal, locale)}
         </div>
         <div
           onClick={onToggleFav}
@@ -227,7 +222,7 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: 'var(--muted2)', letterSpacing: '.04em' }}>{it.code}</span>
           <span style={{ width: 3, height: 3, borderRadius: 9999, background: 'var(--border)' }} />
-          <span style={{ display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 9px', borderRadius: 6, background: 'var(--tint)', color: 'var(--accent)', fontSize: '10.5px', fontWeight: 600 }}>{it.type}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 9px', borderRadius: 6, background: 'var(--tint)', color: 'var(--accent)', fontSize: '10.5px', fontWeight: 600 }}>{enumLabel(it.type, locale)}</span>
         </div>
         <div style={{ marginTop: 8, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)', lineHeight: 1.4, minHeight: 44 }}>{it.title}</div>
         <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted)', fontSize: 13 }}>
@@ -239,11 +234,11 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
         </div>
         <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted)', fontSize: 13 }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7A7974" strokeWidth="2"><path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" /></svg>
-          ขนาดพื้นที่รวม {it.area}
+          {d.listing.totalArea} {it.area}
         </div>
         <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 11, color: 'var(--muted3)', fontWeight: 500 }}>ราคา</div>
+            <div style={{ fontSize: 11, color: 'var(--muted3)', fontWeight: 500 }}>{d.common.price}</div>
             <div style={{ marginTop: 2, fontSize: 18, fontWeight: 800, color: 'var(--accent)', letterSpacing: '-.01em' }}>{it.price}</div>
           </div>
           <Link
@@ -252,7 +247,7 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
             onMouseLeave={() => setDetailHover(false)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 14px', borderRadius: 9999, background: detailHover ? '#273c33' : 'var(--surface)', border: '1px solid #273c33', color: detailHover ? '#fff' : '#273c33', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all .2s' }}
           >
-            ดูรายละเอียด
+            {d.common.viewDetail}
           </Link>
         </div>
       </div>
@@ -261,6 +256,15 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
 }
 
 export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: ListingPreset; items?: ListingItem[] }) {
+  const { d, locale } = useI18n();
+  const SORT_DEFS: { key: SortKey; label: string }[] = [
+    { key: 'new', label: d.listing.newest },
+    { key: 'price_asc', label: d.listing.priceAsc },
+    { key: 'price_desc', label: d.listing.priceDesc },
+    { key: 'size_asc', label: d.listing.sizeAsc },
+    { key: 'size_desc', label: d.listing.sizeDesc },
+  ];
+  const shareLabel = (k: string) => (k === 'copy' ? d.listing.copyLink : k === 'email' ? d.listing.email : '');
   /* Already queried, filtered by the preset and rendered on the server — no
      client fetch, so the markup search engines see is the real inventory. */
   const all = items.map(toListing);
@@ -343,16 +347,16 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
 
   type Section = { key: SecKey; title: string; items: { label: string; checked: boolean; select: () => void }[] };
   const sections: Section[] = [
-    { key: 'zone', title: 'ทำเล', items: zoneItems.map((label) => ({ label, checked: zoneSel.includes(label), select: () => setZoneSel((a) => toggleIn(a, label)) })) },
-    { key: 'type', title: 'ประเภทอสังหา', items: TYPE_ITEMS.map((label) => ({ label, checked: typeSel.includes(label), select: () => setTypeSel((a) => toggleIn(a, label)) })) },
-    { key: 'size', title: 'ขนาดพื้นที่', items: SIZE_ITEMS.map((label) => ({ label, checked: sizeSel === label, select: () => setSizeSel((cur) => (cur === label ? null : label)) })) },
-    { key: 'price', title: 'ช่วงราคา', items: PRICE_ITEMS.map((label) => ({ label, checked: priceSel === label, select: () => setPriceSel((cur) => (cur === label ? null : label)) })) },
+    { key: 'zone', title: d.listing.zone, items: zoneItems.map((label) => ({ label, checked: zoneSel.includes(label), select: () => setZoneSel((a) => toggleIn(a, label)) })) },
+    { key: 'type', title: d.listing.type, items: TYPE_ITEMS.map((label) => ({ label, checked: typeSel.includes(label), select: () => setTypeSel((a) => toggleIn(a, label)) })) },
+    { key: 'size', title: d.listing.size, items: SIZE_ITEMS.map((label) => ({ label, checked: sizeSel === label, select: () => setSizeSel((cur) => (cur === label ? null : label)) })) },
+    { key: 'price', title: d.listing.price, items: PRICE_ITEMS.map((label) => ({ label, checked: priceSel === label, select: () => setPriceSel((cur) => (cur === label ? null : label)) })) },
   ];
 
   const renderModePills = () => (
     <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-      <div onClick={() => setListingMode((m) => (m === 'rent' ? null : 'rent'))} style={pillStyle(listingMode === 'rent')}>ให้เช่า</div>
-      <div onClick={() => setListingMode((m) => (m === 'sale' ? null : 'sale'))} style={pillStyle(listingMode === 'sale')}>ขาย</div>
+      <div onClick={() => setListingMode((m) => (m === 'rent' ? null : 'rent'))} style={pillStyle(listingMode === 'rent')}>{d.nav.forRent}</div>
+      <div onClick={() => setListingMode((m) => (m === 'sale' ? null : 'sale'))} style={pillStyle(listingMode === 'sale')}>{d.nav.forSale}</div>
     </div>
   );
 
@@ -366,9 +370,9 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
         {secOpen[sec.key] && (
           <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
             {sec.items.map((it) => (
-              <div key={it.label} onClick={it.select} style={checkStyle(it.checked)}>
+              <div key={enumLabel(it.label, locale)} onClick={it.select} style={checkStyle(it.checked)}>
                 <div style={boxStyle(it.checked)}>{it.checked && checkIcon}</div>
-                <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{it.label}</div>
+                <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{enumLabel(it.label, locale)}</div>
               </div>
             ))}
           </div>
@@ -380,11 +384,11 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
     <>
       {/* BREADCRUMB */}
       <div style={{ maxWidth: '1320px', margin: '0 auto', padding: '16px 24px 0', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--muted2)' }}>
-        <Link href="/" style={{ color: 'var(--muted2)' }}>หน้าแรก</Link>
+        <Link href="/" style={{ color: 'var(--muted2)' }}>{d.common.home}</Link>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted3)" strokeWidth="2">
           <path d="M9 6l6 6-6 6" />
         </svg>
-        <span style={{ color: 'var(--text)', fontWeight: 600 }}>{preset.breadcrumb}</span>
+        <span style={{ color: 'var(--text)', fontWeight: 600 }}>{preset.breadcrumb ? enumLabel(preset.breadcrumb, locale) : d.listing.title}</span>
       </div>
 
       {/* TOOLBAR */}
@@ -394,14 +398,14 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9">
               <path d="M4 6h16M7 12h10M10 18h4" />
             </svg>
-            ติวกรอง
+            {d.listing.filters}
           </div>
           <div style={{ fontSize: 15, color: 'var(--muted)' }}>
-            พบ <span style={{ fontWeight: 800, color: 'var(--text)' }}>{totalCount}</span> รายการ
+            {d.listing.resultsFound} <span style={{ fontWeight: 800, color: 'var(--text)' }}>{totalCount}</span> {d.listing.results}
           </div>
         </div>
         <div id="sort-share-row" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: '13.5px', color: 'var(--muted2)' }}>เรียงตาม:</span>
+          <span style={{ fontSize: '13.5px', color: 'var(--muted2)' }}>{d.listing.sortBy}</span>
           <div style={{ position: 'relative' }}>
             <div onClick={toggleSort} style={{ display: 'flex', alignItems: 'center', gap: 8, height: 40, padding: '0 14px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', minWidth: 130 }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
@@ -452,7 +456,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
                 {SHARE_DEFS.map((s) => (
                   <div key={s.key} className="share-opt" onClick={() => setShareOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 10px', borderRadius: 11, cursor: 'pointer', fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>
                     <div style={{ width: 26, height: 26, borderRadius: 8, background: s.bg, color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{s.char}</div>
-                    {s.label}
+                    {shareLabel(s.key) || s.label}
                   </div>
                 ))}
               </div>
@@ -465,12 +469,12 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
       <div id="listing-layout" style={{ maxWidth: '1320px', margin: '0 auto', padding: '20px 24px 80px', display: 'grid', gridTemplateColumns: '280px 1fr', gap: 28, alignItems: 'start' }}>
         {/* SIDEBAR (desktop) */}
         <aside id="filter-sidebar" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, padding: 20, position: 'sticky', top: 96 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', marginBottom: 14 }}>ตัวกรองการค้นหา</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', marginBottom: 14 }}>{d.listing.filters}</div>
           {renderModePills()}
           {renderSections()}
           <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-            <div onClick={clearAll} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: 9999, border: '1.5px solid var(--border)', color: 'var(--text)', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>ล้างค่า</div>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: 9999, background: '#034956', color: '#fff', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>ค้นหา</div>
+            <div onClick={clearAll} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: 9999, border: '1.5px solid var(--border)', color: 'var(--text)', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>{d.listing.clear}</div>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: 9999, background: '#034956', color: '#fff', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>{d.listing.search}</div>
           </div>
         </aside>
 
@@ -478,16 +482,16 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
         {pageItems.length === 0 ? (
           <div id="listing-empty" style={{ padding: '72px 24px', textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 18, background: 'var(--surface)' }}>
             <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)' }}>
-              {all.length === 0 ? 'ยังไม่มีทรัพย์ที่เผยแพร่' : 'ไม่พบทรัพย์ตามเงื่อนไขที่เลือก'}
+              {all.length === 0 ? d.listing.emptyTitle : d.listing.empty}
             </div>
             <p style={{ margin: '10px 0 0', fontSize: 14, color: 'var(--muted2)' }}>
               {all.length === 0
-                ? 'ทรัพย์ที่ทีมงานเผยแพร่แล้วจะแสดงที่นี่'
-                : 'ลองปรับตัวกรอง หรือกด "ล้างค่า" เพื่อดูทั้งหมด'}
+                ? d.listing.emptyBody
+                : d.listing.emptyHint}
             </p>
             {all.length > 0 && (
               <div onClick={clearAll} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginTop: 18, height: 42, padding: '0 22px', borderRadius: 9999, border: '1.5px solid #273c33', color: '#273c33', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>
-                ล้างค่า
+                {d.listing.clear}
               </div>
             )}
           </div>
@@ -545,7 +549,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
         <div onClick={() => setMobileFilterOpen((v) => !v)} style={{ position: 'fixed', inset: 0, zIndex: 900, background: 'rgba(2,14,8,.5)', backdropFilter: 'blur(2px)' }}>
           <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: '88%', maxWidth: 340, background: 'var(--bg)', overflow: 'auto', padding: 20, boxShadow: '20px 0 50px rgba(0,0,0,.2)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>ตัวกรองการค้นหา</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>{d.listing.filters}</div>
               <div onClick={() => setMobileFilterOpen((v) => !v)} style={{ width: 32, height: 32, borderRadius: 9999, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--muted)' }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                   <path d="M18 6L6 18" />
@@ -556,8 +560,8 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
             {renderModePills()}
             {renderSections()}
             <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-              <div onClick={clearAll} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: 9999, border: '1.5px solid var(--border)', color: 'var(--text)', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>ล้างค่า</div>
-              <div onClick={() => setMobileFilterOpen((v) => !v)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: 9999, background: '#034956', color: '#fff', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>ค้นหา</div>
+              <div onClick={clearAll} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: 9999, border: '1.5px solid var(--border)', color: 'var(--text)', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>{d.listing.clear}</div>
+              <div onClick={() => setMobileFilterOpen((v) => !v)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: 9999, background: '#034956', color: '#fff', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>{d.listing.search}</div>
             </div>
           </div>
         </div>

@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useI18n } from '@/i18n/useDict';
+import { enumLabel } from '@/i18n/enums';
 
 type Loc = 'air' | 'port' | 'bkk' | 'eec';
 type PinCat = 'air' | 'port' | 'bkk';
@@ -104,7 +106,8 @@ function pinIcon(cat: PinCat) {
   return (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M6 21V5a2 2 0 012-2h5a2 2 0 012 2v16M15 9h3a2 2 0 012 2v10" /></svg>);
 }
 
-export function LocationFinder() {
+export function LocationFinder({ counts = {} }: { counts?: Partial<Record<Loc, number>> }) {
+  const { d, locale } = useI18n();
   const router = useRouter();
   const [loc, setLocState] = useState<Loc>('air');
   const [, setBurstNonce] = useState(0);
@@ -138,21 +141,21 @@ export function LocationFinder() {
   return (
     <div style={{ width: '100%', background: 'var(--bg)' }}>
       <section data-anim="1" style={{ maxWidth: '1200px', margin: '0 auto', padding: '88px 24px' }}>
-        <div style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600, letterSpacing: '.06em', color: 'var(--accent)', textTransform: 'uppercase' }}>ทำเลยุทธศาสตร์</div>
-        <h2 style={{ margin: '8px 0 40px', textAlign: 'center', fontSize: '30px', fontWeight: 700, color: 'var(--text)' }}>ค้นหาทำเลธุรกิจที่เหมาะกับคุณ</h2>
+        <div style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600, letterSpacing: '.06em', color: 'var(--accent)', textTransform: 'uppercase' }}>{d.locations.eyebrow}</div>
+        <h2 style={{ margin: '8px 0 40px', textAlign: 'center', fontSize: '30px', fontWeight: 700, color: 'var(--text)' }}>{d.locations.heading}</h2>
         <div className="rs-split-l" style={{ display: 'grid', gridTemplateColumns: '0.82fr 1.18fr', gap: '32px', alignItems: 'stretch' }}>
 
           {/* LEFT: factor selector */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>ปัจจัยไหนสำคัญที่สุดสำหรับคุณ?</div>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>{d.locations.adviceQuestion}</div>
             {factorDefs.map((f) => {
               const on = loc === f.key;
               return (
                 <div key={f.key} onClick={() => setLoc(f.key)} style={factorCardStyle(on)}>
                   <div style={iconWrapStyle}>{factorIcon(f.key)}</div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>{f.title}</div>
-                    <div style={{ fontSize: '12.5px', color: 'var(--muted2)', marginTop: '1px' }}>{f.desc}</div>
+                    <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>{enumLabel(f.title, locale)}</div>
+                    <div style={{ fontSize: '12.5px', color: 'var(--muted2)', marginTop: '1px' }}>{enumLabel(f.desc, locale)}</div>
                   </div>
                   <div style={checkStyle(on)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg></div>
                 </div>
@@ -162,22 +165,22 @@ export function LocationFinder() {
             {/* live result card */}
             <div style={{ position: 'relative', overflow: 'hidden', marginTop: '2px', background: 'linear-gradient(120deg,#0A0E0C 0%,#0A0E0C 50%,#0E3A22 100%)', borderRadius: '16px', padding: '20px', color: '#fff', boxShadow: '0 18px 40px rgba(0,0,0,.4)' }}>
               <div style={{ position: 'absolute', bottom: '-45%', right: '-12%', width: '64%', height: '180%', background: 'radial-gradient(ellipse at center,rgba(45,251,145,.28) 0%,rgba(45,251,145,0) 62%)', pointerEvents: 'none' }} />
-              <div style={{ position: 'relative', fontSize: '12px', fontWeight: 600, letterSpacing: '.04em', color: '#5FE39B', textTransform: 'uppercase' }}>ทรัพย์พร้อมใช้งานในทำเลนี้</div>
+              <div style={{ position: 'relative', fontSize: '12px', fontWeight: 600, letterSpacing: '.04em', color: '#5FE39B', textTransform: 'uppercase' }}>{d.locations.available}</div>
               <div style={{ position: 'relative', display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '8px' }}>
-                <div style={{ fontSize: '40px', fontWeight: 800, lineHeight: 1, letterSpacing: '-.02em', color: '#FFFFFF' }}>{result.count}</div>
-                <div style={{ fontSize: '14px', color: '#C3FED5' }}>รายการ</div>
+                <div style={{ fontSize: '40px', fontWeight: 800, lineHeight: 1, letterSpacing: '-.02em', color: '#FFFFFF' }}>{counts[loc] ?? 0}</div>
+                <div style={{ fontSize: '14px', color: '#C3FED5' }}>{d.locations.results}</div>
               </div>
               <div style={{ position: 'relative', display: 'flex', gap: '22px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,.14)' }}>
                 <div>
-                  <div style={{ fontSize: '11px', color: '#7FB89A' }}>ระยะเฉลี่ยถึงจุดยุทธศาสตร์</div>
-                  <div style={{ fontSize: '16px', fontWeight: 700, marginTop: '2px' }}>{result.dist}</div>
+                  <div style={{ fontSize: '11px', color: '#7FB89A' }}>{d.locations.avgDistance}</div>
+                  <div style={{ fontSize: '16px', fontWeight: 700, marginTop: '2px' }}>{enumLabel(result.dist, locale)}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '11px', color: '#7FB89A' }}>จังหวัดเด่น</div>
-                  <div style={{ fontSize: '16px', fontWeight: 700, marginTop: '2px' }}>{result.prov}</div>
+                  <div style={{ fontSize: '11px', color: '#7FB89A' }}>{d.locations.topProvinces}</div>
+                  <div style={{ fontSize: '16px', fontWeight: 700, marginTop: '2px' }}>{result.prov.split(' · ').map((x) => enumLabel(x, locale)).join(' · ')}</div>
                 </div>
               </div>
-              <div onClick={openLocationModal} style={{ position: 'relative', marginTop: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', height: '46px', borderRadius: '9999px', background: '#2DFB91', color: '#04140C', fontSize: '14px', fontWeight: 800, cursor: 'pointer', transition: 'transform .15s' }}>ดูทรัพย์ในทำเลนี้
+              <div onClick={openLocationModal} style={{ position: 'relative', marginTop: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', height: '46px', borderRadius: '9999px', background: '#2DFB91', color: '#04140C', fontSize: '14px', fontWeight: 800, cursor: 'pointer', transition: 'transform .15s' }}>{d.locations.seeInArea}
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#04140C" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
               </div>
             </div>
@@ -191,7 +194,7 @@ export function LocationFinder() {
             {/* result pill */}
             <div style={{ position: 'absolute', top: '16px', left: '16px', zIndex: 6, display: 'flex', alignItems: 'center', gap: '9px', height: '40px', padding: '0 16px', borderRadius: '9999px', background: 'rgba(255,255,255,.94)', backdropFilter: 'blur(6px)', boxShadow: '0 6px 18px rgba(0,0,0,.14)' }}>
               <span style={{ position: 'relative', display: 'flex', width: '9px', height: '9px' }}><span style={{ position: 'absolute', inset: 0, borderRadius: '9999px', background: '#2DFB91', animation: 'pinPulse 1.8s ease-out infinite' }} /><span style={{ position: 'relative', width: '9px', height: '9px', borderRadius: '9999px', background: '#034956' }} /></span>
-              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{result.count} ทรัพย์ · {result.title}</span>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{counts[loc] ?? 0} {d.locations.properties} · {enumLabel(result.title, locale)}</span>
             </div>
 
             {/* region highlight */}
@@ -208,7 +211,7 @@ export function LocationFinder() {
                     <div style={HIDDEN} />
                     <div style={pinDotStyle(col, on)}>{pinIcon(p.cat)}</div>
                   </div>
-                  <div style={pinLabelStyle(on)}>{p.name}</div>
+                  <div style={pinLabelStyle(on)}>{enumLabel(p.name, locale)}</div>
                 </div>
               );
             })}
@@ -219,7 +222,7 @@ export function LocationFinder() {
                 const on = loc === c.key;
                 return (
                   <div key={c.key} onClick={() => setLoc(c.key)} style={chipStyle(c, on)}>
-                    <span style={chipDotStyle(c)} />{c.label}
+                    <span style={chipDotStyle(c)} />{enumLabel(c.label, locale)}
                   </div>
                 );
               })}
@@ -227,11 +230,11 @@ export function LocationFinder() {
 
             {/* ask for advice fab */}
             {adviceTooltipVisible && (
-              <div style={{ position: 'absolute', bottom: '70px', right: '16px', zIndex: 7, maxWidth: '260px', padding: '12px 16px', borderRadius: '14px', background: '#04140C', color: '#fff', fontSize: '12.5px', lineHeight: 1.6, boxShadow: '0 14px 32px rgba(0,0,0,.3)' }}>ยังไม่แน่ใจใช่ไหม? ให้เราช่วยแนะนำทำเลที่เหมาะกับคุณ</div>
+              <div style={{ position: 'absolute', bottom: '70px', right: '16px', zIndex: 7, maxWidth: '260px', padding: '12px 16px', borderRadius: '14px', background: '#04140C', color: '#fff', fontSize: '12.5px', lineHeight: 1.6, boxShadow: '0 14px 32px rgba(0,0,0,.3)' }}>{d.locations.unsureTitle}</div>
             )}
             <div onMouseEnter={() => setAdviceHover(true)} onMouseLeave={() => setAdviceHover(false)} onClick={() => { setAdviceModalOpen(true); setAdviceHover(false); }} style={adviceFabStyle(hov)}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#04140C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M12 2a7 7 0 00-7 7c0 2.4 1.2 4.2 2.5 5.3.4.3.5.8.5 1.2v1c0 .8.7 1.5 1.5 1.5h5c.8 0 1.5-.7 1.5-1.5v-1c0-.4.1-.9.5-1.2C17.8 13.2 19 11.4 19 9a7 7 0 00-7-7z" /><path d="M10 22h4" /></svg>
-              {adviceExpanded && <span style={{ whiteSpace: 'nowrap', fontSize: '14px', fontWeight: 800, color: '#04140C' }}>ขอคำแนะนำ</span>}
+              {adviceExpanded && <span style={{ whiteSpace: 'nowrap', fontSize: '14px', fontWeight: 800, color: '#04140C' }}>{d.locations.getAdvice}</span>}
             </div>
 
             {/* advice modal */}
@@ -241,8 +244,8 @@ export function LocationFinder() {
                   <div className="close-btn" onClick={() => setAdviceModalOpen(false)} style={{ position: 'absolute', top: '16px', right: '16px', width: '30px', height: '30px', borderRadius: '9999px', background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--muted)', transition: 'background .2s,color .2s' }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M18 6L6 18" /><path d="M6 6l12 12" /></svg>
                   </div>
-                  <h3 style={{ margin: 0, fontSize: '22px', fontWeight: 800, color: 'var(--text)' }}>รับคำแนะนำทำเลฟรี</h3>
-                  <p style={{ margin: '14px 0 0', fontSize: '14.5px', color: 'var(--muted)', lineHeight: 1.7 }}>บอกความต้องการของคุณ แล้วทีมเราจะช่วยแนะนำโซนอุตสาหกรรมที่เหมาะที่สุด</p>
+                  <h3 style={{ margin: 0, fontSize: '22px', fontWeight: 800, color: 'var(--text)' }}>{d.locations.adviceCta}</h3>
+                  <p style={{ margin: '14px 0 0', fontSize: '14.5px', color: 'var(--muted)', lineHeight: 1.7 }}>{d.locations.adviceHeading}</p>
                   <a href="Contact.dc.html" style={{ marginTop: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', height: '52px', borderRadius: '9999px', background: '#2DFB91', color: '#022310', fontSize: '15px', fontWeight: 800, transition: 'transform .2s,box-shadow .2s' }}>ติดต่อผู้เชี่ยวชาญของเรา
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#022310" strokeWidth="2.6"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
                   </a>
@@ -258,12 +261,12 @@ export function LocationFinder() {
         <div onClick={closeLocationModal} style={{ position: 'fixed', inset: 0, zIndex: 900, background: 'rgba(2,14,8,.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
           <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '420px', background: 'var(--surface)', borderRadius: '22px', boxShadow: '0 40px 80px rgba(0,0,0,.4)', padding: '26px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text)' }}>{TITLE_DEFS[loc]}</div>
+              <div style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text)' }}>{enumLabel(TITLE_DEFS[loc], locale)}</div>
               <div className="close-btn" onClick={closeLocationModal} style={{ width: '30px', height: '30px', borderRadius: '9999px', background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--muted)', transition: 'background .2s,color .2s' }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M18 6L6 18" /><path d="M6 6l12 12" /></svg>
               </div>
             </div>
-            <p style={{ margin: '6px 0 18px', fontSize: '13.5px', color: 'var(--muted)' }}>{SUB_DEFS[loc]}</p>
+            <p style={{ margin: '6px 0 18px', fontSize: '13.5px', color: 'var(--muted)' }}>{enumLabel(SUB_DEFS[loc], locale)}</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {activeDefs.map((ap) => {
                 const on = locationChoice === ap.key;

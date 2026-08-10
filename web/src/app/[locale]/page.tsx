@@ -10,6 +10,16 @@ import { CtaBand } from '@/components/home/CtaBand';
 import { SiteFooter } from '@/components/home/SiteFooter';
 import { Floating } from '@/components/home/Floating';
 import { loadPublicListings } from '@/lib/server/publicListings';
+import { isLocale, DEFAULT_LOCALE } from '@/i18n/config';
+
+/* Which provinces each location tab covers. The tab used to print a fixed
+   "640+ / 820+ / 1,150+ รายการ" — inventory the catalogue never had. */
+const AREA_PROVINCES = {
+  air: ['สมุทรปราการ', 'กรุงเทพ'],
+  port: ['ชลบุรี', 'ระยอง', 'สมุทรสาคร'],
+  bkk: ['กรุงเทพ', 'นนทบุรี'],
+  eec: ['ชลบุรี', 'ระยอง', 'ฉะเชิงเทรา'],
+} as const;
 
 /* Home-page-specific responsive rules — the ported design tool only ever
    rendered at a fixed desktop width, so these gaps (narrow-phone popup
@@ -36,8 +46,18 @@ const homeCss = `
 
 /* Read the featured inventory here rather than fetching it after hydration:
    the carousel is above the fold and is the page's main indexable content. */
-export default async function HomePage() {
-  const featured = await loadPublicListings({ limit: 6 }).catch(() => []);
+export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale: raw } = await params;
+  const locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
+  const featured = await loadPublicListings({ locale, limit: 6 }).catch(() => []);
+
+  const all = await loadPublicListings({ locale, limit: 60 }).catch(() => []);
+  const counts = Object.fromEntries(
+    Object.entries(AREA_PROVINCES).map(([key, provinces]) => [
+      key,
+      all.filter((it) => provinces.some((p) => it.province.includes(p))).length,
+    ]),
+  ) as Record<keyof typeof AREA_PROVINCES, number>;
 
   return (
     <div style={{ width: '100%', background: '#000000', position: 'relative' }}>
@@ -55,7 +75,7 @@ export default async function HomePage() {
         <Header />
         <Hero />
         <Featured items={featured} />
-        <LocationFinder />
+        <LocationFinder counts={counts} />
         <Steps />
         <WhyUs />
         <Certifications />

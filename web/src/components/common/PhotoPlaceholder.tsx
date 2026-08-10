@@ -1,10 +1,15 @@
+'use client';
+
+import { useDict } from '@/i18n/useDict';
+
 /* Shown on a card when a property has no photo yet.
  *
  * Deliberately not a stock photo. The cards used to fall back to an Unsplash
  * warehouse image, which reads as "here is the building" for a listing whose
  * building nobody has photographed — on an agency site that is a claim about
  * a real property, not a decoration. This is visibly a placeholder. */
-export function PhotoPlaceholder({ label = 'ยังไม่มีรูป' }: { label?: string }) {
+export function PhotoPlaceholder({ label }: { label?: string }) {
+  const d = useDict();
   return (
     <div
       style={{
@@ -19,7 +24,7 @@ export function PhotoPlaceholder({ label = 'ยังไม่มีรูป' }
         <circle cx="9" cy="11" r="2" />
         <path d="M21 15l-5-4-4 3" />
       </svg>
-      <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: '.02em' }}>{label}</span>
+      <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: '.02em' }}>{label ?? d.common.noPhoto}</span>
     </div>
   );
 }

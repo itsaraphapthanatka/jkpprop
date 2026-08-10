@@ -9,10 +9,13 @@
    Query: ?deal=rent|sale ?type=factory|warehouse ?province=… ?limit=… */
 import { ok, handler } from '@/lib/server/api';
 import { loadPublicListings } from '@/lib/server/publicListings';
+import { isLocale } from '@/i18n/config';
 
 export const GET = handler(async (req: Request) => {
   const url = new URL(req.url);
+  const rawLocale = url.searchParams.get('locale') || '';
   const items = await loadPublicListings({
+    locale: isLocale(rawLocale) ? rawLocale : undefined,
     deal: url.searchParams.get('deal') || undefined,
     type: url.searchParams.get('type') || undefined,
     province: url.searchParams.get('province') || undefined,

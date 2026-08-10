@@ -3,6 +3,8 @@ import { ListingBody, type ListingPreset, type ListingFilterKey } from './Listin
 import { SiteFooter } from '@/components/home/SiteFooter';
 import { Floating } from '@/components/home/Floating';
 import { loadPublicListings } from '@/lib/server/publicListings';
+import { headers } from 'next/headers';
+import { isLocale, DEFAULT_LOCALE } from '@/i18n/config';
 
 /* Listing-specific responsive rules ported from Listing.dc.html's
    <style> block. globals.css already handles the header nav / mobile
@@ -51,8 +53,12 @@ const PRESET_QUERY: Record<ListingFilterKey, { deal: string; type: string }> = {
     The inventory is queried here, on the server, so the page ships real
     markup instead of hydrating over a placeholder set. */
 export async function ListingShell({ preset }: { preset?: ListingPreset }) {
+  /* the locale arrives as the header middleware sets — this shell is shared by
+     twelve pages and reading it here keeps them from each threading it down */
+  const raw = (await headers()).get('x-locale') ?? '';
+  const locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
   const q = preset?.filterKey ? PRESET_QUERY[preset.filterKey] : {};
-  const items = await loadPublicListings({ ...q, province: preset?.province, limit: 60 }).catch(() => []);
+  const items = await loadPublicListings({ locale, ...q, province: preset?.province, limit: 60 }).catch(() => []);
 
   return (
     <div style={{ width: '100%', background: '#000000', position: 'relative' }}>

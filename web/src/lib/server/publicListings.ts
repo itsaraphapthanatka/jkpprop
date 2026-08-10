@@ -11,6 +11,8 @@
  * reach this DTO (AGENT.md §7, FR-LST-02).
  */
 import { db } from './db';
+import { getDictionary } from '@/i18n/dictionaries';
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/config';
 import { stripInternal, displayArea, displayLocation, displayProvince } from './propertyDto';
 
 const PRIVATE_KEYS = ['location_map', 'lessor_name', 'lessor_phone', 'lessor_company', 'lessor_status'];
@@ -32,6 +34,7 @@ export type PublicListing = {
 };
 
 export type ListingQuery = {
+  locale?: Locale;
   deal?: string;
   type?: string;
   province?: string;
@@ -42,6 +45,7 @@ const baht = (n: number) =>
   n >= 1_000_000 ? `฿ ${(n / 1_000_000).toFixed(n % 1_000_000 ? 1 : 0)} ล้าน` : `฿ ${n.toLocaleString('th-TH')}`;
 
 export async function loadPublicListings(q: ListingQuery = {}): Promise<PublicListing[]> {
+  const perMonth = getDictionary(q.locale ?? DEFAULT_LOCALE).common.perMonth;
   const limit = Math.min(60, Math.max(1, Number(q.limit ?? 24)));
 
   const rows = await db.property.findMany({
@@ -70,9 +74,9 @@ export async function loadPublicListings(q: ListingQuery = {}): Promise<PublicLi
 
     // "both" reads as rent on the card — the detail page shows both prices
     const price = isRent && Number.isFinite(rent)
-      ? `${baht(rent)} / เดือน`
+      ? `${baht(rent)} ${perMonth}`
       : Number.isFinite(sale) ? baht(sale)
-        : Number.isFinite(rent) ? `${baht(rent)} / เดือน` : 'ติดต่อสอบถาม';
+        : Number.isFinite(rent) ? `${baht(rent)} ${perMonth}` : 'ติดต่อสอบถาม';
 
     return [{
       code: p.publicCode,

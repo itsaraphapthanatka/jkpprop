@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDict } from '@/i18n/useDict';
 
-const KPI_DEFS: { target: number; suffix: string; label: string; comma: boolean }[] = [
+const KPI_DEFS: { target: number; suffix: string; label: string; comma: boolean; yearsUnit?: boolean }[] = [
   { target: 2000, suffix: '+', label: 'ทรัพย์ในระบบทั่วประเทศ', comma: true },
   { target: 100, suffix: '+', label: 'องค์กรที่ไว้วางใจ', comma: false },
-  { target: 12, suffix: ' ปี', label: 'ประสบการณ์ในตลาด', comma: false },
+  { target: 12, suffix: '', label: 'ประสบการณ์ในตลาด', comma: false, yearsUnit: true },
 ];
 
 const FEATURE_DEFS = [
@@ -61,7 +61,7 @@ export function WhyUs() {
 
   const kpis = KPI_DEFS.map((k) => {
     const n = Math.round(k.target * kpi);
-    return { label: k.label, value: (k.comma ? n.toLocaleString('en-US') : String(n)) + k.suffix };
+    return { label: k.label, value: (k.comma ? n.toLocaleString('en-US') : String(n)) + k.suffix + (k.yearsUnit ? d.whyUs.years : '') };
   });
 
   return (
@@ -94,7 +94,7 @@ export function WhyUs() {
                     ))}
                   </div>
                 </div>
-                <div style={{ marginTop: 4, fontSize: '12.5px', color: 'var(--muted)' }}>ความพึงพอใจจากลูกค้ากว่า 100+ ราย</div>
+                <div style={{ marginTop: 4, fontSize: '12.5px', color: 'var(--muted)' }}>{d.whyUs.satisfaction}</div>
               </div>
               <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: 9999, backgroundColor: '#273c33' }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12l2 2 4-4" /><path d="M21 12c0 5-3.5 7.5-8.6 8.9a1 1 0 01-.8 0C6.5 19.5 3 17 3 12V6a1 1 0 01.7-1l8-2.6a1 1 0 01.6 0l8 2.6A1 1 0 0121 6z" /></svg>
@@ -106,16 +106,16 @@ export function WhyUs() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ width: 26, height: 2, background: '#273c33', borderRadius: 2 }} />
-              <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', color: '#273c33', textTransform: 'uppercase' }}>ทำไมต้องเลือกเรา</span>
+              <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', color: '#273c33', textTransform: 'uppercase' }}>{d.whyUs.eyebrow}</span>
             </div>
-            <h2 style={{ margin: '10px 0 12px', fontSize: 34, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>เหตุผลที่ลูกค้าเลือกเรา</h2>
-            <p style={{ margin: '0 0 28px', fontSize: 15, color: 'var(--muted)', lineHeight: 1.7, maxWidth: '560px' }}>เราได้รับความไว้วางใจจากทั้งนักลงทุนต่างชาติและเจ้าของทรัพย์ไทย ด้วยความเชี่ยวชาญ ความโปร่งใส และเทคโนโลยีที่ช่วยให้ทุกดีลเดินหน้าได้จริง</p>
+            <h2 style={{ margin: '10px 0 12px', fontSize: 34, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>{d.whyUs.heading}</h2>
+            <p style={{ margin: '0 0 28px', fontSize: 15, color: 'var(--muted)', lineHeight: 1.7, maxWidth: '560px' }}>{d.whyUs.sub}</p>
             {/* KPI count-up strip */}
             <div className="rs-cols-3" ref={kpiRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, padding: '22px 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
               {kpis.map((k, i) => (
                 <div key={i}>
                   <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--accent)', letterSpacing: '-.02em', lineHeight: 1 }}>{k.value}</div>
-                  <div style={{ marginTop: 6, fontSize: 13, color: 'var(--muted2)' }}>{k.label}</div>
+                  <div style={{ marginTop: 6, fontSize: 13, color: 'var(--muted2)' }}>{d.whyUs.kpis[i]}</div>
                 </div>
               ))}
             </div>

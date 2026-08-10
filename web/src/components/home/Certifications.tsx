@@ -71,7 +71,7 @@ export function Certifications() {
                 }}
               >
                 <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', alignItems: 'center', gap: 5, height: 24, padding: '0 10px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: 11, fontWeight: 700 }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>ยืนยันแล้ว
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>{d.certs.verified}
                 </div>
                 <div
                   style={{

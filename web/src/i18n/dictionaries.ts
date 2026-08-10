@@ -24,13 +24,13 @@ export type Dictionary = {
     chooseLanguage: string; menu: string;
   };
   common: {
-    search: string; viewDetail: string; viewAll: string; showAll: string; contactUs: string;
+    address: string; search: string; viewDetail: string; viewAll: string; showAll: string; contactUs: string;
     perMonth: string; sqm: string; priceOnRequest: string; loading: string;
     backToHome: string; language: string; price: string; apply: string; clear: string;
     home: string; noPhoto: string;
   };
   hero: {
-    headline1: string; headline2: string; searchPlaceholder: string;
+    headline1: string; headline2: string; headlineTail: string; sub: string; searchPlaceholder: string;
     filters: string; moreFilters: string; propertyType: string; size: string; priceRange: string;
     zone: string; features: string; floorLoading: string;
   };
@@ -39,22 +39,22 @@ export type Dictionary = {
     emptyTitle: string; emptyBody: string;
   };
   locations: {
-    eyebrow: string; heading: string; available: string; results: string;
+    eyebrow: string; heading: string; seeInArea: string; properties: string; available: string; results: string;
     avgDistance: string; topProvinces: string; inArea: string;
     unsureTitle: string; adviceHeading: string; adviceBody: string;
     adviceQuestion: string; adviceCta: string; getAdvice: string;
   };
-  steps: { eyebrow: string; heading: string; step: string; items: { title: string; desc: string }[] };
+  steps: { eyebrow: string; heading: string; sub: string; step: string; items: { title: string; desc: string }[] };
   whyUs: {
-    eyebrow: string; years: string;
+    eyebrow: string; heading: string; sub: string; years: string; satisfaction: string;
     kpis: string[];
     items: { title: string; desc: string }[];
   };
   certs: {
-    eyebrow: string; heading: string; sub: string;
+    eyebrow: string; heading: string; sub: string; verified: string;
     items: { name: string; tag: string; desc: string }[];
   };
-  trust: { eyebrow: string; heading: string };
+  trust: { eyebrow: string; heading: string; happyClients: string };
   cta: {
     free: string; freeShort: string; eyebrow: string;
     headline: string; headlineAccent: string; sub: string;
@@ -66,7 +66,7 @@ export type Dictionary = {
   };
   floating: { backToTop: string; cookieSettings: string; pdpa: string; cookieBody: string; accept: string; decline: string };
   listing: {
-    title: string; resultsFound: string; results: string; filters: string; sortBy: string;
+    totalArea: string; title: string; resultsFound: string; results: string; filters: string; sortBy: string;
     zone: string; type: string; size: string; price: string; clear: string; search: string;
     newest: string; priceAsc: string; priceDesc: string; sizeAsc: string; sizeDesc: string;
     copyLink: string; email: string;
@@ -80,6 +80,9 @@ export type Dictionary = {
   };
   inquiry: {
     heading: string; hours: string; orFillIn: string; contactVia: string;
+    interestedIn: string; wantMore: string;
+    namePh: string; emailPh: string; phonePh: string;
+    send: string; sent: string;
   };
   form: {
     name: string; phone: string; email: string; company: string;
@@ -98,13 +101,15 @@ const th: Dictionary = {
     chooseLanguage: 'เลือกภาษา', menu: 'เมนู',
   },
   common: {
-    search: 'ค้นหา', viewDetail: 'ดูรายละเอียด', viewAll: 'ดูทั้งหมด', showAll: 'แสดงทั้งหมด',
+    address: 'กรุงเทพมหานคร, ประเทศไทย', search: 'ค้นหา', viewDetail: 'ดูรายละเอียด', viewAll: 'ดูทั้งหมด', showAll: 'แสดงทั้งหมด',
     contactUs: 'ติดต่อเรา', perMonth: '/ เดือน', sqm: 'ตร.ม.', priceOnRequest: 'ติดต่อสอบถาม',
     loading: 'กำลังโหลด…', backToHome: 'กลับสู่หน้าแรก', language: 'ภาษา', price: 'ราคา',
     apply: 'นำไปใช้', clear: 'ล้างค่า', home: 'หน้าแรก', noPhoto: 'ยังไม่มีรูป',
   },
   hero: {
     headline1: 'สำรวจอสังหาริมทรัพย์อุตสาหกรรม', headline2: 'หรือโรงงานทั่วประเทศไทย',
+    headlineTail: 'ที่เหมาะกับคุณ',
+    sub: 'รวมรายการโรงงานและโกดังให้เช่า–ขายทั่วประเทศ ที่ผ่านการตรวจสอบและคัดกรองโดยทีมงานมืออาชีพ',
     searchPlaceholder: 'ค้นหาตามทำเล, จังหวัด, รหัสทรัพย์…',
     filters: 'ตัวกรองการค้นหา', moreFilters: 'ตัวกรองเพิ่มเติม', propertyType: 'ประเภทอสังหา',
     size: 'ขนาดพื้นที่', priceRange: 'ช่วงราคา', zone: 'โซน', features: 'คุณสมบัติ',
@@ -117,7 +122,7 @@ const th: Dictionary = {
     emptyBody: 'ทรัพย์ที่ทีมงานเผยแพร่แล้วจะแสดงที่นี่ ติดต่อเราเพื่อแจ้งความต้องการไว้ล่วงหน้าได้',
   },
   locations: {
-    eyebrow: 'ทำเลยุทธศาสตร์', heading: 'ค้นหาทำเลธุรกิจที่เหมาะกับคุณ',
+    eyebrow: 'ทำเลยุทธศาสตร์', heading: 'ค้นหาทำเลธุรกิจที่เหมาะกับคุณ', seeInArea: 'ดูทรัพย์ในทำเลนี้', properties: 'ทรัพย์',
     available: 'ทรัพย์พร้อมใช้งานในทำเลนี้', results: 'รายการ',
     avgDistance: 'ระยะเฉลี่ยถึงจุดยุทธศาสตร์', topProvinces: 'จังหวัดเด่น', inArea: 'ในเขต',
     unsureTitle: 'ยังไม่แน่ใจใช่ไหม? ให้เราช่วยแนะนำทำเลที่เหมาะกับคุณ',
@@ -127,7 +132,8 @@ const th: Dictionary = {
     adviceCta: 'รับคำแนะนำทำเลฟรี', getAdvice: 'ขอคำแนะนำ',
   },
   steps: {
-    eyebrow: 'ขั้นตอนง่ายๆ', heading: 'ค้นหาทรัพย์ใน 4 ขั้นตอน', step: 'ขั้นตอน',
+    eyebrow: 'ขั้นตอนง่ายๆ', heading: 'ค้นหาทรัพย์ใน 4 ขั้นตอน',
+    sub: 'ตั้งแต่บอกความต้องการจนถึงปิดดีล เราดูแลให้ทุกขั้นราบรื่นและมั่นใจ', step: 'ขั้นตอน',
     items: [
       { title: 'บอกความต้องการ', desc: 'แจ้งพื้นที่ ทำเล งบประมาณ และเงื่อนไขที่คุณต้องการ' },
       { title: 'รับรายการที่คัดกรอง', desc: 'ทีมผู้เชี่ยวชาญคัดทรัพย์ที่เหมาะสมและส่งตัวเลือกให้' },
@@ -136,7 +142,9 @@ const th: Dictionary = {
     ],
   },
   whyUs: {
-    eyebrow: 'ทำไมต้อง JKP', years: ' ปี',
+    eyebrow: 'ทำไมต้องเลือกเรา', heading: 'เหตุผลที่ลูกค้าเลือกเรา',
+    sub: 'เราได้รับความไว้วางใจจากทั้งนักลงทุนต่างชาติและเจ้าของทรัพย์ไทย ด้วยความเชี่ยวชาญ ความโปร่งใส และเทคโนโลยีที่ช่วยให้ทุกดีลเดินหน้าได้จริง',
+    years: ' ปี', satisfaction: 'ความพึงพอใจจากลูกค้ากว่า 100+ ราย',
     kpis: ['ทรัพย์ในระบบทั่วประเทศ', 'องค์กรที่ไว้วางใจ', 'ประสบการณ์ในตลาด'],
     items: [
       { title: 'จดทะเบียนถูกต้องและได้รับการรับรอง', desc: 'จดทะเบียนกับ DBD สมาชิก TREBA พร้อมประสบการณ์จริงในดีลอุตสาหกรรม' },
@@ -148,7 +156,7 @@ const th: Dictionary = {
     ],
   },
   certs: {
-    eyebrow: 'ความน่าเชื่อถือ', heading: 'ใบรับรองและการกำกับดูแล',
+    eyebrow: 'ความน่าเชื่อถือ', heading: 'ใบรับรองและการกำกับดูแล', verified: 'ยืนยันแล้ว',
     sub: 'ดำเนินงานภายใต้มาตรฐานวิชาชีพและการกำกับดูแลที่ตรวจสอบได้ทุกขั้นตอน',
     items: [
       { name: 'TREBA', tag: 'สมาชิกสมาคมวิชาชีพ', desc: 'สมาชิกสมาคมนายหน้าอสังหาริมทรัพย์ไทย ปฏิบัติตามจรรยาบรรณและมาตรฐานวิชาชีพ' },
@@ -156,7 +164,7 @@ const th: Dictionary = {
       { name: 'มาตรฐานวิชาชีพ', tag: 'ผ่านการอบรมและรับรอง', desc: 'ทีมนายหน้าผ่านการอบรมหลักสูตรอสังหาริมทรัพย์ พร้อมประสบการณ์จริงในดีลอุตสาหกรรม' },
     ],
   },
-  trust: { eyebrow: 'ความสำเร็จของลูกค้า', heading: 'ธุรกิจทั่วประเทศที่ไว้วางใจเรา' },
+  trust: { eyebrow: 'ความสำเร็จของลูกค้า', heading: 'ธุรกิจทั่วประเทศที่ไว้วางใจเรา', happyClients: 'ลูกค้าที่พึงพอใจกว่า 500+ ราย' },
   cta: {
     free: 'ปรึกษาฟรี ไม่มีค่าใช้จ่าย', freeShort: 'ปรึกษาฟรี!', eyebrow: 'ปรึกษาฟรี ไม่มีค่าใช้จ่าย',
     headline: 'พร้อมหาโรงงานหรือโกดังที่ใช่ ', headlineAccent: 'ให้เราช่วยคุณ',
@@ -178,7 +186,7 @@ const th: Dictionary = {
     accept: 'ยอมรับคุกกี้', decline: 'ปฏิเสธทั้งหมด',
   },
   listing: {
-    title: 'อสังหาริมทรัพย์ทั้งหมด', resultsFound: 'พบ', results: 'รายการ',
+    totalArea: 'ขนาดพื้นที่รวม', title: 'อสังหาริมทรัพย์ทั้งหมด', resultsFound: 'พบ', results: 'รายการ',
     filters: 'ตัวกรองการค้นหา', sortBy: 'เรียงตาม:',
     zone: 'ทำเล', type: 'ประเภทอสังหา', size: 'ขนาดพื้นที่', price: 'ช่วงราคา',
     clear: 'ล้างค่า', search: 'ค้นหา',
@@ -200,6 +208,9 @@ const th: Dictionary = {
   inquiry: {
     heading: 'ขอข้อมูลเพิ่มเติม', hours: 'ทีมขายพร้อมดูแล จ–ศ 9:00–18:00',
     orFillIn: 'หรือกรอกฟอร์ม', contactVia: 'ติดต่อผ่าน ',
+    interestedIn: 'สนใจทรัพย์', wantMore: 'ต้องการข้อมูลเพิ่มเติม…',
+    namePh: 'ชื่อของคุณ', emailPh: 'อีเมล', phonePh: 'เบอร์โทรศัพท์',
+    send: 'ส่งคำถาม', sent: 'ส่งแล้ว',
   },
   form: {
     name: 'ชื่อผู้ติดต่อ', phone: 'เบอร์โทรศัพท์', email: 'อีเมล', company: 'บริษัท / องค์กร',
@@ -219,13 +230,15 @@ const en: Dictionary = {
     chooseLanguage: 'Choose language', menu: 'Menu',
   },
   common: {
-    search: 'Search', viewDetail: 'View details', viewAll: 'View all', showAll: 'Show all',
+    address: 'Bangkok, Thailand', search: 'Search', viewDetail: 'View details', viewAll: 'View all', showAll: 'Show all',
     contactUs: 'Contact us', perMonth: '/ month', sqm: 'sqm', priceOnRequest: 'Price on request',
     loading: 'Loading…', backToHome: 'Back to home', language: 'Language', price: 'Price',
     apply: 'Apply', clear: 'Clear', home: 'Home', noPhoto: 'No photo yet',
   },
   hero: {
     headline1: 'Find industrial property', headline2: 'and factories across Thailand',
+    headlineTail: 'that fits your business',
+    sub: 'Factories and warehouses for rent and sale nationwide, each one checked and screened by our team.',
     searchPlaceholder: 'Search by area, province or property code…',
     filters: 'Search filters', moreFilters: 'More filters', propertyType: 'Property type',
     size: 'Floor area', priceRange: 'Price range', zone: 'Zone', features: 'Features',
@@ -238,7 +251,7 @@ const en: Dictionary = {
     emptyBody: 'Published listings appear here. Tell us what you are looking for and we will get in touch when something fits.',
   },
   locations: {
-    eyebrow: 'Strategic locations', heading: 'Find the right location for your business',
+    eyebrow: 'Strategic locations', heading: 'Find the right location for your business', seeInArea: 'See properties in this area', properties: 'properties',
     available: 'Available in this area', results: 'listings',
     avgDistance: 'Average distance to key infrastructure', topProvinces: 'Main provinces', inArea: 'in',
     unsureTitle: 'Not sure yet? Let us suggest a location that fits.',
@@ -248,7 +261,8 @@ const en: Dictionary = {
     adviceCta: 'Get a free location recommendation', getAdvice: 'Ask for advice',
   },
   steps: {
-    eyebrow: 'How it works', heading: 'Find a property in four steps', step: 'Step',
+    eyebrow: 'How it works', heading: 'Find a property in four steps',
+    sub: 'From your first brief to signing, we keep every step smooth and predictable.', step: 'Step',
     items: [
       { title: 'Tell us what you need', desc: 'Share the floor area, location, budget and any conditions that matter.' },
       { title: 'Get a shortlist', desc: 'Our specialists select the properties that fit and send you the options.' },
@@ -257,7 +271,9 @@ const en: Dictionary = {
     ],
   },
   whyUs: {
-    eyebrow: 'Why JKP', years: ' years',
+    eyebrow: 'Why choose us', heading: 'Why clients choose JKP',
+    sub: 'Foreign investors and Thai property owners both rely on us — for the expertise, the transparency, and the technology that keeps a deal moving.',
+    years: ' years', satisfaction: 'Over 100 satisfied clients',
     kpis: ['Properties listed nationwide', 'Organisations that trust us', 'Years in the market'],
     items: [
       { title: 'Licensed and accredited', desc: 'Registered with the DBD and a TREBA member, with real experience in industrial deals.' },
@@ -269,7 +285,7 @@ const en: Dictionary = {
     ],
   },
   certs: {
-    eyebrow: 'Credentials', heading: 'Licences and oversight',
+    eyebrow: 'Credentials', heading: 'Licences and oversight', verified: 'Verified',
     sub: 'We work to professional standards, with every step open to scrutiny.',
     items: [
       { name: 'TREBA', tag: 'Professional association member', desc: 'A member of the Thai Real Estate Broker Association, bound by its code of conduct and professional standards.' },
@@ -277,7 +293,7 @@ const en: Dictionary = {
       { name: 'Professional standards', tag: 'Trained and certified', desc: 'Our brokers have completed accredited real-estate training and worked real industrial deals.' },
     ],
   },
-  trust: { eyebrow: 'Client results', heading: 'Businesses across Thailand that trust us' },
+  trust: { eyebrow: 'Client results', heading: 'Businesses across Thailand that trust us', happyClients: 'Over 500 satisfied clients' },
   cta: {
     free: 'Free, no obligation', freeShort: 'Free consultation', eyebrow: 'Free, no obligation',
     headline: 'Looking for the right factory or warehouse? ', headlineAccent: 'Let us help.',
@@ -299,7 +315,7 @@ const en: Dictionary = {
     accept: 'Accept cookies', decline: 'Decline all',
   },
   listing: {
-    title: 'All properties', resultsFound: 'Found', results: 'listings',
+    totalArea: 'Total area', title: 'All properties', resultsFound: 'Found', results: 'listings',
     filters: 'Search filters', sortBy: 'Sort by:',
     zone: 'Location', type: 'Property type', size: 'Floor area', price: 'Price range',
     clear: 'Clear', search: 'Search',
@@ -321,6 +337,9 @@ const en: Dictionary = {
   inquiry: {
     heading: 'Request more information', hours: 'Our sales team is available Mon–Fri, 9:00–18:00',
     orFillIn: 'or use the form', contactVia: 'Contact via ',
+    interestedIn: 'Enquiry about', wantMore: '— please send more information.',
+    namePh: 'Your name', emailPh: 'Email', phonePh: 'Phone number',
+    send: 'Send enquiry', sent: 'Sent',
   },
   form: {
     name: 'Contact name', phone: 'Phone number', email: 'Email', company: 'Company',
@@ -340,13 +359,15 @@ const zh: Dictionary = {
     chooseLanguage: '选择语言', menu: '菜单',
   },
   common: {
-    search: '搜索', viewDetail: '查看详情', viewAll: '查看全部', showAll: '显示全部',
+    address: '泰国曼谷', search: '搜索', viewDetail: '查看详情', viewAll: '查看全部', showAll: '显示全部',
     contactUs: '联系我们', perMonth: '/ 月', sqm: '平方米', priceOnRequest: '价格面议',
     loading: '加载中…', backToHome: '返回首页', language: '语言', price: '价格',
     apply: '应用', clear: '清除', home: '首页', noPhoto: '暂无照片',
   },
   hero: {
     headline1: '寻找泰国工业地产', headline2: '与厂房资源',
+    headlineTail: '找到适合您的那一处',
+    sub: '汇集全泰国出租与出售的厂房和仓库，每一处均经过团队核验筛选。',
     searchPlaceholder: '按地区、府或房源编号搜索…',
     filters: '搜索筛选', moreFilters: '更多筛选', propertyType: '房源类型',
     size: '建筑面积', priceRange: '价格区间', zone: '区域', features: '设施特点',
@@ -359,7 +380,7 @@ const zh: Dictionary = {
     emptyBody: '已发布的房源会显示在这里。欢迎先告知您的需求，有合适房源我们会主动联系。',
   },
   locations: {
-    eyebrow: '战略区位', heading: '找到适合您业务的区位',
+    eyebrow: '战略区位', heading: '找到适合您业务的区位', seeInArea: '查看该区域房源', properties: '个房源',
     available: '该区域可选房源', results: '个',
     avgDistance: '到主要枢纽的平均距离', topProvinces: '主要府', inArea: '位于',
     unsureTitle: '还不确定？让我们为您推荐合适的区位。',
@@ -369,7 +390,8 @@ const zh: Dictionary = {
     adviceCta: '免费获取选址建议', getAdvice: '咨询建议',
   },
   steps: {
-    eyebrow: '服务流程', heading: '四步找到合适房源', step: '步骤',
+    eyebrow: '服务流程', heading: '四步找到合适房源',
+    sub: '从提出需求到签约成交，每一步我们都协助您顺利完成。', step: '步骤',
     items: [
       { title: '告诉我们您的需求', desc: '说明所需面积、区位、预算以及其他条件。' },
       { title: '收到精选清单', desc: '专业团队筛选合适房源，并把可选方案发送给您。' },
@@ -378,7 +400,9 @@ const zh: Dictionary = {
     ],
   },
   whyUs: {
-    eyebrow: '为什么选择 JKP', years: ' 年',
+    eyebrow: '为什么选择我们', heading: '客户选择 JKP 的理由',
+    sub: '外国投资者与泰国业主都信赖我们——凭借专业能力、透明作风，以及让每笔交易顺利推进的技术支持。',
+    years: ' 年', satisfaction: '超过 100 位客户给予好评',
     kpis: ['全国在库房源', '信赖我们的企业', '市场从业年限'],
     items: [
       { title: '合法注册并具备资质', desc: '已在 DBD 注册并为 TREBA 会员，具备真实的工业地产成交经验。' },
@@ -390,7 +414,7 @@ const zh: Dictionary = {
     ],
   },
   certs: {
-    eyebrow: '资质与信誉', heading: '执照与监管',
+    eyebrow: '资质与信誉', heading: '执照与监管', verified: '已核实',
     sub: '我们按照专业标准运作，每一个环节都可追溯核查。',
     items: [
       { name: 'TREBA', tag: '行业协会会员', desc: '泰国房地产经纪协会会员，遵守协会的职业道德与专业标准。' },
@@ -398,7 +422,7 @@ const zh: Dictionary = {
       { name: '专业标准', tag: '受训并获认证', desc: '经纪团队均完成房地产专业培训，并有真实的工业地产成交经验。' },
     ],
   },
-  trust: { eyebrow: '客户成果', heading: '泰国各地信赖我们的企业' },
+  trust: { eyebrow: '客户成果', heading: '泰国各地信赖我们的企业', happyClients: '超过 500 位客户给予好评' },
   cta: {
     free: '免费咨询，无需付费', freeShort: '免费咨询', eyebrow: '免费咨询，无需付费',
     headline: '正在寻找合适的厂房或仓库？', headlineAccent: '让我们来帮您。',
@@ -420,7 +444,7 @@ const zh: Dictionary = {
     accept: '接受 Cookie', decline: '全部拒绝',
   },
   listing: {
-    title: '全部房源', resultsFound: '共找到', results: '个房源',
+    totalArea: '总面积', title: '全部房源', resultsFound: '共找到', results: '个房源',
     filters: '搜索筛选', sortBy: '排序：',
     zone: '地区', type: '房源类型', size: '建筑面积', price: '价格区间',
     clear: '清除', search: '搜索',
@@ -442,6 +466,9 @@ const zh: Dictionary = {
   inquiry: {
     heading: '索取更多资料', hours: '销售团队服务时间：周一至周五 9:00–18:00',
     orFillIn: '或填写表单', contactVia: '通过以下方式联系 ',
+    interestedIn: '咨询房源', wantMore: '，希望了解更多信息。',
+    namePh: '您的姓名', emailPh: '电子邮箱', phonePh: '电话号码',
+    send: '发送咨询', sent: '已发送',
   },
   form: {
     name: '联系人姓名', phone: '电话号码', email: '电子邮箱', company: '公司名称',

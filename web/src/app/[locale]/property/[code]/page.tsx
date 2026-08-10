@@ -55,7 +55,7 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
 
   /* other published properties of the same type — the "similar" row used to
      be three invented records baked into the component */
-  const related = (await loadPublicListings({ type: p.typeKey, limit: 4 }).catch(() => []))
+  const related = (await loadPublicListings({ locale, type: p.typeKey, limit: 4 }).catch(() => []))
     .filter((r) => r.code !== p.publicCode)
     .slice(0, 3)
     .map((r) => ({ code: r.code, deal: r.deal, title: r.title, loc: r.loc, price: r.price, img: r.img }));

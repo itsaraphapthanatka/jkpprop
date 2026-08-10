@@ -40,7 +40,7 @@ export function TrustGallery() {
         </div>
         <h2 style={{ margin: '10px 0 0', fontSize: 34, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>{d.trust.heading}</h2>
         <div style={{ margin: '18px auto 0', display: 'inline-flex', alignItems: 'center', gap: 9, height: 40, padding: '0 18px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: 14, fontWeight: 700 }}>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>ลูกค้าที่พึงพอใจกว่า 500+ ราย
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>{d.trust.happyClients}
         </div>
       </div>
 
