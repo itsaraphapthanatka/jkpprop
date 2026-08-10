@@ -1,30 +1,15 @@
-import { PropertyHeader } from '@/components/property/PropertyHeader';
-import { PropertyDetail } from '@/components/property/PropertyDetail';
-import { SiteFooter } from '@/components/home/SiteFooter';
-import { Floating } from '@/components/home/Floating';
+import { redirect } from 'next/navigation';
+import { isLocale, DEFAULT_LOCALE } from '@/i18n/config';
 
-export default function PropertyPage() {
-  return (
-    <div style={{ width: '100%', background: '#000000', position: 'relative' }}>
-      <div
-        id="page-sheet"
-        style={{
-          position: 'relative',
-          zIndex: 2,
-          background: 'var(--bg)',
-          minHeight: '100vh',
-          boxShadow: '0 50px 90px rgba(0,0,0,.4)',
-        }}
-      >
-        <PropertyHeader />
-        <PropertyDetail />
-      </div>
-
-      {/* fixed footer + spacer (revealed under the page-sheet) */}
-      <SiteFooter />
-
-      {/* back-to-top + cookie/PDPA */}
-      <Floating />
-    </div>
-  );
+/* /property with no code identifies no property.
+ *
+ * It used to render <PropertyDetail /> with no record, which fell through to
+ * the component's demo defaults — a complete, invented listing (a 2,700 sqm
+ * factory in Bang Na at ฿405,000/month) served at a stable public URL and
+ * returning 200 to crawlers. The property index is what a visitor here
+ * actually wants. */
+export default async function PropertyIndexRedirect({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale: raw } = await params;
+  const locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
+  redirect(`/${locale}/listing`);
 }

@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { Gallery } from './Gallery';
 import { InquiryBox } from './InquiryBox';
 import Link from '@/i18n/LocaleLink';
+import { PhotoPlaceholder } from '@/components/common/PhotoPlaceholder';
+import type { SpecRow } from '@/lib/server/propertySpecs';
 
 /* ---- responsive helper (source media queries target #pd-* ids not in globals) ---- */
 function useMaxWidth(px: number) {
@@ -30,52 +32,28 @@ const ni = (children: React.ReactNode) => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">{children}</svg>
 );
 
-const quickSpecs: { value: string; label: string; icon: React.ReactNode }[] = [
-  { value: '2,700 ตร.ม.', label: 'พื้นที่ใช้สอย', icon: qi(<><path d="M3 3h18v18H3z" /><path d="M3 9h18M9 3v18" /></>) },
-  { value: '9 เมตร', label: 'ความสูงใต้อาคาร', icon: qi(<path d="M12 3v18M5 8l7-5 7 5" />) },
-  { value: '3 ตัน/ตร.ม.', label: 'รับน้ำหนักพื้น', icon: qi(<path d="M12 2v20M5 8h14M5 8a3 3 0 006 0M13 8a3 3 0 006 0" />) },
-  { value: '3 Phase', label: 'ระบบไฟฟ้า 50/150A', icon: qi(<path d="M13 2L3 14h7l-1 8 11-14h-7z" />) },
-];
+/* Specs, features, nearby landmarks and the related grid all arrive as props
+   built from the record's own stored fields (lib/server/propertySpecs). They
+   were constants here — the same electrical spec, the same deposit, the same
+   "45 km to Laem Chabang", on every property in the catalogue. A field with
+   no value now renders no row, and a section with no rows does not render. */
 
-const specRows: { k: string; v: string }[] = [
-  { k: 'รหัสทรัพย์', v: 'JKP-SPK0042' },
-  { k: 'สถานะทรัพย์', v: 'ให้เช่า' },
-  { k: 'ประเภททรัพย์', v: 'โรงงาน' },
-  { k: 'จังหวัด', v: 'กรุงเทพมหานคร' },
-  { k: 'อำเภอ / ตำบล', v: 'บางนา / บางนา' },
-  { k: 'พื้นที่ใช้สอย', v: '2,700 ตร.ม.' },
-  { k: 'ความสูงใต้อาคาร', v: '9 เมตร' },
-  { k: 'ความสามารถรับน้ำหนักพื้น', v: '3 ตัน/ตร.ม.' },
-  { k: 'ระบบไฟฟ้า', v: '3 Phase 50/150 Amp (อัปเกรดได้)' },
-  { k: 'ขอใบ ร.ง.4', v: 'ได้' },
-  { k: 'ราคาเช่า', v: '฿405,000 / เดือน (฿150/ตร.ม.)' },
-  { k: 'ค่าเช่าล่วงหน้า', v: '2 เดือน (฿810,000)' },
-  { k: 'เงินประกัน', v: '3 เดือน (฿1,215,000)' },
-  { k: 'ค่าน้ำ', v: '฿18 / หน่วย' },
-  { k: 'ค่าไฟ', v: '฿4.50 / หน่วย' },
-  { k: 'ค่าส่วนกลาง', v: '฿15 / ตร.ม. / เดือน' },
-  { k: 'เงื่อนไขสัญญา', v: 'ขั้นต่ำ 3 ปี' },
-];
+/** icon per spec key; anything unmapped gets the generic one */
+const SPEC_ICON: Record<string, React.ReactNode> = {
+  usable_area: qi(<><path d="M3 3h18v18H3z" /><path d="M3 9h18M9 3v18" /></>),
+  land_area: qi(<><path d="M3 3h18v18H3z" /><path d="M3 9h18M9 3v18" /></>),
+  clear_height: qi(<path d="M12 3v18M5 8l7-5 7 5" />),
+  building_height: qi(<path d="M12 3v18M5 8l7-5 7 5" />),
+  floor_loading: qi(<path d="M12 2v20M5 8h14M5 8a3 3 0 006 0M13 8a3 3 0 006 0" />),
+  power_system: qi(<path d="M13 2L3 14h7l-1 8 11-14h-7z" />),
+  doors: qi(<><rect x="4" y="3" width="16" height="18" rx="1" /><circle cx="15" cy="12" r="1" /></>),
+};
+const SPEC_ICON_FALLBACK = qi(<><circle cx="12" cy="12" r="9" /><path d="M12 8v8M8 12h8" /></>);
 
-const features: { label: string; icon: React.ReactNode }[] = [
-  { label: 'อาคารเดี่ยว', icon: fi(<><path d="M3 21V8l9-5 9 5v13" /><path d="M3 21h18M9 21v-6h6v6" /></>) },
-  { label: 'มีพื้นที่สำนักงานในตัว', icon: fi(<><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18M3 9h6" /></>) },
-  { label: 'พื้นที่ขนถ่ายแบบยกพื้น', icon: fi(<><path d="M1 3h15v13H1z" /><path d="M16 8h4l3 3v5h-7M5.5 19a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM18.5 19a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" /></>) },
-  { label: 'พนักงานรักษาความปลอดภัย', icon: fi(<path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z" />) },
-  { label: 'บนถนนสายหลัก', icon: fi(<path d="M4 19V5M20 19V5M12 19v-3M12 11V8M12 5v0" />) },
-];
+const featureIcon = fi(<path d="M20 6L9 17l-5-5" />);
+const nearbyIcon = ni(<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z" />);
 
-const nearby: { name: string; dist: string; icon: React.ReactNode }[] = [
-  { name: 'ทางด่วนบูรพาวิถี', dist: 'ห่าง 2 กม.', icon: ni(<path d="M4 19V5M20 19V5M12 19v-4M12 10V6" />) },
-  { name: 'ท่าเรือแหลมฉบัง', dist: 'ห่าง 45 กม.', icon: ni(<><path d="M4 16l1.5 4h13L20 16" /><path d="M6 16V9h3V6h6v3h3v7" /></>) },
-  { name: 'สนามบินสุวรรณภูมิ', dist: 'ห่าง 18 กม.', icon: ni(<path d="M17.8 19.2L16 11l3.5-3.5a1.5 1.5 0 00-2.1-2.1L14 8.9 6 7l-1 1 6.5 4-3.5 3.5-2.5-.5-1 1L8 18l2.5 2.5 1-1-.5-2.5 3.5-3.5 4 6.5z" />) },
-];
-
-const related: { id: string; deal: string; code: string; title: string; loc: string; price: string; src: string }[] = [
-  { id: 'pd-r1', deal: 'ให้เช่า', code: 'JKP-RYG0224', title: 'โรงงาน/คลังสินค้า 3,600 ตร.ม. มะขามคู่', loc: 'นิคมพัฒนา, ระยอง', price: '฿576,000/ด.', src: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=600&q=80' },
-  { id: 'pd-r2', deal: 'ให้เช่า', code: 'JKP-RYG1378', title: 'โรงงาน/คลังสินค้า 3,607 ตร.ม. นิคมพัฒนา', loc: 'นิคมพัฒนา, ระยอง', price: '฿799,470/ด.', src: 'https://images.unsplash.com/photo-1601599963565-b7ba29c8e4e0?w=600&q=80' },
-  { id: 'pd-r3', deal: 'ให้เช่า', code: 'JKP-RYG2081', title: 'โรงงาน/คลังสินค้า 3,684 ตร.ม. นิคมพัฒนา', loc: 'นิคมพัฒนา, ระยอง', price: '฿663,120/ด.', src: 'https://images.unsplash.com/photo-1595246140625-573b715d11dc?w=600&q=80' },
-];
+export type RelatedProperty = { code: string; deal: string; title: string; loc: string; price: string; img: string | null };
 
 const sectionCard: React.CSSProperties = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, padding: '26px 28px' };
 const sectionHead = (title: string, mb = 18): React.ReactNode => (
@@ -105,11 +83,11 @@ function ShareBtn({ children }: { children: React.ReactNode }) {
   );
 }
 
-function RelatedCard({ r }: { r: (typeof related)[number] }) {
+function RelatedCard({ r }: { r: RelatedProperty }) {
   const [hover, setHover] = useState(false);
   return (
     <Link
-      href="/property"
+      href={`/property/${encodeURIComponent(r.code)}`}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
@@ -123,8 +101,10 @@ function RelatedCard({ r }: { r: (typeof related)[number] }) {
       }}
     >
       <div style={{ position: 'relative', height: 180, background: 'var(--tint)' }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={r.src} alt={r.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        {r.img
+          ? /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={r.img} alt={r.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          : <PhotoPlaceholder />}
         <span style={{ position: 'absolute', top: 12, left: 12, height: 26, padding: '0 11px', borderRadius: 9999, background: 'rgba(255,255,255,.95)', color: '#0D6C3B', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5 }}>
           <span style={{ width: 7, height: 7, borderRadius: 9999, background: '#0D6C3B' }} />{r.deal}
         </span>
@@ -147,37 +127,37 @@ function RelatedCard({ r }: { r: (typeof related)[number] }) {
   );
 }
 
-/* GET /api/public/properties/:code — the headline fields. Everything below
-   the fold is still the ported design's content until the field-by-field
-   render lands; passing `property` swaps the parts that identify the record
-   so /property/<code> shows the right one. */
+/* Everything the public detail page shows, all of it read from the record —
+   see lib/server/propertySpecs for how the stored fields become rows. */
 export type PublicProperty = {
   code: string; title: string; typeLabel: string; location: string;
   area: number | null; dealType: string; priceRent: number | null; priceSale: number | null;
+  updatedAt: string;
+  specs: { quick: SpecRow[]; rows: SpecRow[]; features: string[]; nearby: string[] };
+  zoning: string | null;
+  photos: string[];
+  related: RelatedProperty[];
 };
 
 const baht = (n: number) => `฿${n.toLocaleString('th-TH')}`;
 
-export function PropertyDetail({ property }: { property?: PublicProperty }) {
+/* `property` is required: the page 404s before rendering when the code does
+   not resolve, so there is no case to fall back to — the old optional prop
+   carried a full demo record as its default. */
+export function PropertyDetail({ property }: { property: PublicProperty }) {
   const w980 = useMaxWidth(980);
   const w640 = useMaxWidth(640);
 
-  const code = property?.code ?? 'JKP-SPK0042';
-  const heading = property?.title ?? 'โรงงานพร้อมสำนักงาน พื้นที่ 2,700 ตร.ม. ให้เช่า ที่บางนา กรุงเทพฯ';
-  const place = property?.location || 'บางนา, กรุงเทพมหานคร';
-  const isRent = property ? property.priceRent !== null : true;
-  const priceLabel = property
-    ? (isRent ? 'ราคาเช่า' : 'ราคาขาย')
-    : 'ราคาเช่า';
-  const priceValue = property
-    ? (property.priceRent !== null ? baht(property.priceRent)
-      : property.priceSale !== null ? baht(property.priceSale) : 'ติดต่อสอบถาม')
-    : '฿405,000';
-  const priceUnit = property
-    ? (property.priceRent !== null
-      ? `/ เดือน${property.area ? ` · ฿${Math.round(property.priceRent / property.area)}/ตร.ม.` : ''}`
-      : '')
-    : '/ เดือน · ฿150/ตร.ม.';
+  const { code, title: heading, specs, zoning, related } = property;
+  const place = property.location;
+  const isRent = property.priceRent !== null;
+  const priceLabel = isRent ? 'ราคาเช่า' : 'ราคาขาย';
+  const priceValue = property.priceRent !== null ? baht(property.priceRent)
+    : property.priceSale !== null ? baht(property.priceSale)
+      : 'ติดต่อสอบถาม';
+  const priceUnit = property.priceRent !== null
+    ? `/ เดือน${property.area ? ` · ฿${Math.round(property.priceRent / property.area)}/ตร.ม.` : ''}`
+    : '';
 
   return (
     <>
@@ -191,7 +171,7 @@ export function PropertyDetail({ property }: { property?: PublicProperty }) {
       </div>
 
       {/* GALLERY */}
-      <Gallery />
+      <Gallery photos={property.photos} dealLabel={property.dealType} typeLabel={property.typeLabel} />
 
       {/* MAIN SPLIT */}
       <div
@@ -218,20 +198,22 @@ export function PropertyDetail({ property }: { property?: PublicProperty }) {
             </div>
 
             {/* QUICK SPECS */}
-            <div className="rs-cols-4" id="pd-specs" style={{ marginTop: 22, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-              {quickSpecs.map((q) => (
-                <div key={q.label} style={{ background: 'var(--bg)', borderRadius: 14, padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>{q.icon}</div>
-                  <div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>{q.value}</div>
-                    <div style={{ fontSize: '11.5px', color: 'var(--muted2)' }}>{q.label}</div>
+            {specs.quick.length > 0 && (
+              <div className="rs-cols-4" id="pd-specs" style={{ marginTop: 22, display: 'grid', gridTemplateColumns: `repeat(${Math.min(4, specs.quick.length)}, 1fr)`, gap: 12 }}>
+                {specs.quick.map((q) => (
+                  <div key={q.key} style={{ background: 'var(--bg)', borderRadius: 14, padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>{SPEC_ICON[q.key] ?? SPEC_ICON_FALLBACK}</div>
+                    <div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>{q.value}</div>
+                      <div style={{ fontSize: '11.5px', color: 'var(--muted2)' }}>{q.label}</div>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
 
             <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-              <div style={{ fontSize: 12, color: 'var(--muted2)' }}>อัปเดตล่าสุด 18 ก.ค. 2026 · <span style={{ color: 'var(--muted3)' }}>ราคา/สถานะไม่การันตี ต้องตรวจสอบอีกครั้ง</span></div>
+              <div style={{ fontSize: 12, color: 'var(--muted2)' }}>อัปเดตล่าสุด {property.updatedAt} · <span style={{ color: 'var(--muted3)' }}>ราคา/สถานะไม่การันตี ต้องตรวจสอบอีกครั้ง</span></div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <ShareBtn>
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.8 8.6a5.5 5.5 0 00-9-1.8L12 8l-.1-.1a5.5 5.5 0 10-7.8 7.8l7.9 7.9 7.9-7.9a5.5 5.5 0 00.9-7z" /></svg>
@@ -244,64 +226,78 @@ export function PropertyDetail({ property }: { property?: PublicProperty }) {
           </div>
 
           {/* SPEC TABLE */}
-          <div style={sectionCard}>
-            {sectionHead('รายละเอียดทรัพย์')}
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {specRows.map((r) => (
-                <div key={r.k} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: '13.5px', color: 'var(--muted)' }}>{r.k}</span>
-                  <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', textAlign: 'right' }}>{r.v}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* FEATURES */}
-          <div style={sectionCard}>
-            {sectionHead('คุณสมบัติของทรัพย์')}
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              {features.map((f) => (
-                <div key={f.label} style={{ display: 'flex', alignItems: 'center', gap: 9, height: 44, padding: '0 16px', borderRadius: 12, background: 'var(--bg)', border: '1px solid var(--border)' }}>
-                  <span style={{ color: 'var(--accent)', display: 'flex' }}>{f.icon}</span>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{f.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* ZONE */}
-          <div style={sectionCard}>
-            {sectionHead('ประเภทโซน')}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 46, padding: '0 18px', borderRadius: 12, background: 'var(--tint)', width: 'fit-content' }}>
-              {pin(18, 'var(--accent)')}
-              <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--accent)' }}>เขตสีม่วง (พื้นที่อุตสาหกรรม)</span>
-            </div>
-          </div>
-
-          {/* LOCATION */}
-          <div style={sectionCard}>
-            {sectionHead('ตำแหน่งทรัพย์', 8)}
-            <p style={{ margin: '0 0 16px', fontSize: '12.5px', color: 'var(--muted2)' }}>แสดงระดับพื้นที่เพื่อความเป็นส่วนตัว — ตำบลบางนา อำเภอบางนา กรุงเทพฯ</p>
-            <div id="pd-location-grid" style={{ display: 'grid', gridTemplateColumns: w640 ? '1fr' : '1.5fr 1fr', gap: 16 }}>
-              <div style={{ borderRadius: 16, overflow: 'hidden', height: 260, background: 'var(--tint)', position: 'relative' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=800&q=80" alt="แผนที่ระดับพื้นที่" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                <div style={{ position: 'absolute', top: 12, left: 12, height: 30, padding: '0 13px', borderRadius: 9999, background: 'rgba(255,255,255,.95)', color: 'var(--accent)', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>Open in Maps</div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>สถานที่ใกล้เคียง</div>
-                {nearby.map((n) => (
-                  <div key={n.name} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: 12, borderRadius: 12, background: 'var(--bg)' }}>
-                    <div style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', flexShrink: 0 }}>{n.icon}</div>
-                    <div>
-                      <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text)' }}>{n.name}</div>
-                      <div style={{ fontSize: '11.5px', color: 'var(--muted2)' }}>{n.dist}</div>
-                    </div>
+          {specs.rows.length > 0 && (
+            <div style={sectionCard}>
+              {sectionHead('รายละเอียดทรัพย์')}
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {specs.rows.map((r) => (
+                  <div key={r.key} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+                    <span style={{ fontSize: '13.5px', color: 'var(--muted)' }}>{r.label}</span>
+                    <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', textAlign: 'right' }}>{r.value}</span>
                   </div>
                 ))}
               </div>
             </div>
-          </div>
+          )}
+
+          {/* FEATURES */}
+          {specs.features.length > 0 && (
+            <div style={sectionCard}>
+              {sectionHead('คุณสมบัติของทรัพย์')}
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                {specs.features.map((f) => (
+                  <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 9, height: 44, padding: '0 16px', borderRadius: 12, background: 'var(--bg)', border: '1px solid var(--border)' }}>
+                    <span style={{ color: 'var(--accent)', display: 'flex' }}>{featureIcon}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{f}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ZONE */}
+          {zoning && (
+            <div style={sectionCard}>
+              {sectionHead('ประเภทโซน')}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 46, padding: '0 18px', borderRadius: 12, background: 'var(--tint)', width: 'fit-content' }}>
+                {pin(18, 'var(--accent)')}
+                <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--accent)' }}>{zoning}</span>
+              </div>
+            </div>
+          )}
+
+          {/* LOCATION — area level only, never the exact pin (FR-LST-02).
+              The map tile used to be a stock photo of a city, which is not
+              this property's location in any sense; a Maps search on the
+              published area is at least what it claims to be. */}
+          {place && (
+            <div style={sectionCard}>
+              {sectionHead('ตำแหน่งทรัพย์', 8)}
+              <p style={{ margin: '0 0 16px', fontSize: '12.5px', color: 'var(--muted2)' }}>แสดงระดับพื้นที่เพื่อความเป็นส่วนตัว — {place}</p>
+              <div id="pd-location-grid" style={{ display: 'grid', gridTemplateColumns: w640 || !specs.nearby.length ? '1fr' : '1.5fr 1fr', gap: 16 }}>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ borderRadius: 16, height: 120, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, color: 'var(--accent)', fontSize: '13.5px', fontWeight: 700 }}
+                >
+                  {pin(18, 'var(--accent)')}
+                  เปิดพื้นที่นี้ใน Google Maps
+                </a>
+                {specs.nearby.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>สถานที่ใกล้เคียง</div>
+                    {specs.nearby.map((n) => (
+                      <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, borderRadius: 12, background: 'var(--bg)' }}>
+                        <div style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', flexShrink: 0 }}>{nearbyIcon}</div>
+                        <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text)' }}>{n}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* RIGHT: INQUIRY (sticky on desktop only — once pd-split collapses
@@ -311,18 +307,21 @@ export function PropertyDetail({ property }: { property?: PublicProperty }) {
         <InquiryBox stacked={w980} />
       </div>
 
-      {/* RELATED */}
-      <section style={{ maxWidth: '1320px', margin: '0 auto', padding: '0 24px 80px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
-          <span style={{ width: 26, height: 2, background: '#273c33', borderRadius: 2 }} />
-          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>อสังหาริมทรัพย์ที่คล้ายกัน</h2>
-        </div>
-        <div className="rs-cols-3" id="pd-related" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
-          {related.map((r) => (
-            <RelatedCard key={r.id} r={r} />
-          ))}
-        </div>
-      </section>
+      {/* RELATED — other published properties of the same type. Was three
+          invented Rayong warehouses that all linked to a bare /property. */}
+      {related.length > 0 && (
+        <section style={{ maxWidth: '1320px', margin: '0 auto', padding: '0 24px 80px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
+            <span style={{ width: 26, height: 2, background: '#273c33', borderRadius: 2 }} />
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>อสังหาริมทรัพย์ที่คล้ายกัน</h2>
+          </div>
+          <div className="rs-cols-3" id="pd-related" style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(3, related.length)}, 1fr)`, gap: 20 }}>
+            {related.map((r) => (
+              <RelatedCard key={r.code} r={r} />
+            ))}
+          </div>
+        </section>
+      )}
     </>
   );
 }

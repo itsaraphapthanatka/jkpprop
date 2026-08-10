@@ -8,7 +8,9 @@ import { db } from '@/lib/server/db';
 import { stripInternal, displayArea, displayLocation } from '@/lib/server/propertyDto';
 import { propertyType } from '@/lib/propertySchema';
 import { enumLabel } from '@/i18n/enums';
-import { isLocale, DEFAULT_LOCALE } from '@/i18n/config';
+import { isLocale, DEFAULT_LOCALE, type Locale } from '@/i18n/config';
+import { buildSpecs } from '@/lib/server/propertySpecs';
+import { loadPublicListings } from '@/lib/server/publicListings';
 
 /* Public property detail. Read straight from the database in the server
    component — no client fetch, so the page is indexable.
@@ -16,6 +18,12 @@ import { isLocale, DEFAULT_LOCALE } from '@/i18n/config';
    Privacy rules (AGENT.md §7, FR-LST-02): exact coordinates, lessor contact
    details and internalOnly fields never leave the server. */
 const PRIVATE_KEYS = ['location_map', 'lessor_name', 'lessor_phone', 'lessor_company', 'lessor_status'];
+
+/* the record's own updatedAt — the page used to print a fixed "18 ก.ค. 2026" */
+const fmtDate = (d: Date, locale: Locale) =>
+  new Intl.DateTimeFormat(locale === 'th' ? 'th-TH' : locale === 'zh' ? 'zh-CN' : 'en-GB', {
+    day: 'numeric', month: 'short', year: 'numeric',
+  }).format(d);
 
 async function load(code: string) {
   const p = await db.property.findFirst({ where: { publicCode: decodeURIComponent(code), status: 'active' } });
@@ -44,6 +52,17 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
   if (!found) notFound();
 
   const { p, values } = found;
+
+  /* other published properties of the same type — the "similar" row used to
+     be three invented records baked into the component */
+  const related = (await loadPublicListings({ type: p.typeKey, limit: 4 }).catch(() => []))
+    .filter((r) => r.code !== p.publicCode)
+    .slice(0, 3)
+    .map((r) => ({ code: r.code, deal: r.deal, title: r.title, loc: r.loc, price: r.price, img: r.img }));
+
+  const zoningRaw = String(values.zoning_color ?? '').trim();
+  const photos = Array.isArray(values.photos) ? (values.photos as string[]) : [];
+
   const property = {
     code: p.publicCode,
     title: p.title,
@@ -53,6 +72,11 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
     dealType: enumLabel(String(values.deal_type ?? ''), locale),
     priceRent: typeof values.price_rent === 'number' ? values.price_rent : null,
     priceSale: typeof values.price_sale === 'number' ? values.price_sale : (typeof values.price === 'number' ? values.price : null),
+    updatedAt: fmtDate(p.updatedAt, locale),
+    specs: buildSpecs(values, locale),
+    zoning: zoningRaw ? enumLabel(zoningRaw, locale) : null,
+    photos,
+    related,
   };
 
   return (

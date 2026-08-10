@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { LOCALES, isLocale } from '@/i18n/config';
+import { SyncHtmlLang } from '@/i18n/SyncHtmlLang';
 
 /* Locale segment for the public site (AGENT.md §9). Admin is Thai-only and
    deliberately sits outside this tree.
@@ -22,5 +23,10 @@ export default async function LocaleLayout({
 }) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
-  return children;
+  return (
+    <>
+      <SyncHtmlLang />
+      {children}
+    </>
+  );
 }
