@@ -34,8 +34,12 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    expose:
-      - '5432'
+    # host-loopback only, so a GUI client can reach it through an SSH tunnel
+    # and nothing else can. Never change this to a bare "5435:5432" — that
+    # publishes Postgres to the internet, and docker's own iptables rules sit
+    # in front of ufw, so the firewall will not save you.
+    ports:
+      - '127.0.0.1:${DB_PORT:-5435}:5432'
 
   migrate:
     image: jkpprop-migrate:latest
