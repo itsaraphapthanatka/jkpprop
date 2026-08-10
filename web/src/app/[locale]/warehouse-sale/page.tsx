@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: 'โกดังสำหรับข
 export default function WarehouseSalePage() {
   return (
     <ListingShell
-      preset={{ breadcrumb: 'โกดังสำหรับขาย', totalCount: '203', listingMode: 'sale', typeSel: ['โกดัง/คลังสินค้า'], filterKey: 'warehouse-sale' }}
+      preset={{ breadcrumb: 'โกดังสำหรับขาย', listingMode: 'sale', typeSel: ['โกดัง/คลังสินค้า'], filterKey: 'warehouse-sale' }}
     />
   );
 }

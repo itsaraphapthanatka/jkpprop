@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: 'โกดังให้เช่า
 export default function WarehouseRentPage() {
   return (
     <ListingShell
-      preset={{ breadcrumb: 'โกดังสำหรับเช่า', totalCount: '514', listingMode: 'rent', typeSel: ['โกดัง/คลังสินค้า'], filterKey: 'warehouse-rent' }}
+      preset={{ breadcrumb: 'โกดังสำหรับเช่า', listingMode: 'rent', typeSel: ['โกดัง/คลังสินค้า'], filterKey: 'warehouse-rent' }}
     />
   );
 }

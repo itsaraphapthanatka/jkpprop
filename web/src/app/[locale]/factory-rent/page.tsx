@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: 'โรงงานให้เช่
 export default function FactoryRentPage() {
   return (
     <ListingShell
-      preset={{ breadcrumb: 'โรงงานให้เช่า', totalCount: '842', listingMode: 'rent', typeSel: ['โรงงาน'], filterKey: 'factory-rent' }}
+      preset={{ breadcrumb: 'โรงงานให้เช่า', listingMode: 'rent', typeSel: ['โรงงาน'], filterKey: 'factory-rent' }}
     />
   );
 }

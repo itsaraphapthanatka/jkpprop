@@ -65,6 +65,28 @@ test.describe('listing and property', () => {
     const res = await page.goto('/th/property/JKP-NOPE9999', { waitUntil: 'domcontentloaded' });
     expect(res?.status()).toBe(404);
   });
+
+  /* The homepage and the listing page shipped a copy of the design
+     prototype's demo cards. They rendered on the server and, on the
+     homepage, were never replaced — so the markup a crawler (or anyone
+     before hydration) saw advertised properties that did not exist, and
+     every "ดูรายละเอียด" on them opened a 404. Assert against the raw HTML,
+     with no JavaScript involved, because that is where the bug lived. */
+  for (const path of ['/th', '/th/listing', '/en/listing']) {
+    test(`server-rendered ${path} links only to properties that exist`, async ({ request }) => {
+      const html = await (await request.get(path)).text();
+
+      expect(html, 'prototype demo codes are still in the server HTML').not.toContain('TIP-');
+
+      const links = [...new Set([...html.matchAll(/\/(?:th|en|zh)\/property\/([A-Za-z0-9._%-]+)/g)]
+        .map((m) => m[0]))];
+
+      for (const href of links) {
+        const res = await request.get(href, { maxRedirects: 0 });
+        expect(res.status(), `${href} is advertised on ${path} but does not resolve`).toBe(200);
+      }
+    });
+  }
 });
 
 test.describe('layout', () => {

@@ -9,6 +9,7 @@ import { TrustGallery } from '@/components/home/TrustGallery';
 import { CtaBand } from '@/components/home/CtaBand';
 import { SiteFooter } from '@/components/home/SiteFooter';
 import { Floating } from '@/components/home/Floating';
+import { loadPublicListings } from '@/lib/server/publicListings';
 
 /* Home-page-specific responsive rules — the ported design tool only ever
    rendered at a fixed desktop width, so these gaps (narrow-phone popup
@@ -33,7 +34,11 @@ const homeCss = `
 }
 `;
 
-export default function HomePage() {
+/* Read the featured inventory here rather than fetching it after hydration:
+   the carousel is above the fold and is the page's main indexable content. */
+export default async function HomePage() {
+  const featured = await loadPublicListings({ limit: 6 }).catch(() => []);
+
   return (
     <div style={{ width: '100%', background: '#000000', position: 'relative' }}>
       <style dangerouslySetInnerHTML={{ __html: homeCss }} />
@@ -49,7 +54,7 @@ export default function HomePage() {
       >
         <Header />
         <Hero />
-        <Featured />
+        <Featured items={featured} />
         <LocationFinder />
         <Steps />
         <WhyUs />

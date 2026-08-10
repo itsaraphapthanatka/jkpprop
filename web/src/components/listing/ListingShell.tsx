@@ -1,7 +1,8 @@
 import { ListingHeader } from './ListingHeader';
-import { ListingBody, type ListingPreset } from './ListingBody';
+import { ListingBody, type ListingPreset, type ListingFilterKey } from './ListingBody';
 import { SiteFooter } from '@/components/home/SiteFooter';
 import { Floating } from '@/components/home/Floating';
+import { loadPublicListings } from '@/lib/server/publicListings';
 
 /* Listing-specific responsive rules ported from Listing.dc.html's
    <style> block. globals.css already handles the header nav / mobile
@@ -36,9 +37,23 @@ const listingCss = `
 .share-opt:hover{background:var(--tint);}
 `;
 
+/* preset filter key → the query that produces it */
+const PRESET_QUERY: Record<ListingFilterKey, { deal: string; type: string }> = {
+  'factory-rent': { deal: 'rent', type: 'factory' },
+  'factory-sale': { deal: 'sale', type: 'factory' },
+  'warehouse-rent': { deal: 'rent', type: 'warehouse' },
+  'warehouse-sale': { deal: 'sale', type: 'warehouse' },
+};
+
 /** Full Listing page chrome (black sheet + header + body + footer).
-    Pass a `preset` to render an SEO/area page; omit it for /listing. */
-export function ListingShell({ preset }: { preset?: ListingPreset }) {
+    Pass a `preset` to render an SEO/area page; omit it for /listing.
+
+    The inventory is queried here, on the server, so the page ships real
+    markup instead of hydrating over a placeholder set. */
+export async function ListingShell({ preset }: { preset?: ListingPreset }) {
+  const q = preset?.filterKey ? PRESET_QUERY[preset.filterKey] : {};
+  const items = await loadPublicListings({ ...q, province: preset?.province, limit: 60 }).catch(() => []);
+
   return (
     <div style={{ width: '100%', background: '#000000', position: 'relative' }}>
       <style dangerouslySetInnerHTML={{ __html: listingCss }} />
@@ -57,7 +72,7 @@ export function ListingShell({ preset }: { preset?: ListingPreset }) {
         }}
       >
         <ListingHeader />
-        <ListingBody preset={preset} />
+        <ListingBody preset={preset} items={items} />
       </div>
 
       {/* fixed footer + spacer (revealed under the page-sheet) */}

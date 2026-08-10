@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from '@/i18n/LocaleLink';
+import { PhotoPlaceholder } from '@/components/common/PhotoPlaceholder';
 
 /* ============================================================
    Ported verbatim from design/Listing.dc.html — markup + the
@@ -32,12 +33,31 @@ const SHARE_DEFS: { key: string; label: string; char: string; bg: string; color:
   { key: 'wechat', label: 'Wechat', char: '微', bg: '#DDF0DD', color: '#1AAD19' },
 ];
 
-const ZONE_ITEMS = ['บางนา, กรุงเทพฯ', 'ศรีราชา, ชลบุรี', 'บางปะกง, ฉะเชิงเทรา', 'บางพลี, สมุทรปราการ'];
+/* zone options are derived from the inventory on the page, not listed here */
 const TYPE_ITEMS = ['โรงงาน', 'โกดัง/คลังสินค้า'];
 const SIZE_ITEMS = ['ต่ำกว่า 1,000 ตร.ม.', '1,000–3,000 ตร.ม.', 'สูงกว่า 3,000 ตร.ม.'];
 const PRICE_ITEMS = ['ต่ำกว่า ฿100,000', '฿100,000–300,000', 'สูงกว่า ฿300,000'];
 
-type RawListing = {
+/* One card's worth of published inventory, handed down from the server
+   component that queried it. This file used to carry a nine-item copy of the
+   design prototype's demo data, used as the first paint and kept forever
+   whenever the API returned nothing — so an empty catalogue still advertised
+   nine invented properties, and the server-rendered HTML always did. */
+export type ListingItem = {
+  code: string;
+  title: string;
+  deal: string;
+  loc: string;
+  price: string;
+  area: number | null;
+  areaLabel: string;
+  typeKey: string;
+  img: string | null;
+  photos: string;
+  province: string;
+};
+
+type Listing = {
   slot: string;
   deal: string;
   photos: string;
@@ -45,51 +65,64 @@ type RawListing = {
   title: string;
   loc: string;
   price: string;
-  img: string;
-  credit: string;
-  creditHref: string;
+  img: string | null;
+  type: string;
+  area: string;
+  areaSqm: number | null;
+  province: string;
+  /* numeric price for sorting; the display string carries ฿/ล้าน/เดือน */
+  priceValue: number;
 };
 
-const rawListings: RawListing[] = [
-  { slot: 'g1', deal: 'ให้เช่า', photos: '12', code: 'TIP-2041', title: 'โรงงานพร้อมสำนักงาน พื้นที่ 2,700 ตร.ม.', loc: 'บางนา, กรุงเทพฯ', price: '฿ 405,000 / เดือน', img: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&q=80', credit: 'Photo by ThisisEngineering on Unsplash', creditHref: 'https://unsplash.com/@thisisengineering' },
-  { slot: 'g2', deal: 'ให้เช่า', photos: '8', code: 'TIP-1987', title: 'โกดังคลังสินค้าไฟฟ้า 3 เฟส พื้นที่ 1,300 ตร.ม.', loc: 'ศรีราชา, ชลบุรี', price: '฿ 176,000 / เดือน', img: 'https://images.unsplash.com/photo-1553413077-190dd305871c?w=800&q=80', credit: 'Photo by Petrebels on Unsplash', creditHref: 'https://unsplash.com/@petrebels' },
-  { slot: 'g3', deal: 'ขาย', photos: '15', code: 'TIP-1802', title: 'โรงงานในนิคมอุตสาหกรรม พื้นที่ 650 ตร.ม.', loc: 'พานทอง, ชลบุรี', price: '฿ 9.7 ล้าน', img: 'https://images.unsplash.com/photo-1565793298595-6a879b1d9492?w=800&q=80', credit: 'Photo by Simone Hutsch on Unsplash', creditHref: 'https://unsplash.com/@heysupersimi' },
-  { slot: 'g4', deal: 'ให้เช่า', photos: '10', code: 'TIP-1755', title: 'โกดังริมถนนเมนใกล้มอเตอร์เวย์ พื้นที่ 1,800 ตร.ม.', loc: 'บางปะกง, ฉะเชิงเทรา', price: '฿ 245,000 / เดือน', img: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&q=80', credit: 'Photo by Petrebels on Unsplash', creditHref: 'https://unsplash.com/@petrebels' },
-  { slot: 'g5', deal: 'ขาย', photos: '9', code: 'TIP-1698', title: 'โรงงานพร้อมออฟฟิศ 2 ชั้น พื้นที่ 3,200 ตร.ม.', loc: 'บางพลี, สมุทรปราการ', price: '฿ 58 ล้าน', img: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=800&q=80', credit: 'Photo by Simone Hutsch on Unsplash', creditHref: 'https://unsplash.com/@heysupersimi' },
-  { slot: 'g6', deal: 'ให้เช่า', photos: '14', code: 'TIP-1642', title: 'คลังสินค้าห้องเย็นพร้อมระบบ พื้นที่ 900 ตร.ม.', loc: 'วังน้อย, พระนครศรีอยุธยา', price: '฿ 132,000 / เดือน', img: 'https://images.unsplash.com/photo-1601599963565-b7f49deb352a?w=800&q=80', credit: 'Photo by ThisisEngineering on Unsplash', creditHref: 'https://unsplash.com/@thisisengineering' },
-  { slot: 'g7', deal: 'ให้เช่า', photos: '6', code: 'TIP-1601', title: 'โกดังพร้อมสำนักงาน พื้นที่ 1,300 ตร.ม.', loc: 'สมุทรปราการ', price: '฿ 170,000 / เดือน', img: 'https://images.unsplash.com/photo-1601758228041-3caa20ccff67?w=800&q=80', credit: 'Photo by Petrebels on Unsplash', creditHref: 'https://unsplash.com/@petrebels' },
-  { slot: 'g8', deal: 'ให้เช่า', photos: '5', code: 'TIP-1571', title: 'โรงงานพื้นที่ 650 ตร.ม. ใกล้สาธุประดิษฐ์', loc: 'กรุงเทพฯ', price: '฿ 87,750 / เดือน', img: 'https://images.unsplash.com/photo-1565793298595-6a879b1d9492?w=800&q=80', credit: 'Photo by Simone Hutsch on Unsplash', creditHref: 'https://unsplash.com/@heysupersimi' },
-  { slot: 'g9', deal: 'ขาย', photos: '5', code: 'TIP-1569', title: 'อาคารสำนักงานพร้อมโกดัง พื้นที่ 1,131 ตร.ม.', loc: 'สมุทรปราการ', price: '฿ 203,580 / เดือน', img: 'https://images.unsplash.com/photo-1553413077-190dd305871c?w=800&q=80', credit: 'Photo by Petrebels on Unsplash', creditHref: 'https://unsplash.com/@petrebels' },
-];
+const priceValue = (s: string): number => {
+  const n = Number(s.replace(/[^\d.]/g, '')) || 0;
+  return /ล้าน/.test(s) ? n * 1_000_000 : n;
+};
 
-type Listing = RawListing & { type: string; area: string };
+const toListing = (it: ListingItem): Listing => ({
+  slot: it.code,
+  deal: it.deal,
+  photos: it.photos,
+  code: it.code,
+  title: it.title,
+  loc: it.loc,
+  price: it.price,
+  img: it.img,
+  type: it.typeKey === 'factory' ? 'โรงงาน' : 'โกดัง/คลังสินค้า',
+  area: it.areaLabel || '—',
+  areaSqm: it.area,
+  province: it.province,
+  priceValue: priceValue(it.price),
+});
 
 export type ListingFilterKey = 'factory-rent' | 'factory-sale' | 'warehouse-rent' | 'warehouse-sale';
-const FILTERS: Record<ListingFilterKey, (it: RawListing) => boolean> = {
-  'factory-rent': (it) => /โรงงาน/.test(it.title) && !/โกดัง|คลัง/.test(it.title) && it.deal === 'ให้เช่า',
-  'factory-sale': (it) => /โรงงาน/.test(it.title) && !/โกดัง|คลัง/.test(it.title) && it.deal === 'ขาย',
-  'warehouse-rent': (it) => /โกดัง|คลัง/.test(it.title) && it.deal === 'ให้เช่า',
-  'warehouse-sale': (it) => /โกดัง|คลัง/.test(it.title) && it.deal === 'ขาย',
-};
-function deriveListings(filterKey?: ListingFilterKey): Listing[] {
-  const base = filterKey ? rawListings.filter(FILTERS[filterKey]) : rawListings;
-  return base.map((it) => {
-    const m = it.title.match(/([\d,]+)\s*ตร\.ม\./);
-    return { ...it, type: /โกดัง|คลัง/.test(it.title) ? 'โกดัง/คลังสินค้า' : 'โรงงาน', area: m ? m[1] + ' ตร.ม.' : '—' };
-  });
-}
 
-/** Preset config for SEO/area pages (Listing with a preset filter). */
+/** Preset config for SEO/area pages (Listing with a preset filter).
+    No `totalCount`: the count shown is however many rows actually matched. */
 export interface ListingPreset {
   breadcrumb: string;
-  totalCount: string;
   listingMode?: Mode;
   typeSel?: string[];
   filterKey?: ListingFilterKey;
+  /** area pages narrow to one province; matched against the property's own */
+  province?: string;
 }
-const DEFAULT_PRESET: ListingPreset = { breadcrumb: 'อสังหาริมทรัพย์ทั้งหมด', totalCount: '2,956' };
+const DEFAULT_PRESET: ListingPreset = { breadcrumb: 'อสังหาริมทรัพย์ทั้งหมด' };
 
-const PAGE_NUMS: (number | '...')[] = [1, 2, 3, '...', 86];
+const PER_PAGE = 9;
+
+/** 1 … n with ellipses, around the current page — sized to the real result set */
+function pageNumbers(total: number, current: number): (number | '...')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const out: (number | '...')[] = [1];
+  const from = Math.max(2, current - 1);
+  const to = Math.min(total - 1, current + 1);
+  if (from > 2) out.push('...');
+  for (let i = from; i <= to; i++) out.push(i);
+  if (to < total - 1) out.push('...');
+  out.push(total);
+  return out;
+}
 
 /* --- style helpers (ported from the logic class) --- */
 const pillStyle = (active: boolean): React.CSSProperties => ({
@@ -161,8 +194,10 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
     >
       <div style={{ position: 'relative', height: 200, overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0, transition: 'transform .5s cubic-bezier(.2,.7,.3,1)', transform: hover ? 'scale(1.07)' : 'none' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={it.img} alt={it.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          {it.img
+            ? /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={it.img} alt={it.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            : <PhotoPlaceholder />}
         </div>
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(2,35,16,.24) 0%,rgba(2,35,16,0) 34%,rgba(2,35,16,0) 62%,rgba(2,35,16,.38) 100%)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', alignItems: 'center', gap: 6, height: 26, padding: '0 11px', borderRadius: 9999, background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.42)', color: '#fff', fontSize: '11.5px', fontWeight: 700, pointerEvents: 'none', backdropFilter: 'blur(6px)' }}>
@@ -225,52 +260,14 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
   );
 }
 
-/* GET /api/public/listings item */
-type ApiListing = {
-  code: string; title: string; deal: string; loc: string; price: string;
-  area: number | null; areaLabel: string; typeKey: string; img: string | null; photos: string;
-};
-
-/* preset filter key → API query (the demo set filters by regex on the title;
-   real data filters on deal_type + typeKey server-side) */
-const PRESET_QUERY: Record<ListingFilterKey, string> = {
-  'factory-rent': 'deal=rent&type=factory',
-  'factory-sale': 'deal=sale&type=factory',
-  'warehouse-rent': 'deal=rent&type=warehouse',
-  'warehouse-sale': 'deal=sale&type=warehouse',
-};
-
-export function ListingBody({ preset = DEFAULT_PRESET }: { preset?: ListingPreset }) {
-  /* published inventory from the public API; the ported demo set stays as the
-     first paint and as the offline fallback (FRONTEND_API_SPEC §2.1/§2.2) */
-  const [listings, setListings] = useState<Listing[]>(() => deriveListings(preset.filterKey));
-  useEffect(() => {
-    let alive = true;
-    const q = preset.filterKey ? PRESET_QUERY[preset.filterKey] : '';
-    fetch(`/api/public/listings?${q}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d: { items: ApiListing[] } | null) => {
-        if (!alive || !d || !Array.isArray(d.items) || !d.items.length) return;
-        setListings(d.items.map((it) => ({
-          slot: it.code,
-          deal: it.deal,
-          photos: it.photos,
-          code: it.code,
-          title: it.title,
-          loc: it.loc,
-          price: it.price,
-          img: it.img || 'https://images.unsplash.com/photo-1553413077-190dd305871c?w=800&q=80',
-          credit: '',
-          creditHref: '',
-          type: it.typeKey === 'factory' ? 'โรงงาน' : 'โกดัง/คลังสินค้า',
-          area: it.areaLabel || '—',
-        })));
-      })
-      .catch(() => { /* keep the demo set */ });
-    return () => { alive = false; };
-  }, [preset.filterKey]);
+export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: ListingPreset; items?: ListingItem[] }) {
+  /* Already queried, filtered by the preset and rendered on the server — no
+     client fetch, so the markup search engines see is the real inventory. */
+  const all = items.map(toListing);
   const [favs, setFavs] = useState<Record<string, boolean>>({});
-  const [listingMode, setListingMode] = useState<Mode>(preset.listingMode ?? 'rent');
+  /* null = both. /listing must not hide every property for sale just because
+     the pills default to one of them; preset pages still pin their own. */
+  const [listingMode, setListingMode] = useState<Mode | null>(preset.listingMode ?? null);
   const [secOpen, setSecOpen] = useState<Record<SecKey, boolean>>({ zone: true, type: true, size: true, price: true });
   const [zoneSel, setZoneSel] = useState<string[]>([]);
   const [typeSel, setTypeSel] = useState<string[]>(preset.typeSel ?? []);
@@ -282,7 +279,49 @@ export function ListingBody({ preset = DEFAULT_PRESET }: { preset?: ListingPrese
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [activePage, setActivePage] = useState<number>(1);
 
-  const totalCount = preset.totalCount;
+  /* The sidebar and the sort menu used to be inert decoration — clicking them
+     changed the highlight and nothing else. They filter the real set now. */
+  const inSize = (sqm: number | null, sel: string) => {
+    if (sqm === null) return false;
+    if (sel.startsWith('ต่ำกว่า')) return sqm < 1000;
+    if (sel.startsWith('สูงกว่า')) return sqm > 3000;
+    return sqm >= 1000 && sqm <= 3000;
+  };
+  const inPrice = (v: number, sel: string) => {
+    if (sel.startsWith('ต่ำกว่า')) return v < 100_000;
+    if (sel.startsWith('สูงกว่า')) return v > 300_000;
+    return v >= 100_000 && v <= 300_000;
+  };
+
+  const filtered = all.filter((it) => {
+    if (listingMode === 'rent' && it.deal !== 'ให้เช่า') return false;
+    if (listingMode === 'sale' && it.deal !== 'ขาย') return false;
+    if (zoneSel.length && !zoneSel.includes(it.loc)) return false;
+    if (typeSel.length && !typeSel.includes(it.type)) return false;
+    if (sizeSel && !inSize(it.areaSqm, sizeSel)) return false;
+    if (priceSel && !inPrice(it.priceValue, priceSel)) return false;
+    return true;
+  });
+
+  const listings = [...filtered].sort((a, b) => {
+    switch (sortKey) {
+      case 'price_asc': return a.priceValue - b.priceValue;
+      case 'price_desc': return b.priceValue - a.priceValue;
+      case 'size_asc': return (a.areaSqm ?? Infinity) - (b.areaSqm ?? Infinity);
+      case 'size_desc': return (b.areaSqm ?? -Infinity) - (a.areaSqm ?? -Infinity);
+      default: return 0; // the server already returns newest-first
+    }
+  });
+
+  const pageCount = Math.max(1, Math.ceil(listings.length / PER_PAGE));
+  const page = Math.min(activePage, pageCount);
+  const pageItems = listings.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const totalCount = listings.length.toLocaleString('th-TH');
+
+  /* zone options come from the inventory actually on the page, so the filter
+     can never offer a location that returns nothing */
+  const zoneItems = Array.from(new Set(all.map((it) => it.loc).filter((l) => l && l !== '—'))).sort();
+
   const toggleIn = (arr: string[], v: string) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
   const sortLabel = (SORT_DEFS.find((d) => d.key === sortKey) || SORT_DEFS[0]).label;
 
@@ -304,7 +343,7 @@ export function ListingBody({ preset = DEFAULT_PRESET }: { preset?: ListingPrese
 
   type Section = { key: SecKey; title: string; items: { label: string; checked: boolean; select: () => void }[] };
   const sections: Section[] = [
-    { key: 'zone', title: 'ทำเล', items: ZONE_ITEMS.map((label) => ({ label, checked: zoneSel.includes(label), select: () => setZoneSel((a) => toggleIn(a, label)) })) },
+    { key: 'zone', title: 'ทำเล', items: zoneItems.map((label) => ({ label, checked: zoneSel.includes(label), select: () => setZoneSel((a) => toggleIn(a, label)) })) },
     { key: 'type', title: 'ประเภทอสังหา', items: TYPE_ITEMS.map((label) => ({ label, checked: typeSel.includes(label), select: () => setTypeSel((a) => toggleIn(a, label)) })) },
     { key: 'size', title: 'ขนาดพื้นที่', items: SIZE_ITEMS.map((label) => ({ label, checked: sizeSel === label, select: () => setSizeSel((cur) => (cur === label ? null : label)) })) },
     { key: 'price', title: 'ช่วงราคา', items: PRICE_ITEMS.map((label) => ({ label, checked: priceSel === label, select: () => setPriceSel((cur) => (cur === label ? null : label)) })) },
@@ -312,8 +351,8 @@ export function ListingBody({ preset = DEFAULT_PRESET }: { preset?: ListingPrese
 
   const renderModePills = () => (
     <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-      <div onClick={() => setListingMode('rent')} style={pillStyle(listingMode === 'rent')}>ให้เช่า</div>
-      <div onClick={() => setListingMode('sale')} style={pillStyle(listingMode === 'sale')}>ขาย</div>
+      <div onClick={() => setListingMode((m) => (m === 'rent' ? null : 'rent'))} style={pillStyle(listingMode === 'rent')}>ให้เช่า</div>
+      <div onClick={() => setListingMode((m) => (m === 'sale' ? null : 'sale'))} style={pillStyle(listingMode === 'sale')}>ขาย</div>
     </div>
   );
 
@@ -436,43 +475,70 @@ export function ListingBody({ preset = DEFAULT_PRESET }: { preset?: ListingPrese
         </aside>
 
         {/* GRID */}
-        <div className="rs-cols-3" id="listing-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 22 }}>
-          {listings.map((it) => (
-            <ListingCard
-              key={it.slot}
-              it={it}
-              favFill={favs[it.slot] ? '#022310' : 'none'}
-              onToggleFav={() => setFavs((f) => ({ ...f, [it.slot]: !f[it.slot] }))}
-            />
-          ))}
-        </div>
+        {pageItems.length === 0 ? (
+          <div id="listing-empty" style={{ padding: '72px 24px', textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 18, background: 'var(--surface)' }}>
+            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)' }}>
+              {all.length === 0 ? 'ยังไม่มีทรัพย์ที่เผยแพร่' : 'ไม่พบทรัพย์ตามเงื่อนไขที่เลือก'}
+            </div>
+            <p style={{ margin: '10px 0 0', fontSize: 14, color: 'var(--muted2)' }}>
+              {all.length === 0
+                ? 'ทรัพย์ที่ทีมงานเผยแพร่แล้วจะแสดงที่นี่'
+                : 'ลองปรับตัวกรอง หรือกด "ล้างค่า" เพื่อดูทั้งหมด'}
+            </p>
+            {all.length > 0 && (
+              <div onClick={clearAll} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginTop: 18, height: 42, padding: '0 22px', borderRadius: 9999, border: '1.5px solid #273c33', color: '#273c33', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>
+                ล้างค่า
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="rs-cols-3" id="listing-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 22 }}>
+            {pageItems.map((it) => (
+              <ListingCard
+                key={it.slot}
+                it={it}
+                favFill={favs[it.slot] ? '#022310' : 'none'}
+                onToggleFav={() => setFavs((f) => ({ ...f, [it.slot]: !f[it.slot] }))}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* PAGINATION */}
-      <div id="pagination-row" style={{ maxWidth: '1320px', margin: '-40px auto 0', padding: '0 24px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
-        <div style={{ width: 38, height: 38, borderRadius: 9999, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted3)', cursor: 'pointer' }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-            <path d="M15 6l-6 6 6 6" />
-          </svg>
+      {/* PAGINATION — page numbers follow the real result count; the arrows
+          used to be decorative and the tail always read "… 86". */}
+      {pageCount > 1 && (
+        <div id="pagination-row" style={{ maxWidth: '1320px', margin: '-40px auto 0', padding: '0 24px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
+          <div
+            onClick={() => setActivePage((p) => Math.max(1, p - 1))}
+            style={{ width: 38, height: 38, borderRadius: 9999, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: page === 1 ? 'var(--muted3)' : 'var(--text)', cursor: page === 1 ? 'default' : 'pointer' }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+              <path d="M15 6l-6 6 6 6" />
+            </svg>
+          </div>
+          {pageNumbers(pageCount, page).map((n, i) => {
+            const isActive = n === page;
+            return (
+              <div
+                key={`${n}-${i}`}
+                onClick={n === '...' ? undefined : () => setActivePage(n)}
+                style={{ minWidth: 38, height: 38, padding: '0 6px', borderRadius: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13.5px', fontWeight: 700, cursor: n === '...' ? 'default' : 'pointer', background: isActive ? '#034956' : 'transparent', color: isActive ? '#fff' : n === '...' ? 'var(--muted3)' : 'var(--text)' }}
+              >
+                {n}
+              </div>
+            );
+          })}
+          <div
+            onClick={() => setActivePage((p) => Math.min(pageCount, p + 1))}
+            style={{ width: 38, height: 38, borderRadius: 9999, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: page === pageCount ? 'var(--muted3)' : 'var(--text)', cursor: page === pageCount ? 'default' : 'pointer' }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+          </div>
         </div>
-        {PAGE_NUMS.map((n, i) => {
-          const isActive = n === activePage;
-          return (
-            <div
-              key={`${n}-${i}`}
-              onClick={n === '...' ? undefined : () => setActivePage(n)}
-              style={{ minWidth: 38, height: 38, padding: '0 6px', borderRadius: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13.5px', fontWeight: 700, cursor: n === '...' ? 'default' : 'pointer', background: isActive ? '#034956' : 'transparent', color: isActive ? '#fff' : n === '...' ? 'var(--muted3)' : 'var(--text)' }}
-            >
-              {n}
-            </div>
-          );
-        })}
-        <div style={{ width: 38, height: 38, borderRadius: 9999, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)', cursor: 'pointer' }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-            <path d="M9 6l6 6-6 6" />
-          </svg>
-        </div>
-      </div>
+      )}
 
       {/* MOBILE FILTER DRAWER */}
       {mobileFilterOpen && (

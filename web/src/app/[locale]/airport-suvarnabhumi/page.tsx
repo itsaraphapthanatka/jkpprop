@@ -4,5 +4,5 @@ import { ListingShell } from '@/components/listing/ListingShell';
 export const metadata: Metadata = { title: 'ทรัพย์ใกล้สนามบินสุวรรณภูมิ | JKP Property' };
 
 export default function AirportSuvarnabhumiPage() {
-  return <ListingShell preset={{ breadcrumb: 'สนามบินสุวรรณภูมิ', totalCount: '640' }} />;
+  return <ListingShell preset={{ province: 'สมุทรปราการ', breadcrumb: 'สนามบินสุวรรณภูมิ' }} />;
 }

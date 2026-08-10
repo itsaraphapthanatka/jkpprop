@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: 'โรงงานสำหรับ
 export default function FactorySalePage() {
   return (
     <ListingShell
-      preset={{ breadcrumb: 'โรงงานสำหรับขาย', totalCount: '316', listingMode: 'sale', typeSel: ['โรงงาน'], filterKey: 'factory-sale' }}
+      preset={{ breadcrumb: 'โรงงานสำหรับขาย', listingMode: 'sale', typeSel: ['โรงงาน'], filterKey: 'factory-sale' }}
     />
   );
 }

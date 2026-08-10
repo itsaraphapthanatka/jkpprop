@@ -2,8 +2,25 @@
 
 import { useRef, useState } from 'react';
 import Link from '@/i18n/LocaleLink';
+import { PhotoPlaceholder } from '@/components/common/PhotoPlaceholder';
 
-type RawListing = {
+/* Cards come from the database via the home page (a server component), not
+   from a list in this file. They used to be a copy of the design prototype's
+   demo data — six invented properties whose "ดูรายละเอียด" links pointed at
+   codes that do not exist, so every one of them landed on a 404. */
+export type FeaturedItem = {
+  code: string;
+  title: string;
+  deal: string;
+  loc: string;
+  price: string;
+  areaLabel: string;
+  typeKey: string;
+  img: string | null;
+  photos: string;
+};
+
+type Listing = {
   slot: string;
   deal: string;
   photos: string;
@@ -12,61 +29,21 @@ type RawListing = {
   loc: string;
   price: string;
   area: string;
-  img: string;
-  credit: string;
-  creditHref: string;
+  img: string | null;
+  type: string;
 };
 
-type Listing = RawListing & { type: string };
-
-const rawListings: RawListing[] = [
-  {
-    slot: 'l1', deal: 'ให้เช่า', photos: '12', code: 'TIP-2041',
-    title: 'โรงงานพร้อมสำนักงาน พื้นที่ 2,700 ตร.ม.', loc: 'บางนา, กรุงเทพฯ',
-    price: '฿ 405,000 / เดือน', area: '2,700 ตร.ม. · ถนนกว้าง 8 ม.',
-    img: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&q=80',
-    credit: 'Photo by ThisisEngineering on Unsplash', creditHref: 'https://unsplash.com/@thisisengineering',
-  },
-  {
-    slot: 'l2', deal: 'ให้เช่า', photos: '8', code: 'TIP-1987',
-    title: 'โกดังคลังสินค้าไฟฟ้า 3 เฟส พื้นที่ 1,300 ตร.ม.', loc: 'ศรีราชา, ชลบุรี',
-    price: '฿ 176,000 / เดือน', area: '1,300 ตร.ม. · ใกล้ท่าเรือแหลมฉบัง',
-    img: 'https://images.unsplash.com/photo-1553413077-190dd305871c?w=800&q=80',
-    credit: 'Photo by Petrebels on Unsplash', creditHref: 'https://unsplash.com/@petrebels',
-  },
-  {
-    slot: 'l3', deal: 'ขาย', photos: '15', code: 'TIP-1802',
-    title: 'โรงงานในนิคมอุตสาหกรรม พื้นที่ 650 ตร.ม.', loc: 'พานทอง, ชลบุรี',
-    price: '฿ 9.7 ล้าน', area: '650 ตร.ม. · โฉนดพร้อมโอน',
-    img: 'https://images.unsplash.com/photo-1565793298595-6a879b1d9492?w=800&q=80',
-    credit: 'Photo by Simone Hutsch on Unsplash', creditHref: 'https://unsplash.com/@heysupersimi',
-  },
-  {
-    slot: 'l4', deal: 'ให้เช่า', photos: '10', code: 'TIP-1755',
-    title: 'โกดังริมถนนเมนใกล้มอเตอร์เวย์ พื้นที่ 1,800 ตร.ม.', loc: 'บางปะกง, ฉะเชิงเทรา',
-    price: '฿ 245,000 / เดือน', area: '1,800 ตร.ม. · รถเทรลเลอร์เข้าได้',
-    img: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&q=80',
-    credit: 'Photo by Petrebels on Unsplash', creditHref: 'https://unsplash.com/@petrebels',
-  },
-  {
-    slot: 'l5', deal: 'ขาย', photos: '9', code: 'TIP-1698',
-    title: 'โรงงานพร้อมออฟฟิศ 2 ชั้น พื้นที่ 3,200 ตร.ม.', loc: 'บางพลี, สมุทรปราการ',
-    price: '฿ 58 ล้าน', area: '3,200 ตร.ม. · ผังสีม่วง',
-    img: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=800&q=80',
-    credit: 'Photo by Simone Hutsch on Unsplash', creditHref: 'https://unsplash.com/@heysupersimi',
-  },
-  {
-    slot: 'l6', deal: 'ให้เช่า', photos: '14', code: 'TIP-1642',
-    title: 'คลังสินค้าห้องเย็นพร้อมระบบ พื้นที่ 900 ตร.ม.', loc: 'วังน้อย, พระนครศรีอยุธยา',
-    price: '฿ 132,000 / เดือน', area: '900 ตร.ม. · ห้องเย็น -18°C',
-    img: 'https://images.unsplash.com/photo-1601599963565-b7f49deb352a?w=800&q=80',
-    credit: 'Photo by ThisisEngineering on Unsplash', creditHref: 'https://unsplash.com/@thisisengineering',
-  },
-];
-
-const listings: Listing[] = rawListings.map((it) => {
-  const isWh = /โกดัง|คลัง/.test(it.title);
-  return { ...it, type: isWh ? 'โกดัง/คลังสินค้า' : 'โรงงาน' };
+const toListing = (it: FeaturedItem): Listing => ({
+  slot: it.code,
+  deal: it.deal,
+  photos: it.photos,
+  code: it.code,
+  title: it.title,
+  loc: it.loc,
+  price: it.price,
+  area: it.areaLabel || '—',
+  img: it.img,
+  type: it.typeKey === 'factory' ? 'โรงงาน' : 'โกดัง/คลังสินค้า',
 });
 
 function NavArrow({ onClick, d }: { onClick: () => void; d: string }) {
@@ -109,8 +86,10 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
     >
       <div style={{ position: 'relative', height: 285, overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0, transition: 'transform .5s cubic-bezier(.2,.7,.3,1)', transform: hover ? 'scale(1.07)' : 'none' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={it.img} alt={it.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          {it.img
+            ? /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={it.img} alt={it.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            : <PhotoPlaceholder />}
         </div>
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(2,35,16,.28) 0%,rgba(2,35,16,0) 34%,rgba(2,35,16,0) 62%,rgba(2,35,16,.42) 100%)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', alignItems: 'center', gap: 6, height: 28, padding: '0 13px', borderRadius: 9999, background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.42)', color: '#fff', fontSize: 12, fontWeight: 700, pointerEvents: 'none', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', boxShadow: '0 2px 8px rgba(0,0,0,.12)' }}>
@@ -161,7 +140,8 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
   );
 }
 
-export function Featured() {
+export function Featured({ items = [] }: { items?: FeaturedItem[] }) {
+  const listings = items.map(toListing);
   const rowRef = useRef<HTMLDivElement>(null);
   const [favs, setFavs] = useState<Record<number, boolean>>({});
   const [progress, setProgress] = useState(0);
@@ -199,29 +179,44 @@ export function Featured() {
             ดูทั้งหมด
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#273c33" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
           </Link>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <NavArrow onClick={scrollPrev} d="M15 6l-6 6 6 6" />
-            <NavArrow onClick={scrollNext} d="M9 6l6 6-6 6" />
+          {listings.length > 1 && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <NavArrow onClick={scrollPrev} d="M15 6l-6 6 6 6" />
+              <NavArrow onClick={scrollNext} d="M9 6l6 6-6 6" />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {listings.length === 0 ? (
+        <div style={{ padding: '56px 24px', textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 18, background: 'var(--surface)' }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>ยังไม่มีทรัพย์ที่เผยแพร่</div>
+          <p style={{ margin: '8px 0 0', fontSize: 14, color: 'var(--muted2)' }}>
+            ทรัพย์ที่ทีมงานเผยแพร่แล้วจะแสดงที่นี่ ติดต่อเราเพื่อแจ้งความต้องการไว้ล่วงหน้าได้
+          </p>
+        </div>
+      ) : (
+        <>
+          <div ref={rowRef} onScroll={onRowScroll} className="no-sb" style={{ display: 'flex', gap: 24, overflowX: 'auto', scrollBehavior: 'smooth', padding: '6px 4px 14px' }}>
+            {listings.map((it, i) => (
+              <ListingCard
+                key={it.slot}
+                it={it}
+                favFill={favs[i] ? '#022310' : 'none'}
+                onToggleFav={() => setFavs((f) => ({ ...f, [i]: !f[i] }))}
+              />
+            ))}
           </div>
-        </div>
-      </div>
 
-      <div ref={rowRef} onScroll={onRowScroll} className="no-sb" style={{ display: 'flex', gap: 24, overflowX: 'auto', scrollBehavior: 'smooth', padding: '6px 4px 14px' }}>
-        {listings.map((it, i) => (
-          <ListingCard
-            key={it.slot}
-            it={it}
-            favFill={favs[i] ? '#022310' : 'none'}
-            onToggleFav={() => setFavs((f) => ({ ...f, [i]: !f[i] }))}
-          />
-        ))}
-      </div>
-
-      <div style={{ marginTop: 18, display: 'flex', justifyContent: 'center' }}>
-        <div style={{ position: 'relative', width: 180, height: 4, borderRadius: 9999, background: '#E5E2DC', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '38%', borderRadius: 9999, background: '#273c33', transition: 'transform .15s linear', transform: `translateX(${progressX})` }} />
-        </div>
-      </div>
+          {listings.length > 1 && (
+            <div style={{ marginTop: 18, display: 'flex', justifyContent: 'center' }}>
+              <div style={{ position: 'relative', width: 180, height: 4, borderRadius: 9999, background: '#E5E2DC', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '38%', borderRadius: 9999, background: '#273c33', transition: 'transform .15s linear', transform: `translateX(${progressX})` }} />
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       <div style={{ marginTop: 28, display: 'flex', justifyContent: 'center' }}>
         <Link
