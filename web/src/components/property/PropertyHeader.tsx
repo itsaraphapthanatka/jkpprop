@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useLocale } from '@/i18n/LocaleLink';
 import { localizePath } from '@/i18n/config';
 import Image from 'next/image';
+import { useDict } from '@/i18n/useDict';
 
 type Lang = 'th' | 'en' | 'zh';
 
@@ -74,6 +75,7 @@ const ddItem: React.CSSProperties = {
 };
 
 export function PropertyHeader() {
+  const d = useDict();
   const [navFactory, setNavFactory] = useState(false);
   const [navWarehouse, setNavWarehouse] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
@@ -116,13 +118,13 @@ export function PropertyHeader() {
             {/* โรงงาน */}
             <div style={{ position: 'relative' }} onMouseEnter={() => setNavFactory(true)} onMouseLeave={() => setNavFactory(false)}>
               <div className="nav-link" style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', padding: '4px 0', ...navText }}>
-                โรงงาน {chev(navFactory)}
+                {d.nav.factory} {chev(navFactory)}
               </div>
               {navFactory && (
                 <div style={{ position: 'absolute', top: '100%', left: 0, paddingTop: 10, width: 150 }}>
                   <div style={ddPanel}>
-                    <Link className="dd-item" href="/factory-rent" style={ddItem}>โรงงานให้เช่า</Link>
-                    <Link className="dd-item" href="/factory-sale" style={ddItem}>โรงงานสำหรับขาย</Link>
+                    <Link className="dd-item" href="/factory-rent" style={ddItem}>{d.nav.factoryRent}</Link>
+                    <Link className="dd-item" href="/factory-sale" style={ddItem}>{d.nav.factorySale}</Link>
                   </div>
                 </div>
               )}
@@ -131,20 +133,20 @@ export function PropertyHeader() {
             {/* โกดัง */}
             <div style={{ position: 'relative' }} onMouseEnter={() => setNavWarehouse(true)} onMouseLeave={() => setNavWarehouse(false)}>
               <div className="nav-link" style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', padding: '4px 0', ...navText }}>
-                โกดัง {chev(navWarehouse)}
+                {d.nav.warehouse} {chev(navWarehouse)}
               </div>
               {navWarehouse && (
                 <div style={{ position: 'absolute', top: '100%', left: 0, paddingTop: 10, width: 150 }}>
                   <div style={ddPanel}>
-                    <Link className="dd-item" href="/warehouse-rent" style={ddItem}>โกดังให้เช่า</Link>
-                    <Link className="dd-item" href="/warehouse-sale" style={ddItem}>โกดังสำหรับขาย</Link>
+                    <Link className="dd-item" href="/warehouse-rent" style={ddItem}>{d.nav.warehouseRent}</Link>
+                    <Link className="dd-item" href="/warehouse-sale" style={ddItem}>{d.nav.warehouseSale}</Link>
                   </div>
                 </div>
               )}
             </div>
 
-            <Link className="nav-link" href="/faq" style={navText}>คำถามพบบ่อย</Link>
-            <Link className="nav-link" href="/about" style={navText}>เกี่ยวกับเรา</Link>
+            <Link className="nav-link" href="/faq" style={navText}>{d.nav.faq}</Link>
+            <Link className="nav-link" href="/about" style={navText}>{d.nav.about}</Link>
 
             {/* language */}
             <div style={{ position: 'relative' }}>
@@ -229,7 +231,7 @@ export function PropertyHeader() {
                 fontWeight: 800,
               }}
             >
-              ติดต่อทีมงาน
+              {d.nav.contactTeam}
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#022310" strokeWidth="2.4">
                 <path d="M5 12h14M13 6l6 6-6 6" />
               </svg>
@@ -293,11 +295,11 @@ export function PropertyHeader() {
           </div>
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '10px 14px 20px' }}>
-          <Link href="/factory-rent" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>โรงงานให้เช่า</Link>
-          <Link href="/warehouse-rent" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>โกดังให้เช่า</Link>
-          <Link href="/faq" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>คำถามพบบ่อย</Link>
-          <Link href="/about" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>เกี่ยวกับเรา</Link>
-          <a href="#" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, borderRadius: 9999, background: '#2DFB91', color: '#022310', fontSize: '14.5px', fontWeight: 800 }}>ติดต่อทีมงาน</a>
+          <Link href="/factory-rent" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>{d.nav.factoryRent}</Link>
+          <Link href="/warehouse-rent" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>{d.nav.warehouseRent}</Link>
+          <Link href="/faq" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>{d.nav.faq}</Link>
+          <Link href="/about" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>{d.nav.about}</Link>
+          <a href="#" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, borderRadius: 9999, background: '#2DFB91', color: '#022310', fontSize: '14.5px', fontWeight: 800 }}>{d.nav.contactTeam}</a>
         </div>
       </div>
     </>

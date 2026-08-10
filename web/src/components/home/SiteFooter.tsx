@@ -3,8 +3,10 @@
 import { useEffect, useRef } from 'react';
 import Link from '@/i18n/LocaleLink';
 import Image from 'next/image';
+import { useDict } from '@/i18n/useDict';
 
 export function SiteFooter() {
+  const d = useDict();
   const footerRef = useRef<HTMLElement | null>(null);
   const spacerRef = useRef<HTMLDivElement | null>(null);
 
@@ -97,7 +99,7 @@ export function SiteFooter() {
             <Image width={226} height={100} src="/assets/jkp-logo-white.png" alt="JKP Property" style={{ height: 46, width: 'auto', display: 'block' }} />
 
             <p style={{ margin: '16px 0 0', fontSize: 14, lineHeight: 1.7, color: '#8E8B84', maxWidth: 280 }}>
-              แพลตฟอร์มนายหน้าโรงงานและโกดังอุตสาหกรรม เชื่อมนักลงทุนกับทรัพย์ที่ผ่านการคัดกรองทั่วประเทศไทย
+              {d.footer.tagline}
             </p>
             <div style={{ marginTop: 20, display: 'flex', gap: 10 }}>
               <a href="#" onMouseEnter={socialEnter} onMouseLeave={socialLeave} style={socialBase}>
@@ -120,25 +122,25 @@ export function SiteFooter() {
             </div>
           </div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 16 }}>อสังหาริมทรัพย์</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 16 }}>{d.footer.properties}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 11, fontSize: 14 }}>
-              <Link href="/factory-rent" style={{ color: '#C9C5BD' }}>โรงงานให้เช่า</Link>
-              <Link href="/warehouse-rent" style={{ color: '#C9C5BD' }}>โกดังให้เช่า</Link>
-              <a href="#" style={{ color: '#C9C5BD' }}>ที่ดินอุตสาหกรรม</a>
-              <Link href="/factory-sale" style={{ color: '#C9C5BD' }}>โรงงานขาย</Link>
+              <Link href="/factory-rent" style={{ color: '#C9C5BD' }}>{d.nav.factoryRent}</Link>
+              <Link href="/warehouse-rent" style={{ color: '#C9C5BD' }}>{d.nav.warehouseRent}</Link>
+              <a href="#" style={{ color: '#C9C5BD' }}>{d.footer.industrialLand}</a>
+              <Link href="/factory-sale" style={{ color: '#C9C5BD' }}>{d.nav.factorySale}</Link>
             </div>
           </div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 16 }}>บริษัท</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 16 }}>{d.footer.company}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 11, fontSize: 14 }}>
-              <Link href="/about" style={{ color: '#C9C5BD' }}>เกี่ยวกับเรา</Link>
-              <a href="#" style={{ color: '#C9C5BD' }}>บริการ</a>
-              <a href="#" style={{ color: '#C9C5BD' }}>บทความ</a>
-              <Link href="/contact" style={{ color: '#C9C5BD' }}>ติดต่อเรา</Link>
+              <Link href="/about" style={{ color: '#C9C5BD' }}>{d.nav.about}</Link>
+              <a href="#" style={{ color: '#C9C5BD' }}>{d.footer.services}</a>
+              <a href="#" style={{ color: '#C9C5BD' }}>{d.footer.articles}</a>
+              <Link href="/contact" style={{ color: '#C9C5BD' }}>{d.nav.contact}</Link>
             </div>
           </div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 16 }}>ข้อมูลติดต่อ</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 16 }}>{d.footer.contact}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 14, color: '#8E8B84' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
                 <svg style={{ flexShrink: 0, marginTop: 2 }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -204,10 +206,10 @@ export function SiteFooter() {
               color: '#8E8B84',
             }}
           >
-            <div>© 2026 JKP PROPERTY. สงวนลิขสิทธิ์</div>
+            <div>{d.footer.rights}</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24 }}>
-              <a href="#" style={{ color: '#8E8B84' }}>นโยบายความเป็นส่วนตัว</a>
-              <a href="#" style={{ color: '#8E8B84' }}>ข้อกำหนดการใช้งาน</a>
+              <a href="#" style={{ color: '#8E8B84' }}>{d.footer.privacy}</a>
+              <a href="#" style={{ color: '#8E8B84' }}>{d.footer.terms}</a>
             </div>
           </div>
         </div>

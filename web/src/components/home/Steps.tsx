@@ -1,13 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-
-const STEP_DEFS = [
-  { title: 'บอกความต้องการ', desc: 'แจ้งพื้นที่ ทำเล งบประมาณ และเงื่อนไขที่คุณต้องการ' },
-  { title: 'รับรายการที่คัดกรอง', desc: 'ทีมผู้เชี่ยวชาญคัดทรัพย์ที่เหมาะสมและส่งตัวเลือกให้' },
-  { title: 'นัดเข้าชมสถานที่', desc: 'ประสานงานและพาเข้าชมทรัพย์จริงตามวันเวลาที่สะดวก' },
-  { title: 'ปิดดีลอย่างมั่นใจ', desc: 'ดูแลสัญญาและเอกสารทางกฎหมายจนจบกระบวนการ' },
-];
+import { useDict } from '@/i18n/useDict';
 
 const STEP_ICONS = [
   <svg key="0" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>,
@@ -17,6 +11,7 @@ const STEP_ICONS = [
 ];
 
 export function Steps() {
+  const d = useDict();
   const [step, setStep] = useState(0);
   const [hover, setHover] = useState<number | null>(null);
   const hoverRef = useRef<number | null>(null);
@@ -39,16 +34,16 @@ export function Steps() {
         <div style={{ textAlign: 'center', marginBottom: 14 }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
             <span style={{ width: 26, height: 2, background: '#034956', borderRadius: 2 }} />
-            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', color: 'var(--accent)', textTransform: 'uppercase' }}>ขั้นตอนง่ายๆ</span>
+            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', color: 'var(--accent)', textTransform: 'uppercase' }}>{d.steps.eyebrow}</span>
             <span style={{ width: 26, height: 2, background: '#034956', borderRadius: 2 }} />
           </div>
         </div>
-        <h2 style={{ margin: '0 0 8px', textAlign: 'center', fontSize: 34, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>ค้นหาทรัพย์ใน 4 ขั้นตอน</h2>
+        <h2 style={{ margin: '0 0 8px', textAlign: 'center', fontSize: 34, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>{d.steps.heading}</h2>
         <p style={{ margin: '0 auto 44px', textAlign: 'center', maxWidth: '520px', fontSize: 15, color: 'var(--muted2)' }}>ตั้งแต่บอกความต้องการจนถึงปิดดีล เราดูแลให้ทุกขั้นราบรื่นและมั่นใจ</p>
 
         {/* rail */}
         <div style={{ position: 'relative', height: '52px' }}>
-          {STEP_DEFS.map((d, i) => {
+          {d.steps.items.map((item, i) => {
             const on = i === active;
             const done = i < active;
             const reached = i <= active;
@@ -70,7 +65,7 @@ export function Steps() {
 
         {/* cards */}
         <div className="rs-cols-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 22, marginTop: 16 }}>
-          {STEP_DEFS.map((d, i) => {
+          {d.steps.items.map((item, i) => {
             const on = i === active;
             const ghostColor = on ? 'rgba(45,251,145,.14)' : 'rgba(40,37,29,.05)';
             const titleColor = on ? '#fff' : 'var(--text)';
@@ -85,9 +80,9 @@ export function Steps() {
                 <div style={cardGlow} />
                 <div style={{ position: 'absolute', top: 6, right: 16, fontSize: 74, fontWeight: 800, lineHeight: 1, color: ghostColor, pointerEvents: 'none', fontFamily: "'JetBrains Mono',monospace", transition: 'color .3s' }}>{String(i + 1)}</div>
                 <div style={iconTile}>{STEP_ICONS[i]}</div>
-                <div style={{ marginTop: 20, fontSize: 12, fontWeight: 700, letterSpacing: '.06em', color: 'var(--muted3)', textTransform: 'uppercase' }}>ขั้นตอน {'0' + (i + 1)}</div>
-                <div style={{ marginTop: 5, fontSize: 18, fontWeight: 700, color: titleColor }}>{d.title}</div>
-                <div style={{ marginTop: 8, fontSize: 14, color: descColor, lineHeight: 1.6 }}>{d.desc}</div>
+                <div style={{ marginTop: 20, fontSize: 12, fontWeight: 700, letterSpacing: '.06em', color: 'var(--muted3)', textTransform: 'uppercase' }}>{d.steps.step} {'0' + (i + 1)}</div>
+                <div style={{ marginTop: 5, fontSize: 18, fontWeight: 700, color: titleColor }}>{item.title}</div>
+                <div style={{ marginTop: 8, fontSize: 14, color: descColor, lineHeight: 1.6 }}>{item.desc}</div>
               </div>
             );
           })}

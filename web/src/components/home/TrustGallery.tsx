@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useDict } from '@/i18n/useDict';
 
 const TILES = [1, 2, 3, 4, 5, 6, 7, 8];
 
 export function TrustGallery() {
+  const d = useDict();
   const galRef = useRef<HTMLDivElement | null>(null);
   const pauseRef = useRef(false);
   const [ghover, setGhover] = useState<number | null>(null);
@@ -33,10 +35,10 @@ export function TrustGallery() {
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           <span style={{ width: 26, height: 2, background: '#034956', borderRadius: 2 }} />
-          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', color: 'var(--accent)', textTransform: 'uppercase' }}>ความสำเร็จของลูกค้า</span>
+          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', color: 'var(--accent)', textTransform: 'uppercase' }}>{d.trust.eyebrow}</span>
           <span style={{ width: 26, height: 2, background: '#034956', borderRadius: 2 }} />
         </div>
-        <h2 style={{ margin: '10px 0 0', fontSize: 34, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>ธุรกิจทั่วประเทศที่ไว้วางใจเรา</h2>
+        <h2 style={{ margin: '10px 0 0', fontSize: 34, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>{d.trust.heading}</h2>
         <div style={{ margin: '18px auto 0', display: 'inline-flex', alignItems: 'center', gap: 9, height: 40, padding: '0 18px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: 14, fontWeight: 700 }}>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>ลูกค้าที่พึงพอใจกว่า 500+ ราย
         </div>

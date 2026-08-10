@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useDict } from '@/i18n/useDict';
 
 export function Floating() {
+  const d = useDict();
   const [showTop, setShowTop] = useState(false);
   const [cookieOpen, setCookieOpen] = useState(false);
 
@@ -58,7 +60,7 @@ export function Floating() {
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = baseTransform;
         }}
-        title="กลับขึ้นด้านบน"
+        title={d.floating.backToTop}
         style={{
           position: 'fixed',
           right: 28,
@@ -79,7 +81,7 @@ export function Floating() {
           pointerEvents: showTop ? 'auto' : 'none',
         }}
       >
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap' }}>กลับขึ้นด้านบน</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap' }}>{d.floating.backToTop}</span>
         <div style={{ width: 38, height: 38, borderRadius: 9999, background: '#2DFB91', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#022310" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 19V5" />
@@ -114,7 +116,7 @@ export function Floating() {
                   <path d="M8.5 9h0M15 8.5h0M9 15h0M14.5 14.5h0M12 12h0" />
                 </svg>
               </div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>การตั้งค่าคุกกี้</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>{d.floating.cookieSettings}</div>
             </div>
             <div
               onClick={cookieClose}
@@ -134,8 +136,8 @@ export function Floating() {
             </div>
           </div>
           <p style={{ margin: '14px 0 0', fontSize: 13, color: 'var(--muted)', lineHeight: 1.65 }}>
-            เราใช้คุกกี้เพื่อปรับปรุงประสบการณ์การใช้งานและวิเคราะห์การเข้าชม เมื่อกดยอมรับ ถือว่าคุณยินยอมให้เราใช้คุกกี้ตาม{' '}
-            <a href="#" style={{ color: 'var(--accent)', fontWeight: 600 }}>PDPA ของประเทศไทย</a>
+            {d.floating.cookieBody}{' '}
+            <a href="#" style={{ color: 'var(--accent)', fontWeight: 600 }}>{d.floating.pdpa}</a>
           </p>
           <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
             <button
@@ -148,7 +150,7 @@ export function Floating() {
               }}
               style={{ flex: 1, height: 44, border: 0, borderRadius: 10, background: '#034956', color: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer', transition: 'background .2s' }}
             >
-              ยอมรับคุกกี้
+              {d.floating.accept}
             </button>
             <button
               onClick={cookieClose}
@@ -162,7 +164,7 @@ export function Floating() {
               }}
               style={{ height: 44, padding: '0 18px', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'all .2s' }}
             >
-              ปฏิเสธทั้งหมด
+              {d.floating.decline}
             </button>
           </div>
         </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useDict } from '@/i18n/useDict';
 
 const KPI_DEFS: { target: number; suffix: string; label: string; comma: boolean }[] = [
   { target: 2000, suffix: '+', label: 'ทรัพย์ในระบบทั่วประเทศ', comma: true },
@@ -27,6 +28,7 @@ const FEATURE_ICONS = [
 ];
 
 export function WhyUs() {
+  const d = useDict();
   const [kpi, setKpi] = useState(0);
   const [fhover, setFhover] = useState<number | null>(null);
   const kpiRef = useRef<HTMLDivElement>(null);
@@ -122,7 +124,8 @@ export function WhyUs() {
 
         {/* feature cards */}
         <div className="rs-cols-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 18, marginTop: 44 }}>
-          {FEATURE_DEFS.map((f, i) => {
+          {FEATURE_DEFS.map((_f, i) => {
+            const f = d.whyUs.items[i];
             const on = i === fhover;
             const ghost = on ? 'rgba(45,251,145,.14)' : 'rgba(40,37,29,.05)';
             const titleColor = on ? '#fff' : 'var(--text)';

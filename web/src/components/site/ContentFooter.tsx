@@ -1,6 +1,7 @@
 'use client';
 import Link from '@/i18n/LocaleLink';
 import Image from 'next/image';
+import { useDict } from '@/i18n/useDict';
 
 /* ============================================================
    Shared in-flow footer for the content pages (About / FAQ /
@@ -34,6 +35,7 @@ export function ContentFooter({
   phone = '+66 90-000-0000',
   location = 'กรุงเทพมหานคร, ประเทศไทย',
 }: ContentFooterProps) {
+  const d = useDict();
   const socialEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.currentTarget.style.background = '#034956';
     e.currentTarget.style.color = '#fff';
@@ -78,25 +80,25 @@ export function ContentFooter({
           </div>
         </div>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 16 }}>อสังหาริมทรัพย์</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 16 }}>{d.footer.properties}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 11, fontSize: 14 }}>
-            <Link href="/factory-rent" style={{ color: '#C9C5BD' }}>โรงงานให้เช่า</Link>
-            <Link href="/warehouse-rent" style={{ color: '#C9C5BD' }}>โกดังให้เช่า</Link>
-            <a href="#" style={{ color: '#C9C5BD' }}>ที่ดินอุตสาหกรรม</a>
-            <Link href="/factory-sale" style={{ color: '#C9C5BD' }}>โรงงานขาย</Link>
+            <Link href="/factory-rent" style={{ color: '#C9C5BD' }}>{d.nav.factoryRent}</Link>
+            <Link href="/warehouse-rent" style={{ color: '#C9C5BD' }}>{d.nav.warehouseRent}</Link>
+            <a href="#" style={{ color: '#C9C5BD' }}>{d.footer.industrialLand}</a>
+            <Link href="/factory-sale" style={{ color: '#C9C5BD' }}>{d.nav.factorySale}</Link>
           </div>
         </div>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 16 }}>บริษัท</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 16 }}>{d.footer.company}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 11, fontSize: 14 }}>
-            <Link href="/about" style={{ color: '#C9C5BD' }}>เกี่ยวกับเรา</Link>
-            <Link href="/faq" style={{ color: '#C9C5BD' }}>คำถามพบบ่อย</Link>
-            <a href="#" style={{ color: '#C9C5BD' }}>บทความ</a>
-            <Link href="/contact" style={{ color: '#C9C5BD' }}>ติดต่อเรา</Link>
+            <Link href="/about" style={{ color: '#C9C5BD' }}>{d.nav.about}</Link>
+            <Link href="/faq" style={{ color: '#C9C5BD' }}>{d.nav.faq}</Link>
+            <a href="#" style={{ color: '#C9C5BD' }}>{d.footer.articles}</a>
+            <Link href="/contact" style={{ color: '#C9C5BD' }}>{d.nav.contact}</Link>
           </div>
         </div>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 16 }}>ข้อมูลติดต่อ</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 16 }}>{d.footer.contact}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 14, color: '#8E8B84' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
               <svg style={{ flexShrink: 0, marginTop: 2 }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" strokeWidth="2">
@@ -135,10 +137,10 @@ export function ContentFooter({
       </div>
       <div style={{ borderTop: '1px solid rgba(255,255,255,.1)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '26px 24px', display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#8E8B84' }}>
-          <div>© 2026 JKP PROPERTY. สงวนลิขสิทธิ์</div>
+          <div>{d.footer.rights}</div>
           <div style={{ display: 'flex', gap: 24 }}>
-            <a href="#" style={{ color: '#8E8B84' }}>นโยบายความเป็นส่วนตัว</a>
-            <a href="#" style={{ color: '#8E8B84' }}>ข้อกำหนดการใช้งาน</a>
+            <a href="#" style={{ color: '#8E8B84' }}>{d.footer.privacy}</a>
+            <a href="#" style={{ color: '#8E8B84' }}>{d.footer.terms}</a>
           </div>
         </div>
       </div>

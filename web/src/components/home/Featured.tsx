@@ -3,6 +3,8 @@
 import { useRef, useState } from 'react';
 import Link from '@/i18n/LocaleLink';
 import { PhotoPlaceholder } from '@/components/common/PhotoPlaceholder';
+import { useDict, useI18n } from '@/i18n/useDict';
+import { enumLabel } from '@/i18n/enums';
 
 /* Cards come from the database via the home page (a server component), not
    from a list in this file. They used to be a copy of the design prototype's
@@ -67,6 +69,7 @@ function NavArrow({ onClick, d }: { onClick: () => void; d: string }) {
 }
 
 function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: string; onToggleFav: () => void }) {
+  const { d, locale } = useI18n();
   const [hover, setHover] = useState(false);
   const [favHover, setFavHover] = useState(false);
   const [detailHover, setDetailHover] = useState(false);
@@ -93,7 +96,7 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
         </div>
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(2,35,16,.28) 0%,rgba(2,35,16,0) 34%,rgba(2,35,16,0) 62%,rgba(2,35,16,.42) 100%)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', alignItems: 'center', gap: 6, height: 28, padding: '0 13px', borderRadius: 9999, background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.42)', color: '#fff', fontSize: 12, fontWeight: 700, pointerEvents: 'none', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', boxShadow: '0 2px 8px rgba(0,0,0,.12)' }}>
-          <span style={{ width: 6, height: 6, borderRadius: 9999, background: '#fff' }} />{it.deal}
+          <span style={{ width: 6, height: 6, borderRadius: 9999, background: '#fff' }} />{enumLabel(it.deal, locale)}
         </div>
         <div
           onClick={onToggleFav}
@@ -111,7 +114,7 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 12, color: 'var(--muted2)', letterSpacing: '.04em' }}>{it.code}</span>
           <span style={{ width: 4, height: 4, borderRadius: 9999, background: 'var(--border)' }} />
-          <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 10px', borderRadius: 6, background: 'var(--tint)', color: 'var(--accent)', fontSize: 11, fontWeight: 600 }}>{it.type}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 10px', borderRadius: 6, background: 'var(--tint)', color: 'var(--accent)', fontSize: 11, fontWeight: 600 }}>{enumLabel(it.type, locale)}</span>
         </div>
         <div style={{ marginTop: 10, fontSize: 17, fontWeight: 700, color: 'var(--text)', lineHeight: 1.4, minHeight: 48 }}>{it.title}</div>
         <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted)', fontSize: 14 }}>
@@ -122,7 +125,7 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
         </div>
         <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 12, color: 'var(--muted3)', fontWeight: 500 }}>ราคา</div>
+            <div style={{ fontSize: 12, color: 'var(--muted3)', fontWeight: 500 }}>{d.common.price}</div>
             <div style={{ marginTop: 2, fontSize: 21, fontWeight: 800, color: 'var(--accent)', letterSpacing: '-.01em' }}>{it.price}</div>
           </div>
           <Link
@@ -131,7 +134,7 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
             onMouseLeave={() => setDetailHover(false)}
             style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 18px', borderRadius: 9999, background: detailHover ? '#034956' : 'var(--surface)', border: '1px solid #273c33', color: detailHover ? '#fff' : '#273c33', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all .2s' }}
           >
-            ดูรายละเอียด
+            {d.common.viewDetail}
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
           </Link>
         </div>
@@ -141,6 +144,7 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
 }
 
 export function Featured({ items = [] }: { items?: FeaturedItem[] }) {
+  const d = useDict();
   const listings = items.map(toListing);
   const rowRef = useRef<HTMLDivElement>(null);
   const [favs, setFavs] = useState<Record<number, boolean>>({});
@@ -169,14 +173,14 @@ export function Featured({ items = [] }: { items?: FeaturedItem[] }) {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ width: 26, height: 2, background: '#273c33', borderRadius: 2 }} />
-            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', color: '#273c33', textTransform: 'uppercase' }}>ทรัพย์มาใหม่</span>
+            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', color: '#273c33', textTransform: 'uppercase' }}>{d.featured.eyebrow}</span>
           </div>
-          <h2 style={{ margin: '10px 0 0', fontSize: '34px', fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>อสังหาริมทรัพย์ล่าสุด</h2>
-          <p style={{ margin: '8px 0 0', fontSize: 15, color: 'var(--muted2)' }}>คัดสรรทรัพย์คุณภาพที่ผ่านการตรวจสอบ อัปเดตใหม่ทุกสัปดาห์</p>
+          <h2 style={{ margin: '10px 0 0', fontSize: '34px', fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>{d.featured.heading}</h2>
+          <p style={{ margin: '8px 0 0', fontSize: 15, color: 'var(--muted2)' }}>{d.featured.sub}</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <Link href="/listing" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 600, color: '#273c33' }}>
-            ดูทั้งหมด
+            {d.common.viewAll}
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#273c33" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
           </Link>
           {listings.length > 1 && (
@@ -190,9 +194,9 @@ export function Featured({ items = [] }: { items?: FeaturedItem[] }) {
 
       {listings.length === 0 ? (
         <div style={{ padding: '56px 24px', textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 18, background: 'var(--surface)' }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>ยังไม่มีทรัพย์ที่เผยแพร่</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>{d.featured.emptyTitle}</div>
           <p style={{ margin: '8px 0 0', fontSize: 14, color: 'var(--muted2)' }}>
-            ทรัพย์ที่ทีมงานเผยแพร่แล้วจะแสดงที่นี่ ติดต่อเราเพื่อแจ้งความต้องการไว้ล่วงหน้าได้
+            {d.featured.emptyBody}
           </p>
         </div>
       ) : (
@@ -225,7 +229,7 @@ export function Featured({ items = [] }: { items?: FeaturedItem[] }) {
           onMouseLeave={() => setSeeAllHover(false)}
           style={{ display: 'flex', alignItems: 'center', gap: 8, height: 48, padding: '0 26px', borderRadius: 9999, border: '1.5px solid #273c33', color: seeAllHover ? '#fff' : '#273c33', fontSize: '14.5px', fontWeight: 700, background: seeAllHover ? '#034956' : 'var(--surface)', transition: 'all .2s' }}
         >
-          แสดงทั้งหมด
+          {d.common.showAll}
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
         </Link>
       </div>
