@@ -314,3 +314,43 @@ test.describe('home page sections', () => {
     await expect(page.locator('#page-sheet')).toContainText('รองรับหลายภาษา');
   });
 });
+
+test.describe('the section editor\'s controls are wired', () => {
+  /* This screen was ported from a static HTML prototype, and five of its
+     controls came across as styled divs with no handler: the green "เผยแพร่"
+     button, "เลือกจากคลัง" and the upload icon over the image, an overlay
+     strength picker, and "ดูตัวอย่าง". They all looked live. Clicking the one
+     labelled "choose from the library" is what a person does first when they
+     want to change a picture, and nothing happened. */
+
+  test('every clickable-looking control in the panel does something', async ({ page }) => {
+    await signIn(page, OWNER);
+    await page.goto('/admin/sections?page=about');
+    await expect(page.locator('#sec-preview')).toHaveAttribute('data-editing-key', 'ah');
+
+    // the media picker opens from the button on the image itself
+    await page.getByText('เลือกจากคลัง', { exact: true }).click();
+    await expect(page.getByText(/ยังไม่มีรูปในคลังสื่อ|เปิดหน้าคลังสื่อ/).first()).toBeVisible();
+
+    // both routes out of an empty library go somewhere real
+    await expect(page.locator('#sec-preview a[href="/admin/media"]').first()).toBeVisible();
+
+    // preview opens the page being edited, in the language being edited
+    await expect(page.locator('#sec-preview a[href="/th/about"]')).toBeVisible();
+    await page.getByText('中文', { exact: true }).click();
+    await expect(page.locator('#sec-preview a[href="/zh/about"]')).toBeVisible();
+
+    // the top-right primary button saves rather than sitting there
+    await page.getByText('บันทึกและเผยแพร่').click();
+    await expect(page.getByText('บันทึกแล้ว')).toBeVisible();
+  });
+
+  test('a pasted image URL shows in the preview before saving', async ({ page }) => {
+    await signIn(page, OWNER);
+    await page.goto('/admin/sections?page=about');
+    await expect(page.locator('#sec-preview')).toHaveAttribute('data-editing-key', 'ah');
+
+    await page.getByPlaceholder('เลือกจากคลังสื่อ หรือวาง URL').fill('/assets/jkp-logo-green.png');
+    await expect(page.locator('#sec-preview img[alt="รูป section"]')).toHaveAttribute('src', '/assets/jkp-logo-green.png');
+  });
+});

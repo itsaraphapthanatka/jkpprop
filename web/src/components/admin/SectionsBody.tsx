@@ -43,11 +43,13 @@ const SEC_DATA: Record<PageKey, Section[]> = Object.fromEntries(
   ]),
 ) as Record<PageKey, Section[]>;
 
-const OVERLAY_OPTS: { label: string; on: boolean }[] = [
-  { label: 'อ่อน', on: false },
-  { label: 'กลาง', on: true },
-  { label: 'เข้ม', on: false },
-];
+/* Where each tab's copy actually appears, so "ดูตัวอย่าง" opens the page
+   being edited in the language being edited. */
+const PAGE_URL: Record<PageKey, (l: Locale) => string> = {
+  home: (l) => `/${l}`,
+  about: (l) => `/${l}/about`,
+  contact: (l) => `/${l}/contact`,
+};
 
 const sectionsCss = `
 @media (max-width:1100px){ #sec-split{grid-template-columns:1fr !important;} #sec-preview{position:static !important;} }
@@ -90,7 +92,11 @@ function MediaPicker({ items, current, onPick }: { items: { id: string; src: str
   return (
     <div style={{ marginTop: 8, padding: 10, borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', maxHeight: 220, overflowY: 'auto' }}>
       {items.length === 0 ? (
-        <div style={{ fontSize: 12, color: 'var(--muted2)', padding: 8 }}>ยังไม่มีรูปในคลัง — อัปโหลดที่หน้า “คลังสื่อ” ก่อน</div>
+        <div style={{ fontSize: 12, color: 'var(--muted2)', padding: 8, lineHeight: 1.6 }}>
+          ยังไม่มีรูปในคลังสื่อ จึงยังไม่มีอะไรให้เลือก<br />
+          <a href="/admin/media" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontWeight: 700 }}>เปิดหน้าคลังสื่อเพื่ออัปโหลด →</a>
+          {' '}หรือวาง URL รูปลงช่องด้านบนได้เลย
+        </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
           {items.map((m) => (
@@ -294,8 +300,11 @@ export function SectionsBody() {
           );
         })}
       </div>
-      <div className="admin-primary-btn" style={{ height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'transform .2s,box-shadow .2s' }}>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2"><path d="M20 6L9 17l-5-5" /></svg>เผยแพร่
+      {/* There is no draft/live split for sections — saving is publishing —
+          so this used to be a green primary button that did nothing at all
+          while the real control sat at the bottom of the panel. */}
+      <div onClick={saveSection} className="admin-primary-btn" style={{ height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1, whiteSpace: 'nowrap', transition: 'transform .2s,box-shadow .2s' }}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2"><path d="M20 6L9 17l-5-5" /></svg>{saving ? 'กำลังบันทึก…' : 'บันทึกและเผยแพร่'}
       </div>
     </div>
   );
@@ -376,32 +385,30 @@ export function SectionsBody() {
           <div className="a-scroll" style={{ maxHeight: 620, overflowY: 'auto', padding: 20 }}>
             <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>รูปพื้นหลัง / รูปประกอบ</label>
             <div style={{ marginTop: 8, position: 'relative', borderRadius: 14, overflow: 'hidden', height: 180, background: 'var(--tint)' }}>
-              {cur.img ? (
+              {/* the draft, so a picked image shows immediately instead of
+                  only after saving */}
+              {img ? (
                 <>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={cur.img} alt="รูป section" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  <img src={img} alt="รูป section" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 </>
               ) : (
                 <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted3)', fontSize: 12 }}>รูป section</div>
               )}
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(2,29,14,0) 40%,rgba(2,29,14,.55) 100%)', pointerEvents: 'none' }} />
               <div style={{ position: 'absolute', bottom: 10, left: 10, right: 10, display: 'flex', gap: 8 }}>
-                <div style={{ flex: 1, height: 38, borderRadius: 10, background: 'rgba(255,255,255,.95)', color: 'var(--accent)', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, cursor: 'pointer' }}>
+                {/* Both of these came across from the design prototype with no
+                    handler: they looked like the obvious way to change the
+                    image and did nothing at all when clicked. */}
+                <div onClick={() => openPicker('section')} style={{ flex: 1, height: 38, borderRadius: 10, background: 'rgba(255,255,255,.95)', color: 'var(--accent)', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, cursor: 'pointer' }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></svg>เลือกจากคลัง
                 </div>
-                <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(255,255,255,.95)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <a href="/admin/media" target="_blank" rel="noreferrer" title="อัปโหลดรูปใหม่ (เปิดแท็บใหม่)" style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(255,255,255,.95)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><path d="M17 8l-5-5-5 5M12 3v12" /></svg>
-                </div>
+                </a>
               </div>
             </div>
-            <div style={{ marginTop: 8, fontSize: 11, color: 'var(--muted3)' }}>แนะนำ 1920×1080 · แสดงผลผ่านลายน้ำอัตโนมัติถ้าเปิด</div>
-
-            <label style={{ display: 'block', marginTop: 18, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>Overlay (ความเข้มทับรูป)</label>
-            <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-              {OVERLAY_OPTS.map((o) => (
-                <div key={o.label} style={{ flex: 1, height: 38, borderRadius: 10, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid ' + (o.on ? '#0D6C3B' : 'var(--border)'), background: o.on ? '#0D6C3B' : 'transparent', color: o.on ? '#fff' : 'var(--text)' }}>{o.label}</div>
-              ))}
-            </div>
+            <div style={{ marginTop: 8, fontSize: 11, color: 'var(--muted3)' }}>แนะนำ 1920×1080 · ลายน้ำใส่ตอนอัปโหลดที่หน้าคลังสื่อ ไม่ใช่ตรงนี้</div>
 
             <label style={{ display: 'block', marginTop: 18, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>{def?.labels?.img ?? 'รูปประกอบ'}</label>
             <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
@@ -524,7 +531,10 @@ export function SectionsBody() {
             </div>
 
             <div style={{ marginTop: 18, display: 'flex', gap: 10 }}>
-              <div style={{ flex: 1, height: 44, borderRadius: 11, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: 'var(--text)', cursor: 'pointer' }}>ดูตัวอย่าง</div>
+              <a href={PAGE_URL[page](lang)} target="_blank" rel="noreferrer" style={{ flex: 1, height: 44, borderRadius: 11, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--text)', cursor: 'pointer' }}>
+                ดูตัวอย่าง
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><path d="M15 3h6v6M10 14L21 3" /></svg>
+              </a>
               <div onClick={saveSection} style={{ flex: 1, height: 44, borderRadius: 11, background: '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1 }}>{saving ? 'กำลังบันทึก…' : notice || 'บันทึก section'}</div>
             </div>
           </div>
