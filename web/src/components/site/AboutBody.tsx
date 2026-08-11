@@ -215,10 +215,15 @@ export function AboutBody({ copy }: { copy: AboutCopy }) {
             {copy.aw.note && (
               <div style={{ marginTop: 10, fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>{copy.aw.note}</div>
             )}
-            <a href="#" onMouseEnter={liftEnter('0 10px 24px rgba(0,0,0,.28)')} onMouseLeave={liftLeave} style={{ marginTop: 18, display: 'inline-flex', alignItems: 'center', gap: 8, height: 44, padding: '0 22px', borderRadius: 9999, background: 'var(--text)', color: '#fff', fontSize: '13.5px', fontWeight: 700, width: 'fit-content', transition: 'transform .2s,box-shadow .2s' }}>
-              {pick(copy.aw.cta, d.about.awardEyebrow)}
+            {/* The button used to always render, always labelled "รางวัล",
+                and always link to "#" — a control that looked live and went
+                nowhere. It appears only once the CMS gives it a label. */}
+            {copy.aw.cta && (
+            <Link href="/contact" onMouseEnter={liftEnter('0 10px 24px rgba(0,0,0,.28)')} onMouseLeave={liftLeave} style={{ marginTop: 18, display: 'inline-flex', alignItems: 'center', gap: 8, height: 44, padding: '0 22px', borderRadius: 9999, background: 'var(--text)', color: '#fff', fontSize: '13.5px', fontWeight: 700, width: 'fit-content', transition: 'transform .2s,box-shadow .2s' }}>
+              {copy.aw.cta}
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
-            </a>
+            </Link>
+            )}
           </div>
         </div>
       </section>

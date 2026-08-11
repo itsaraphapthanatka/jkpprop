@@ -194,9 +194,11 @@ test.describe('page sections', () => {
     await signIn(page, OWNER);
     await openAboutSection(page, 'as');
 
+    /* The roster is seeded, so "add" appends a fifth row — target that one,
+       not whichever member happens to be first. */
     await page.getByText('เพิ่มคน').click();
-    await page.getByPlaceholder('คุณสมชาย ใจดี').fill(NAME);
-    await page.getByPlaceholder('Sales Executive').fill('QA');
+    await page.getByPlaceholder('คุณสมชาย ใจดี').last().fill(NAME);
+    await page.getByPlaceholder('Sales Executive').last().fill('QA');
     await save(page);
 
     await page.goto('/th/about');
@@ -212,8 +214,8 @@ test.describe('page sections', () => {
     await openAboutSection(page, 'st');
 
     await page.getByText('เพิ่มตัวเลข').click();
-    await page.getByPlaceholder('2019').fill('2562');
-    await page.getByPlaceholder('ก่อตั้ง').fill('ปีที่ก่อตั้ง');
+    await page.getByPlaceholder('2019').last().fill('2562');
+    await page.getByPlaceholder('ก่อตั้ง').last().fill('ปีที่ก่อตั้ง');
     await save(page);
 
     await page.goto('/th/about');
