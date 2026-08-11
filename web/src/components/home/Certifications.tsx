@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useDict } from '@/i18n/useDict';
+import type { SectionCopy } from '@/lib/server/sectionCopy';
 
 const T = '#034956';
 
@@ -32,9 +33,22 @@ const certDefs: { name: string; tag: string; desc: string; icon: React.ReactNode
   },
 ];
 
-export function Certifications() {
+export function Certifications({ copy }: { copy: SectionCopy }) {
   const d = useDict();
   const [chover, setChover] = useState<number | null>(null);
+  const pick = (v: string, fallback: string) => v || fallback;
+
+  /* Icons stay in code — they are artwork, not copy. A row entered in the CMS
+     takes the icon at its position and falls back to the shield if the team
+     adds a fourth card. */
+  const certs = copy.items.length
+    ? copy.items.map((it, i) => ({
+      name: it.title ?? '', tag: it.role ?? '', desc: it.desc ?? '',
+      icon: certDefs[i]?.icon ?? certDefs[1].icon,
+    }))
+    : certDefs.map((cert, i) => ({ ...cert, ...d.certs.items[i] }));
+
+  if (!copy.enabled || !certs.length) return null;
 
   return (
     <section data-anim="1" style={{ background: 'var(--bg)', borderTop: '1px solid var(--border)' }}>
@@ -42,19 +56,18 @@ export function Certifications() {
         <div style={{ textAlign: 'center', marginBottom: 8 }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
             <span style={{ width: 26, height: 2, background: '#034956', borderRadius: 2 }} />
-            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', color: 'var(--accent)', textTransform: 'uppercase' }}>{d.certs.eyebrow}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', color: 'var(--accent)', textTransform: 'uppercase' }}>{pick(copy.eyebrow, d.certs.eyebrow)}</span>
             <span style={{ width: 26, height: 2, background: '#034956', borderRadius: 2 }} />
           </div>
         </div>
-        <h2 style={{ margin: '0 0 8px', textAlign: 'center', fontSize: 34, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>{d.certs.heading}</h2>
-        <p style={{ margin: '0 auto 44px', textAlign: 'center', maxWidth: '520px', fontSize: 15, color: 'var(--muted2)' }}>{d.certs.sub}</p>
+        <h2 style={{ margin: '0 0 8px', textAlign: 'center', fontSize: 34, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>{pick(copy.headline, d.certs.heading)}</h2>
+        <p style={{ margin: '0 auto 44px', textAlign: 'center', maxWidth: '520px', fontSize: 15, color: 'var(--muted2)' }}>{pick(copy.sub, d.certs.sub)}</p>
         <div className="rs-cols-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
-          {certDefs.map((cert, i) => {
-            const c = { ...cert, ...d.certs.items[i] };
+          {certs.map((c, i) => {
             const on = i === chover;
             return (
               <div
-                key={c.name}
+                key={c.name + i}
                 onMouseEnter={() => setChover(i)}
                 onMouseLeave={() => setChover(null)}
                 style={{

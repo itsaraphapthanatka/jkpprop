@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/i18n/useDict';
 import { enumLabel } from '@/i18n/enums';
+import type { SectionCopy } from '@/lib/server/sectionCopy';
 
 type Loc = 'air' | 'port' | 'bkk' | 'eec';
 type PinCat = 'air' | 'port' | 'bkk';
@@ -106,8 +107,9 @@ function pinIcon(cat: PinCat) {
   return (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M6 21V5a2 2 0 012-2h5a2 2 0 012 2v16M15 9h3a2 2 0 012 2v10" /></svg>);
 }
 
-export function LocationFinder({ counts = {} }: { counts?: Partial<Record<Loc, number>> }) {
+export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<Loc, number>>; copy: SectionCopy }) {
   const { d, locale } = useI18n();
+  const pick = (v: string, fallback: string) => v || fallback;
   const router = useRouter();
   const [loc, setLocState] = useState<Loc>('air');
   const [, setBurstNonce] = useState(0);
@@ -141,8 +143,8 @@ export function LocationFinder({ counts = {} }: { counts?: Partial<Record<Loc, n
   return (
     <div style={{ width: '100%', background: 'var(--bg)' }}>
       <section data-anim="1" style={{ maxWidth: '1200px', margin: '0 auto', padding: '88px 24px' }}>
-        <div style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600, letterSpacing: '.06em', color: 'var(--accent)', textTransform: 'uppercase' }}>{d.locations.eyebrow}</div>
-        <h2 style={{ margin: '8px 0 40px', textAlign: 'center', fontSize: '30px', fontWeight: 700, color: 'var(--text)' }}>{d.locations.heading}</h2>
+        <div style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600, letterSpacing: '.06em', color: 'var(--accent)', textTransform: 'uppercase' }}>{pick(copy.eyebrow, d.locations.eyebrow)}</div>
+        <h2 style={{ margin: '8px 0 40px', textAlign: 'center', fontSize: '30px', fontWeight: 700, color: 'var(--text)' }}>{pick(copy.headline, d.locations.heading)}</h2>
         <div className="rs-split-l" style={{ display: 'grid', gridTemplateColumns: '0.82fr 1.18fr', gap: '32px', alignItems: 'stretch' }}>
 
           {/* LEFT: factor selector */}

@@ -10,6 +10,7 @@ import { CtaBand } from '@/components/home/CtaBand';
 import { SiteFooter } from '@/components/home/SiteFooter';
 import { Floating } from '@/components/home/Floating';
 import { loadPublicListings } from '@/lib/server/publicListings';
+import { loadPageCopy, section } from '@/lib/server/sectionCopy';
 import { isLocale, DEFAULT_LOCALE } from '@/i18n/config';
 
 /* Which provinces each location tab covers. The tab used to print a fixed
@@ -50,6 +51,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const { locale: raw } = await params;
   const locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
   const featured = await loadPublicListings({ locale, limit: 6 }).catch(() => []);
+  const c = await loadPageCopy('home', locale).catch(() => ({}));
 
   const all = await loadPublicListings({ locale, limit: 60 }).catch(() => []);
   const counts = Object.fromEntries(
@@ -73,14 +75,17 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         }}
       >
         <Header />
-        <Hero />
-        <Featured items={featured} />
-        <LocationFinder counts={counts} />
-        <Steps />
-        <WhyUs />
-        <Certifications />
-        <TrustGallery />
-        <CtaBand />
+        {/* The hero has no switch — a page whose masthead can be turned off
+            has no top. Every other block obeys the toggle in /admin/sections,
+            and the ones with nothing to show hide themselves. */}
+        <Hero copy={section(c, 'h')} />
+        {section(c, 'n').enabled && <Featured items={featured} copy={section(c, 'n')} />}
+        {section(c, 'l').enabled && <LocationFinder counts={counts} copy={section(c, 'l')} />}
+        {section(c, 's').enabled && <Steps copy={section(c, 's')} />}
+        {section(c, 'w').enabled && <WhyUs copy={section(c, 'w')} kpi={section(c, 'wk')} />}
+        <Certifications copy={section(c, 'ct')} />
+        <TrustGallery copy={section(c, 'tg')} />
+        {section(c, 'c').enabled && <CtaBand copy={section(c, 'c')} />}
       </div>
 
       {/* fixed footer + spacer (revealed under the rounded page-sheet) */}

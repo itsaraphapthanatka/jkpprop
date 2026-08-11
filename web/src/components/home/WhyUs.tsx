@@ -2,20 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useDict } from '@/i18n/useDict';
+import type { SectionCopy } from '@/lib/server/sectionCopy';
 
 const KPI_DEFS: { target: number; suffix: string; label: string; comma: boolean; yearsUnit?: boolean }[] = [
   { target: 2000, suffix: '+', label: 'ทรัพย์ในระบบทั่วประเทศ', comma: true },
   { target: 100, suffix: '+', label: 'องค์กรที่ไว้วางใจ', comma: false },
   { target: 12, suffix: '', label: 'ประสบการณ์ในตลาด', comma: false, yearsUnit: true },
-];
-
-const FEATURE_DEFS = [
-  { title: 'จดทะเบียนถูกต้องและได้รับการรับรอง', desc: 'จดทะเบียนกับ DBD สมาชิก TREBA พร้อมประสบการณ์จริงในดีลอุตสาหกรรม' },
-  { title: 'รองรับหลายภาษา', desc: 'สื่อสารได้ทั้งจีน อังกฤษ และไทย ลดช่องว่างด้านภาษาและวัฒนธรรม' },
-  { title: 'เข้าใจทั้งสองฝั่ง', desc: 'เข้าใจมุมมองทั้งเจ้าของทรัพย์และผู้เช่า เจรจาอย่างเป็นธรรมและได้ประโยชน์ร่วมกัน' },
-  { title: 'ประกาศทรัพย์ใช้งานจริงกว่า 2,000 รายการ', desc: 'ร่วมงานกับดีเวลลอปเปอร์และเจ้าของทรัพย์ชั้นนำ พอร์ตทรัพย์ขนาดใหญ่ที่เชื่อถือได้' },
-  { title: 'ราคาโปร่งใส', desc: 'ไม่มีการบวกราคาเหนือเจ้าของทรัพย์ สร้างความเชื่อมั่นให้ผู้เช่าและผู้ซื้อ' },
-  { title: 'ขับเคลื่อนด้วยเทคโนโลยี', desc: 'ระบบอัตโนมัติและเครื่องมือ AI ช่วยให้บริการได้รวดเร็ว แม่นยำ และตรงโจทย์' },
 ];
 
 const FEATURE_ICONS = [
@@ -27,7 +19,7 @@ const FEATURE_ICONS = [
   <svg key="5" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a4 4 0 00-4 4c0 1.5.8 2.8 2 3.4V11a2 2 0 01-2 2H6a3 3 0 00-3 3v1M12 2a4 4 0 014 4c0 1.5-.8 2.8-2 3.4V11a2 2 0 002 2h2a3 3 0 013 3v1" /><circle cx="4" cy="20" r="2" /><circle cx="20" cy="20" r="2" /><circle cx="12" cy="20" r="2" /></svg>,
 ];
 
-export function WhyUs() {
+export function WhyUs({ copy, kpi: kpiCopy }: { copy: SectionCopy; kpi: SectionCopy }) {
   const d = useDict();
   const [kpi, setKpi] = useState(0);
   const [fhover, setFhover] = useState<number | null>(null);
@@ -59,10 +51,28 @@ export function WhyUs() {
     return () => { io.disconnect(); if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, []);
 
-  const kpis = KPI_DEFS.map((k) => {
-    const n = Math.round(k.target * kpi);
-    return { label: k.label, value: (k.comma ? n.toLocaleString('en-US') : String(n)) + k.suffix + (k.yearsUnit ? d.whyUs.years : '') };
-  });
+  /* A figure entered in the CMS is shown as typed — the count-up animation
+     only knows how to walk an integer up from zero, and "2,000+" is not one.
+     Anything the team writes is printed verbatim; only the built-in defaults
+     animate. */
+  const kpis = kpiCopy.items.length
+    ? kpiCopy.items.map((it) => ({ label: it.desc ?? '', value: it.title ?? '' }))
+    : KPI_DEFS.map((k, i) => {
+      const n = Math.round(k.target * kpi);
+      return {
+        label: d.whyUs.kpis[i],
+        value: (k.comma ? n.toLocaleString('en-US') : String(n)) + k.suffix + (k.yearsUnit ? d.whyUs.years : ''),
+      };
+    });
+
+  const pick = (v: string, fallback: string) => v || fallback;
+  /* "ชื่อรางวัล · ปี" in one field, so the ribbon's two lines stay one thing
+     to fill in and one thing to leave blank. */
+  const [awardTitle, awardSub] = copy.note.split(/\s*·\s*(.+)/);
+  const rating = copy.cta.trim();
+  const features = copy.items.length
+    ? copy.items.map((it) => ({ title: it.title ?? '', desc: it.desc ?? '' }))
+    : d.whyUs.items;
 
   return (
     <div style={{ width: '100%', background: 'var(--bg)' }}>
@@ -71,26 +81,33 @@ export function WhyUs() {
           {/* image card */}
           <div style={{ position: 'relative', height: '480px', borderRadius: '20px', overflow: 'hidden', background: 'var(--bg2)', boxShadow: '0 24px 50px rgba(2,35,16,.16)' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=1000&q=80" alt="ทีมงาน" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            <img src={copy.img || "https://images.unsplash.com/photo-1552664730-d307ca884978?w=1000&q=80"} alt={pick(copy.headline, d.whyUs.heading)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(2,35,16,.34) 0%,rgba(2,35,16,0) 30%,rgba(2,35,16,0) 55%,rgba(2,35,16,.5) 100%)', pointerEvents: 'none' }} />
-            {/* award ribbon */}
+            {/* Award ribbon — printed only when the team names an award.
+                "Real Estate Agent Awards / Thailand · 2025" used to be baked
+                in here, on a site whose owner had not told us they won it. */}
+            {awardTitle && (
             <div style={{ position: 'absolute', top: 18, left: 18, display: 'flex', alignItems: 'center', gap: 10, padding: '9px 15px 9px 11px', borderRadius: '12px', background: 'rgba(255,255,255,.94)', backdropFilter: 'blur(6px)', boxShadow: '0 8px 22px rgba(0,0,0,.18)' }}>
               <div style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#034956' }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9a6 6 0 0012 0V3H6z" /><path d="M6 5H3v2a4 4 0 004 4M18 5h3v2a4 4 0 01-4 4M9 21h6M12 17v4" /></svg>
               </div>
               <div style={{ lineHeight: 1.15 }}>
-                <div style={{ fontSize: 11, fontWeight: 800, color: '#273c33', letterSpacing: '.02em' }}>Real Estate Agent Awards</div>
-                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--muted2)' }}>Thailand · 2025</div>
+                <div style={{ fontSize: 11, fontWeight: 800, color: '#273c33', letterSpacing: '.02em' }}>{awardTitle}</div>
+                {awardSub && <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--muted2)' }}>{awardSub}</div>}
               </div>
             </div>
-            {/* floating rating card */}
+            )}
+            {/* Rating card — the 4.9 and its five filled stars were hard-coded
+                against no review source at all. Blank means no card. */}
+            {rating && (
             <div style={{ position: 'absolute', bottom: 18, left: 18, right: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '15px 18px', borderRadius: '16px', background: 'rgba(255,255,255,.94)', backdropFilter: 'blur(8px)', boxShadow: '0 12px 30px rgba(0,0,0,.2)' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)', lineHeight: 1 }}>4.9</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text)', lineHeight: 1 }}>{rating}</div>
                   <div style={{ display: 'flex', gap: 2 }}>
-                    {[0, 1, 2, 3, 4].map((s) => (
-                      <svg key={s} width="15" height="15" viewBox="0 0 24 24" fill="#034956" stroke="none"><path d="M12 2l2.9 6 6.6.6-5 4.3 1.5 6.5L12 16.9 5.9 20l1.6-6.5-5-4.3 6.6-.6z" /></svg>
+                    {[0, 1, 2, 3, 4].map((n) => (
+                      /* filled up to the score, so 4.2 does not show five full stars */
+                      <svg key={n} width="15" height="15" viewBox="0 0 24 24" fill={n < Math.round(Number(rating) || 0) ? '#034956' : 'none'} stroke="#034956" strokeWidth="1.6"><path d="M12 2l2.9 6 6.6.6-5 4.3 1.5 6.5L12 16.9 5.9 20l1.6-6.5-5-4.3 6.6-.6z" /></svg>
                     ))}
                   </div>
                 </div>
@@ -100,32 +117,36 @@ export function WhyUs() {
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12l2 2 4-4" /><path d="M21 12c0 5-3.5 7.5-8.6 8.9a1 1 0 01-.8 0C6.5 19.5 3 17 3 12V6a1 1 0 01.7-1l8-2.6a1 1 0 01.6 0l8 2.6A1 1 0 0121 6z" /></svg>
               </div>
             </div>
+            )}
           </div>
 
           {/* right column */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ width: 26, height: 2, background: '#273c33', borderRadius: 2 }} />
-              <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', color: '#273c33', textTransform: 'uppercase' }}>{d.whyUs.eyebrow}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', color: '#273c33', textTransform: 'uppercase' }}>{pick(copy.eyebrow, d.whyUs.eyebrow)}</span>
             </div>
-            <h2 style={{ margin: '10px 0 12px', fontSize: 34, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>{d.whyUs.heading}</h2>
-            <p style={{ margin: '0 0 28px', fontSize: 15, color: 'var(--muted)', lineHeight: 1.7, maxWidth: '560px' }}>{d.whyUs.sub}</p>
-            {/* KPI count-up strip */}
+            <h2 style={{ margin: '10px 0 12px', fontSize: 34, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>{pick(copy.headline, d.whyUs.heading)}</h2>
+            <p style={{ margin: '0 0 28px', fontSize: 15, color: 'var(--muted)', lineHeight: 1.7, maxWidth: '560px' }}>{pick(copy.sub, d.whyUs.sub)}</p>
+            {/* KPI count-up strip — its own section in the CMS, so figures
+                nobody has verified can be switched off without losing the
+                rest of the block. */}
+            {kpiCopy.enabled && (
             <div className="rs-cols-3" ref={kpiRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, padding: '22px 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
               {kpis.map((k, i) => (
                 <div key={i}>
                   <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--accent)', letterSpacing: '-.02em', lineHeight: 1 }}>{k.value}</div>
-                  <div style={{ marginTop: 6, fontSize: 13, color: 'var(--muted2)' }}>{d.whyUs.kpis[i]}</div>
+                  <div style={{ marginTop: 6, fontSize: 13, color: 'var(--muted2)' }}>{k.label}</div>
                 </div>
               ))}
             </div>
+            )}
           </div>
         </div>
 
         {/* feature cards */}
         <div className="rs-cols-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 18, marginTop: 44 }}>
-          {FEATURE_DEFS.map((_f, i) => {
-            const f = d.whyUs.items[i];
+          {features.map((f, i) => {
             const on = i === fhover;
             const ghost = on ? 'rgba(45,251,145,.14)' : 'rgba(40,37,29,.05)';
             const titleColor = on ? '#fff' : 'var(--text)';

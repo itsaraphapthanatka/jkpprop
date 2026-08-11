@@ -5,6 +5,7 @@ import Link from '@/i18n/LocaleLink';
 import { PhotoPlaceholder } from '@/components/common/PhotoPlaceholder';
 import { useDict, useI18n } from '@/i18n/useDict';
 import { enumLabel } from '@/i18n/enums';
+import type { SectionCopy } from '@/lib/server/sectionCopy';
 
 /* Cards come from the database via the home page (a server component), not
    from a list in this file. They used to be a copy of the design prototype's
@@ -143,8 +144,9 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
   );
 }
 
-export function Featured({ items = [] }: { items?: FeaturedItem[] }) {
+export function Featured({ items = [], copy }: { items?: FeaturedItem[]; copy: SectionCopy }) {
   const d = useDict();
+  const pick = (v: string, fallback: string) => v || fallback;
   const listings = items.map(toListing);
   const rowRef = useRef<HTMLDivElement>(null);
   const [favs, setFavs] = useState<Record<number, boolean>>({});
@@ -173,10 +175,10 @@ export function Featured({ items = [] }: { items?: FeaturedItem[] }) {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ width: 26, height: 2, background: '#273c33', borderRadius: 2 }} />
-            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', color: '#273c33', textTransform: 'uppercase' }}>{d.featured.eyebrow}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', color: '#273c33', textTransform: 'uppercase' }}>{pick(copy.eyebrow, d.featured.eyebrow)}</span>
           </div>
-          <h2 style={{ margin: '10px 0 0', fontSize: '34px', fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>{d.featured.heading}</h2>
-          <p style={{ margin: '8px 0 0', fontSize: 15, color: 'var(--muted2)' }}>{d.featured.sub}</p>
+          <h2 style={{ margin: '10px 0 0', fontSize: '34px', fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>{pick(copy.headline, d.featured.heading)}</h2>
+          <p style={{ margin: '8px 0 0', fontSize: 15, color: 'var(--muted2)' }}>{pick(copy.sub, d.featured.sub)}</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <Link href="/listing" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 600, color: '#273c33' }}>

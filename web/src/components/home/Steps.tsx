@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useDict } from '@/i18n/useDict';
+import type { SectionCopy } from '@/lib/server/sectionCopy';
 
 const STEP_ICONS = [
   <svg key="0" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>,
@@ -10,8 +11,14 @@ const STEP_ICONS = [
   <svg key="3" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="M9 12l2 2 4-4" /></svg>,
 ];
 
-export function Steps() {
+export function Steps({ copy }: { copy: SectionCopy }) {
   const d = useDict();
+  const pick = (v: string, fallback: string) => v || fallback;
+  /* The rail draws four fixed node positions at 12.5% + i*25%, so anything
+     other than exactly four rows would leave the timeline out of step with
+     the cards. A short or long list falls back rather than rendering wrong. */
+  const edited = copy.items.map((it) => ({ title: it.title ?? '', desc: it.desc ?? '' }));
+  const steps = edited.length === 4 ? edited : d.steps.items;
   const [step, setStep] = useState(0);
   const [hover, setHover] = useState<number | null>(null);
   const hoverRef = useRef<number | null>(null);
@@ -34,16 +41,16 @@ export function Steps() {
         <div style={{ textAlign: 'center', marginBottom: 14 }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
             <span style={{ width: 26, height: 2, background: '#034956', borderRadius: 2 }} />
-            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', color: 'var(--accent)', textTransform: 'uppercase' }}>{d.steps.eyebrow}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', color: 'var(--accent)', textTransform: 'uppercase' }}>{pick(copy.eyebrow, d.steps.eyebrow)}</span>
             <span style={{ width: 26, height: 2, background: '#034956', borderRadius: 2 }} />
           </div>
         </div>
-        <h2 style={{ margin: '0 0 8px', textAlign: 'center', fontSize: 34, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>{d.steps.heading}</h2>
-        <p style={{ margin: '0 auto 44px', textAlign: 'center', maxWidth: '520px', fontSize: 15, color: 'var(--muted2)' }}>{d.steps.sub}</p>
+        <h2 style={{ margin: '0 0 8px', textAlign: 'center', fontSize: 34, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>{pick(copy.headline, d.steps.heading)}</h2>
+        <p style={{ margin: '0 auto 44px', textAlign: 'center', maxWidth: '520px', fontSize: 15, color: 'var(--muted2)' }}>{pick(copy.sub, d.steps.sub)}</p>
 
         {/* rail */}
         <div style={{ position: 'relative', height: '52px' }}>
-          {d.steps.items.map((item, i) => {
+          {steps.map((item, i) => {
             const on = i === active;
             const done = i < active;
             const reached = i <= active;
@@ -65,7 +72,7 @@ export function Steps() {
 
         {/* cards */}
         <div className="rs-cols-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 22, marginTop: 16 }}>
-          {d.steps.items.map((item, i) => {
+          {steps.map((item, i) => {
             const on = i === active;
             const ghostColor = on ? 'rgba(45,251,145,.14)' : 'rgba(40,37,29,.05)';
             const titleColor = on ? '#fff' : 'var(--text)';

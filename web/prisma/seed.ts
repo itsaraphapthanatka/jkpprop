@@ -2,6 +2,7 @@
    properties + leases whose public_codes match the old UI mocks. */
 import { PrismaClient, Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { SECTION_CATALOG, PAGE_KEYS } from '../src/lib/sectionCatalog';
 
 const db = new PrismaClient();
 
@@ -135,35 +136,25 @@ async function main() {
     });
   }
 
-  // --- Page sections (shared by Page Builder and the Sections screen) ------
-  const sections: [string, string, string, string, string, string][] = [
-    // pageKey, key, type, name, headline, sub
-    ['home', 'h', 'hero', 'Hero', 'ค้นหาโกดังที่เหมาะกับคุณ หรือโรงงานทั่วประเทศไทย', 'รวมรายการโรงงานและโกดังให้เช่า–ขายทั่วประเทศ'],
-    ['home', 'n', 'section', 'ทรัพย์มาใหม่', 'อสังหาริมทรัพย์ล่าสุด', 'คัดสรรทรัพย์คุณภาพที่ผ่านการตรวจสอบ'],
-    ['home', 'l', 'section', 'ค้นหาตามทำเล', 'เลือกทำเลที่ใช่', 'ครอบคลุมนิคมอุตสาหกรรมและเขต EEC'],
-    ['home', 'w', 'section', 'ทำไมต้องเรา', 'ทำไมลูกค้าเลือก JKP Property', 'ประสบการณ์ตรงในตลาดอุตสาหกรรม'],
-    ['home', 'c', 'section', 'CTA band', 'ให้เราช่วยหาทำเลให้คุณ', 'ทีมงานติดต่อกลับภายใน 24 ชั่วโมง'],
-    // one row per block the About page actually renders — the page used to
-    // have two sections while showing six, so four of them had no way in
-    ['about', 'ah', 'hero', 'Hero', '', ''],
-    ['about', 'st', 'section', 'เรื่องราวของเรา', '', ''],
-    ['about', 'pl', 'section', 'จุดแข็ง 3 ข้อ', '', ''],
-    ['about', 'as', 'section', 'ทีมงาน', '', ''],
-    ['about', 'aw', 'section', 'รางวัล', '', ''],
-    ['about', 'pr', 'section', 'ได้รับการนำเสนอใน', '', ''],
-    ['contact', 'ch', 'hero', 'Hero', '', ''],
-    ['contact', 'cm', 'section', 'แผนที่ & ช่องทาง', '', ''],
-  ];
-  for (let i = 0; i < sections.length; i++) {
-    const [pageKey, key, type, name, headline, sub] = sections[i];
-    await db.pageSection.upsert({
-      where: { orgId_pageKey_key: { orgId, pageKey, key } },
-      update: {},
-      create: {
-        orgId, pageKey, key, type, name, sort: i, enabled: true,
-        content: { th: { eyebrow: name, headline, sub } } as Prisma.InputJsonValue,
-      },
-    });
+  /* --- Page sections -------------------------------------------------------
+     One row per block the public pages actually render, straight from the
+     catalogue so the seed cannot drift from what the editor offers. Content
+     starts empty on purpose: every component carries a translated default,
+     and a seeded Thai headline would quietly become the English page's copy
+     the moment someone published. */
+  for (const page of PAGE_KEYS) {
+    const defs = SECTION_CATALOG[page];
+    for (let i = 0; i < defs.length; i++) {
+      const d = defs[i];
+      await db.pageSection.upsert({
+        where: { orgId_pageKey_key: { orgId, pageKey: page, key: d.key } },
+        update: {},
+        create: {
+          orgId, pageKey: page, key: d.key, type: d.type, name: d.name, desc: d.desc,
+          sort: i, enabled: true, content: {} as Prisma.InputJsonValue,
+        },
+      });
+    }
   }
 
   await db.branding.upsert({ where: { orgId }, update: {}, create: { orgId } });

@@ -1,8 +1,10 @@
 'use client';
 import { useDict } from '@/i18n/useDict';
+import type { SectionCopy } from '@/lib/server/sectionCopy';
 
-export function CtaBand() {
+export function CtaBand({ copy }: { copy: SectionCopy }) {
   const d = useDict();
+  const pick = (v: string, fallback: string) => v || fallback;
   const primaryEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.currentTarget.style.boxShadow = '0 12px 34px rgba(45,251,145,.5)';
   };
@@ -95,13 +97,13 @@ export function CtaBand() {
               <span style={{ position: 'absolute', inset: 0, borderRadius: 9999, background: '#2DFB91', animation: 'pinPulse 1.8s ease-out infinite' }} />
               <span style={{ position: 'relative', width: 7, height: 7, borderRadius: 9999, background: '#2DFB91' }} />
             </span>
-            {d.cta.eyebrow}
+            {pick(copy.eyebrow, d.cta.eyebrow)}
           </div>
           <h2 style={{ margin: '18px 0 0', fontSize: 38, fontWeight: 800, color: '#fff', letterSpacing: '-.01em', lineHeight: 1.22 }}>
             {d.cta.headline}<span style={{ color: '#2DFB91' }}>{d.cta.headlineAccent}</span>
           </h2>
           <p style={{ margin: '14px 0 0', fontSize: 15, color: '#B9C2BD', maxWidth: 440, lineHeight: 1.65 }}>
-            {d.cta.sub}
+            {pick(copy.sub, d.cta.sub)}
           </p>
           <div style={{ marginTop: 26, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
             <a
@@ -122,7 +124,7 @@ export function CtaBand() {
                 transition: 'transform .25s cubic-bezier(.2,.7,.3,1),box-shadow .2s',
               }}
             >
-              {d.cta.primary}
+              {pick(copy.cta, d.cta.primary)}
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#04140C" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M5 12h14" />
                 <path d="M13 6l6 6-6 6" />

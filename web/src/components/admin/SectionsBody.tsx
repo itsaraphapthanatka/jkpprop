@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { apiGet, apiPut, ApiClientError } from '@/lib/apiClient';
+import { SECTION_CATALOG, sectionDef } from '@/lib/sectionCatalog';
 import type { Locale } from '@/i18n/config';
 
 /* Ported from AdminSections.dc.html <main> — CMS "จัดการ Section หน้าเว็บ".
@@ -32,25 +33,15 @@ const PAGE_TABS: { key: PageKey; label: string }[] = [
   { key: 'contact', label: 'ติดต่อเรา' },
 ];
 
-const SEC_DATA: Record<PageKey, Section[]> = {
-  home: [
-    { name: 'Hero', desc: 'หัวข้อหลัก + กล่องค้นหา + รูปพื้นหลัง', img: 'https://images.unsplash.com/photo-1553413077-190dd305871c?w=400&q=70', credit: 'Photo by Petrebels on Unsplash', creditHref: 'https://unsplash.com/@petrebels', imgCount: '1', headline: 'ค้นหาโกดังที่เหมาะกับคุณ หรือโรงงานทั่วประเทศไทย', sub: 'รวมรายการโรงงานและโกดังให้เช่า–ขายทั่วประเทศ ที่ผ่านการตรวจสอบ' },
-    { name: 'ทรัพย์มาใหม่ (Carousel)', desc: 'การ์ดทรัพย์ล่าสุด — ดึงอัตโนมัติจาก Listings', noImage: true, headline: 'อสังหาริมทรัพย์ล่าสุด', sub: 'คัดสรรทรัพย์คุณภาพที่ผ่านการตรวจสอบ อัปเดตใหม่ทุกสัปดาห์' },
-    { name: 'ค้นหาทำเล (แผนที่)', desc: 'แผนที่ interactive + รูปพื้นหลังแผนที่', img: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=400&q=70', credit: 'Photo by Ian Cylkowski on Unsplash', creditHref: 'https://unsplash.com/@ijcylkowski', imgCount: '1', headline: 'ค้นหาทำเลธุรกิจที่เหมาะกับคุณ', sub: 'ทำเลยุทธศาสตร์ใกล้สนามบิน ท่าเรือ และ EEC' },
-    { name: '4 ขั้นตอน', desc: 'ไอคอน + ข้อความ (ไม่มีรูปถ่าย)', noImage: true, headline: 'ค้นหาทรัพย์ใน 4 ขั้นตอน', sub: 'ตั้งแต่บอกความต้องการจนถึงปิดดีล' },
-    { name: 'ทำไมต้องเลือกเรา', desc: 'รูปทีมงาน + รางวัล + KPI', img: 'https://images.unsplash.com/photo-1521791136064-7986c2920216?w=400&q=70', credit: 'Photo by Sebastian Herrmann on Unsplash', creditHref: 'https://unsplash.com/@herrherrmann', imgCount: '1', headline: 'เหตุผลที่ลูกค้าเลือกเรา', sub: 'ได้รับความไว้วางใจจากนักลงทุนต่างชาติและเจ้าของทรัพย์ไทย' },
-    { name: 'CTA Band (ท้ายหน้า)', desc: 'การ์ดเขียว + รูปทีมงานจับมือ', img: 'https://images.unsplash.com/photo-1521791136064-7986c2920216?w=400&q=70', credit: 'Photo by Sebastian Herrmann on Unsplash', creditHref: 'https://unsplash.com/@herrherrmann', imgCount: '1', headline: 'พร้อมหาโรงงานหรือโกดังที่ใช่ ให้เราช่วยคุณ', sub: 'ให้ทีมผู้เชี่ยวชาญของเราช่วยคัดทรัพย์ที่ตรงโจทย์ที่สุด' },
-  ],
-  about: [
-    { name: 'Hero', desc: 'หัวข้อ + รูปพื้นหลัง', img: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=400&q=70', credit: 'Photo by Denys Nevozhai on Unsplash', creditHref: 'https://unsplash.com/@dnevozhai', imgCount: '1', headline: 'เกี่ยวกับเรา', sub: 'ทีมผู้เชี่ยวชาญด้านอสังหาริมทรัพย์อุตสาหกรรมที่เชื่อถือได้' },
-    { name: 'เรื่องราวของเรา', desc: 'รูปผู้ก่อตั้ง + สถิติ', img: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&q=70', credit: 'Photo by LinkedIn Sales Solutions on Unsplash', creditHref: 'https://unsplash.com/@linkedinsalesnavigator', imgCount: '1', headline: 'เรื่องราวของเรา', sub: 'JKP Property ก่อตั้งขึ้นเพื่อเป็นตัวกลางที่น่าเชื่อถือ' },
-    { name: 'ทีมงาน', desc: 'รูปทีมงาน (carousel)', img: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400&q=70', credit: 'Photo by Christina Wocintechchat on Unsplash', creditHref: 'https://unsplash.com/@wocintechchat', imgCount: '4', headline: 'พบกับทีมงานของเรา', sub: 'ทีมผู้เชี่ยวชาญที่คัดเลือกด้วยความรอบคอบ' },
-  ],
-  contact: [
-    { name: 'Hero', desc: 'หัวข้อ + รูปพื้นหลัง', img: 'https://images.unsplash.com/photo-1536599424071-0b215a388ba7?w=400&q=70', credit: 'Photo by Manson Yim on Unsplash', creditHref: 'https://unsplash.com/@mansonyim', imgCount: '1', headline: 'ติดต่อเรา', sub: 'ติดต่อสอบถามข้อมูลเกี่ยวกับอสังหาริมทรัพย์ของเรา' },
-    { name: 'แผนที่ที่ตั้ง', desc: 'รูปแผนที่ Google Maps', img: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=400&q=70', credit: 'Photo by Ian Cylkowski on Unsplash', creditHref: 'https://unsplash.com/@ijcylkowski', imgCount: '1', headline: 'ที่ตั้งของเรา', sub: 'สมุทรปราการ, ประเทศไทย' },
-  ],
-};
+/* Shown only if /api/sections cannot be reached — the catalogue describes the
+   same blocks, minus any copy, so an offline editor still lists the right
+   sections instead of a set of invented ones with stock photos attached. */
+const SEC_DATA: Record<PageKey, Section[]> = Object.fromEntries(
+  PAGE_TABS.map((p) => [
+    p.key,
+    SECTION_CATALOG[p.key].map((d) => ({ name: d.name, desc: d.desc, noImage: true, headline: d.name, sub: '' })),
+  ]),
+) as Record<PageKey, Section[]>;
 
 const OVERLAY_OPTS: { label: string; on: boolean }[] = [
   { label: 'อ่อน', on: false },
@@ -74,60 +65,16 @@ const LANGS: { key: Locale; label: string }[] = [
   { key: 'th', label: 'ไทย' }, { key: 'en', label: 'EN' }, { key: 'zh', label: '中文' },
 ];
 
-/* Sections that hold a repeating list, and what one row of it looks like.
- *
- * Keyed `page:sectionKey` so the same short key on two pages cannot collide.
- * A section missing from here simply has no list editor — that is how a plain
- * headline-and-copy block stays plain. */
-type ItemField = { key: keyof Item; label: string; kind: 'text' | 'textarea' | 'image'; placeholder?: string };
-type ItemSpec = { title: string; hint: string; rowLabel: string; max: number; fields: ItemField[] };
-
-const ITEM_SPECS: Record<string, ItemSpec> = {
-  'about:st': {
-    title: 'ตัวเลขสถิติ', rowLabel: 'ตัวเลข', max: 4,
-    hint: 'แถวตัวเลขใต้เรื่องราวของเรา — เว้นว่างทั้งหมดจะใช้ค่าตั้งต้น',
-    fields: [
-      { key: 'title', label: 'ตัวเลข', kind: 'text', placeholder: '2019' },
-      { key: 'desc', label: 'คำอธิบาย', kind: 'text', placeholder: 'ก่อตั้ง' },
-    ],
-  },
-  'about:pl': {
-    title: 'จุดแข็ง', rowLabel: 'จุดแข็ง', max: 6,
-    hint: 'การ์ดเรียงกันใต้เส้นคั่นในกล่องเรื่องราวของเรา',
-    fields: [
-      { key: 'title', label: 'หัวข้อ', kind: 'text' },
-      { key: 'desc', label: 'คำอธิบาย', kind: 'textarea' },
-    ],
-  },
-  'about:as': {
-    title: 'รายชื่อทีมงาน', rowLabel: 'คน', max: 24,
-    hint: 'การ์ดในแถบเลื่อน — ชื่อและรูปใช้ร่วมกันทุกภาษาถ้าไม่กรอกซ้ำ',
-    fields: [
-      { key: 'title', label: 'ชื่อ', kind: 'text', placeholder: 'คุณสมชาย ใจดี' },
-      { key: 'role', label: 'ตำแหน่ง', kind: 'text', placeholder: 'Sales Executive' },
-      { key: 'img', label: 'รูป', kind: 'image' },
-    ],
-  },
-  'about:pr': {
-    title: 'ชื่อสื่อที่นำเสนอ', rowLabel: 'สื่อ', max: 12,
-    hint: 'ใส่เฉพาะสื่อที่เคยลงข่าวจริง — ถ้ายังไม่มี ให้ปิดสวิตช์ section นี้แทน',
-    fields: [{ key: 'title', label: 'ชื่อสื่อ', kind: 'text', placeholder: 'THE STANDARD' }],
-  },
-};
-
-/* What each block actually is, for the list on the left. The seeded rows have
-   an empty `desc`, and "Hero" alone does not tell anyone which strip of the
-   page they are about to change. Shown only when the row has no desc of its
-   own, so anything typed in the Page Builder still wins. */
-const SECTION_HINTS: Record<string, string> = {
-  'about:ah': 'แถบรูปใหญ่บนสุด — หัวข้อ + คำโปรย',
-  'about:st': 'กล่องขาว: เรื่องราว + ตัวเลขสถิติ + รูปผู้ก่อตั้ง',
-  'about:pl': 'จุดแข็งเรียงกันใต้เส้นคั่นในกล่องเรื่องราว',
-  'about:as': 'แถบดำ + การ์ดทีมงานเลื่อนซ้ายขวา',
-  'about:aw': 'กล่องรางวัล — รูปซ้าย ข้อความขวา',
-  'about:pr': 'โลโก้/ชื่อสื่อ ท้ายหน้า',
-  'contact:ch': 'แถบรูปใหญ่บนสุดของหน้าติดต่อ',
-  'contact:cm': 'แผนที่ + ช่องทางติดต่อ',
+/* What each block is, which fields it renames, and whether it holds a
+   repeating list all come from src/lib/sectionCatalog — the same list the
+   seed and the sync script read, so the editor cannot offer a section the
+   page does not render, or miss one it does. */
+const FIELD_LABELS: Record<'eyebrow' | 'headline' | 'sub' | 'cta' | 'note', string> = {
+  eyebrow: 'ป้ายเล็กเหนือหัวข้อ (Eyebrow)',
+  headline: 'หัวข้อ (Headline)',
+  sub: 'คำโปรย (Subheadline)',
+  cta: 'ข้อความปุ่ม / บรรทัดเสริม (CTA)',
+  note: 'บรรทัดเล็กใต้คำโปรย',
 };
 
 const rowBtn = (disabled: boolean): React.CSSProperties => ({
@@ -183,6 +130,12 @@ export function SectionsBody() {
   const [mediaItems, setMediaItems] = React.useState<{ id: string; src: string; name: string }[]>([]);
   const [saving, setSaving] = React.useState(false);
   const [notice, setNotice] = React.useState('');
+  /* A failed load used to leave the editor showing a plausible list of
+     sections that nothing could be saved to: `saveSection` returned early on
+     a null list, so the button was a no-op with no message. Now the failure
+     is on screen and retryable. */
+  const [loadError, setLoadError] = React.useState('');
+  const [reloadNonce, setReloadNonce] = React.useState(0);
 
   /* `?page=about` opens on that tab, so a link to one page's sections lands
      where it says it does. Applied after mount rather than as the initial
@@ -204,21 +157,31 @@ export function SectionsBody() {
 
   React.useEffect(() => {
     let alive = true;
+    setLoadError('');
     apiGet<{ items: ApiSection[] }>(`/api/sections?page=${page}`)
       .then((r) => {
-        if (!alive || !Array.isArray(r.items) || !r.items.length) { setApiList(null); return; }
+        if (!alive) return;
+        if (!Array.isArray(r.items) || !r.items.length) {
+          setApiList(null);
+          setLoadError('หน้านี้ยังไม่มี section ในฐานข้อมูล — รัน npm run sections:sync');
+          return;
+        }
         setApiList(r.items);
         setOn(Object.fromEntries(r.items.map((s) => [s.key, s.enabled])));
         setSelected(0);
       })
-      .catch(() => setApiList(null));
+      .catch((e) => {
+        if (!alive) return;
+        setApiList(null);
+        setLoadError(e instanceof ApiClientError ? e.message : 'โหลดรายการ section ไม่สำเร็จ');
+      });
     return () => { alive = false; };
-  }, [page]);
+  }, [page, reloadNonce]);
 
   const list: Section[] = apiList
     ? apiList.map((s) => ({
       name: s.name,
-      desc: s.desc || SECTION_HINTS[`${page}:${s.key}`] || '',
+      desc: s.desc || sectionDef(page, s.key)?.desc || '',
       img: s.img ?? undefined,
       noImage: !s.img,
       headline: s.content?.th?.headline ?? s.name,
@@ -240,7 +203,9 @@ export function SectionsBody() {
     setDraft((prev) => ({ ...prev, [lang]: { ...(prev[lang] ?? {}), [name]: v } }));
 
   /* ---- the repeating list, when this section has one ---------------------- */
-  const spec = ITEM_SPECS[`${page}:${curKey}`];
+  const def = sectionDef(page, curKey);
+  const spec = def?.items;
+  const labelFor = (f: keyof typeof FIELD_LABELS) => def?.labels?.[f] ?? FIELD_LABELS[f];
   const items: Item[] = draft[lang]?.items ?? [];
   const setItems = (next: Item[]) =>
     setDraft((prev) => ({ ...prev, [lang]: { ...(prev[lang] ?? {}), items: next } }));
@@ -276,7 +241,11 @@ export function SectionsBody() {
   };
 
   const saveSection = async () => {
-    if (!apiList || saving) return;
+    if (saving) return;
+    if (!apiList) {
+      setNotice('ยังโหลดรายการ section ไม่สำเร็จ — กดโหลดใหม่ก่อน');
+      return;
+    }
     setSaving(true);
     setNotice('');
 
@@ -397,6 +366,13 @@ export function SectionsBody() {
             <div style={{ fontSize: '11.5px', color: 'var(--muted2)' }}>กำลังแก้ section</div>
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>{cur.name}</div>
           </div>
+          {loadError && (
+            <div role="alert" style={{ margin: '12px 20px 0', padding: '12px 14px', borderRadius: 12, background: '#FDECEA', border: '1px solid #F5C2BE', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#B4231F" strokeWidth="2" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16h.01" /></svg>
+              <span style={{ flex: 1, fontSize: 12, color: '#8C1D18', lineHeight: 1.5 }}>{loadError} — แก้ตอนนี้แล้วจะบันทึกไม่ได้</span>
+              <button type="button" onClick={() => setReloadNonce((n) => n + 1)} style={{ flexShrink: 0, height: 30, padding: '0 12px', borderRadius: 9, border: '1px solid #F5C2BE', background: '#fff', color: '#8C1D18', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>โหลดใหม่</button>
+            </div>
+          )}
           <div className="a-scroll" style={{ maxHeight: 620, overflowY: 'auto', padding: 20 }}>
             <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>รูปพื้นหลัง / รูปประกอบ</label>
             <div style={{ marginTop: 8, position: 'relative', borderRadius: 14, overflow: 'hidden', height: 180, background: 'var(--tint)' }}>
@@ -427,7 +403,7 @@ export function SectionsBody() {
               ))}
             </div>
 
-            <label style={{ display: 'block', marginTop: 18, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>รูปประกอบ</label>
+            <label style={{ display: 'block', marginTop: 18, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>{def?.labels?.img ?? 'รูปประกอบ'}</label>
             <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
               <input
                 value={img}
@@ -455,20 +431,20 @@ export function SectionsBody() {
               ))}
             </div>
 
-            <label style={{ display: 'block', marginTop: 14, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>ป้ายเล็กเหนือหัวข้อ (Eyebrow)</label>
-            <input value={field('eyebrow')} onChange={(e) => setField('eyebrow', e.target.value)} style={{ marginTop: 6, width: '100%', height: 40, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none' }} />
+            <label htmlFor={'sec-f-eyebrow'} style={{ display: 'block', marginTop: 14, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>{labelFor('eyebrow')}</label>
+            <input id={'sec-f-eyebrow'} value={field('eyebrow')} onChange={(e) => setField('eyebrow', e.target.value)} style={{ marginTop: 6, width: '100%', height: 40, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none' }} />
 
-            <label style={{ display: 'block', marginTop: 14, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>หัวข้อ (Headline)</label>
-            <input value={field('headline')} onChange={(e) => setField('headline', e.target.value)} style={{ marginTop: 6, width: '100%', height: 44, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: '13.5px', fontWeight: 600, background: 'var(--bg)', outline: 'none' }} />
+            <label htmlFor={'sec-f-headline'} style={{ display: 'block', marginTop: 14, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>{labelFor('headline')}</label>
+            <input id={'sec-f-headline'} value={field('headline')} onChange={(e) => setField('headline', e.target.value)} style={{ marginTop: 6, width: '100%', height: 44, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: '13.5px', fontWeight: 600, background: 'var(--bg)', outline: 'none' }} />
 
-            <label style={{ display: 'block', marginTop: 14, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>คำโปรย (Subheadline)</label>
-            <textarea value={field('sub')} onChange={(e) => setField('sub', e.target.value)} style={{ marginTop: 6, width: '100%', height: 70, padding: '12px 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none', resize: 'none' }} />
+            <label htmlFor={'sec-f-sub'} style={{ display: 'block', marginTop: 14, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>{labelFor('sub')}</label>
+            <textarea id={'sec-f-sub'} value={field('sub')} onChange={(e) => setField('sub', e.target.value)} style={{ marginTop: 6, width: '100%', height: 70, padding: '12px 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none', resize: 'none' }} />
 
-            <label style={{ display: 'block', marginTop: 14, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>ข้อความปุ่ม / บรรทัดเสริม (CTA)</label>
-            <input value={field('cta')} onChange={(e) => setField('cta', e.target.value)} style={{ marginTop: 6, width: '100%', height: 40, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none' }} />
+            <label htmlFor={'sec-f-cta'} style={{ display: 'block', marginTop: 14, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>{labelFor('cta')}</label>
+            <input id={'sec-f-cta'} value={field('cta')} onChange={(e) => setField('cta', e.target.value)} style={{ marginTop: 6, width: '100%', height: 40, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none' }} />
 
-            <label style={{ display: 'block', marginTop: 14, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>บรรทัดเล็กใต้คำโปรย</label>
-            <input value={field('note')} onChange={(e) => setField('note', e.target.value)} placeholder="เช่น ชื่อรางวัลและปีที่ได้รับ" style={{ marginTop: 6, width: '100%', height: 40, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none' }} />
+            <label htmlFor={'sec-f-note'} style={{ display: 'block', marginTop: 14, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>{labelFor('note')}</label>
+            <input id={'sec-f-note'} value={field('note')} onChange={(e) => setField('note', e.target.value)} placeholder="เช่น ชื่อรางวัลและปีที่ได้รับ" style={{ marginTop: 6, width: '100%', height: 40, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none' }} />
 
             {/* ---- repeating list, for the sections that have one ---- */}
             {spec && (

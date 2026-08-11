@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useI18n } from '@/i18n/useDict';
 import { enumLabel } from '@/i18n/enums';
+import type { SectionCopy } from '@/lib/server/sectionCopy';
 
 type FilterTab = 'type' | 'size' | 'price';
 type PropType = 'warehouse' | 'factory';
@@ -56,8 +57,9 @@ const checkIcon = (
   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
 );
 
-export function Hero() {
+export function Hero({ copy }: { copy: SectionCopy }) {
   const { d, locale } = useI18n();
+  const pick = (v: string, fallback: string) => v || fallback;
   const [listingMode, setListingMode] = useState<'rent' | 'sale'>('rent');
   const [propType, setPropType] = useState<PropType>('warehouse');
   const [sizeSel, setSizeSel] = useState<string | null>(null);
@@ -98,7 +100,7 @@ export function Hero() {
       <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', borderBottomRightRadius: '72px' }}>
         <div id="hero-parallax" style={{ position: 'absolute', inset: 0 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="https://images.unsplash.com/photo-1553413077-190dd305871c?w=1600&q=80" alt={d.nav.warehouse} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          <img src={copy.img || "https://images.unsplash.com/photo-1553413077-190dd305871c?w=1600&q=80"} alt={d.nav.warehouse} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         </div>
       </div>
 
@@ -132,7 +134,7 @@ export function Hero() {
         </h1>
 
         <p style={{ margin: '16px auto 0', maxWidth: '560px', fontSize: 16, color: '#E8FFF0', animation: 'fadeUp .8s ease .34s both' }}>
-          {d.hero.sub}
+          {pick(copy.sub, d.hero.sub)}
         </p>
 
         {/* search panel */}

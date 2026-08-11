@@ -10,6 +10,23 @@ import { test, expect } from './fixtures';
 const OWNER = { email: 'owner@jkp.local', password: 'jkp12345' };
 const AGENT = { email: 'agent@jkp.local', password: 'jkp12345' };
 
+/* Put the seeded page sections back, whichever assertion failed.
+   One client for the whole file: a fresh PrismaClient per hook leaves
+   connections behind faster than Postgres reclaims them, and the app losing a
+   connection mid-suite is exactly the flake this used to produce. */
+let db: import('@prisma/client').PrismaClient | undefined;
+async function resetSections() {
+  if (!db) {
+    const { PrismaClient } = await import('@prisma/client');
+    db = new PrismaClient();
+  }
+  await db.pageSection.updateMany({
+    where: { pageKey: { in: ['about', 'home'] } },
+    data: { content: {}, enabled: true },
+  });
+}
+test.afterAll(async () => { await db?.$disconnect(); db = undefined; });
+
 async function signIn(page: Page, who: { email: string; password: string }) {
   await page.goto('/admin/login');
   await page.locator('#login-email').fill(who.email);
@@ -171,12 +188,7 @@ test.describe('page sections', () => {
   /* Straight to the table rather than through a test-only endpoint: the
      suite runs against the production build, and a reset route that only
      exists for tests is a reset route that ships. */
-  test.afterEach(async () => {
-    const { PrismaClient } = await import('@prisma/client');
-    const db = new PrismaClient();
-    await db.pageSection.updateMany({ where: { pageKey: 'about' }, data: { content: {}, enabled: true } });
-    await db.$disconnect();
-  });
+  test.afterEach(resetSections);
 
   test('a team member added in the CMS appears on the public page', async ({ page }) => {
     await signIn(page, OWNER);
@@ -222,7 +234,7 @@ test.describe('page sections', () => {
     await expect(page.locator('#award-grid')).not.toContainText('2025');
 
     await openAboutSection(page, 'aw');
-    await page.getByPlaceholder('เช่น ชื่อรางวัลและปีที่ได้รับ').fill(AWARD);
+    await page.locator('#sec-f-note').fill(AWARD);
     await save(page);
 
     await page.goto('/th/about');
@@ -235,5 +247,68 @@ test.describe('page sections', () => {
 
     await page.goto('/th/about');
     await expect(page.locator('#award-grid')).toHaveCount(0);
+  });
+});
+
+test.describe('home page sections', () => {
+  /* The home page carried the most invented material of anywhere on the site:
+     an award nobody had told us about, a 4.9 rating with no reviews behind it,
+     and eight random stock photos captioned as delivered deals. Each is now a
+     CMS field that renders nothing until someone fills it in — these tests
+     pin "nothing" as the default so a future edit cannot quietly restore it. */
+
+  async function openHomeSection(page: Page, key: string) {
+    await page.goto('/admin/sections?page=home');
+    await expect(page.locator('#sec-preview')).toHaveAttribute('data-editing-key', 'h');
+    await page.locator(`[data-section-key="${key}"]`).click();
+    await expect(page.locator('#sec-preview')).toHaveAttribute('data-editing-key', key);
+  }
+
+  const save = async (page: Page) => {
+    await page.getByText('บันทึก section').click();
+    await expect(page.getByText('บันทึกแล้ว')).toBeVisible();
+  };
+
+  test.afterEach(resetSections);
+
+  test('no award, no rating and no stock-photo wall until the CMS says so', async ({ page }) => {
+    await page.goto('/th');
+    const body = page.locator('body');
+    await expect(body).not.toContainText('Real Estate Agent Awards');
+    await expect(body).not.toContainText('Thailand · 2025');
+    // the eight picsum tiles are gone with the section that held them
+    expect(await page.locator('img[src*="picsum.photos"]').count()).toBe(0);
+  });
+
+  test('the award ribbon and rating appear once entered, and split on the dot', async ({ page }) => {
+    await signIn(page, OWNER);
+    await openHomeSection(page, 'w');
+
+    await page.locator('#sec-f-note').fill('รางวัลนายหน้ายอดเยี่ยม · 2569');
+    await page.locator('#sec-f-cta').fill('4.2');
+    await save(page);
+
+    await page.goto('/th');
+    await expect(page.getByText('รางวัลนายหน้ายอดเยี่ยม')).toBeVisible();
+    await expect(page.getByText('2569', { exact: true })).toBeVisible();
+    await expect(page.getByText('4.2', { exact: true })).toBeVisible();
+  });
+
+  test('KPI figures can be switched off without losing the block around them', async ({ page }) => {
+    await signIn(page, OWNER);
+
+    await page.goto('/th');
+    await expect(page.getByText('ทรัพย์ในระบบทั่วประเทศ')).toBeVisible();
+
+    /* Open first, then toggle: openHomeSection navigates, so flipping the
+       switch before it would be thrown away by the page load. */
+    await openHomeSection(page, 'wk');
+    await page.locator('[data-section-key="wk"] div[style*="border-radius: 9999px"]').last().click();
+    await save(page);
+
+    await page.goto('/th');
+    await expect(page.getByText('ทรัพย์ในระบบทั่วประเทศ')).toHaveCount(0);
+    // the surrounding "why us" block is untouched
+    await expect(page.locator('#page-sheet')).toContainText('รองรับหลายภาษา');
   });
 });
