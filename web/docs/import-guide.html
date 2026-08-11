@@ -1,0 +1,547 @@
+<title>คู่มือนำเข้าข้อมูลทรัพย์ · JKP Property</title>
+
+<style>
+  :root {
+    --paper:      #FAF8F4;
+    --surface:    #FFFFFF;
+    --ink:        #1A1D1B;
+    --body:       #434945;
+    --muted:      #7A7974;
+    --hair:       #E2DED6;
+    --teal:       #034956;
+    --teal-soft:  #E8F0F1;
+    --clay:       #9E5A6B;
+    --clay-soft:  #F7EDEF;
+    --moss:       #3F6B4E;
+    --moss-soft:  #EBF2ED;
+    --code-bg:    #F1EEE8;
+
+    --measure: 66ch;
+    --step--1: clamp(.78rem, .76rem + .1vw, .84rem);
+    --step-0:  clamp(1rem, .97rem + .15vw, 1.06rem);
+    --step-1:  clamp(1.2rem, 1.13rem + .35vw, 1.4rem);
+    --step-2:  clamp(1.55rem, 1.4rem + .7vw, 2rem);
+    --step-3:  clamp(2rem, 1.7rem + 1.4vw, 2.9rem);
+
+    --thai: "Noto Sans Thai", "IBM Plex Sans Thai", "Sukhumvit Set", "Thonburi",
+            -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, "Cascadia Mono", Consolas,
+            "Liberation Mono", monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:     #141714;
+      --surface:   #1C201D;
+      --ink:       #F2EFE9;
+      --body:      #C6C9C4;
+      --muted:     #8E938D;
+      --hair:      #2E332F;
+      --teal:      #6FC4CE;
+      --teal-soft: #17302F;
+      --clay:      #D9909E;
+      --clay-soft: #2E1F23;
+      --moss:      #86C79A;
+      --moss-soft: #1A2A1F;
+      --code-bg:   #232823;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:     #141714;
+    --surface:   #1C201D;
+    --ink:       #F2EFE9;
+    --body:      #C6C9C4;
+    --muted:     #8E938D;
+    --hair:      #2E332F;
+    --teal:      #6FC4CE;
+    --teal-soft: #17302F;
+    --clay:      #D9909E;
+    --clay-soft: #2E1F23;
+    --moss:      #86C79A;
+    --moss-soft: #1A2A1F;
+    --code-bg:   #232823;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--body);
+    font-family: var(--thai);
+    font-size: var(--step-0);
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 54rem;
+    margin: 0 auto;
+    padding: clamp(2.5rem, 6vw, 5rem) clamp(1.1rem, 4vw, 2.5rem) 6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3.25rem;
+  }
+
+  /* ---------- masthead ---------- */
+  .mast { display: flex; flex-direction: column; gap: .9rem; }
+  .kicker {
+    font-family: var(--mono);
+    font-size: var(--step--1);
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--teal);
+  }
+  h1 {
+    margin: 0;
+    font-size: var(--step-3);
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  .standfirst {
+    margin: 0;
+    max-width: var(--measure);
+    font-size: var(--step-1);
+    line-height: 1.6;
+    color: var(--muted);
+    text-wrap: pretty;
+  }
+
+  /* ---------- sections ---------- */
+  section { display: flex; flex-direction: column; gap: 1.1rem; }
+  h2 {
+    margin: 0;
+    font-size: var(--step-2);
+    line-height: 1.25;
+    font-weight: 700;
+    letter-spacing: -.015em;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  h3 {
+    margin: 0;
+    font-size: var(--step-1);
+    font-weight: 700;
+    color: var(--ink);
+  }
+  p { margin: 0; max-width: var(--measure); text-wrap: pretty; }
+  ul { margin: 0; padding-inline-start: 1.15rem; display: flex; flex-direction: column; gap: .5rem; max-width: var(--measure); }
+  strong { color: var(--ink); font-weight: 700; }
+  a { color: var(--teal); text-underline-offset: 3px; }
+  a:focus-visible, .step:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; border-radius: 4px; }
+
+  code, .cell {
+    font-family: var(--mono);
+    font-size: .88em;
+    background: var(--code-bg);
+    padding: .12em .42em;
+    border-radius: 4px;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+
+  /* ---------- numbered steps: a real sequence ---------- */
+  .steps { display: flex; flex-direction: column; gap: 2rem; counter-reset: s; }
+  .step { display: grid; grid-template-columns: 2.6rem 1fr; gap: 1.1rem; align-items: start; }
+  .step::before {
+    counter-increment: s;
+    content: counter(s);
+    font-family: var(--mono);
+    font-size: var(--step--1);
+    font-weight: 600;
+    color: var(--teal);
+    background: var(--teal-soft);
+    border-radius: 999px;
+    width: 2.6rem; height: 2.6rem;
+    display: grid; place-items: center;
+    margin-top: .1rem;
+  }
+  .step-body { display: flex; flex-direction: column; gap: .7rem; min-width: 0; }
+
+  /* ---------- callouts ---------- */
+  .note {
+    border-inline-start: 3px solid var(--teal);
+    background: var(--teal-soft);
+    padding: 1rem 1.15rem;
+    border-radius: 0 8px 8px 0;
+    display: flex; flex-direction: column; gap: .55rem;
+    max-width: var(--measure);
+  }
+  .note.warn { border-color: var(--clay); background: var(--clay-soft); }
+  .note.ok   { border-color: var(--moss); background: var(--moss-soft); }
+  .note-label {
+    font-family: var(--mono);
+    font-size: var(--step--1);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--teal);
+  }
+  .note.warn .note-label { color: var(--clay); }
+  .note.ok   .note-label { color: var(--moss); }
+  .note p { max-width: none; }
+
+  /* ---------- tables ---------- */
+  .scroll { overflow-x: auto; border: 1px solid var(--hair); border-radius: 10px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+  th, td { text-align: start; padding: .68rem .9rem; border-bottom: 1px solid var(--hair); vertical-align: top; }
+  thead th {
+    font-family: var(--mono);
+    font-size: var(--step--1);
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+    white-space: nowrap;
+    background: var(--paper);
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.k { font-family: var(--mono); font-size: .85rem; color: var(--ink); white-space: nowrap; }
+  td.num { font-variant-numeric: tabular-nums; }
+  .req { color: var(--clay); font-weight: 700; font-size: .85rem; }
+
+  /* values that must be typed character-for-character */
+  .exact { display: flex; flex-wrap: wrap; gap: .35rem; }
+  .exact .cell { white-space: nowrap; }
+
+  .hr { height: 1px; background: var(--hair); border: 0; margin: 0; }
+
+  .foot {
+    font-size: var(--step--1);
+    color: var(--muted);
+    border-top: 1px solid var(--hair);
+    padding-top: 1.5rem;
+    max-width: var(--measure);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="kicker">JKP Property · คู่มือทีมงาน</div>
+    <h1>นำเข้าข้อมูลทรัพย์ทีละหลายรายการ</h1>
+    <p class="standfirst">
+      กรอกข้อมูลทรัพย์ลงไฟล์ Excel แล้วให้ระบบสร้างให้ทีเดียวทั้งหมด
+      แทนการเพิ่มทีละรายการในหน้า Properties
+    </p>
+  </header>
+
+  <div class="note warn">
+    <div class="note-label">อ่านก่อน</div>
+    <p>
+      ตอนนี้ทีมกรอกไฟล์เองได้ <strong>แต่ยังกดนำเข้าเองไม่ได้</strong> —
+      ยังไม่มีปุ่มอัปโหลดในหน้า admin ขั้นตอนสุดท้ายต้องส่งไฟล์ให้คนที่เข้าเซิร์ฟเวอร์ได้เป็นคนรัน
+    </p>
+    <p>
+      คู่มือนี้ครอบคลุมส่วนที่คุณทำเองได้ทั้งหมด คือ<strong>กรอกไฟล์ให้ถูกตั้งแต่รอบแรก</strong>
+      ซึ่งเป็นส่วนที่ใช้เวลามากที่สุดและผิดพลาดง่ายที่สุด
+    </p>
+  </div>
+
+  <section>
+    <h2>ขั้นตอนทั้งหมด</h2>
+
+    <div class="steps">
+
+      <div class="step">
+        <div class="step-body">
+          <h3>ขอไฟล์เปล่าตามประเภททรัพย์</h3>
+          <p>
+            แต่ละประเภทมีคอลัมน์ไม่เหมือนกัน โกดังมี 53 คอลัมน์ โรงงานมี 20
+            ขอไฟล์ให้ตรงประเภทที่จะกรอก จะได้มาสองไฟล์ต่อประเภท
+          </p>
+          <div class="scroll">
+            <table>
+              <thead>
+                <tr><th>ไฟล์</th><th>ใช้ทำอะไร</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="k">warehouse.csv</td>
+                  <td>ไฟล์ที่กรอกจริง — บรรทัดแรกคือชื่อคอลัมน์ <strong>ห้ามแก้หรือสลับ</strong></td>
+                </tr>
+                <tr>
+                  <td class="k">warehouse-อธิบาย.csv</td>
+                  <td>เปิดคู่กันไว้ดู — บอกว่าแต่ละคอลัมน์คืออะไร กรอกแบบไหน และมีค่าอะไรให้เลือกบ้าง</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-body">
+          <h3>กรอกใน Excel — หนึ่งแถวคือหนึ่งทรัพย์</h3>
+          <p>
+            เปิดด้วย Excel หรือ Google Sheets ได้เลย ภาษาไทยไม่เพี้ยน
+            <strong>ลบแถวตัวอย่างทิ้งก่อน</strong> แล้วเริ่มกรอกจากแถวถัดไป
+          </p>
+          <p>
+            ช่องไหนไม่มีข้อมูลให้เว้นว่าง ไม่ต้องใส่ <span class="cell">-</span>
+            หรือ <span class="cell">ไม่มี</span> — ระบบจะเก็บคำนั้นเป็นข้อมูลจริงแล้วเอาไปแสดงบนเว็บ
+          </p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-body">
+          <h3>ส่งไฟล์ให้ทีมเทคนิคตรวจ</h3>
+          <p>
+            ระบบจะไล่ตรวจทุกแถวก่อนเขียนข้อมูลจริง ถ้ามีจุดผิดจะบอกกลับมาเป็นเลขบรรทัดกับชื่อคอลัมน์
+            เช่น <span class="cell">บรรทัด 12 · usable_area · "ประมาณ 800" ไม่ใช่ตัวเลข</span>
+          </p>
+          <div class="note ok">
+            <div class="note-label">ปลอดภัย</div>
+            <p>
+              ถ้ามีแถวไหนผิด <strong>ระบบจะไม่เขียนสักแถว</strong>
+              พิมพ์ผิดบรรทัดที่ 60 จะไม่เหลือทรัพย์ค้างครึ่ง ๆ กลาง ๆ 59 รายการให้ตามลบ
+              แก้ไฟล์แล้วส่งใหม่ได้เลย
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-body">
+          <h3>ตรวจผลในหน้า Properties</h3>
+          <p>
+            ทรัพย์ที่นำเข้าจะขึ้นในหน้า <strong>Properties</strong> พร้อมรหัสที่ระบบออกให้
+            แก้ไขต่อในหน้า admin ได้ตามปกติ
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <hr class="hr">
+
+  <section>
+    <h2>สี่คอลัมน์แรก มีเหมือนกันทุกประเภท</h2>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>คอลัมน์</th><th>กรอกอะไร</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="k">public_code</td>
+            <td>
+              <strong>เว้นว่างไว้</strong> ถ้าเป็นทรัพย์ใหม่ ระบบจะออกรหัสให้เอง เช่น
+              <span class="cell">JKP-CBI0218</span><br>
+              ใส่รหัสเดิมเมื่อต้องการ<strong>แก้ไข</strong>ทรัพย์ที่มีอยู่แล้ว
+            </td>
+          </tr>
+          <tr>
+            <td class="k">title <span class="req">จำเป็น</span></td>
+            <td>ชื่อทรัพย์ที่จะแสดงบนเว็บ เช่น <span class="cell">โกดังพร้อมสำนักงาน 2,700 ตร.ม. บางนา</span></td>
+          </tr>
+          <tr>
+            <td class="k">status</td>
+            <td>
+              <span class="cell">draft</span> ยังไม่เผยแพร่ ·
+              <span class="cell">active</span> ใช้งาน ·
+              <span class="cell">hidden</span> ซ่อน<br>
+              เว้นว่าง = <span class="cell">draft</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="k">listing_status</td>
+            <td>
+              สถานะประกาศ — <span class="cell">published</span> คือขึ้นเว็บให้ลูกค้าเห็น<br>
+              เว้นว่าง = ไม่สร้างประกาศ (ทรัพย์จะอยู่ในระบบแต่ยังไม่ขึ้นเว็บ)
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>กรอกแต่ละชนิดข้อมูลยังไง</h2>
+    <p>
+      ดูชนิดของแต่ละคอลัมน์ได้ในไฟล์ <span class="cell">-อธิบาย.csv</span> ที่ให้มาคู่กัน
+    </p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>ชนิด</th><th>กรอกแบบนี้</th><th>ตัวอย่าง</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ตัวเลข / ราคา</td>
+            <td>ใส่แต่ตัวเลข มี <span class="cell">,</span> หรือ <span class="cell">฿</span> ติดมาก็ได้ ระบบตัดให้ — <strong>อย่าใส่ข้อความปน</strong></td>
+            <td class="k num">350000</td>
+          </tr>
+          <tr>
+            <td>เลือกได้หลายค่า</td>
+            <td>คั่นด้วยขีดตั้ง <span class="cell">|</span> ไม่ใช่จุลภาค</td>
+            <td class="k">เครนเหนือศีรษะ|บนถนนสายหลัก</td>
+          </tr>
+          <tr>
+            <td>ใช่ / ไม่ใช่</td>
+            <td>พิมพ์ได้ทั้งไทยและอังกฤษ</td>
+            <td class="k">true · false · ใช่ · ไม่ใช่</td>
+          </tr>
+          <tr>
+            <td>วันที่</td>
+            <td>ปี-เดือน-วัน แบบ ค.ศ. เท่านั้น</td>
+            <td class="k num">2026-08-15</td>
+          </tr>
+          <tr>
+            <td>รูปถ่าย</td>
+            <td>อัปโหลดที่หน้า <strong>คลังสื่อ</strong> ก่อน แล้วคัดลอกลิงก์มาวาง คั่นหลายรูปด้วย <span class="cell">|</span></td>
+            <td class="k">/uploads/abc.jpg|/uploads/def.jpg</td>
+          </tr>
+          <tr>
+            <td>ตัวเลือก</td>
+            <td><strong>ต้องตรงเป๊ะทุกตัวอักษร</strong> — ดูรายการที่ใช้ได้ในหัวข้อถัดไป</td>
+            <td class="k">3 Phase 50/150A</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note warn">
+      <div class="note-label">พลาดกันบ่อยที่สุด</div>
+      <p>
+        ช่องตัวเลือกพิมพ์เองไม่ได้ ต้องตรงกับรายการเป๊ะ ๆ
+        พิมพ์ <span class="cell">3 เฟส</span> แทน <span class="cell">3 Phase 50/150A</span>
+        ระบบจะตีกลับทั้งไฟล์ วิธีกันพลาดคือ<strong>คัดลอกจากไฟล์อธิบายมาวาง</strong> อย่าพิมพ์เอง
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>ค่าที่ต้องพิมพ์ให้ตรง</h2>
+    <p>
+      คัดลอกจากตารางนี้ไปวางได้เลย
+      สังเกตว่า <span class="cell">deal_type</span> ของโรงงานกับโกดัง<strong>ใช้คำคนละชุด</strong>
+    </p>
+
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>คอลัมน์</th><th>ประเภท</th><th>ค่าที่ใช้ได้</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="k">deal_type</td>
+            <td>โรงงาน</td>
+            <td><div class="exact"><span class="cell">ขาย</span><span class="cell">ปล่อยเช่า</span><span class="cell">ขายและปล่อยเช่า</span></div></td>
+          </tr>
+          <tr>
+            <td class="k">deal_type</td>
+            <td>โกดัง</td>
+            <td><div class="exact"><span class="cell">เช่า</span><span class="cell">ขาย</span><span class="cell">เช่า / ขาย</span></div></td>
+          </tr>
+          <tr>
+            <td class="k">power_system</td>
+            <td>โรงงาน</td>
+            <td><div class="exact"><span class="cell">1 Phase</span><span class="cell">3 Phase 50/150A</span><span class="cell">3 Phase 200A+</span><span class="cell">อื่นๆ</span></div></td>
+          </tr>
+          <tr>
+            <td class="k">power_phase</td>
+            <td>โกดัง</td>
+            <td><div class="exact"><span class="cell">1 เฟส</span><span class="cell">3 เฟส</span></div></td>
+          </tr>
+          <tr>
+            <td class="k">zone</td>
+            <td>โกดัง</td>
+            <td><div class="exact"><span class="cell">ปลอดอากร (Free Zone)</span><span class="cell">การนิคมอุตสาหกรรม (กนอ.)</span><span class="cell">วัตถุอันตราย (DG Zone)</span></div></td>
+          </tr>
+          <tr>
+            <td class="k">lease_term</td>
+            <td>โกดัง</td>
+            <td><div class="exact"><span class="cell">1 ปี</span><span class="cell">2 ปี</span><span class="cell">3 ปี</span><span class="cell">5 ปี</span><span class="cell">อื่นๆ</span></div></td>
+          </tr>
+          <tr>
+            <td class="k">deposit_months</td>
+            <td>โกดัง</td>
+            <td><div class="exact"><span class="cell">1 เดือน</span><span class="cell">2 เดือน</span><span class="cell">3 เดือน</span><span class="cell">6 เดือน</span></div></td>
+          </tr>
+          <tr>
+            <td class="k">payer</td>
+            <td>โกดัง</td>
+            <td><div class="exact"><span class="cell">เจ้าของ</span><span class="cell">ผู้เช่า</span></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="color:var(--muted);font-size:var(--step--1)">
+      ช่องตัวเลือกอื่น ๆ ที่ไม่ได้อยู่ในตารางนี้ ดูได้ในคอลัมน์ “ค่าที่เลือกได้” ของไฟล์อธิบาย
+    </p>
+  </section>
+
+  <section>
+    <h2>จังหวัดมีผลกับรหัสทรัพย์</h2>
+    <p>
+      ระบบออกรหัสจากช่อง <span class="cell">province</span>
+      กรุงเทพฯ ได้ <span class="cell">JKP0001</span> จังหวัดอื่นได้ <span class="cell">JKP-CBI0001</span>
+      โดย <span class="cell">CBI</span> คือรหัสชลบุรี
+    </p>
+    <div class="note warn">
+      <div class="note-label">แก้ทีหลังไม่ได้</div>
+      <p>
+        <strong>รหัสทรัพย์ออกแล้วเปลี่ยนไม่ได้ตลอดไป</strong>
+        ลืมกรอกจังหวัดจะได้รหัสแบบกรุงเทพฯ ติดไปกับทรัพย์นั้นถาวร
+        ลบทรัพย์ทิ้งแล้วเลขที่ใช้ไปก็ไม่ย้อนกลับมา — <strong>ตรวจช่องจังหวัดก่อนส่งไฟล์ทุกครั้ง</strong>
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>ข้อมูลที่ไม่ขึ้นเว็บสาธารณะ</h2>
+    <p>
+      ห้าช่องนี้เก็บไว้ในระบบให้ทีมเห็นเท่านั้น ระบบตัดออกก่อนส่งขึ้นหน้าเว็บและก่อนสร้างข้อความโพสต์
+      กรอกได้ตามจริงโดยไม่ต้องกังวล
+    </p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>คอลัมน์</th><th>คือ</th></tr></thead>
+        <tbody>
+          <tr><td class="k">lessor_name</td><td>ชื่อเจ้าของ / ผู้ให้เช่า</td></tr>
+          <tr><td class="k">lessor_phone</td><td>เบอร์เจ้าของ</td></tr>
+          <tr><td class="k">lessor_company</td><td>บริษัทเจ้าของ</td></tr>
+          <tr><td class="k">lessor_status</td><td>สถานะผู้ให้เช่า</td></tr>
+          <tr><td class="k">internal_note</td><td>หมายเหตุภายในทีม เช่น เงื่อนไขต่อรอง ข้อควรระวัง</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="hr">
+
+  <section>
+    <h2>เช็กก่อนส่งไฟล์</h2>
+    <ul>
+      <li>ลบแถวตัวอย่างออกแล้ว</li>
+      <li>บรรทัดแรก (ชื่อคอลัมน์) ยังอยู่ครบ ไม่ได้แก้หรือสลับลำดับ</li>
+      <li>ทุกแถวมี <span class="cell">title</span></li>
+      <li>ช่องจังหวัดกรอกครบทุกแถว</li>
+      <li>ช่องตัวเลขไม่มีข้อความปน เช่น <span class="cell">ประมาณ 800</span> หรือ <span class="cell">800 ตร.ม.</span></li>
+      <li>ช่องตัวเลือกคัดลอกมาจากไฟล์อธิบาย ไม่ได้พิมพ์เอง</li>
+      <li><span class="cell">public_code</span> เว้นว่างสำหรับทรัพย์ใหม่</li>
+      <li>บันทึกเป็นไฟล์ <strong>CSV UTF-8</strong> ไม่ใช่ <span class="cell">.xlsx</span></li>
+    </ul>
+    <div class="note">
+      <div class="note-label">แนะนำ</div>
+      <p>
+        รอบแรกลองส่งแค่ <strong>2–3 แถว</strong> ก่อน ดูผลในหน้า Properties ว่าหน้าตาถูกใจไหม
+        แล้วค่อยส่งชุดใหญ่ จะได้ไม่ต้องตามแก้ทีละร้อยรายการ
+      </p>
+    </div>
+  </section>
+
+  <p class="foot">
+    ทีมเทคนิค: ขั้นตอนฝั่งเซิร์ฟเวอร์อยู่ใน <span class="cell">web/IMPORT.md</span> ในโค้ดเบส ·
+    ทุกแถวที่นำเข้าถูกบันทึกใน Audit log ตรวจย้อนหลังได้ที่หน้า Audit
+  </p>
+
+</div>
