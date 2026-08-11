@@ -17,7 +17,8 @@
     "import:template": "tsx scripts/make-import-template.ts",
     "import:properties": "tsx scripts/import-properties.mts",
     "sections:sync": "tsx scripts/sync-sections.mts",
-    "sections:copy": "tsx scripts/seed-page-copy.mts"
+    "sections:copy": "tsx scripts/seed-page-copy.mts",
+    "sections:images": "tsx scripts/link-section-images.mts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

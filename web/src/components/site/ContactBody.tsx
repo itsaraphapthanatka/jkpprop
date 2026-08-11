@@ -127,7 +127,7 @@ export function ContactBody({ copy }: { copy: ContactCopy }) {
           <div style={{ padding: '20px 24px 0', fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>{pick(copy.cm.headline, d.contact.ourLocation)}</div>
           <div style={{ flex: 1, margin: '16px 0 0', minHeight: 280 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=1000&q=80" alt="แผนที่ที่ตั้งบริษัท (Google Maps)" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            <img src={copy.cm.img || "https://images.unsplash.com/photo-1524661135-423995f22d0b?w=1000&q=80"} alt="แผนที่ที่ตั้งบริษัท (Google Maps)" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           </div>
         </div>
       </div>

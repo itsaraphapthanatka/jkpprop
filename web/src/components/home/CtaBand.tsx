@@ -171,7 +171,7 @@ export function CtaBand({ copy }: { copy: SectionCopy }) {
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="https://images.unsplash.com/photo-1521791136064-7986c2920216?w=1000&q=80"
+              src={copy.img || "https://images.unsplash.com/photo-1521791136064-7986c2920216?w=1000&q=80"}
               alt={d.cta.photoAlt}
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'saturate(.9) brightness(.95)' }}
             />
