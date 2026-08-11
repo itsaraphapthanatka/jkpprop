@@ -25,12 +25,13 @@ type Section = {
   sub: string;
 };
 
-type PageKey = 'home' | 'about' | 'contact';
+type PageKey = 'home' | 'about' | 'contact' | 'faq';
 
 const PAGE_TABS: { key: PageKey; label: string }[] = [
   { key: 'home', label: 'หน้าแรก' },
   { key: 'about', label: 'เกี่ยวกับเรา' },
   { key: 'contact', label: 'ติดต่อเรา' },
+  { key: 'faq', label: 'คำถามพบบ่อย' },
 ];
 
 /* Shown only if /api/sections cannot be reached — the catalogue describes the
@@ -49,6 +50,7 @@ const PAGE_URL: Record<PageKey, (l: Locale) => string> = {
   home: (l) => `/${l}`,
   about: (l) => `/${l}/about`,
   contact: (l) => `/${l}/contact`,
+  faq: (l) => `/${l}/faq`,
 };
 
 const sectionsCss = `

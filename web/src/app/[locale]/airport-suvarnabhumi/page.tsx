@@ -1,7 +1,17 @@
 import type { Metadata } from 'next';
+import { isLocale, DEFAULT_LOCALE } from '@/i18n/config';
+import { getDictionary } from '@/i18n/dictionaries';
 import { ListingShell } from '@/components/listing/ListingShell';
 
-export const metadata: Metadata = { title: 'ทรัพย์ใกล้สนามบินสุวรรณภูมิ | JKP Property' };
+/* Title in the reader's language: this page shipped a hard-coded Thai one to
+   every locale, including in search results. */
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale: raw } = await params;
+  const locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
+  return { title: `${getDictionary(locale).titles.airportSuvarnabhumi} | JKP Property` };
+}
+
+
 
 export default function AirportSuvarnabhumiPage() {
   return <ListingShell preset={{ province: 'สมุทรปราการ', breadcrumb: 'สนามบินสุวรรณภูมิ' }} />;

@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import Link from '@/i18n/LocaleLink';
+import { useDict } from '@/i18n/useDict';
+import type { SectionCopy } from '@/lib/server/sectionCopy';
 import type { FaqCategory } from '@/lib/server/faqCopy';
 
 /* ============================================================
@@ -61,7 +63,9 @@ const FALLBACK_CATS: CatDef[] = [
   ] },
 ];
 
-export function FaqBody({ cats }: { cats?: FaqCategory[] }) {
+export function FaqBody({ cats, copy }: { cats?: FaqCategory[]; copy: SectionCopy }) {
+  const d = useDict();
+  const pick = (v: string, fallback: string) => v || fallback;
   const CATS = cats && cats.length ? cats : FALLBACK_CATS;
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState('');
@@ -91,33 +95,33 @@ export function FaqBody({ cats }: { cats?: FaqCategory[] }) {
       <section style={{ position: 'relative', height: '220px' }}>
         <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', borderBottomRightRadius: '72px' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1600&q=80" alt="ภาพเมือง/อุตสาหกรรม" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          <img src={copy.img || "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1600&q=80"} alt={d.faq.heroAlt} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         </div>
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg,rgba(2,29,14,.82) 0%,rgba(2,29,14,.5) 55%,rgba(2,29,14,.28) 100%)', pointerEvents: 'none', borderBottomRightRadius: '72px' }} />
         <div style={{ position: 'relative', zIndex: 2, maxWidth: '1320px', margin: '0 auto', padding: '0 24px', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-          <h1 style={{ margin: 0, fontSize: '34px', fontWeight: 800, color: '#fff', letterSpacing: '-.01em' }}>คำถามที่พบบ่อย</h1>
-          <p style={{ margin: '10px 0 0', fontSize: '14.5px', color: '#E8FFF0', maxWidth: '520px' }}>รวมคำตอบเกี่ยวกับการเช่า การขาย เอกสาร และการจดทะเบียนอสังหาริมทรัพย์อุตสาหกรรม</p>
+          <h1 style={{ margin: 0, fontSize: '34px', fontWeight: 800, color: '#fff', letterSpacing: '-.01em' }}>{pick(copy.headline, d.faq.hero)}</h1>
+          <p style={{ margin: '10px 0 0', fontSize: '14.5px', color: '#E8FFF0', maxWidth: '520px' }}>{pick(copy.sub, d.faq.heroSub)}</p>
         </div>
       </section>
 
       {/* BREADCRUMB */}
       <div style={{ maxWidth: '1320px', margin: '0 auto', padding: '16px 24px 0', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--muted2)' }}>
-        <Link href="/" style={{ color: 'var(--muted2)' }}>หน้าแรก</Link>
+        <Link href="/" style={{ color: 'var(--muted2)' }}>{d.common.home}</Link>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted3)" strokeWidth="2"><path d="M9 6l6 6-6 6" /></svg>
-        <span style={{ color: 'var(--text)', fontWeight: 600 }}>คำถามที่พบบ่อย</span>
+        <span style={{ color: 'var(--text)', fontWeight: 600 }}>{d.faq.hero}</span>
       </div>
 
       {/* LAYOUT */}
       <div id="faq-layout" style={{ maxWidth: '1320px', margin: '0 auto', padding: '20px 24px 80px', display: 'grid', gridTemplateColumns: '280px 1fr', gap: 28, alignItems: 'start' }}>
         {/* SIDEBAR */}
         <aside id="faq-sidebar" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, padding: 20, position: 'sticky', top: 96 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', marginBottom: 12 }}>หมวดหมู่</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', marginBottom: 12 }}>{d.faq.categories}</div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && doSearch()}
-              placeholder="ค้นหาคำถามที่พบบ่อย..."
+              placeholder={d.faq.searchPlaceholder}
               style={{ flex: 1, height: 42, padding: '0 14px', borderRadius: 9999, border: '1px solid var(--border)', fontSize: 13, color: 'var(--text)', outline: 'none', minWidth: 0 }}
             />
             <div onClick={doSearch} style={{ width: 42, height: 42, borderRadius: 9999, background: '#034956', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
@@ -140,7 +144,7 @@ export function FaqBody({ cats }: { cats?: FaqCategory[] }) {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && doSearch()}
-                placeholder="ค้นหาคำถามที่พบบ่อย..."
+                placeholder={d.faq.searchPlaceholder}
                 style={{ flex: 1, height: 46, padding: '0 16px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 14, color: 'var(--text)', outline: 'none', minWidth: 0 }}
               />
               <div onClick={doSearch} style={{ width: 46, height: 46, borderRadius: 9999, background: '#034956', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
@@ -203,8 +207,8 @@ export function FaqBody({ cats }: { cats?: FaqCategory[] }) {
           {/* CTA */}
           <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 20, background: 'linear-gradient(120deg,#043F20 0%,#022310 100%)', padding: '32px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
             <div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>ยังหาคำตอบไม่เจอ?</div>
-              <div style={{ marginTop: 4, fontSize: '13.5px', color: '#C3FED5' }}>ทีมงานของเราพร้อมช่วยตอบคำถามทุกข้อสงสัย ติดต่อเราได้ที่นี่</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>{d.faq.stillStuck}</div>
+              <div style={{ marginTop: 4, fontSize: '13.5px', color: '#C3FED5' }}>{d.faq.stillStuckSub}</div>
             </div>
             <Link href="/contact" style={{ display: 'flex', alignItems: 'center', gap: 8, height: 48, padding: '0 24px', borderRadius: 9999, background: '#2DFB91', color: '#022310', fontSize: '14.5px', fontWeight: 800, flexShrink: 0 }}>
               ติดต่อทีมงาน

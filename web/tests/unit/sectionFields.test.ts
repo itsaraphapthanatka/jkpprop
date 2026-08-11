@@ -35,6 +35,7 @@ const RENDERED_BY: Record<string, { file: string; prop: string }> = {
   'about:pr': { file: 'src/components/site/AboutBody.tsx', prop: 'copy.pr' },
   'contact:ch': { file: 'src/components/site/ContactBody.tsx', prop: 'copy.ch' },
   'contact:cm': { file: 'src/components/site/ContactBody.tsx', prop: 'copy.cm' },
+  'faq:fh': { file: 'src/components/site/FaqBody.tsx', prop: 'copy' },
 };
 
 const ALL: SectionField[] = ['eyebrow', 'headline', 'sub', 'cta', 'note', 'img', 'items'];

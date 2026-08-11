@@ -11,7 +11,7 @@ import { db } from '@/lib/server/db';
 import { mergeSectionContent, type SectionContent as Content } from '@/lib/mergeSectionContent';
 import type { Prisma } from '@prisma/client';
 
-const PAGES = ['home', 'about', 'contact'];
+const PAGES = ['home', 'about', 'contact', 'faq'];
 
 export const GET = handler(async (req: Request) => {
   const user = await requireUser();

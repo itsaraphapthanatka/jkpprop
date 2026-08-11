@@ -104,7 +104,22 @@ export type Dictionary = {
     choose: string; wanted: string; notSpecified: string; company: string; companyPh: string;
     namePh: string; details: string; detailsPh: string; sent: string;
   };
-  faq: { searchPlaceholder: string; noResults: string; copied: string; copyQuestion: string };
+  faq: {
+    searchPlaceholder: string; noResults: string; copied: string; copyQuestion: string;
+    hero: string; heroSub: string; categories: string; stillStuck: string; stillStuckSub: string; heroAlt: string;
+  };
+  /* Browser-tab and search-result titles.
+   *
+   * Thirteen pages carried a hard-coded Thai `metadata.title`, so /en and /zh
+   * served "โรงงานให้เช่า | JKP Property" to English and Chinese readers —
+   * including the landing pages built specifically to rank. */
+  titles: {
+    faq: string; listing: string;
+    factoryRent: string; factorySale: string; warehouseRent: string; warehouseSale: string;
+    airportDonmuang: string; airportSuvarnabhumi: string;
+    bangkokCbd: string; bangkokNonthaburi: string;
+    portLaemChabang: string; portMahachai: string; portMapTaPhut: string;
+  };
   form: {
     name: string; phone: string; email: string; company: string;
     message: string; submit: string; sending: string;
@@ -271,7 +286,20 @@ const th: Dictionary = {
     namePh: 'กรอกชื่อของคุณ', details: 'รายละเอียดเพิ่มเติม',
     detailsPh: 'บอกเราเกี่ยวกับความต้องการของคุณเพิ่มเติม…', sent: 'ส่งความต้องการแล้ว',
   },
-  faq: { searchPlaceholder: 'ค้นหาคำถาม…', noResults: 'ไม่พบคำถามที่ตรงกับคำค้น', copied: 'คัดลอกแล้ว', copyQuestion: 'คัดลอกคำถาม' },
+  faq: {
+    searchPlaceholder: 'ค้นหาคำถาม…', noResults: 'ไม่พบคำถามที่ตรงกับคำค้น', copied: 'คัดลอกแล้ว', copyQuestion: 'คัดลอกคำถาม',
+    hero: 'คำถามที่พบบ่อย', heroSub: 'รวมคำตอบเกี่ยวกับการเช่า การขาย เอกสาร และการจดทะเบียนอสังหาริมทรัพย์อุตสาหกรรม',
+    categories: 'หมวดหมู่', stillStuck: 'ยังหาคำตอบไม่เจอ?', stillStuckSub: 'ทีมงานของเราพร้อมช่วยตอบคำถามทุกข้อสงสัย ติดต่อเราได้ที่นี่', heroAlt: 'ภาพเมืองและย่านอุตสาหกรรม',
+  },
+  titles: {
+    faq: 'คำถามที่พบบ่อย', listing: 'อสังหาริมทรัพย์ทั้งหมด',
+    factoryRent: 'โรงงานให้เช่า', factorySale: 'โรงงานสำหรับขาย',
+    warehouseRent: 'โกดังให้เช่า', warehouseSale: 'โกดังสำหรับขาย',
+    airportDonmuang: 'ทรัพย์ใกล้สนามบินดอนเมือง', airportSuvarnabhumi: 'ทรัพย์ใกล้สนามบินสุวรรณภูมิ',
+    bangkokCbd: 'ทรัพย์ในกรุงเทพฯ', bangkokNonthaburi: 'ทรัพย์ในนนทบุรี',
+    portLaemChabang: 'ทรัพย์ใกล้ท่าเรือแหลมฉบัง', portMahachai: 'ทรัพย์ใกล้ท่าเรือมหาชัย',
+    portMapTaPhut: 'ทรัพย์ใกล้ท่าเรือมาบตาพุด',
+  },
   form: {
     name: 'ชื่อผู้ติดต่อ', phone: 'เบอร์โทรศัพท์', email: 'อีเมล', company: 'บริษัท / องค์กร',
     message: 'รายละเอียดเพิ่มเติม', submit: 'ส่งความต้องการ', sending: 'กำลังส่ง…',
@@ -441,7 +469,20 @@ const en: Dictionary = {
     namePh: 'Your name', details: 'Additional details',
     detailsPh: 'Tell us more about what you are looking for…', sent: 'Enquiry sent',
   },
-  faq: { searchPlaceholder: 'Search the questions…', noResults: 'No questions match your search', copied: 'Copied', copyQuestion: 'Copy question' },
+  faq: {
+    searchPlaceholder: 'Search the questions…', noResults: 'No questions match your search', copied: 'Copied', copyQuestion: 'Copy question',
+    hero: 'Frequently asked questions', heroSub: 'Answers on renting, buying, paperwork and registering industrial property.',
+    categories: 'Categories', stillStuck: 'Still no answer?', stillStuckSub: 'Our team is happy to work through anything that is not covered here — get in touch.', heroAlt: 'City and industrial district',
+  },
+  titles: {
+    faq: 'Frequently asked questions', listing: 'All properties',
+    factoryRent: 'Factories for rent', factorySale: 'Factories for sale',
+    warehouseRent: 'Warehouses for rent', warehouseSale: 'Warehouses for sale',
+    airportDonmuang: 'Property near Don Mueang Airport', airportSuvarnabhumi: 'Property near Suvarnabhumi Airport',
+    bangkokCbd: 'Property in Bangkok', bangkokNonthaburi: 'Property in Nonthaburi',
+    portLaemChabang: 'Property near Laem Chabang Port', portMahachai: 'Property near Mahachai Port',
+    portMapTaPhut: 'Property near Map Ta Phut Port',
+  },
   form: {
     name: 'Contact name', phone: 'Phone number', email: 'Email', company: 'Company',
     message: 'Additional details', submit: 'Send enquiry', sending: 'Sending…',
@@ -611,7 +652,20 @@ const zh: Dictionary = {
     namePh: '您的姓名', details: '补充说明',
     detailsPh: '请告诉我们更多您的需求…', sent: '已提交需求',
   },
-  faq: { searchPlaceholder: '搜索问题…', noResults: '没有符合搜索条件的问题', copied: '已复制', copyQuestion: '复制问题' },
+  faq: {
+    searchPlaceholder: '搜索问题…', noResults: '没有符合搜索条件的问题', copied: '已复制', copyQuestion: '复制问题',
+    hero: '常见问题', heroSub: '关于租赁、购买、文件与工业地产登记的解答。',
+    categories: '分类', stillStuck: '还没找到答案？', stillStuckSub: '这里没写到的问题，欢迎直接联系我们的团队。', heroAlt: '城市与工业区',
+  },
+  titles: {
+    faq: '常见问题', listing: '全部房源',
+    factoryRent: '厂房出租', factorySale: '厂房出售',
+    warehouseRent: '仓库出租', warehouseSale: '仓库出售',
+    airportDonmuang: '廊曼机场周边房源', airportSuvarnabhumi: '素万那普机场周边房源',
+    bangkokCbd: '曼谷房源', bangkokNonthaburi: '暖武里房源',
+    portLaemChabang: '林查班港周边房源', portMahachai: '马哈猜港周边房源',
+    portMapTaPhut: '马达普港周边房源',
+  },
   form: {
     name: '联系人姓名', phone: '电话号码', email: '电子邮箱', company: '公司名称',
     message: '补充说明', submit: '提交需求', sending: '提交中…',

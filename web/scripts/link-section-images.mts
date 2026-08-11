@@ -34,6 +34,7 @@ const SECTION_IMAGE: Record<string, string> = {
   'about:aw': 'placeholder-award-ceremony.jpg',
   'contact:ch': 'placeholder-city-skyline.jpg',
   'contact:cm': 'placeholder-map-aerial.jpg',
+  'faq:fh': 'placeholder-aerial-logistics.jpg',
 };
 
 /** the four team cards, in the order they appear on the About page */

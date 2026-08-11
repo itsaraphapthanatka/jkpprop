@@ -57,7 +57,7 @@ const TITLE_DESC = (titleLabel: string, descLabel: string): ItemFieldDef[] => [
   { key: 'desc', label: descLabel, kind: 'textarea' },
 ];
 
-export const SECTION_CATALOG: Record<'home' | 'about' | 'contact', SectionDef[]> = {
+export const SECTION_CATALOG: Record<'home' | 'about' | 'contact' | 'faq', SectionDef[]> = {
   home: [
     {
       key: 'h', type: 'hero', name: 'Hero',
@@ -203,6 +203,14 @@ export const SECTION_CATALOG: Record<'home' | 'about' | 'contact', SectionDef[]>
         hint: 'ใส่เฉพาะสื่อที่เคยลงข่าวจริง — ถ้ายังไม่มี ให้ปิดสวิตช์บล็อกนี้แทน',
         fields: [{ key: 'title', label: 'ชื่อสื่อ', kind: 'text', placeholder: 'THE STANDARD' }],
       },
+    },
+  ],
+
+  faq: [
+    {
+      key: 'fh', type: 'hero', name: 'Hero',
+      supports: ['headline', 'sub', 'img'], canDisable: false,
+      desc: 'แถบรูปใหญ่บนสุด — คำถามและคำตอบอยู่ในเมนู CMS › FAQ',
     },
   ],
 
