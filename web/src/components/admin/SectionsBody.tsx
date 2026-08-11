@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { apiGet, apiPut, ApiClientError } from '@/lib/apiClient';
-import { SECTION_CATALOG, sectionDef } from '@/lib/sectionCatalog';
+import { SECTION_CATALOG, sectionDef, type SectionField } from '@/lib/sectionCatalog';
 import type { Locale } from '@/i18n/config';
 
 /* Ported from AdminSections.dc.html <main> — CMS "จัดการ Section หน้าเว็บ".
@@ -212,6 +212,10 @@ export function SectionsBody() {
   const def = sectionDef(page, curKey);
   const spec = def?.items;
   const labelFor = (f: keyof typeof FIELD_LABELS) => def?.labels?.[f] ?? FIELD_LABELS[f];
+  /* Only the inputs this block actually renders. An unknown section (one in
+     the table but not the catalogue) falls back to the full set rather than
+     showing nothing at all. */
+  const has = (f: SectionField) => (def ? def.supports.includes(f) : true);
   const items: Item[] = draft[lang]?.items ?? [];
   const setItems = (next: Item[]) =>
     setDraft((prev) => ({ ...prev, [lang]: { ...(prev[lang] ?? {}), items: next } }));
@@ -357,12 +361,19 @@ export function SectionsBody() {
                     </div>
                     <div style={{ marginTop: 3, fontSize: 12, color: 'var(--muted2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.desc}</div>
                   </div>
+                  {/* no switch on a page's masthead: turning it off does
+                      nothing, because a page with no top is not a state the
+                      site can render */}
+                  {sectionDef(page, sk)?.canDisable === false ? (
+                    <span title="แถบบนสุดปิดไม่ได้" style={{ flexShrink: 0, fontSize: 11, color: 'var(--muted3)', whiteSpace: 'nowrap' }}>ปิดไม่ได้</span>
+                  ) : (
                   <div
                     onClick={(e) => { e.stopPropagation(); setOn((prev) => { const c = prev[sk] !== false; return { ...prev, [sk]: !c }; }); }}
                     style={{ width: 40, height: 23, borderRadius: 9999, flexShrink: 0, cursor: 'pointer', position: 'relative', transition: 'background .2s', background: isOn ? '#0D6C3B' : 'var(--border)' }}
                   >
                     <div style={{ position: 'absolute', top: '2.5px', left: isOn ? '19px' : '2.5px', width: 18, height: 18, borderRadius: 9999, background: '#fff', transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,.2)' }} />
                   </div>
+                  )}
                 </div>
               </div>
             );
@@ -383,6 +394,7 @@ export function SectionsBody() {
             </div>
           )}
           <div className="a-scroll" style={{ maxHeight: 620, overflowY: 'auto', padding: 20 }}>
+            {has('img') && (<>
             <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>รูปพื้นหลัง / รูปประกอบ</label>
             <div style={{ marginTop: 8, position: 'relative', borderRadius: 14, overflow: 'hidden', height: 180, background: 'var(--tint)' }}>
               {/* the draft, so a picked image shows immediately instead of
@@ -422,6 +434,8 @@ export function SectionsBody() {
             </div>
             {picker === 'section' && <MediaPicker items={mediaItems} current={img} onPick={chooseMedia} />}
 
+            </>)}
+
             <div style={{ marginTop: 18, display: 'flex', gap: 6 }}>
               {LANGS.map((l) => (
                 <div
@@ -438,20 +452,30 @@ export function SectionsBody() {
               ))}
             </div>
 
+            {has('eyebrow') && (<>
             <label htmlFor={'sec-f-eyebrow'} style={{ display: 'block', marginTop: 14, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>{labelFor('eyebrow')}</label>
             <input id={'sec-f-eyebrow'} value={field('eyebrow')} onChange={(e) => setField('eyebrow', e.target.value)} style={{ marginTop: 6, width: '100%', height: 40, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none' }} />
+            </>)}
 
+            {has('headline') && (<>
             <label htmlFor={'sec-f-headline'} style={{ display: 'block', marginTop: 14, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>{labelFor('headline')}</label>
             <input id={'sec-f-headline'} value={field('headline')} onChange={(e) => setField('headline', e.target.value)} style={{ marginTop: 6, width: '100%', height: 44, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: '13.5px', fontWeight: 600, background: 'var(--bg)', outline: 'none' }} />
+            </>)}
 
+            {has('sub') && (<>
             <label htmlFor={'sec-f-sub'} style={{ display: 'block', marginTop: 14, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>{labelFor('sub')}</label>
             <textarea id={'sec-f-sub'} value={field('sub')} onChange={(e) => setField('sub', e.target.value)} style={{ marginTop: 6, width: '100%', height: 70, padding: '12px 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none', resize: 'none' }} />
+            </>)}
 
+            {has('cta') && (<>
             <label htmlFor={'sec-f-cta'} style={{ display: 'block', marginTop: 14, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>{labelFor('cta')}</label>
             <input id={'sec-f-cta'} value={field('cta')} onChange={(e) => setField('cta', e.target.value)} style={{ marginTop: 6, width: '100%', height: 40, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none' }} />
+            </>)}
 
+            {has('note') && (<>
             <label htmlFor={'sec-f-note'} style={{ display: 'block', marginTop: 14, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>{labelFor('note')}</label>
             <input id={'sec-f-note'} value={field('note')} onChange={(e) => setField('note', e.target.value)} placeholder="เช่น ชื่อรางวัลและปีที่ได้รับ" style={{ marginTop: 6, width: '100%', height: 40, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none' }} />
+            </>)}
 
             {/* ---- repeating list, for the sections that have one ---- */}
             {spec && (

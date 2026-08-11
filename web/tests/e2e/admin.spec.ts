@@ -394,3 +394,46 @@ test.describe('the CMS screens are reachable and honest', () => {
     await expect(page.locator('#media-file-input')).toHaveCount(1);
   });
 });
+
+test.describe('the editor shows only fields the page renders', () => {
+  /* Every block used to offer six text inputs and an image box regardless of
+     what it rendered. Typing into the wrong one saved fine and changed
+     nothing, with no way to tell which was live. */
+
+  test('the KPI strip offers its figures and nothing it cannot show', async ({ page }) => {
+    await signIn(page, OWNER);
+    await page.goto('/admin/sections?page=home');
+    await page.locator('[data-section-key="wk"]').click();
+    await expect(page.locator('#sec-preview')).toHaveAttribute('data-editing-key', 'wk');
+
+    await expect(page.locator('#sec-f-headline')).toHaveCount(0);
+    await expect(page.locator('#sec-f-sub')).toHaveCount(0);
+    await expect(page.locator('#sec-f-note')).toHaveCount(0);
+    await expect(page.locator('#sec-preview')).not.toContainText('รูปพื้นหลัง');
+    // what it does render
+    await expect(page.locator('#sec-preview')).toContainText('ตัวเลข');
+  });
+
+  test('the team block offers the background image it now renders', async ({ page }) => {
+    await signIn(page, OWNER);
+    await page.goto('/admin/sections?page=about');
+    await page.locator('[data-section-key="as"]').click();
+    await expect(page.locator('#sec-preview')).toHaveAttribute('data-editing-key', 'as');
+    await expect(page.locator('#sec-preview')).toContainText('รูปพื้นหลัง');
+
+    await page.getByPlaceholder('เลือกจากคลังสื่อ หรือวาง URL').fill('/assets/jkp-logo-green.png');
+    await page.getByText('บันทึก section').click();
+    await expect(page.getByText('บันทึกแล้ว')).toBeVisible();
+
+    await page.goto('/th/about');
+    await expect(page.locator('#team-grid img[src="/assets/jkp-logo-green.png"]')).toHaveCount(1);
+  });
+
+  test('a hero says its switch is unavailable instead of drawing a dead one', async ({ page }) => {
+    await signIn(page, OWNER);
+    await page.goto('/admin/sections?page=about');
+    await expect(page.locator('[data-section-key="ah"]')).toContainText('ปิดไม่ได้');
+    // a normal block keeps its switch
+    await expect(page.locator('[data-section-key="aw"]')).not.toContainText('ปิดไม่ได้');
+  });
+});

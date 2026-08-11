@@ -100,7 +100,10 @@ export function CtaBand({ copy }: { copy: SectionCopy }) {
             {pick(copy.eyebrow, d.cta.eyebrow)}
           </div>
           <h2 style={{ margin: '18px 0 0', fontSize: 38, fontWeight: 800, color: '#fff', letterSpacing: '-.01em', lineHeight: 1.22 }}>
-            {d.cta.headline}<span style={{ color: '#2DFB91' }}>{d.cta.headlineAccent}</span>
+            {/* the stock headline is two-tone; a CMS one is shown as written */}
+            {copy.headline
+              ? copy.headline
+              : <>{d.cta.headline}<span style={{ color: '#2DFB91' }}>{d.cta.headlineAccent}</span></>}
           </h2>
           <p style={{ margin: '14px 0 0', fontSize: 15, color: '#B9C2BD', maxWidth: 440, lineHeight: 1.65 }}>
             {pick(copy.sub, d.cta.sub)}

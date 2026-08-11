@@ -123,6 +123,9 @@ export function ContactBody({ copy }: { copy: ContactCopy }) {
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, padding: '26px 28px' }}>
           <RequirementForm />
         </div>
+        {/* the switch in /admin/sections was drawn for this block but never
+            read — turning it off left the map on the page */}
+        {copy.cm.enabled && (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '20px 24px 0', fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>{pick(copy.cm.headline, d.contact.ourLocation)}</div>
           <div style={{ flex: 1, margin: '16px 0 0', minHeight: 280 }}>
@@ -130,6 +133,7 @@ export function ContactBody({ copy }: { copy: ContactCopy }) {
             <img src={copy.cm.img || "https://images.unsplash.com/photo-1524661135-423995f22d0b?w=1000&q=80"} alt="แผนที่ที่ตั้งบริษัท (Google Maps)" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           </div>
         </div>
+        )}
       </div>
     </>
   );

@@ -113,6 +113,17 @@ export function Hero({ copy }: { copy: SectionCopy }) {
 
       <div style={{ position: 'relative', maxWidth: '1200px', margin: '0 auto', padding: '0 24px', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
         <h1 style={{ margin: '0 auto', maxWidth: '760px', fontSize: '44px', lineHeight: 1.2, fontWeight: 700, color: '#FFFFFF' }}>
+          {/* The stock headline is assembled from three dictionary pieces
+              around a rotating property-type word, so there was nothing for a
+              CMS headline to replace and the field was ignored. A headline
+              typed in the editor now wins outright — the rotator goes with it,
+              which is the trade for saying what you want on your own masthead. */}
+          {copy.headline ? (
+            <span style={{ display: 'block', overflow: 'hidden', paddingBottom: '.08em' }}>
+              <span style={{ display: 'inline-block', animation: 'lineUp .85s cubic-bezier(.16,.8,.24,1) both' }}>{copy.headline}</span>
+            </span>
+          ) : (
+          <>
           <span style={{ display: 'block', overflow: 'hidden', paddingBottom: '.08em' }}>
             <span style={{ display: 'inline-block', animation: 'lineUp .85s cubic-bezier(.16,.8,.24,1) both' }}>
               {d.common.search}
@@ -131,6 +142,8 @@ export function Hero({ copy }: { copy: SectionCopy }) {
           <span style={{ display: 'block', overflow: 'hidden', paddingBottom: '.08em' }}>
             <span style={{ display: 'inline-block', animation: 'lineUp .85s cubic-bezier(.16,.8,.24,1) .13s both' }}>{d.hero.headline2}</span>
           </span>
+          </>
+          )}
         </h1>
 
         <p style={{ margin: '16px auto 0', maxWidth: '560px', fontSize: 16, color: '#E8FFF0', animation: 'fadeUp .8s ease .34s both' }}>

@@ -160,6 +160,16 @@ export function AboutBody({ copy }: { copy: AboutCopy }) {
       <section style={{ maxWidth: '1320px', margin: '36px auto 0', padding: '0 24px' }}>
         <div id="team-grid" style={{ display: 'grid', gridTemplateColumns: '.62fr 1.38fr', gap: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 24, overflow: 'hidden' }}>
           <div style={{ position: 'relative', overflow: 'hidden', background: 'linear-gradient(160deg,#0A0E0C 0%,#0A0E0C 45%,#0F2318 100%)', padding: '40px 34px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            {/* The editor offered an image box for this block that went
+                nowhere — the panel was gradient-only. A picture now sits
+                behind it, dimmed so the white text keeps its contrast. */}
+            {copy.as.img && (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={copy.as.img} alt="" aria-hidden style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg,rgba(10,14,12,.92) 0%,rgba(10,14,12,.86) 45%,rgba(15,35,24,.88) 100%)', pointerEvents: 'none' }} />
+              </>
+            )}
             <div style={{ position: 'absolute', top: -60, right: -60, width: 220, height: 220, borderRadius: 9999, background: 'radial-gradient(circle,rgba(45,251,145,.16),rgba(45,251,145,0) 70%)', pointerEvents: 'none' }} />
             <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
               <span style={{ width: 22, height: 2, background: '#2DFB91', borderRadius: 2 }} />

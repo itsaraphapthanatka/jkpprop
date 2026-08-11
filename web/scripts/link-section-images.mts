@@ -30,6 +30,7 @@ const SECTION_IMAGE: Record<string, string> = {
   'home:c': 'placeholder-handshake-cta.jpg',
   'about:ah': 'placeholder-about-hero-aerial.jpg',
   'about:st': 'placeholder-founder-portrait.jpg',
+  'about:as': 'placeholder-team-office.jpg',
   'about:aw': 'placeholder-award-ceremony.jpg',
   'contact:ch': 'placeholder-city-skyline.jpg',
   'contact:cm': 'placeholder-map-aerial.jpg',
