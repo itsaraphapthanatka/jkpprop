@@ -64,7 +64,8 @@ const sectionsCss = `
 `;
 
 /* GET /api/sections item — same table the Page Builder writes */
-type Block = { eyebrow?: string; headline?: string; sub?: string; cta?: string };
+type Item = { title?: string; desc?: string; role?: string; img?: string };
+type Block = { eyebrow?: string; headline?: string; sub?: string; cta?: string; note?: string; items?: Item[] };
 type ApiSection = {
   key: string; name: string; desc: string; enabled: boolean; img: string | null;
   content: Record<string, Block>;
@@ -72,6 +73,96 @@ type ApiSection = {
 const LANGS: { key: Locale; label: string }[] = [
   { key: 'th', label: 'ไทย' }, { key: 'en', label: 'EN' }, { key: 'zh', label: '中文' },
 ];
+
+/* Sections that hold a repeating list, and what one row of it looks like.
+ *
+ * Keyed `page:sectionKey` so the same short key on two pages cannot collide.
+ * A section missing from here simply has no list editor — that is how a plain
+ * headline-and-copy block stays plain. */
+type ItemField = { key: keyof Item; label: string; kind: 'text' | 'textarea' | 'image'; placeholder?: string };
+type ItemSpec = { title: string; hint: string; rowLabel: string; max: number; fields: ItemField[] };
+
+const ITEM_SPECS: Record<string, ItemSpec> = {
+  'about:st': {
+    title: 'ตัวเลขสถิติ', rowLabel: 'ตัวเลข', max: 4,
+    hint: 'แถวตัวเลขใต้เรื่องราวของเรา — เว้นว่างทั้งหมดจะใช้ค่าตั้งต้น',
+    fields: [
+      { key: 'title', label: 'ตัวเลข', kind: 'text', placeholder: '2019' },
+      { key: 'desc', label: 'คำอธิบาย', kind: 'text', placeholder: 'ก่อตั้ง' },
+    ],
+  },
+  'about:pl': {
+    title: 'จุดแข็ง', rowLabel: 'จุดแข็ง', max: 6,
+    hint: 'การ์ดเรียงกันใต้เส้นคั่นในกล่องเรื่องราวของเรา',
+    fields: [
+      { key: 'title', label: 'หัวข้อ', kind: 'text' },
+      { key: 'desc', label: 'คำอธิบาย', kind: 'textarea' },
+    ],
+  },
+  'about:as': {
+    title: 'รายชื่อทีมงาน', rowLabel: 'คน', max: 24,
+    hint: 'การ์ดในแถบเลื่อน — ชื่อและรูปใช้ร่วมกันทุกภาษาถ้าไม่กรอกซ้ำ',
+    fields: [
+      { key: 'title', label: 'ชื่อ', kind: 'text', placeholder: 'คุณสมชาย ใจดี' },
+      { key: 'role', label: 'ตำแหน่ง', kind: 'text', placeholder: 'Sales Executive' },
+      { key: 'img', label: 'รูป', kind: 'image' },
+    ],
+  },
+  'about:pr': {
+    title: 'ชื่อสื่อที่นำเสนอ', rowLabel: 'สื่อ', max: 12,
+    hint: 'ใส่เฉพาะสื่อที่เคยลงข่าวจริง — ถ้ายังไม่มี ให้ปิดสวิตช์ section นี้แทน',
+    fields: [{ key: 'title', label: 'ชื่อสื่อ', kind: 'text', placeholder: 'THE STANDARD' }],
+  },
+};
+
+/* What each block actually is, for the list on the left. The seeded rows have
+   an empty `desc`, and "Hero" alone does not tell anyone which strip of the
+   page they are about to change. Shown only when the row has no desc of its
+   own, so anything typed in the Page Builder still wins. */
+const SECTION_HINTS: Record<string, string> = {
+  'about:ah': 'แถบรูปใหญ่บนสุด — หัวข้อ + คำโปรย',
+  'about:st': 'กล่องขาว: เรื่องราว + ตัวเลขสถิติ + รูปผู้ก่อตั้ง',
+  'about:pl': 'จุดแข็งเรียงกันใต้เส้นคั่นในกล่องเรื่องราว',
+  'about:as': 'แถบดำ + การ์ดทีมงานเลื่อนซ้ายขวา',
+  'about:aw': 'กล่องรางวัล — รูปซ้าย ข้อความขวา',
+  'about:pr': 'โลโก้/ชื่อสื่อ ท้ายหน้า',
+  'contact:ch': 'แถบรูปใหญ่บนสุดของหน้าติดต่อ',
+  'contact:cm': 'แผนที่ + ช่องทางติดต่อ',
+};
+
+const rowBtn = (disabled: boolean): React.CSSProperties => ({
+  width: 24, height: 24, borderRadius: 7, border: '1px solid var(--border)',
+  background: 'var(--surface)', color: 'var(--muted2)', display: 'flex',
+  alignItems: 'center', justifyContent: 'center',
+  cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.35 : 1, padding: 0,
+});
+
+/* The same grid of uploaded images, wherever an image is being chosen —
+   the section background, or one row of the list editor. */
+function MediaPicker({ items, current, onPick }: { items: { id: string; src: string; name: string }[]; current: string; onPick: (src: string) => void }) {
+  return (
+    <div style={{ marginTop: 8, padding: 10, borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', maxHeight: 220, overflowY: 'auto' }}>
+      {items.length === 0 ? (
+        <div style={{ fontSize: 12, color: 'var(--muted2)', padding: 8 }}>ยังไม่มีรูปในคลัง — อัปโหลดที่หน้า “คลังสื่อ” ก่อน</div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+          {items.map((m) => (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              key={m.id}
+              src={m.src}
+              alt={m.name}
+              onClick={() => onPick(m.src)}
+              style={{ width: '100%', height: 64, objectFit: 'cover', borderRadius: 8, cursor: 'pointer', border: current === m.src ? '2px solid #0D6C3B' : '1px solid var(--border)' }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const isPageKey = (v: string): v is PageKey => PAGE_TABS.some((p) => p.key === v);
 
 export function SectionsBody() {
   const [page, setPage] = React.useState<PageKey>('home');
@@ -86,10 +177,30 @@ export function SectionsBody() {
   const [lang, setLang] = React.useState<Locale>('th');
   const [draft, setDraft] = React.useState<Record<string, Block>>({});
   const [img, setImg] = React.useState<string>('');
-  const [pickerOpen, setPickerOpen] = React.useState(false);
+  /* which field the media picker will write into: the section image, or the
+     `img` of one row in the list editor */
+  const [picker, setPicker] = React.useState<'section' | number | null>(null);
   const [mediaItems, setMediaItems] = React.useState<{ id: string; src: string; name: string }[]>([]);
   const [saving, setSaving] = React.useState(false);
   const [notice, setNotice] = React.useState('');
+
+  /* `?page=about` opens on that tab, so a link to one page's sections lands
+     where it says it does. Applied after mount rather than as the initial
+     state: the server renders this component too, and it only knows 'home',
+     so seeding from the URL up front would be a hydration mismatch. */
+  React.useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get('page') ?? '';
+    if (isPageKey(p)) setPage(p);
+  }, []);
+
+  // keep the address bar on the tab being edited, so the page can be linked
+  const openPage = (p: PageKey) => {
+    setPage(p);
+    setSelected(0);
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', p);
+    window.history.replaceState(null, '', url);
+  };
 
   React.useEffect(() => {
     let alive = true;
@@ -107,7 +218,7 @@ export function SectionsBody() {
   const list: Section[] = apiList
     ? apiList.map((s) => ({
       name: s.name,
-      desc: s.desc,
+      desc: s.desc || SECTION_HINTS[`${page}:${s.key}`] || '',
       img: s.img ?? undefined,
       noImage: !s.img,
       headline: s.content?.th?.headline ?? s.name,
@@ -124,23 +235,59 @@ export function SectionsBody() {
     setImg(curApi?.img ?? '');
   }, [curApi]);
 
-  const field = (name: keyof Block) => draft[lang]?.[name] ?? '';
-  const setField = (name: keyof Block, v: string) =>
+  const field = (name: 'eyebrow' | 'headline' | 'sub' | 'cta' | 'note') => draft[lang]?.[name] ?? '';
+  const setField = (name: 'eyebrow' | 'headline' | 'sub' | 'cta' | 'note', v: string) =>
     setDraft((prev) => ({ ...prev, [lang]: { ...(prev[lang] ?? {}), [name]: v } }));
 
-  const openPicker = async () => {
-    setPickerOpen(true);
+  /* ---- the repeating list, when this section has one ---------------------- */
+  const spec = ITEM_SPECS[`${page}:${curKey}`];
+  const items: Item[] = draft[lang]?.items ?? [];
+  const setItems = (next: Item[]) =>
+    setDraft((prev) => ({ ...prev, [lang]: { ...(prev[lang] ?? {}), items: next } }));
+  const setItemField = (i: number, name: keyof Item, v: string) =>
+    setItems(items.map((it, n) => (n === i ? { ...it, [name]: v } : it)));
+  const addItem = () => setItems([...items, {}]);
+  const removeItem = (i: number) => setItems(items.filter((_, n) => n !== i));
+  const moveItem = (i: number, dir: -1 | 1) => {
+    const to = i + dir;
+    if (to < 0 || to >= items.length) return;
+    const next = [...items];
+    [next[i], next[to]] = [next[to], next[i]];
+    setItems(next);
+  };
+  /* a locale with nothing in it should not save an empty `items: []`, or the
+     strict reader would treat it as "deliberately blank" and hide the
+     dictionary default */
+  const hasCopy = (b?: Block) =>
+    !!(b && (b.eyebrow || b.headline || b.sub || b.cta || b.note || (b.items?.length && b.items.some((it) => it.title || it.desc || it.role || it.img))));
+
+  const openPicker = async (target: 'section' | number) => {
+    setPicker(target);
     if (mediaItems.length) return;
     try {
       const r = await apiGet<{ items: { id: string; src: string; name: string }[] }>('/api/media');
       setMediaItems(Array.isArray(r.items) ? r.items : []);
     } catch { setMediaItems([]); }
   };
+  const chooseMedia = (src: string) => {
+    if (picker === 'section') setImg(src);
+    else if (typeof picker === 'number') setItemField(picker, 'img', src);
+    setPicker(null);
+  };
 
   const saveSection = async () => {
     if (!apiList || saving) return;
     setSaving(true);
     setNotice('');
+
+    /* drop rows the editor left blank — an "add" the user never filled in
+       should not become an empty card on the public page */
+    const cleaned: Record<string, Block> = {};
+    for (const [loc, block] of Object.entries(draft)) {
+      const rows = (block.items ?? []).filter((it) => it.title || it.desc || it.role || it.img);
+      cleaned[loc] = block.items ? { ...block, items: rows } : block;
+    }
+
     try {
       await apiPut('/api/sections', {
         page,
@@ -148,9 +295,13 @@ export function SectionsBody() {
           key: s.key, name: s.name, desc: s.desc,
           enabled: on[s.key] !== false,
           img: s.key === curKey ? (img || null) : s.img,
-          content: s.key === curKey ? draft : s.content,
+          // only the edited section sends content; the server merges the rest
+          content: s.key === curKey ? cleaned : undefined,
         })),
       });
+      /* keep the in-memory list in step with what was just written, so a
+         second save does not push the pre-edit content back up */
+      setApiList((prev) => prev && prev.map((s) => (s.key === curKey ? { ...s, img: img || null, content: cleaned } : s)));
       setNotice('บันทึกแล้ว');
       window.setTimeout(() => setNotice(''), 1800);
     } catch (e) {
@@ -168,7 +319,7 @@ export function SectionsBody() {
           return (
             <div
               key={p.key}
-              onClick={() => { setPage(p.key); setSelected(0); }}
+              onClick={() => openPage(p.key)}
               style={{ height: 32, padding: '0 15px', borderRadius: 9999, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap', background: active ? '#273c33' : 'transparent', color: active ? '#fff' : 'var(--muted)' }}
             >{p.label}</div>
           );
@@ -202,7 +353,7 @@ export function SectionsBody() {
               boxShadow: i === selected ? '0 8px 20px rgba(13,108,59,.1)' : undefined,
             };
             return (
-              <div key={sk} onClick={() => setSelected(i)} style={cardStyle}>
+              <div key={sk} data-section-key={sk} onClick={() => setSelected(i)} style={cardStyle}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                   <div style={{ color: 'var(--muted3)', cursor: 'grab', flexShrink: 0 }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="6" r="1" /><circle cx="15" cy="6" r="1" /><circle cx="9" cy="12" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="9" cy="18" r="1" /><circle cx="15" cy="18" r="1" /></svg>
@@ -241,7 +392,7 @@ export function SectionsBody() {
         </div>
 
         {/* EDIT PANEL */}
-        <div id="sec-preview" style={{ position: 'sticky', top: 88, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, overflow: 'hidden' }}>
+        <div id="sec-preview" data-editing-key={curKey} style={{ position: 'sticky', top: 88, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, overflow: 'hidden' }}>
           <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)' }}>
             <div style={{ fontSize: '11.5px', color: 'var(--muted2)' }}>กำลังแก้ section</div>
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>{cur.name}</div>
@@ -284,28 +435,9 @@ export function SectionsBody() {
                 placeholder="เลือกจากคลังสื่อ หรือวาง URL"
                 style={{ flex: 1, height: 44, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none' }}
               />
-              <div onClick={openPicker} style={{ height: 44, padding: '0 16px', borderRadius: 11, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>เลือกรูป</div>
+              <div onClick={() => openPicker('section')} style={{ height: 44, padding: '0 16px', borderRadius: 11, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>เลือกรูป</div>
             </div>
-            {pickerOpen && (
-              <div style={{ marginTop: 8, padding: 10, borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', maxHeight: 220, overflowY: 'auto' }}>
-                {mediaItems.length === 0 ? (
-                  <div style={{ fontSize: 12, color: 'var(--muted2)', padding: 8 }}>ยังไม่มีรูปในคลัง — อัปโหลดที่หน้า “คลังสื่อ” ก่อน</div>
-                ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-                    {mediaItems.map((m) => (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        key={m.id}
-                        src={m.src}
-                        alt={m.name}
-                        onClick={() => { setImg(m.src); setPickerOpen(false); }}
-                        style={{ width: '100%', height: 64, objectFit: 'cover', borderRadius: 8, cursor: 'pointer', border: img === m.src ? '2px solid #0D6C3B' : '1px solid var(--border)' }}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+            {picker === 'section' && <MediaPicker items={mediaItems} current={img} onPick={chooseMedia} />}
 
             <div style={{ marginTop: 18, display: 'flex', gap: 6 }}>
               {LANGS.map((l) => (
@@ -316,7 +448,7 @@ export function SectionsBody() {
                 >
                   {l.label}
                   {/* a dot marks a language that already has copy */}
-                  {(draft[l.key]?.headline || draft[l.key]?.sub) && (
+                  {hasCopy(draft[l.key]) && (
                     <span style={{ width: 5, height: 5, borderRadius: 9999, background: lang === l.key ? '#2DFB91' : '#0D6C3B' }} />
                   )}
                 </div>
@@ -334,6 +466,81 @@ export function SectionsBody() {
 
             <label style={{ display: 'block', marginTop: 14, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>ข้อความปุ่ม / บรรทัดเสริม (CTA)</label>
             <input value={field('cta')} onChange={(e) => setField('cta', e.target.value)} style={{ marginTop: 6, width: '100%', height: 40, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none' }} />
+
+            <label style={{ display: 'block', marginTop: 14, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>บรรทัดเล็กใต้คำโปรย</label>
+            <input value={field('note')} onChange={(e) => setField('note', e.target.value)} placeholder="เช่น ชื่อรางวัลและปีที่ได้รับ" style={{ marginTop: 6, width: '100%', height: 40, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none' }} />
+
+            {/* ---- repeating list, for the sections that have one ---- */}
+            {spec && (
+              <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>{spec.title}</span>
+                  <span style={{ fontSize: 11, color: 'var(--muted3)' }}>{items.length}/{spec.max}</span>
+                </div>
+                <div style={{ marginTop: 4, fontSize: 11, color: 'var(--muted2)', lineHeight: 1.5 }}>{spec.hint}</div>
+
+                <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {items.map((it, i) => (
+                    <div key={i} style={{ padding: 12, borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted2)' }}>{spec.rowLabel} {i + 1}</span>
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          <button type="button" aria-label="เลื่อนขึ้น" disabled={i === 0} onClick={() => moveItem(i, -1)} style={rowBtn(i === 0)}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M6 15l6-6 6 6" /></svg>
+                          </button>
+                          <button type="button" aria-label="เลื่อนลง" disabled={i === items.length - 1} onClick={() => moveItem(i, 1)} style={rowBtn(i === items.length - 1)}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M6 9l6 6 6-6" /></svg>
+                          </button>
+                          <button type="button" aria-label="ลบ" onClick={() => removeItem(i)} style={{ ...rowBtn(false), color: '#B4231F' }}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M5 7h14M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
+                          </button>
+                        </div>
+                      </div>
+                      {spec.fields.map((f) => (
+                        <div key={f.key} style={{ marginTop: 6 }}>
+                          <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)' }}>{f.label}</label>
+                          {f.kind === 'textarea' ? (
+                            <textarea
+                              value={it[f.key] ?? ''} placeholder={f.placeholder}
+                              onChange={(e) => setItemField(i, f.key, e.target.value)}
+                              style={{ marginTop: 4, width: '100%', height: 56, padding: '9px 12px', borderRadius: 10, border: '1px solid var(--border)', fontSize: '12.5px', background: 'var(--surface)', outline: 'none', resize: 'none' }}
+                            />
+                          ) : f.kind === 'image' ? (
+                            <>
+                              <div style={{ marginTop: 4, display: 'flex', gap: 6, alignItems: 'center' }}>
+                                {it.img && (
+                                  /* eslint-disable-next-line @next/next/no-img-element */
+                                  <img src={it.img} alt="" style={{ width: 38, height: 38, borderRadius: 8, objectFit: 'cover', flexShrink: 0, border: '1px solid var(--border)' }} />
+                                )}
+                                <input
+                                  value={it.img ?? ''} placeholder="เลือกจากคลังสื่อ หรือวาง URL"
+                                  onChange={(e) => setItemField(i, 'img', e.target.value)}
+                                  style={{ flex: 1, minWidth: 0, height: 38, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', fontSize: '12.5px', background: 'var(--surface)', outline: 'none' }}
+                                />
+                                <div onClick={() => openPicker(i)} style={{ height: 38, padding: '0 12px', borderRadius: 10, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>เลือก</div>
+                              </div>
+                              {picker === i && <MediaPicker items={mediaItems} current={it.img ?? ''} onPick={chooseMedia} />}
+                            </>
+                          ) : (
+                            <input
+                              value={it[f.key] ?? ''} placeholder={f.placeholder}
+                              onChange={(e) => setItemField(i, f.key, e.target.value)}
+                              style={{ marginTop: 4, width: '100%', height: 38, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', fontSize: '12.5px', background: 'var(--surface)', outline: 'none' }}
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+
+                {items.length < spec.max && (
+                  <div onClick={addItem} style={{ marginTop: 10, height: 40, borderRadius: 11, border: '1.5px dashed var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: '12.5px', fontWeight: 700, color: 'var(--accent)', cursor: 'pointer' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M12 5v14M5 12h14" /></svg>เพิ่ม{spec.rowLabel}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div style={{ marginTop: 16, padding: '14px 16px', borderRadius: 12, background: 'var(--tint)', display: 'flex', alignItems: 'center', gap: 10 }}>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9" style={{ flexShrink: 0 }}><path d="M12 2a7 7 0 00-7 7c0 2.4 1.2 4.2 2.5 5.3.4.3.5.8.5 1.2v1c0 .8.7 1.5 1.5 1.5h5c.8 0 1.5-.7 1.5-1.5v-1c0-.4.1-.9.5-1.2C17.8 13.2 19 11.4 19 9a7 7 0 00-7-7z" /><path d="M10 22h4" /></svg>

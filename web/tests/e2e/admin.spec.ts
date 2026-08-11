@@ -142,3 +142,98 @@ test.describe('API reference', () => {
     await expect(page.locator('#try-response')).toContainText('owner');
   });
 });
+
+test.describe('page sections', () => {
+  /* The loop the marketing team actually uses: type into /admin/sections,
+     reload the public page, see the change. It was broken end-to-end for a
+     long time — the editor wrote to the database and nothing read it back —
+     so this covers the whole circuit rather than either half. */
+  const NAME = 'คุณทดสอบ อีทูอี';
+  const AWARD = 'รางวัลทดสอบ e2e 2569';
+
+  /* Selecting a card is not enough to start typing: the list arrives from the
+     API and resets the selection to the first section when it lands, so a
+     click that beats the response is silently undone. Wait for the edit panel
+     to say which section it is actually on. */
+  async function openAboutSection(page: Page, key: string) {
+    await page.goto('/admin/sections?page=about');
+    await expect(page.locator('[data-section-key="ah"]')).toBeVisible();
+    await expect(page.locator('#sec-preview')).toHaveAttribute('data-editing-key', 'ah');
+    await page.locator(`[data-section-key="${key}"]`).click();
+    await expect(page.locator('#sec-preview')).toHaveAttribute('data-editing-key', key);
+  }
+
+  const save = async (page: Page) => {
+    await page.getByText('บันทึก section').click();
+    await expect(page.getByText('บันทึกแล้ว')).toBeVisible();
+  };
+
+  /* Straight to the table rather than through a test-only endpoint: the
+     suite runs against the production build, and a reset route that only
+     exists for tests is a reset route that ships. */
+  test.afterEach(async () => {
+    const { PrismaClient } = await import('@prisma/client');
+    const db = new PrismaClient();
+    await db.pageSection.updateMany({ where: { pageKey: 'about' }, data: { content: {}, enabled: true } });
+    await db.$disconnect();
+  });
+
+  test('a team member added in the CMS appears on the public page', async ({ page }) => {
+    await signIn(page, OWNER);
+    await openAboutSection(page, 'as');
+
+    await page.getByText('เพิ่มคน').click();
+    await page.getByPlaceholder('คุณสมชาย ใจดี').fill(NAME);
+    await page.getByPlaceholder('Sales Executive').fill('QA');
+    await save(page);
+
+    await page.goto('/th/about');
+    await expect(page.getByText(NAME)).toBeVisible();
+
+    // a name is a name in every language, so it carries over untranslated
+    await page.goto('/en/about');
+    await expect(page.getByText(NAME)).toBeVisible();
+  });
+
+  test('a stat row entered in one language leaves the others on their own defaults', async ({ page }) => {
+    await signIn(page, OWNER);
+    await openAboutSection(page, 'st');
+
+    await page.getByText('เพิ่มตัวเลข').click();
+    await page.getByPlaceholder('2019').fill('2562');
+    await page.getByPlaceholder('ก่อตั้ง').fill('ปีที่ก่อตั้ง');
+    await save(page);
+
+    await page.goto('/th/about');
+    await expect(page.locator('#stats-row')).toContainText('2562');
+
+    /* Chinese was never filled in, so it keeps the translated default rather
+       than showing Thai — the opposite of what a naive fallback would do. */
+    await page.goto('/zh/about');
+    await expect(page.locator('#stats-row')).not.toContainText('ปีที่ก่อตั้ง');
+    await expect(page.locator('#stats-row')).toContainText('成立年份');
+  });
+
+  test('the award line is blank until someone fills it in, and the publish switch hides a section', async ({ page }) => {
+    await signIn(page, OWNER);
+
+    // nothing seeded, so the invented award name is simply absent
+    await page.goto('/th/about');
+    await expect(page.locator('#award-grid')).not.toContainText('2025');
+
+    await openAboutSection(page, 'aw');
+    await page.getByPlaceholder('เช่น ชื่อรางวัลและปีที่ได้รับ').fill(AWARD);
+    await save(page);
+
+    await page.goto('/th/about');
+    await expect(page.locator('#award-grid')).toContainText(AWARD);
+
+    // switching the section off takes it off the page without a deploy
+    await openAboutSection(page, 'aw');
+    await page.locator('[data-section-key="aw"] div[style*="border-radius: 9999px"]').last().click();
+    await save(page);
+
+    await page.goto('/th/about');
+    await expect(page.locator('#award-grid')).toHaveCount(0);
+  });
+});

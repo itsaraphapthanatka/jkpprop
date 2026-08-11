@@ -13,9 +13,13 @@ import type { SectionCopy } from '@/lib/server/sectionCopy';
 
 /* Every block on this page is editable in /admin/sections. What ships in the
    dictionary is the default: a field left blank in the CMS falls back to it,
-   so an untouched install reads exactly as before. Team members and press
-   logos are `items` on their section — they are staff names and mastheads,
-   which belong in the database, not in a component. */
+   so an untouched install reads exactly as before. Team members, press logos,
+   pillars and the stat row are `items` on their section — they are staff
+   names, mastheads and figures, which belong in the database, not in a
+   component. The publish switch on each section is honoured here too, so a
+   claim the company cannot stand behind can be taken off the page without a
+   deploy. The hero is the one block with no switch: a page whose masthead can
+   be turned off has no top. */
 export type AboutCopy = {
   ah: SectionCopy; st: SectionCopy; pl: SectionCopy;
   as: SectionCopy; aw: SectionCopy; pr: SectionCopy;
@@ -33,13 +37,24 @@ export function AboutBody({ copy }: { copy: AboutCopy }) {
   const d = useDict();
   const pick = (v: string, fallback: string) => v || fallback;
 
+  /* pillars and the stat captions are prose, so they use the strict `items`
+     and fall back to the translated dictionary rather than to Thai; names,
+     photos and mastheads read the same in every language, so they use
+     `itemsAny` and the team only enters them once */
   const pillars = (copy.pl.items.length ? copy.pl.items : d.about.pillars).map((it, i) => ({
     num: String(i + 1).padStart(2, '0'),
     title: it.title ?? '',
     desc: it.desc ?? '',
   }));
-  const team = copy.as.items.length ? copy.as.items : DEFAULT_TEAM;
-  const pressLogos = copy.pr.items.length ? copy.pr.items.map((i) => i.title ?? '') : DEFAULT_PRESS;
+  const team = copy.as.itemsAny.length ? copy.as.itemsAny : DEFAULT_TEAM;
+  const pressLogos = copy.pr.itemsAny.length ? copy.pr.itemsAny.map((i) => i.title ?? '') : DEFAULT_PRESS;
+  const stats = copy.st.items.length
+    ? copy.st.items.map((it) => ({ value: it.title ?? '', label: it.desc ?? '' }))
+    : [
+      { value: '2019', label: d.about.statFounded },
+      { value: '2,000+', label: d.about.statListings },
+      { value: `12${d.whyUs.years}`, label: d.about.statTeamYears },
+    ];
   const teamRef = useRef<HTMLDivElement | null>(null);
   const scroll = (dx: number) => teamRef.current && teamRef.current.scrollBy({ left: dx, behavior: 'smooth' });
 
@@ -86,6 +101,7 @@ export function AboutBody({ copy }: { copy: AboutCopy }) {
       </div>
 
       {/* STORY CARD */}
+      {copy.st.enabled && (
       <section style={{ maxWidth: '1320px', margin: '24px auto 0', padding: '0 24px' }}>
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 24, padding: 44, boxShadow: '0 2px 10px rgba(0,0,0,.04)' }}>
           <div id="story-grid" style={{ display: 'grid', gridTemplateColumns: '1.15fr .85fr', gap: 44, alignItems: 'start' }}>
@@ -98,18 +114,12 @@ export function AboutBody({ copy }: { copy: AboutCopy }) {
               <div style={{ fontSize: '13.5px', color: 'var(--muted2)' }}>{d.about.storyCaption}</div>
               <p style={{ margin: '18px 0 0', fontSize: '14.5px', color: 'var(--muted)', lineHeight: 1.8 }}>{pick(copy.st.sub, d.about.storyBody)}</p>
               <div id="stats-row" style={{ display: 'flex', gap: 36, marginTop: 28 }}>
-                <div>
-                  <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--accent)' }}>2019</div>
-                  <div style={{ marginTop: 2, fontSize: '12.5px', color: 'var(--muted2)' }}>{d.about.statFounded}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--accent)' }}>2,000+</div>
-                  <div style={{ marginTop: 2, fontSize: '12.5px', color: 'var(--muted2)' }}>{d.about.statListings}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--accent)' }}>{12 + d.whyUs.years}</div>
-                  <div style={{ marginTop: 2, fontSize: '12.5px', color: 'var(--muted2)' }}>{d.about.statTeamYears}</div>
-                </div>
+                {stats.map((s) => (
+                  <div key={s.label + s.value}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--accent)' }}>{s.value}</div>
+                    <div style={{ marginTop: 2, fontSize: '12.5px', color: 'var(--muted2)' }}>{s.label}</div>
+                  </div>
+                ))}
               </div>
               <Link href="/contact" onMouseEnter={liftEnter('0 10px 24px rgba(39,60,51,.4)')} onMouseLeave={liftLeave} style={{ marginTop: 26, display: 'inline-flex', alignItems: 'center', gap: 8, height: 46, padding: '0 24px', borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: 14, fontWeight: 700, transition: 'transform .2s,box-shadow .2s' }}>
                 {d.nav.contact}
@@ -130,19 +140,23 @@ export function AboutBody({ copy }: { copy: AboutCopy }) {
             </div>
           </div>
 
-          <div className="rs-cols-3" id="about-pillars" style={{ marginTop: 36, paddingTop: 32, borderTop: '1px solid var(--border)', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 28 }}>
-            {pillars.map((p) => (
-              <div key={p.num}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted3)' }}>{p.num}</div>
-                <div style={{ marginTop: 6, fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{p.title}</div>
-                <div style={{ marginTop: 4, fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>{p.desc}</div>
-              </div>
-            ))}
-          </div>
+          {copy.pl.enabled && (
+            <div className="rs-cols-3" id="about-pillars" style={{ marginTop: 36, paddingTop: 32, borderTop: '1px solid var(--border)', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 28 }}>
+              {pillars.map((p) => (
+                <div key={p.num}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted3)' }}>{p.num}</div>
+                  <div style={{ marginTop: 6, fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{p.title}</div>
+                  <div style={{ marginTop: 4, fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>{p.desc}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
+      )}
 
       {/* TEAM */}
+      {copy.as.enabled && (
       <section style={{ maxWidth: '1320px', margin: '36px auto 0', padding: '0 24px' }}>
         <div id="team-grid" style={{ display: 'grid', gridTemplateColumns: '.62fr 1.38fr', gap: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 24, overflow: 'hidden' }}>
           <div style={{ position: 'relative', overflow: 'hidden', background: 'linear-gradient(160deg,#0A0E0C 0%,#0A0E0C 45%,#0F2318 100%)', padding: '40px 34px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -179,13 +193,15 @@ export function AboutBody({ copy }: { copy: AboutCopy }) {
           </div>
         </div>
       </section>
+      )}
 
       {/* AWARD */}
+      {copy.aw.enabled && (
       <section style={{ maxWidth: '1320px', margin: '36px auto 0', padding: '0 24px' }}>
         <div id="award-grid" style={{ display: 'grid', gridTemplateColumns: '.85fr 1.15fr', gap: 0, background: 'var(--bg2)', borderRadius: 24, overflow: 'hidden' }}>
           <div style={{ position: 'relative' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=800&q=80" alt="รูปรับรางวัล" style={{ width: '100%', height: '100%', minHeight: 280, objectFit: 'cover', display: 'block' }} />
+            <img src={copy.aw.img || "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=800&q=80"} alt={pick(copy.aw.headline, d.about.awardHeading)} style={{ width: '100%', height: '100%', minHeight: 280, objectFit: 'cover', display: 'block' }} />
           </div>
           <div style={{ padding: '40px 44px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -194,7 +210,11 @@ export function AboutBody({ copy }: { copy: AboutCopy }) {
             </div>
             <h2 style={{ margin: '10px 0 0', fontSize: 26, fontWeight: 800, color: 'var(--text)', letterSpacing: '-.01em' }}>{pick(copy.aw.headline, d.about.awardHeading)}</h2>
             <p style={{ margin: '14px 0 0', fontSize: 14, color: 'var(--muted)', lineHeight: 1.75 }}>{pick(copy.aw.sub, d.about.awardBody)}</p>
-            <div style={{ marginTop: 10, fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>Thailand Real Estate Agent Awards 2025</div>
+            {/* the award's own name — blank in the CMS means the line is not
+                rendered at all, rather than showing a placeholder trophy */}
+            {copy.aw.note && (
+              <div style={{ marginTop: 10, fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>{copy.aw.note}</div>
+            )}
             <a href="#" onMouseEnter={liftEnter('0 10px 24px rgba(0,0,0,.28)')} onMouseLeave={liftLeave} style={{ marginTop: 18, display: 'inline-flex', alignItems: 'center', gap: 8, height: 44, padding: '0 22px', borderRadius: 9999, background: 'var(--text)', color: '#fff', fontSize: '13.5px', fontWeight: 700, width: 'fit-content', transition: 'transform .2s,box-shadow .2s' }}>
               {pick(copy.aw.cta, d.about.awardEyebrow)}
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
@@ -202,8 +222,10 @@ export function AboutBody({ copy }: { copy: AboutCopy }) {
           </div>
         </div>
       </section>
+      )}
 
       {/* FEATURED IN */}
+      {copy.pr.enabled && (
       <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '72px 24px', textAlign: 'center' }}>
         <div style={{ fontSize: '12.5px', fontWeight: 700, letterSpacing: '.06em', color: 'var(--muted2)', textTransform: 'uppercase' }}>{pick(copy.pr.eyebrow, d.about.pressEyebrow)}</div>
         <h2 style={{ margin: '8px 0 32px', fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>{pick(copy.pr.headline, d.about.pressHeading)}</h2>
@@ -213,6 +235,7 @@ export function AboutBody({ copy }: { copy: AboutCopy }) {
           ))}
         </div>
       </section>
+      )}
     </>
   );
 }

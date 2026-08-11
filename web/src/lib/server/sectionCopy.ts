@@ -26,14 +26,19 @@ export type SectionCopy = {
   headline: string;
   sub: string;
   cta: string;
+  /** small line under the body copy — award name, caption, disclaimer */
+  note: string;
   img: string | null;
   enabled: boolean;
+  /** items entered for THIS locale only — use for anything that reads as prose */
   items: SectionItem[];
+  /** items for this locale, else the Thai ones — use for names, photos, logos */
+  itemsAny: SectionItem[];
 };
 
 export type PageCopy = Record<string, SectionCopy>;
 
-const EMPTY: SectionCopy = { eyebrow: '', headline: '', sub: '', cta: '', img: null, enabled: true, items: [] };
+const EMPTY: SectionCopy = { eyebrow: '', headline: '', sub: '', cta: '', note: '', img: null, enabled: true, items: [], itemsAny: [] };
 
 type Block = Partial<Record<keyof SectionCopy, unknown>>;
 
@@ -49,8 +54,17 @@ function pick(content: Record<string, Block>, locale: Locale, field: string): st
   return typeof here === 'string' ? here.trim() : '';
 }
 
-function pickItems(content: Record<string, Block>, locale: Locale): SectionItem[] {
-  const raw = content[locale]?.items ?? content[DEFAULT_LOCALE]?.items;
+/* Two readings of the same list, because `items` carries two kinds of thing.
+ *
+ * A pillar heading or a stat caption is prose: showing the Thai one to an
+ * English reader is worse than the translated default that ships in the
+ * dictionary, so `items` stays strict like the text fields above. A staff
+ * name, a photo or a newspaper masthead is not prose — it is the same in
+ * every language — so `itemsAny` falls back to Thai and spares the team from
+ * retyping the roster three times. Each component picks the one that fits. */
+function pickItems(content: Record<string, Block>, locale: Locale, fallback: boolean): SectionItem[] {
+  const own = content[locale]?.items;
+  const raw = Array.isArray(own) && own.length ? own : fallback ? content[DEFAULT_LOCALE]?.items : undefined;
   if (!Array.isArray(raw)) return [];
   return raw
     .filter((x): x is Record<string, unknown> => !!x && typeof x === 'object')
@@ -74,9 +88,11 @@ export async function loadPageCopy(pageKey: string, locale: Locale): Promise<Pag
       headline: pick(content, locale, 'headline'),
       sub: pick(content, locale, 'sub'),
       cta: pick(content, locale, 'cta'),
+      note: pick(content, locale, 'note'),
       img: row.img || null,
       enabled: row.enabled,
-      items: pickItems(content, locale),
+      items: pickItems(content, locale, false),
+      itemsAny: pickItems(content, locale, true),
     };
   }
   return out;

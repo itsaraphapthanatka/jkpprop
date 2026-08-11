@@ -8,12 +8,10 @@ import { ok, handler, ApiError } from '@/lib/server/api';
 import { requireUser, requireRole } from '@/lib/server/auth';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
+import { mergeSectionContent, type SectionContent as Content } from '@/lib/mergeSectionContent';
 import type { Prisma } from '@prisma/client';
 
 const PAGES = ['home', 'about', 'contact'];
-
-type Block = { eyebrow?: string; headline?: string; sub?: string; cta?: string };
-type Content = Record<string, Block>;
 
 export const GET = handler(async (req: Request) => {
   const user = await requireUser();
@@ -53,6 +51,8 @@ export const PUT = handler(async (req: Request) => {
 
   const before = await db.pageSection.findMany({ where: { orgId: user.orgId, pageKey: page }, orderBy: { sort: 'asc' } });
 
+  const storedByKey = new Map(before.map((r) => [r.key, (r.content ?? {}) as Content]));
+
   for (let i = 0; i < sections.length; i++) {
     const s = sections[i];
     const key = String(s.key || '').slice(0, 60);
@@ -64,7 +64,7 @@ export const PUT = handler(async (req: Request) => {
       sort: i, // array order IS the display order
       enabled: s.enabled !== false,
       img: s.img ?? null,
-      content: (s.content ?? {}) as Prisma.InputJsonValue,
+      content: mergeSectionContent(storedByKey.get(key) ?? {}, s.content ?? {}) as Prisma.InputJsonValue,
     };
     await db.pageSection.upsert({
       where: { orgId_pageKey_key: { orgId: user.orgId, pageKey: page, key } },
