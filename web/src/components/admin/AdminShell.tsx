@@ -33,7 +33,7 @@ import Image from 'next/image';
 export type AdminNavKey =
   | 'dashboard' | 'properties' | 'listings' | 'social'
   | 'leads' | 'requirements' | 'shortlists' | 'visits' | 'deals'
-  | 'cms' | 'seo' | 'settings';
+  | 'cms' | 'media' | 'seo' | 'settings';
 
 /* Shared chrome CSS (sidebar/main responsive + scrollbar + hovers).
    Injected once per page via <AdminShell css={...}>. Page-specific
@@ -110,6 +110,10 @@ const NAV: NavEntry[] = [
   { key: 'deals', label: 'Deals', href: '/admin/deals', icon: '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"></path>' },
   { group: 'เนื้อหา & ระบบ' },
   { key: 'cms', label: 'CMS', href: '/admin/cms', icon: '<path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path>' },
+  /* The media library had no entry here at all, and the CMS hub did not link
+     to it either — the only way in was to type the URL. That is the likeliest
+     reason the library is still empty. */
+  { key: 'media', label: 'คลังสื่อ', href: '/admin/media', icon: '<rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path>' },
   { key: 'seo', label: 'SEO / GEO', href: '/admin/seo', icon: '<circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20"></path>' },
   { key: 'settings', label: 'Settings', href: '/admin/settings', icon: '<circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path>' },
 ];

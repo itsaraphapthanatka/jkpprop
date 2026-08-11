@@ -354,3 +354,43 @@ test.describe('the section editor\'s controls are wired', () => {
     await expect(page.locator('#sec-preview img[alt="รูป section"]')).toHaveAttribute('src', '/assets/jkp-logo-green.png');
   });
 });
+
+test.describe('the CMS screens are reachable and honest', () => {
+  /* Two working CMS screens had no link anywhere in the admin — the sidebar
+     had no Media entry and the CMS hub pointed only at the Page Builder, the
+     one screen that could delete sections. */
+
+  test('the sidebar links to the media library', async ({ page }) => {
+    await signIn(page, OWNER);
+    await page.goto('/admin');
+    await page.locator('#admin-sidebar').getByText('คลังสื่อ').click();
+    await expect(page).toHaveURL(/\/admin\/media/);
+    await expect(page.locator('body')).toContainText('Media Manager');
+  });
+
+  test('the CMS hub reaches both editors', async ({ page }) => {
+    await signIn(page, OWNER);
+    await page.goto('/admin/cms');
+    await expect(page.locator('#cms-actions a[href="/admin/sections"]')).toBeVisible();
+    await expect(page.locator('#cms-actions a[href="/admin/media"]')).toBeVisible();
+  });
+
+  test('the retired page builder sends you to the section editor', async ({ page }) => {
+    await signIn(page, OWNER);
+    await page.goto('/admin/page-builder');
+    await expect(page).toHaveURL(/\/admin\/sections/);
+  });
+
+  test('the media library shows only real uploads, and upload is clickable', async ({ page }) => {
+    await signIn(page, OWNER);
+    await page.goto('/admin/media');
+
+    /* Eight Unsplash demo files used to pad this grid while /api/media — what
+       the section picker reads — returned nothing. */
+    expect(await page.locator('#media-grid img[src*="unsplash.com"]').count()).toBe(0);
+
+    // the topbar button opens the file dialog rather than doing nothing
+    await expect(page.getByRole('button', { name: /อัปโหลด/ })).toBeEnabled();
+    await expect(page.locator('#media-file-input')).toHaveCount(1);
+  });
+});
