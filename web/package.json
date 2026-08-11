@@ -13,7 +13,9 @@
     "lint": "eslint src tests",
     "openapi": "tsx scripts/gen-openapi.ts",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "import:template": "tsx scripts/make-import-template.ts",
+    "import:properties": "tsx scripts/import-properties.mts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
