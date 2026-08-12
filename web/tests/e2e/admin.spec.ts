@@ -437,3 +437,45 @@ test.describe('the editor shows only fields the page renders', () => {
     await expect(page.locator('[data-section-key="aw"]')).not.toContainText('ปิดไม่ได้');
   });
 });
+
+test.describe('file uploads reach the server', () => {
+  /* Both admin uploaders posted FormData through a wrapper that forced
+     Content-Type: application/json, so the multipart boundary was lost and
+     every upload failed with "ไม่พบไฟล์ที่อัปโหลด". Driving the real file
+     input is the only way this class of bug shows up. */
+
+  test('an image uploads into the media library', async ({ page }) => {
+    await signIn(page, OWNER);
+    await page.goto('/admin/media');
+
+    /* Count by filename, not by card: the grid is empty for a moment while
+       /api/media loads, so a total taken too early is always wrong. */
+    const card = page.locator('#media-grid > div', { hasText: 'jkp-logo-green.png' });
+    await expect(page.locator('#media-grid')).toBeVisible();
+    await expect(card).toHaveCount(0);
+
+    await page.locator('#media-file-input').setInputFiles('public/assets/jkp-logo-green.png');
+    await expect(card).toHaveCount(1, { timeout: 20_000 });
+  });
+
+  test('llms.txt uploads on the SEO page', async ({ page }) => {
+    await signIn(page, OWNER);
+    await page.goto('/admin/seo');
+
+    const picker = page.locator('input[type="file"]');
+    await expect(picker).toHaveCount(1);
+    await picker.setInputFiles({ name: 'llms.txt', mimeType: 'text/plain', buffer: Buffer.from('# JKP Property\n') });
+
+    // the card flips from "waiting" to showing the stored file
+    await expect(page.locator('body')).toContainText('llms.txt', { timeout: 20_000 });
+    await expect(page.locator('body')).not.toContainText('ไม่พบไฟล์ที่อัปโหลด');
+  });
+
+  test.afterAll(async () => {
+    const { PrismaClient } = await import('@prisma/client');
+    const c = new PrismaClient();
+    await c.mediaAsset.deleteMany({ where: { filename: 'jkp-logo-green.png' } });
+    await c.seoFile.deleteMany({ where: { key: 'llms' } });
+    await c.$disconnect();
+  });
+});

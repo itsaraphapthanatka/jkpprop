@@ -16,12 +16,21 @@ export class ApiClientError extends Error {
   }
 }
 
+/* A FormData body must be sent with the boundary the browser generates. Set
+ * Content-Type yourself and that boundary is missing, so the server sees
+ * multipart bytes labelled as JSON and parses no fields at all — which is how
+ * every upload in the admin came back "ไม่พบไฟล์ที่อัปโหลด": the media library
+ * and both SEO files. Only stringified bodies get the JSON header. */
+const isMultipart = (b: BodyInit | null | undefined) =>
+  typeof FormData !== 'undefined' && b instanceof FormData;
+
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
+  const jsonHeader = !!init?.body && !isMultipart(init.body);
   try {
     res = await fetch(path, {
       credentials: 'same-origin',
-      headers: init?.body ? { 'Content-Type': 'application/json', ...init?.headers } : init?.headers,
+      headers: jsonHeader ? { 'Content-Type': 'application/json', ...init?.headers } : init?.headers,
       ...init,
     });
   } catch {

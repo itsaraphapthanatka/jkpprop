@@ -206,7 +206,20 @@ export function SEOBody() {
                     </div>
                   )}
                   {u.pending && (
-                    <div onClick={u.upload} className="up-drop" style={{ marginTop: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: 22, border: '1.5px dashed var(--border)', borderRadius: 12, cursor: 'pointer', textAlign: 'center' }}>
+                    <div
+                      onClick={u.upload}
+                      /* the box says "drag a file here" and had no drop
+                         handler, so dropping one made the browser navigate
+                         away from the admin and open the .txt instead */
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const f = e.dataTransfer.files?.[0];
+                        if (!f) return;
+                        pickTarget.current = u.key;
+                        void doUpload(f);
+                      }}
+                      className="up-drop" style={{ marginTop: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: 22, border: '1.5px dashed var(--border)', borderRadius: 12, cursor: 'pointer', textAlign: 'center' }}>
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><path d="M17 8l-5-5-5 5M12 3v12" /></svg>
                       <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text)' }}>ลากไฟล์มาวาง หรือคลิกเพื่อเลือก</div>
                       <div style={{ fontSize: 11, color: 'var(--muted3)' }}>รองรับ .txt · สูงสุด 1MB</div>
