@@ -40,7 +40,7 @@ export function SiteFooter() {
   }, []);
 
   const socialEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.currentTarget.style.background = '#034956';
+    e.currentTarget.style.background = 'var(--accent)';
     e.currentTarget.style.color = '#fff';
   };
   const socialLeave = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -48,7 +48,7 @@ export function SiteFooter() {
     e.currentTarget.style.color = '#C9C5BD';
   };
   const contactEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.currentTarget.style.boxShadow = '0 10px 26px rgba(45,251,145,.45)';
+    e.currentTarget.style.boxShadow = '0 10px 26px rgba(var(--neon-rgb),.45)';
   };
   const contactLeave = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.currentTarget.style.boxShadow = 'none';
@@ -143,7 +143,7 @@ export function SiteFooter() {
             <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 16 }}>{d.footer.contact}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 14, color: '#8E8B84' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
-                <svg style={{ flexShrink: 0, marginTop: 2 }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg style={{ flexShrink: 0, marginTop: 2 }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--neon)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M4 4h16v16H4z" opacity="0" />
                   <path d="M22 6l-10 7L2 6" />
                   <rect x="2" y="4" width="20" height="16" rx="2" />
@@ -151,13 +151,13 @@ export function SiteFooter() {
                 info@thaiindustrialproperty.com
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
-                <svg style={{ flexShrink: 0, marginTop: 2 }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg style={{ flexShrink: 0, marginTop: 2 }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--neon)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z" />
                 </svg>
                 +66 90-000-0000
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
-                <svg style={{ flexShrink: 0, marginTop: 2 }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg style={{ flexShrink: 0, marginTop: 2 }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--neon)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z" />
                   <circle cx="12" cy="10" r="3" />
                 </svg>
@@ -176,7 +176,7 @@ export function SiteFooter() {
                 height: 44,
                 padding: '0 22px',
                 borderRadius: 9999,
-                background: '#2DFB91',
+                background: 'var(--neon)',
                 color: '#04140C',
                 fontSize: 14,
                 fontWeight: 800,

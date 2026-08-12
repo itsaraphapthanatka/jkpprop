@@ -16,7 +16,7 @@ type FbKey = 'interested' | 'undecided' | 'not';
 interface FbDef { key: FbKey; label: string; on: string; onBg: string; paths: React.ReactNode }
 
 const FB_DEFS: FbDef[] = [
-  { key: 'interested', label: 'สนใจ', on: '#0D6C3B', onBg: '#E8F3EC', paths: (<><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.3a2 2 0 002-1.7l1.4-9a2 2 0 00-2-2.3z" /><path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3" /></>) },
+  { key: 'interested', label: 'สนใจ', on: 'var(--deep)', onBg: '#E8F3EC', paths: (<><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.3a2 2 0 002-1.7l1.4-9a2 2 0 00-2-2.3z" /><path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3" /></>) },
   { key: 'undecided', label: 'ยังไม่ตัดสินใจ', on: '#9A741C', onBg: '#FBF3E1', paths: (<><circle cx="12" cy="12" r="10" /><path d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3M12 17h.01" /></>) },
   { key: 'not', label: 'ไม่สนใจ', on: '#C0392B', onBg: '#F9E4E1', paths: (<><path d="M10 15V19a3 3 0 003 3l4-9V2H5.7a2 2 0 00-2 1.7l-1.4 9a2 2 0 002 2.3z" /><path d="M17 2h3a2 2 0 012 2v7a2 2 0 01-2 2h-3" /></>) },
 ];
@@ -117,9 +117,9 @@ export function ClientShortlistBody() {
   const cmpData = apiCmp ?? CMP;
   const itemIds = apiItems ? apiItems.map((i) => i.code) : ITEM_IDS;
 
-  const tab = (on: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 15px', borderRadius: 9999, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', background: on ? '#273c33' : 'transparent', color: on ? '#fff' : 'var(--muted)' });
+  const tab = (on: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 15px', borderRadius: 9999, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', background: on ? 'var(--pine)' : 'transparent', color: on ? '#fff' : 'var(--muted)' });
 
-  const cellStyle = (hi: boolean): React.CSSProperties => ({ padding: '13px 16px', borderBottom: '1px solid var(--border)', textAlign: 'center', fontSize: '12.5px', fontWeight: hi ? 800 : 600, color: hi ? '#034956' : 'var(--text)', background: hi ? 'rgba(3,73,86,.04)' : 'transparent' });
+  const cellStyle = (hi: boolean): React.CSSProperties => ({ padding: '13px 16px', borderBottom: '1px solid var(--border)', textAlign: 'center', fontSize: '12.5px', fontWeight: hi ? 800 : 600, color: hi ? 'var(--accent)' : 'var(--text)', background: hi ? 'rgba(var(--accent-rgb),.04)' : 'transparent' });
 
   if (notFound) {
     return (
@@ -139,17 +139,17 @@ export function ClientShortlistBody() {
       <header style={{ background: '#0A0E0C', padding: '14px 24px' }}>
         <div style={{ maxWidth: '1080px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
           <Image width={226} height={100} src="/assets/jkp-logo-white.png" alt="JKP Property" style={{ height: 32, width: 'auto', display: 'block' }} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, height: 34, padding: '0 13px', borderRadius: 9999, background: 'rgba(45,251,145,.14)', border: '1px solid rgba(45,251,145,.3)' }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>
-            <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#2DFB91' }}>ลิงก์ส่วนตัว · ไม่ต้องเข้าสู่ระบบ</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, height: 34, padding: '0 13px', borderRadius: 9999, background: 'rgba(var(--neon-rgb),.14)', border: '1px solid rgba(var(--neon-rgb),.3)' }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--neon)" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>
+            <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--neon)' }}>ลิงก์ส่วนตัว · ไม่ต้องเข้าสู่ระบบ</span>
           </div>
         </div>
       </header>
 
       {/* BRAND / CLIENT HEADER */}
       <section style={{ maxWidth: '1080px', margin: '0 auto', padding: '28px 24px 0' }}>
-        <div style={{ background: 'linear-gradient(135deg,#043F20 0%,#022310 100%)', borderRadius: 22, padding: '30px 32px', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: -50, right: -30, width: 200, height: 200, borderRadius: 9999, background: 'rgba(45,251,145,.1)', pointerEvents: 'none' }} />
+        <div style={{ background: 'linear-gradient(135deg,#043F20 0%,var(--ink) 100%)', borderRadius: 22, padding: '30px 32px', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: -50, right: -30, width: 200, height: 200, borderRadius: 9999, background: 'rgba(var(--neon-rgb),.1)', pointerEvents: 'none' }} />
           <div id="cs-brandrow" style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
               <div style={{ width: 72, height: 72, borderRadius: 16, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden', padding: 8, color: 'var(--muted3)', fontSize: 11, fontWeight: 700, textAlign: 'center' }}>โลโก้ลูกค้า</div>
@@ -174,8 +174,8 @@ export function ClientShortlistBody() {
       {/* INTRO */}
       <section style={{ maxWidth: '1080px', margin: '0 auto', padding: '22px 24px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ width: 26, height: 2, background: '#273c33', borderRadius: 2 }} />
-          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.06em', color: '#273c33', textTransform: 'uppercase' }}>รายการที่คัดให้</span>
+          <span style={{ width: 26, height: 2, background: 'var(--pine)', borderRadius: 2 }} />
+          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.06em', color: 'var(--pine)', textTransform: 'uppercase' }}>รายการที่คัดให้</span>
         </div>
         <h1 style={{ margin: '10px 0 6px', fontSize: 26, fontWeight: 800, color: 'var(--text)', letterSpacing: '-.01em' }}>ทรัพย์ที่ตรงกับความต้องการของคุณ</h1>
         <p style={{ margin: 0, fontSize: 14, color: 'var(--muted)', maxWidth: 640 }}>ทีมงาน JKP Property คัดเลือก 2 รายการที่ตรงเงื่อนไขและตรวจสอบว่าว่างแล้ว — กรุณาให้ความเห็นแต่ละรายการเพื่อให้เราจัดนัดเข้าชมต่อไป</p>
@@ -206,16 +206,16 @@ export function ClientShortlistBody() {
       {/* COMPARE TABLE */}
       {view === 'compare' && (
         <section style={{ maxWidth: '1080px', margin: '0 auto', padding: '16px 24px 0' }}>
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden', boxShadow: '0 12px 30px rgba(2,35,16,.06)', overflowX: 'auto' }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden', boxShadow: '0 12px 30px rgba(var(--ink-rgb),.06)', overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: 560 }}>
               <thead>
                 <tr>
                   <th style={{ padding: '16px 18px', textAlign: 'left', fontSize: 12, fontWeight: 800, color: 'var(--muted2)', textTransform: 'uppercase', letterSpacing: '.04em', background: 'var(--bg)', position: 'sticky', left: 0, zIndex: 2 }}>รายละเอียด</th>
                   {cmpData.map((c) => (
-                    <th key={c.shortTitle} style={{ padding: 0, background: 'linear-gradient(135deg,#043F20,#022310)', minWidth: 200 }}>
+                    <th key={c.shortTitle} style={{ padding: 0, background: 'linear-gradient(135deg,#043F20,var(--ink))', minWidth: 200 }}>
                       <div style={{ padding: '16px 18px', color: '#fff' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ width: 26, height: 26, borderRadius: 8, background: '#2DFB91', color: '#022310', fontSize: 13, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{c.rank}</span>
+                          <span style={{ width: 26, height: 26, borderRadius: 8, background: 'var(--neon)', color: 'var(--ink)', fontSize: 13, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{c.rank}</span>
                           <span style={{ fontSize: '13.5px', fontWeight: 800 }}>{c.shortTitle}</span>
                         </div>
                       </div>
@@ -281,8 +281,8 @@ export function ClientShortlistBody() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={it.img} alt={it.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', position: 'absolute', inset: 0 }} />
                   <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', gap: 7 }}>
-                    <span style={{ width: 30, height: 30, borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 14, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,.25)' }}>{it.rank}</span>
-                    <span style={{ height: 30, padding: '0 12px', borderRadius: 9999, background: 'rgba(255,255,255,.95)', color: '#0D6C3B', fontSize: '11.5px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 7, height: 7, borderRadius: 9999, background: '#0D6C3B' }} />ว่าง</span>
+                    <span style={{ width: 30, height: 30, borderRadius: 9999, background: 'var(--deep)', color: '#fff', fontSize: 14, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,.25)' }}>{it.rank}</span>
+                    <span style={{ height: 30, padding: '0 12px', borderRadius: 9999, background: 'rgba(255,255,255,.95)', color: 'var(--deep)', fontSize: '11.5px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 7, height: 7, borderRadius: 9999, background: 'var(--deep)' }} />ว่าง</span>
                   </div>
                 </div>
                 <div style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column' }}>
@@ -290,12 +290,12 @@ export function ClientShortlistBody() {
                     <div>
                       <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)', lineHeight: 1.35 }}>{it.title}</div>
                       <div style={{ marginTop: 5, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                        <code style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 12, color: '#0D6C3B', fontWeight: 700 }}>{it.code}</code>
+                        <code style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 12, color: 'var(--deep)', fontWeight: 700 }}>{it.code}</code>
                         <span style={{ fontSize: '12.5px', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 4 }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.8"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z" /><circle cx="12" cy="10" r="3" /></svg>{it.loc}</span>
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 20, fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: '#034956' }}>{it.price}</div>
+                      <div style={{ fontSize: 20, fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: 'var(--accent)' }}>{it.price}</div>
                       <div style={{ fontSize: '11.5px', color: 'var(--muted3)' }}>{it.unit}</div>
                     </div>
                   </div>
@@ -330,7 +330,7 @@ export function ClientShortlistBody() {
       <section style={{ maxWidth: '1080px', margin: '0 auto', padding: '24px 24px 60px' }}>
         <div style={{ background: '#0A0E0C', borderRadius: 20, padding: '28px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{ width: 52, height: 52, borderRadius: 9999, background: '#273c33', color: '#2DFB91', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800, flexShrink: 0 }}>อ</div>
+            <div style={{ width: 52, height: 52, borderRadius: 9999, background: 'var(--pine)', color: 'var(--neon)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800, flexShrink: 0 }}>อ</div>
             <div>
               <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>อารยา สุขสวัสดิ์ · ที่ปรึกษาของคุณ</div>
               <div style={{ fontSize: '12.5px', color: '#B9C2BD' }}>สอบถามเพิ่มเติมหรือจัดนัดเข้าชมได้เลย</div>
@@ -338,7 +338,7 @@ export function ClientShortlistBody() {
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <a href="tel:+66818000000" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 46, padding: '0 22px', borderRadius: 9999, background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.24)', color: '#fff', fontSize: '13.5px', fontWeight: 700 }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z" /></svg>โทร</a>
-            <a href="#" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 46, padding: '0 24px', borderRadius: 9999, background: '#2DFB91', color: '#022310', fontSize: '13.5px', fontWeight: 800 }}>จัดนัดเข้าชม<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#022310" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg></a>
+            <a href="#" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 46, padding: '0 24px', borderRadius: 9999, background: 'var(--neon)', color: 'var(--ink)', fontSize: '13.5px', fontWeight: 800 }}>จัดนัดเข้าชม<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg></a>
           </div>
         </div>
         <div style={{ marginTop: 16, textAlign: 'center', fontSize: '11.5px', color: 'var(--muted3)' }}>ราคาและสถานะว่างอาจเปลี่ยนแปลง — ทีมงานจะยืนยันอีกครั้งก่อนนัดเข้าชม · Powered by JKP Property</div>

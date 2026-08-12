@@ -58,7 +58,7 @@ function NavArrow({ onClick, d }: { onClick: () => void; d: string }) {
       onMouseLeave={() => setHover(false)}
       style={{
         width: 44, height: 44, borderRadius: 9999,
-        background: hover ? '#034956' : 'var(--surface)',
+        background: hover ? 'var(--accent)' : 'var(--surface)',
         border: '1px solid ' + (hover ? 'var(--accent)' : 'var(--border)'),
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', color: hover ? '#fff' : 'var(--accent)', transition: 'all .2s',
@@ -83,7 +83,7 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
         position: 'relative', flex: '0 0 calc(33.3333% - 16px)', background: 'var(--surface)',
         border: '1px solid ' + (hover ? 'var(--accent)' : 'var(--border)'), borderRadius: 18,
         overflow: 'hidden', minHeight: 535, display: 'flex', flexDirection: 'column',
-        boxShadow: hover ? '0 22px 44px rgba(2,35,16,.16)' : '0 1px 3px rgba(0,0,0,.05)',
+        boxShadow: hover ? '0 22px 44px rgba(var(--ink-rgb),.16)' : '0 1px 3px rgba(0,0,0,.05)',
         transform: hover ? 'translateY(-8px)' : 'none',
         transition: 'transform .28s cubic-bezier(.2,.7,.3,1),box-shadow .28s,border-color .28s',
       }}
@@ -95,7 +95,7 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
               <img src={it.img} alt={it.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             : <PhotoPlaceholder />}
         </div>
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(2,35,16,.28) 0%,rgba(2,35,16,0) 34%,rgba(2,35,16,0) 62%,rgba(2,35,16,.42) 100%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(var(--ink-rgb),.28) 0%,rgba(var(--ink-rgb),0) 34%,rgba(var(--ink-rgb),0) 62%,rgba(var(--ink-rgb),.42) 100%)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', alignItems: 'center', gap: 6, height: 28, padding: '0 13px', borderRadius: 9999, background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.42)', color: '#fff', fontSize: 12, fontWeight: 700, pointerEvents: 'none', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', boxShadow: '0 2px 8px rgba(0,0,0,.12)' }}>
           <span style={{ width: 6, height: 6, borderRadius: 9999, background: '#fff' }} />{enumLabel(it.deal, locale)}
         </div>
@@ -103,15 +103,15 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
           onClick={onToggleFav}
           onMouseEnter={() => setFavHover(true)}
           onMouseLeave={() => setFavHover(false)}
-          style={{ position: 'absolute', top: 12, right: 12, width: 34, height: 34, borderRadius: 9999, background: '#2DFB91', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,.14)', transition: 'transform .2s', transform: favHover ? 'scale(1.12)' : 'none' }}
+          style={{ position: 'absolute', top: 12, right: 12, width: 34, height: 34, borderRadius: 9999, background: 'var(--neon)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,.14)', transition: 'transform .2s', transform: favHover ? 'scale(1.12)' : 'none' }}
         >
-          <svg width="17" height="17" viewBox="0 0 24 24" fill={favFill} stroke="#022310" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z" /></svg>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill={favFill} stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z" /></svg>
         </div>
-        <div style={{ position: 'absolute', bottom: 12, right: 12, display: 'flex', alignItems: 'center', gap: 5, height: 24, padding: '0 9px', borderRadius: 7, background: 'rgba(2,35,16,.6)', color: '#fff', fontSize: 11, fontWeight: 600, pointerEvents: 'none', backdropFilter: 'blur(3px)' }}>
+        <div style={{ position: 'absolute', bottom: 12, right: 12, display: 'flex', alignItems: 'center', gap: 5, height: 24, padding: '0 9px', borderRadius: 7, background: 'rgba(var(--ink-rgb),.6)', color: '#fff', fontSize: 11, fontWeight: 600, pointerEvents: 'none', backdropFilter: 'blur(3px)' }}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="9" cy="11" r="2" /><path d="M21 15l-5-4-4 3" /></svg>{it.photos}
         </div>
       </div>
-      <div style={{ padding: '18px 18px 20px', flex: 1, display: 'flex', flexDirection: 'column', background: 'rgba(3,73,86,.05)', borderTop: '1px solid rgba(3,73,86,.12)' }}>
+      <div style={{ padding: '18px 18px 20px', flex: 1, display: 'flex', flexDirection: 'column', background: 'rgba(var(--accent-rgb),.05)', borderTop: '1px solid rgba(var(--accent-rgb),.12)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 12, color: 'var(--muted2)', letterSpacing: '.04em' }}>{it.code}</span>
           <span style={{ width: 4, height: 4, borderRadius: 9999, background: 'var(--border)' }} />
@@ -133,7 +133,7 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
             href={`/property/${encodeURIComponent(it.code)}`}
             onMouseEnter={() => setDetailHover(true)}
             onMouseLeave={() => setDetailHover(false)}
-            style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 18px', borderRadius: 9999, background: detailHover ? '#034956' : 'var(--surface)', border: '1px solid #273c33', color: detailHover ? '#fff' : '#273c33', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all .2s' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 18px', borderRadius: 9999, background: detailHover ? 'var(--accent)' : 'var(--surface)', border: '1px solid var(--pine)', color: detailHover ? '#fff' : 'var(--pine)', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all .2s' }}
           >
             {d.common.viewDetail}
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
@@ -174,16 +174,16 @@ export function Featured({ items = [], copy }: { items?: FeaturedItem[]; copy: S
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, marginBottom: 32, flexWrap: 'wrap' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ width: 26, height: 2, background: '#273c33', borderRadius: 2 }} />
-            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', color: '#273c33', textTransform: 'uppercase' }}>{pick(copy.eyebrow, d.featured.eyebrow)}</span>
+            <span style={{ width: 26, height: 2, background: 'var(--pine)', borderRadius: 2 }} />
+            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', color: 'var(--pine)', textTransform: 'uppercase' }}>{pick(copy.eyebrow, d.featured.eyebrow)}</span>
           </div>
           <h2 style={{ margin: '10px 0 0', fontSize: '34px', fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>{pick(copy.headline, d.featured.heading)}</h2>
           <p style={{ margin: '8px 0 0', fontSize: 15, color: 'var(--muted2)' }}>{pick(copy.sub, d.featured.sub)}</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <Link href="/listing" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 600, color: '#273c33' }}>
+          <Link href="/listing" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 600, color: 'var(--pine)' }}>
             {d.common.viewAll}
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#273c33" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--pine)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
           </Link>
           {listings.length > 1 && (
             <div style={{ display: 'flex', gap: 8 }}>
@@ -208,7 +208,7 @@ export function Featured({ items = [], copy }: { items?: FeaturedItem[]; copy: S
               <ListingCard
                 key={it.slot}
                 it={it}
-                favFill={favs[i] ? '#022310' : 'none'}
+                favFill={favs[i] ? 'var(--ink)' : 'none'}
                 onToggleFav={() => setFavs((f) => ({ ...f, [i]: !f[i] }))}
               />
             ))}
@@ -217,7 +217,7 @@ export function Featured({ items = [], copy }: { items?: FeaturedItem[]; copy: S
           {listings.length > 1 && (
             <div style={{ marginTop: 18, display: 'flex', justifyContent: 'center' }}>
               <div style={{ position: 'relative', width: 180, height: 4, borderRadius: 9999, background: '#E5E2DC', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '38%', borderRadius: 9999, background: '#273c33', transition: 'transform .15s linear', transform: `translateX(${progressX})` }} />
+                <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '38%', borderRadius: 9999, background: 'var(--pine)', transition: 'transform .15s linear', transform: `translateX(${progressX})` }} />
               </div>
             </div>
           )}
@@ -229,7 +229,7 @@ export function Featured({ items = [], copy }: { items?: FeaturedItem[]; copy: S
           href="/listing"
           onMouseEnter={() => setSeeAllHover(true)}
           onMouseLeave={() => setSeeAllHover(false)}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, height: 48, padding: '0 26px', borderRadius: 9999, border: '1.5px solid #273c33', color: seeAllHover ? '#fff' : '#273c33', fontSize: '14.5px', fontWeight: 700, background: seeAllHover ? '#034956' : 'var(--surface)', transition: 'all .2s' }}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, height: 48, padding: '0 26px', borderRadius: 9999, border: '1.5px solid var(--pine)', color: seeAllHover ? '#fff' : 'var(--pine)', fontSize: '14.5px', fontWeight: 700, background: seeAllHover ? 'var(--accent)' : 'var(--surface)', transition: 'all .2s' }}
         >
           {d.common.showAll}
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>

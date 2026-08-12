@@ -81,7 +81,7 @@ export function Header() {
 
   const headerH = scrolled ? '62px' : '76px';
   const logoH = scrolled ? '38px' : '46px';
-  const headerShadow = scrolled ? '0 6px 22px rgba(2,35,16,.10)' : 'none';
+  const headerShadow = scrolled ? '0 6px 22px rgba(var(--ink-rgb),.10)' : 'none';
 
   const ddPanel: React.CSSProperties = {
     background: 'var(--surface)',
@@ -280,7 +280,7 @@ export function Header() {
                         padding: '10px 10px',
                         borderRadius: 11,
                         cursor: 'pointer',
-                        background: lang === l.key ? 'rgba(3,73,86,.06)' : 'transparent',
+                        background: lang === l.key ? 'rgba(var(--accent-rgb),.06)' : 'transparent',
                       }}
                     >
                       <div style={{ width: 26, height: 26, borderRadius: 6, overflow: 'hidden', flexShrink: 0, display: 'flex' }}>
@@ -307,15 +307,15 @@ export function Header() {
                 height: 40,
                 padding: '0 20px',
                 borderRadius: 9999,
-                background: '#2DFB91',
-                color: '#022310',
+                background: 'var(--neon)',
+                color: 'var(--ink)',
                 fontSize: 13,
                 fontWeight: 800,
                 transition: 'transform .25s cubic-bezier(.2,.7,.3,1),box-shadow .2s',
               }}
             >
               {d.nav.contactTeam}
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#022310" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 5v14M5 12h14" />
               </svg>
             </a>
@@ -416,15 +416,15 @@ export function Header() {
               <div
                 key={l.key}
                 onClick={() => setLang(l.key)}
-                style={{ flex: 1, textAlign: 'center', padding: '9px 0', borderRadius: 9999, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', background: lang === l.key ? '#273c33' : 'var(--tint)', color: lang === l.key ? '#fff' : 'var(--text)' }}
+                style={{ flex: 1, textAlign: 'center', padding: '9px 0', borderRadius: 9999, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', background: lang === l.key ? 'var(--pine)' : 'var(--tint)', color: lang === l.key ? '#fff' : 'var(--text)' }}
               >
                 {l.code}
               </div>
             ))}
           </div>
-          <a href="#" style={{ marginTop: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, borderRadius: 9999, background: '#2DFB91', color: '#022310', fontSize: '14.5px', fontWeight: 800 }}>
+          <a href="#" style={{ marginTop: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, borderRadius: 9999, background: 'var(--neon)', color: 'var(--ink)', fontSize: '14.5px', fontWeight: 800 }}>
             {d.nav.contactTeam}
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#022310" strokeWidth="2.4">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2.4">
               <path d="M5 12h14" />
               <path d="M13 6l6 6-6 6" />
             </svg>

@@ -71,11 +71,11 @@ function SocialButton({ s }: { s: Social }) {
         background: s.bg,
         transition: 'transform .2s,box-shadow .2s',
         transform: hover ? 'translateY(-3px)' : 'none',
-        boxShadow: hover ? '0 10px 22px rgba(13,108,59,.18)' : 'none',
+        boxShadow: hover ? '0 10px 22px rgba(var(--deep-rgb),.18)' : 'none',
       }}
     >
       <span style={{ width: 42, height: 42, borderRadius: 9999, background: s.grad, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 5px 12px rgba(0,0,0,.15)' }}>{s.glyph}</span>
-      <span style={{ fontSize: 11, fontWeight: 700, color: '#0D6C3B' }}>{s.label}</span>
+      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--deep)' }}>{s.label}</span>
     </a>
   );
 }
@@ -104,7 +104,7 @@ export function InquiryBox({ code = '', topOffset = 88, stacked = false }: { cod
 
         {/* agent */}
         <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, background: 'var(--bg)' }}>
-          <div style={{ width: 46, height: 46, borderRadius: 12, background: '#273c33', color: '#2DFB91', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, flexShrink: 0 }}>JKP</div>
+          <div style={{ width: 46, height: 46, borderRadius: 12, background: 'var(--pine)', color: 'var(--neon)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, flexShrink: 0 }}>JKP</div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>JKP Property</div>
             <div style={{ fontSize: 12, color: 'var(--muted)' }}>{d.inquiry.hours}</div>
@@ -149,7 +149,7 @@ export function InquiryBox({ code = '', topOffset = 88, stacked = false }: { cod
               height: 50,
               border: 0,
               borderRadius: 12,
-              background: sent ? '#034956' : '#0D6C3B',
+              background: sent ? 'var(--accent)' : 'var(--deep)',
               color: '#fff',
               fontFamily: 'inherit',
               fontSize: '14.5px',
@@ -161,7 +161,7 @@ export function InquiryBox({ code = '', topOffset = 88, stacked = false }: { cod
               cursor: 'pointer',
               transition: 'transform .2s,box-shadow .2s,background .2s',
               transform: btnHover ? 'translateY(-2px)' : 'none',
-              boxShadow: btnHover ? '0 12px 26px rgba(13,108,59,.35)' : 'none',
+              boxShadow: btnHover ? '0 12px 26px rgba(var(--deep-rgb),.35)' : 'none',
             }}
           >
             {sent ? (

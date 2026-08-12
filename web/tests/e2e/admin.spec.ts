@@ -479,3 +479,43 @@ test.describe('file uploads reach the server', () => {
     await c.$disconnect();
   });
 });
+
+test.describe('brand colours reach the public site', () => {
+  /* /admin/branding wrote to the database and the site ignored it: every
+     brand colour was a literal inside an inline style. Picking a preset
+     changed a row and nothing on screen. */
+  const restore = { primary: '#034956', accent: '#034956', neon: '#2DFB91', pine: '#273c33' };
+
+  /* Straight to the table: a PUT here has no session cookie, so it 401s and
+     the palette stays changed for every test that runs after. */
+  test.afterEach(async () => {
+    if (!db) {
+      const { PrismaClient } = await import('@prisma/client');
+      db = new PrismaClient();
+    }
+    await db.branding.updateMany({ data: restore });
+  });
+
+  test('changing the palette changes what the public page serves', async ({ page, request }) => {
+    await signIn(page, OWNER);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const before = await (await request.get('/th')).text();
+    expect(before).toContain('--accent:#034956');
+
+    const res = await request.put('/api/branding', {
+      headers: { cookie },
+      data: { ...restore, primary: '#1E5AA8', accent: '#1E5AA8', neon: '#4FC3F7', pine: '#1B3A5C' },
+    });
+    expect(res.ok(), await res.text()).toBeTruthy();
+
+    const after = await (await request.get('/th')).text();
+    expect(after).toContain('--accent:#1E5AA8');
+    expect(after).toContain('--neon:#4FC3F7');
+    // the rgba glows follow too, or half the design stays the old colour
+    expect(after).toContain('--neon-rgb:79,195,247');
+    // and the dark panels are derived from the new pine rather than fixed green
+    expect(after).toMatch(/--ink-rgb:\d+,\d+,\d+/);
+    expect(after).not.toContain('--ink-rgb:2,35,16');
+  });
+});

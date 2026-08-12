@@ -60,16 +60,16 @@ export function Gallery({
             : <PhotoPlaceholder label={d.property.noPhotos} />}
           <div style={{ position: 'absolute', top: 16, left: 16, display: 'flex', gap: 8 }}>
             {dealLabel && (
-              <span style={{ height: 30, padding: '0 14px', borderRadius: 9999, background: 'rgba(255,255,255,.95)', color: '#0D6C3B', fontSize: '12.5px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 8, height: 8, borderRadius: 9999, background: '#0D6C3B' }} />{dealLabel}
+              <span style={{ height: 30, padding: '0 14px', borderRadius: 9999, background: 'rgba(255,255,255,.95)', color: 'var(--deep)', fontSize: '12.5px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 8, height: 8, borderRadius: 9999, background: 'var(--deep)' }} />{dealLabel}
               </span>
             )}
             {typeLabel && (
-              <span style={{ height: 30, padding: '0 14px', borderRadius: 9999, background: 'rgba(2,29,14,.72)', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center' }}>{typeLabel}</span>
+              <span style={{ height: 30, padding: '0 14px', borderRadius: 9999, background: 'rgba(var(--ink2-rgb),.72)', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center' }}>{typeLabel}</span>
             )}
           </div>
           {photos.length > 0 && (
-            <div style={{ position: 'absolute', bottom: 16, right: 16, height: 32, padding: '0 13px', borderRadius: 9999, background: 'rgba(2,29,14,.72)', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ position: 'absolute', bottom: 16, right: 16, height: 32, padding: '0 13px', borderRadius: 9999, background: 'rgba(var(--ink2-rgb),.72)', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
                 <rect x="3" y="3" width="18" height="18" rx="2" />
                 <circle cx="8.5" cy="8.5" r="1.5" />
@@ -92,7 +92,7 @@ export function Gallery({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={src} alt={d.property.code} style={fillImg} />
                 {i === thumbs.length - 1 && overflow > 0 && (
-                  <div style={{ position: 'absolute', inset: 0, background: 'rgba(2,29,14,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 16, fontWeight: 800 }}>+{overflow}</div>
+                  <div style={{ position: 'absolute', inset: 0, background: 'rgba(var(--ink2-rgb),.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 16, fontWeight: 800 }}>+{overflow}</div>
                 )}
               </div>
             ))}

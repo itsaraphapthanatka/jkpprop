@@ -129,7 +129,7 @@ const pillStyle = (active: boolean): React.CSSProperties => ({
   fontSize: 13,
   fontWeight: 700,
   cursor: 'pointer',
-  background: active ? '#034956' : 'var(--tint)',
+  background: active ? 'var(--accent)' : 'var(--tint)',
   color: active ? '#fff' : 'var(--text)',
 });
 const checkStyle = (on: boolean): React.CSSProperties => ({
@@ -139,7 +139,7 @@ const checkStyle = (on: boolean): React.CSSProperties => ({
   padding: '7px 8px',
   borderRadius: 9,
   cursor: 'pointer',
-  background: on ? 'rgba(3,73,86,.06)' : 'transparent',
+  background: on ? 'rgba(var(--accent-rgb),.06)' : 'transparent',
 });
 const boxStyle = (on: boolean): React.CSSProperties => ({
   width: 18,
@@ -149,8 +149,8 @@ const boxStyle = (on: boolean): React.CSSProperties => ({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  border: '1.5px solid ' + (on ? '#034956' : 'var(--border)'),
-  background: on ? '#034956' : 'transparent',
+  border: '1.5px solid ' + (on ? 'var(--accent)' : 'var(--border)'),
+  background: on ? 'var(--accent)' : 'transparent',
 });
 
 const secChev = (open: boolean) => (
@@ -182,7 +182,7 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: hover ? '0 20px 40px rgba(2,35,16,.14)' : '0 1px 3px rgba(0,0,0,.05)',
+        boxShadow: hover ? '0 20px 40px rgba(var(--ink-rgb),.14)' : '0 1px 3px rgba(0,0,0,.05)',
         transform: hover ? 'translateY(-6px)' : 'none',
         transition: 'transform .28s cubic-bezier(.2,.7,.3,1),box-shadow .28s,border-color .28s',
       }}
@@ -194,7 +194,7 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
               <img src={it.img} alt={it.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             : <PhotoPlaceholder />}
         </div>
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(2,35,16,.24) 0%,rgba(2,35,16,0) 34%,rgba(2,35,16,0) 62%,rgba(2,35,16,.38) 100%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(var(--ink-rgb),.24) 0%,rgba(var(--ink-rgb),0) 34%,rgba(var(--ink-rgb),0) 62%,rgba(var(--ink-rgb),.38) 100%)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', alignItems: 'center', gap: 6, height: 26, padding: '0 11px', borderRadius: 9999, background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.42)', color: '#fff', fontSize: '11.5px', fontWeight: 700, pointerEvents: 'none', backdropFilter: 'blur(6px)' }}>
           <span style={{ width: 5, height: 5, borderRadius: 9999, background: '#fff' }} />
           {enumLabel(it.deal, locale)}
@@ -203,13 +203,13 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
           onClick={onToggleFav}
           onMouseEnter={() => setFavHover(true)}
           onMouseLeave={() => setFavHover(false)}
-          style={{ position: 'absolute', top: 10, right: 10, width: 30, height: 30, borderRadius: 9999, background: '#2DFB91', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,.14)', transition: 'transform .2s', transform: favHover ? 'scale(1.12)' : 'none' }}
+          style={{ position: 'absolute', top: 10, right: 10, width: 30, height: 30, borderRadius: 9999, background: 'var(--neon)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,.14)', transition: 'transform .2s', transform: favHover ? 'scale(1.12)' : 'none' }}
         >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill={favFill} stroke="#022310" strokeWidth="2">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill={favFill} stroke="var(--ink)" strokeWidth="2">
             <path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z" />
           </svg>
         </div>
-        <div style={{ position: 'absolute', bottom: 10, right: 10, display: 'flex', alignItems: 'center', gap: 5, height: 22, padding: '0 8px', borderRadius: 6, background: 'rgba(2,35,16,.6)', color: '#fff', fontSize: '10.5px', fontWeight: 600, pointerEvents: 'none', backdropFilter: 'blur(3px)' }}>
+        <div style={{ position: 'absolute', bottom: 10, right: 10, display: 'flex', alignItems: 'center', gap: 5, height: 22, padding: '0 8px', borderRadius: 6, background: 'rgba(var(--ink-rgb),.6)', color: '#fff', fontSize: '10.5px', fontWeight: 600, pointerEvents: 'none', backdropFilter: 'blur(3px)' }}>
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
             <rect x="3" y="5" width="18" height="14" rx="2" />
             <circle cx="9" cy="11" r="2" />
@@ -218,7 +218,7 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
           {it.photos}
         </div>
       </div>
-      <div style={{ padding: '16px 16px 18px', flex: 1, display: 'flex', flexDirection: 'column', background: 'rgba(3,73,86,.05)', borderTop: '1px solid rgba(3,73,86,.12)' }}>
+      <div style={{ padding: '16px 16px 18px', flex: 1, display: 'flex', flexDirection: 'column', background: 'rgba(var(--accent-rgb),.05)', borderTop: '1px solid rgba(var(--accent-rgb),.12)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: 'var(--muted2)', letterSpacing: '.04em' }}>{it.code}</span>
           <span style={{ width: 3, height: 3, borderRadius: 9999, background: 'var(--border)' }} />
@@ -245,7 +245,7 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
             href={`/property/${encodeURIComponent(it.code)}`}
             onMouseEnter={() => setDetailHover(true)}
             onMouseLeave={() => setDetailHover(false)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 14px', borderRadius: 9999, background: detailHover ? '#273c33' : 'var(--surface)', border: '1px solid #273c33', color: detailHover ? '#fff' : '#273c33', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all .2s' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 14px', borderRadius: 9999, background: detailHover ? 'var(--pine)' : 'var(--surface)', border: '1px solid var(--pine)', color: detailHover ? '#fff' : 'var(--pine)', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all .2s' }}
           >
             {d.common.viewDetail}
           </Link>
@@ -428,7 +428,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
                         setSortKey(o.key);
                         setSortOpen(false);
                       }}
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 12px', borderRadius: 11, cursor: 'pointer', fontSize: '13.5px', fontWeight: active ? 700 : 600, color: active ? '#0D6C3B' : 'var(--text)', background: active ? 'rgba(3,73,86,.06)' : 'transparent' }}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 12px', borderRadius: 11, cursor: 'pointer', fontSize: '13.5px', fontWeight: active ? 700 : 600, color: active ? 'var(--deep)' : 'var(--text)', background: active ? 'rgba(var(--accent-rgb),.06)' : 'transparent' }}
                     >
                       <span>{o.label}</span>
                       {active && (
@@ -474,7 +474,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
           {renderSections()}
           <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
             <div onClick={clearAll} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: 9999, border: '1.5px solid var(--border)', color: 'var(--text)', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>{d.listing.clear}</div>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: 9999, background: '#034956', color: '#fff', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>{d.listing.search}</div>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: 9999, background: 'var(--accent)', color: '#fff', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>{d.listing.search}</div>
           </div>
         </aside>
 
@@ -490,7 +490,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
                 : d.listing.emptyHint}
             </p>
             {all.length > 0 && (
-              <div onClick={clearAll} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginTop: 18, height: 42, padding: '0 22px', borderRadius: 9999, border: '1.5px solid #273c33', color: '#273c33', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>
+              <div onClick={clearAll} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginTop: 18, height: 42, padding: '0 22px', borderRadius: 9999, border: '1.5px solid var(--pine)', color: 'var(--pine)', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>
                 {d.listing.clear}
               </div>
             )}
@@ -501,7 +501,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
               <ListingCard
                 key={it.slot}
                 it={it}
-                favFill={favs[it.slot] ? '#022310' : 'none'}
+                favFill={favs[it.slot] ? 'var(--ink)' : 'none'}
                 onToggleFav={() => setFavs((f) => ({ ...f, [it.slot]: !f[it.slot] }))}
               />
             ))}
@@ -527,7 +527,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
               <div
                 key={`${n}-${i}`}
                 onClick={n === '...' ? undefined : () => setActivePage(n)}
-                style={{ minWidth: 38, height: 38, padding: '0 6px', borderRadius: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13.5px', fontWeight: 700, cursor: n === '...' ? 'default' : 'pointer', background: isActive ? '#034956' : 'transparent', color: isActive ? '#fff' : n === '...' ? 'var(--muted3)' : 'var(--text)' }}
+                style={{ minWidth: 38, height: 38, padding: '0 6px', borderRadius: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13.5px', fontWeight: 700, cursor: n === '...' ? 'default' : 'pointer', background: isActive ? 'var(--accent)' : 'transparent', color: isActive ? '#fff' : n === '...' ? 'var(--muted3)' : 'var(--text)' }}
               >
                 {n}
               </div>
@@ -561,7 +561,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
             {renderSections()}
             <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
               <div onClick={clearAll} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: 9999, border: '1.5px solid var(--border)', color: 'var(--text)', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>{d.listing.clear}</div>
-              <div onClick={() => setMobileFilterOpen((v) => !v)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: 9999, background: '#034956', color: '#fff', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>{d.listing.search}</div>
+              <div onClick={() => setMobileFilterOpen((v) => !v)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: 9999, background: 'var(--accent)', color: '#fff', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>{d.listing.search}</div>
             </div>
           </div>
         </div>

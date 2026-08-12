@@ -19,7 +19,7 @@ const CHIP_BASE: React.CSSProperties = {
   cursor: 'pointer',
   transition: 'all .2s',
 };
-const activeChip: React.CSSProperties = { ...CHIP_BASE, background: '#2DFB91', border: '1px solid #2DFB91', color: '#022310', fontWeight: 700 };
+const activeChip: React.CSSProperties = { ...CHIP_BASE, background: 'var(--neon)', border: '1px solid var(--neon)', color: 'var(--ink)', fontWeight: 700 };
 const idleChip: React.CSSProperties = { ...CHIP_BASE, background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.42)', color: '#fff', fontWeight: 600 };
 
 const SIZE_VALS = ['500 ตร.ม.', '1,000 ตร.ม.', '2,000 ตร.ม.', '3,000 ตร.ม.', '5,000 ตร.ม.', '10,000 ตร.ม.+'];
@@ -42,10 +42,10 @@ const COLORZONE_ITEMS: { name: string; color: string; desc: string }[] = [
 
 const pillStyle = (on: boolean): React.CSSProperties => ({
   padding: '10px 16px', borderRadius: 9999, fontSize: '13.5px', fontWeight: 600, cursor: 'pointer',
-  border: '1.5px solid ' + (on ? '#273c33' : 'var(--border)'), background: on ? '#273c33' : 'transparent', color: on ? '#fff' : 'var(--text)',
+  border: '1.5px solid ' + (on ? 'var(--pine)' : 'var(--border)'), background: on ? 'var(--pine)' : 'transparent', color: on ? '#fff' : 'var(--text)',
 });
-const rowSelStyle = (on: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 11, cursor: 'pointer', background: on ? 'rgba(39,60,51,.06)' : 'transparent' });
-const boxStyle = (on: boolean, round = false): React.CSSProperties => ({ width: 19, height: 19, borderRadius: round ? 9999 : 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid ' + (on ? '#273c33' : 'var(--border)'), background: on ? '#273c33' : 'transparent' });
+const rowSelStyle = (on: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 11, cursor: 'pointer', background: on ? 'rgba(var(--pine-rgb),.06)' : 'transparent' });
+const boxStyle = (on: boolean, round = false): React.CSSProperties => ({ width: 19, height: 19, borderRadius: round ? 9999 : 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid ' + (on ? 'var(--pine)' : 'var(--border)'), background: on ? 'var(--pine)' : 'transparent' });
 
 const CloseBtn = ({ onClick }: { onClick: () => void }) => (
   <div className="close-btn" onClick={onClick} style={{ width: 32, height: 32, borderRadius: 9999, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--muted)', transition: 'background .2s,color .2s' }}>
@@ -89,7 +89,7 @@ export function Hero({ copy }: { copy: SectionCopy }) {
     <div
       key={key}
       onClick={() => setFilterTab(key)}
-      style={{ padding: '0 0 12px', fontSize: 14, fontWeight: 700, color: filterTab === key ? '#273c33' : 'var(--muted)', borderBottom: filterTab === key ? '2.5px solid #273c33' : '2.5px solid transparent', cursor: 'pointer' }}
+      style={{ padding: '0 0 12px', fontSize: 14, fontWeight: 700, color: filterTab === key ? 'var(--pine)' : 'var(--muted)', borderBottom: filterTab === key ? '2.5px solid var(--pine)' : '2.5px solid transparent', cursor: 'pointer' }}
     >
       {label}
     </div>
@@ -107,7 +107,7 @@ export function Hero({ copy }: { copy: SectionCopy }) {
       <div
         style={{
           position: 'absolute', inset: 0, pointerEvents: 'none', borderBottomRightRadius: '72px',
-          background: 'linear-gradient(90deg,rgba(2,29,14,.88) 0%,rgba(2,29,14,.64) 36%,rgba(2,29,14,.34) 66%,rgba(2,29,14,.16) 100%),linear-gradient(180deg,rgba(2,29,14,.32) 0%,rgba(2,29,14,0) 24%,rgba(2,29,14,0) 52%,rgba(2,29,14,.58) 100%)',
+          background: 'linear-gradient(90deg,rgba(var(--ink2-rgb),.88) 0%,rgba(var(--ink2-rgb),.64) 36%,rgba(var(--ink2-rgb),.34) 66%,rgba(var(--ink2-rgb),.16) 100%),linear-gradient(180deg,rgba(var(--ink2-rgb),.32) 0%,rgba(var(--ink2-rgb),0) 24%,rgba(var(--ink2-rgb),0) 52%,rgba(var(--ink2-rgb),.58) 100%)',
         }}
       />
 
@@ -128,7 +128,7 @@ export function Hero({ copy }: { copy: SectionCopy }) {
             <span style={{ display: 'inline-block', animation: 'lineUp .85s cubic-bezier(.16,.8,.24,1) both' }}>
               {d.common.search}
               <span id="hero-rotator" style={{ display: 'inline-flex', flexDirection: 'column', height: '1.18em', overflow: 'hidden', verticalAlign: 'bottom' }}>
-                <span style={{ display: 'block', color: '#2DFB91', animation: 'rotWords 9s cubic-bezier(.7,0,.2,1) infinite' }}>
+                <span style={{ display: 'block', color: 'var(--neon)', animation: 'rotWords 9s cubic-bezier(.7,0,.2,1) infinite' }}>
                   <span style={{ display: 'block', height: '1.18em' }}>{enumLabel('โกดัง', locale)}</span>
                   <span style={{ display: 'block', height: '1.18em' }}>{enumLabel('โรงงาน', locale)}</span>
                   <span style={{ display: 'block', height: '1.18em' }}>{enumLabel('คลังสินค้า', locale)}</span>
@@ -157,7 +157,7 @@ export function Hero({ copy }: { copy: SectionCopy }) {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7A7974" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
               <span style={{ fontSize: 15, color: 'var(--muted2)' }}>{d.hero.searchPlaceholder}</span>
             </div>
-            <button id="hero-search-btn" className="search-btn" style={{ border: 0, height: 44, padding: '0 26px', background: '#2DFB91', color: '#022310', fontFamily: 'inherit', fontSize: 15, fontWeight: 700, borderRadius: 8, cursor: 'pointer', transition: 'transform .15s', flexShrink: 0 }}>{d.common.search}</button>
+            <button id="hero-search-btn" className="search-btn" style={{ border: 0, height: 44, padding: '0 26px', background: 'var(--neon)', color: 'var(--ink)', fontFamily: 'inherit', fontSize: 15, fontWeight: 700, borderRadius: 8, cursor: 'pointer', transition: 'transform .15s', flexShrink: 0 }}>{d.common.search}</button>
           </div>
 
           <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
@@ -190,12 +190,12 @@ export function Hero({ copy }: { copy: SectionCopy }) {
       </div>
 
       {/* scroll indicator */}
-      <div onClick={scrollToListings} style={{ position: 'absolute', left: '50%', bottom: '-26px', transform: 'translateX(-50%)', zIndex: 5, display: 'flex', alignItems: 'center', gap: 12, height: 52, padding: '0 10px 0 12px', background: 'var(--surface)', borderRadius: 9999, boxShadow: '0 10px 30px rgba(2,35,16,.20)', cursor: 'pointer', animation: 'scrollBob 2.4s ease-in-out infinite' }}>
-        <div style={{ position: 'relative', width: 22, height: 34, border: '2px solid #273c33', borderRadius: 12, flexShrink: 0 }}>
-          <div style={{ position: 'absolute', left: '50%', top: 6, transform: 'translateX(-50%)', width: 3, height: 7, borderRadius: 2, background: '#273c33', animation: 'scrollDot 1.7s ease-in-out infinite' }} />
+      <div onClick={scrollToListings} style={{ position: 'absolute', left: '50%', bottom: '-26px', transform: 'translateX(-50%)', zIndex: 5, display: 'flex', alignItems: 'center', gap: 12, height: 52, padding: '0 10px 0 12px', background: 'var(--surface)', borderRadius: 9999, boxShadow: '0 10px 30px rgba(var(--ink-rgb),.20)', cursor: 'pointer', animation: 'scrollBob 2.4s ease-in-out infinite' }}>
+        <div style={{ position: 'relative', width: 22, height: 34, border: '2px solid var(--pine)', borderRadius: 12, flexShrink: 0 }}>
+          <div style={{ position: 'absolute', left: '50%', top: 6, transform: 'translateX(-50%)', width: 3, height: 7, borderRadius: 2, background: 'var(--pine)', animation: 'scrollDot 1.7s ease-in-out infinite' }} />
         </div>
         <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap' }}>{d.hero.headline1}</span>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 9999, background: '#034956', flexShrink: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 9999, background: 'var(--accent)', flexShrink: 0 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'chevPulse 1.7s ease-in-out infinite' }}><path d="M6 9l6 6 6-6" /></svg>
         </div>
       </div>
@@ -272,7 +272,7 @@ export function Hero({ copy }: { copy: SectionCopy }) {
             </div>
             <div style={{ display: 'flex', gap: 12, padding: '18px 24px 24px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
               <div onClick={() => { setZoneSel([]); setColorSel([]); setFeatureSel([]); setLoadSel('any'); }} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, border: '1.5px solid var(--border)', color: 'var(--text)', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>{d.common.clear}</div>
-              <div onClick={() => setMoreOpen(false)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>{d.common.apply}</div>
+              <div onClick={() => setMoreOpen(false)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, background: 'var(--pine)', color: '#fff', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>{d.common.apply}</div>
             </div>
           </div>
         </div>
@@ -297,8 +297,8 @@ export function Hero({ copy }: { copy: SectionCopy }) {
                   {([['warehouse', 'โกดัง'], ['factory', 'โรงงาน']] as [PropType, string][]).map(([key, label]) => {
                     const on = propType === key;
                     return (
-                      <div key={key} onClick={() => setPropType(key)} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 14, border: '1.5px solid ' + (on ? '#273c33' : 'var(--border)'), background: on ? 'rgba(39,60,51,.06)' : 'transparent', cursor: 'pointer', color: 'var(--text)' }}>
-                        <div style={{ width: 38, height: 38, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? '#273c33' : 'var(--tint)', color: on ? '#fff' : 'var(--accent)', flexShrink: 0 }}>
+                      <div key={key} onClick={() => setPropType(key)} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 14, border: '1.5px solid ' + (on ? 'var(--pine)' : 'var(--border)'), background: on ? 'rgba(var(--pine-rgb),.06)' : 'transparent', cursor: 'pointer', color: 'var(--text)' }}>
+                        <div style={{ width: 38, height: 38, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? 'var(--pine)' : 'var(--tint)', color: on ? '#fff' : 'var(--accent)', flexShrink: 0 }}>
                           {key === 'warehouse' ? (
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21V8l9-5 9 5v13" /><path d="M3 21h18" /><path d="M7 21v-8h10v8" /></svg>
                           ) : (
@@ -306,7 +306,7 @@ export function Hero({ copy }: { copy: SectionCopy }) {
                           )}
                         </div>
                         <div style={{ flex: 1, fontSize: '14.5px', fontWeight: 600 }}>{enumLabel(label, locale)}</div>
-                        <div style={{ width: 20, height: 20, borderRadius: 9999, border: '2px solid ' + (on ? '#273c33' : 'var(--border)'), background: on ? '#273c33' : 'transparent', boxShadow: on ? 'inset 0 0 0 3px var(--surface)' : 'none' }} />
+                        <div style={{ width: 20, height: 20, borderRadius: 9999, border: '2px solid ' + (on ? 'var(--pine)' : 'var(--border)'), background: on ? 'var(--pine)' : 'transparent', boxShadow: on ? 'inset 0 0 0 3px var(--surface)' : 'none' }} />
                       </div>
                     );
                   })}
@@ -331,7 +331,7 @@ export function Hero({ copy }: { copy: SectionCopy }) {
             </div>
             <div style={{ display: 'flex', gap: 12, padding: '18px 24px 24px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
               <div onClick={() => { setPropType('warehouse'); setSizeSel(null); setPriceSel(null); }} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, border: '1.5px solid var(--border)', color: 'var(--text)', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>{d.common.clear}</div>
-              <div onClick={() => setFilterOpen(false)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>{d.common.apply}</div>
+              <div onClick={() => setFilterOpen(false)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, background: 'var(--pine)', color: '#fff', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>{d.common.apply}</div>
             </div>
           </div>
         </div>

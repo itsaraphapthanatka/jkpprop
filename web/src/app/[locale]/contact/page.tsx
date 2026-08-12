@@ -26,12 +26,12 @@ input::placeholder,textarea::placeholder{color:var(--muted3);}
    (~476px) and squeezed the map to ~224px on tablet/small-laptop widths.
    min-width:0 makes both columns honour their equal 1fr track. */
 #info-form-grid > div{min-width:0;}
-.c-phone:hover{background:#034956 !important;color:#fff !important;}
-.c-email:hover{background:#04140C !important;color:#2DFB91 !important;}
-.c-social:hover{background:#2DFB91 !important;color:#04140C !important;transform:translateY(-2px);}
+.c-phone:hover{background:var(--accent) !important;color:#fff !important;}
+.c-email:hover{background:#04140C !important;color:var(--neon) !important;}
+.c-social:hover{background:var(--neon) !important;color:#04140C !important;transform:translateY(-2px);}
 .c-submit:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.28);}
 /* keyboard users must be able to see where they are (the chips/toggles are buttons) */
-#info-form-grid button:focus-visible,#info-form-grid input:focus-visible,#info-form-grid select:focus-visible,#info-form-grid textarea:focus-visible{outline:2px solid #0D6C3B;outline-offset:2px;}
+#info-form-grid button:focus-visible,#info-form-grid input:focus-visible,#info-form-grid select:focus-visible,#info-form-grid textarea:focus-visible{outline:2px solid var(--deep);outline-offset:2px;}
 @media (max-width:640px){
   #info-form-grid{grid-template-columns:1fr !important;}
   #hours-row{flex-direction:column;align-items:flex-start !important;gap:14px !important;}

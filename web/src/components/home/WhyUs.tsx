@@ -79,20 +79,20 @@ export function WhyUs({ copy, kpi: kpiCopy }: { copy: SectionCopy; kpi: SectionC
       <section data-anim="1" style={{ maxWidth: '1200px', margin: '0 auto', padding: '88px 24px' }}>
         <div className="rs-split-r" style={{ display: 'grid', gridTemplateColumns: '0.92fr 1.08fr', gap: 52, alignItems: 'center' }}>
           {/* image card */}
-          <div style={{ position: 'relative', height: '480px', borderRadius: '20px', overflow: 'hidden', background: 'var(--bg2)', boxShadow: '0 24px 50px rgba(2,35,16,.16)' }}>
+          <div style={{ position: 'relative', height: '480px', borderRadius: '20px', overflow: 'hidden', background: 'var(--bg2)', boxShadow: '0 24px 50px rgba(var(--ink-rgb),.16)' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={copy.img || "https://images.unsplash.com/photo-1552664730-d307ca884978?w=1000&q=80"} alt={pick(copy.headline, d.whyUs.heading)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(2,35,16,.34) 0%,rgba(2,35,16,0) 30%,rgba(2,35,16,0) 55%,rgba(2,35,16,.5) 100%)', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(var(--ink-rgb),.34) 0%,rgba(var(--ink-rgb),0) 30%,rgba(var(--ink-rgb),0) 55%,rgba(var(--ink-rgb),.5) 100%)', pointerEvents: 'none' }} />
             {/* Award ribbon — printed only when the team names an award.
                 "Real Estate Agent Awards / Thailand · 2025" used to be baked
                 in here, on a site whose owner had not told us they won it. */}
             {awardTitle && (
             <div style={{ position: 'absolute', top: 18, left: 18, display: 'flex', alignItems: 'center', gap: 10, padding: '9px 15px 9px 11px', borderRadius: '12px', background: 'rgba(255,255,255,.94)', backdropFilter: 'blur(6px)', boxShadow: '0 8px 22px rgba(0,0,0,.18)' }}>
-              <div style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#034956' }}>
+              <div style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--accent)' }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9a6 6 0 0012 0V3H6z" /><path d="M6 5H3v2a4 4 0 004 4M18 5h3v2a4 4 0 01-4 4M9 21h6M12 17v4" /></svg>
               </div>
               <div style={{ lineHeight: 1.15 }}>
-                <div style={{ fontSize: 11, fontWeight: 800, color: '#273c33', letterSpacing: '.02em' }}>{awardTitle}</div>
+                <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--pine)', letterSpacing: '.02em' }}>{awardTitle}</div>
                 {awardSub && <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--muted2)' }}>{awardSub}</div>}
               </div>
             </div>
@@ -107,14 +107,14 @@ export function WhyUs({ copy, kpi: kpiCopy }: { copy: SectionCopy; kpi: SectionC
                   <div style={{ display: 'flex', gap: 2 }}>
                     {[0, 1, 2, 3, 4].map((n) => (
                       /* filled up to the score, so 4.2 does not show five full stars */
-                      <svg key={n} width="15" height="15" viewBox="0 0 24 24" fill={n < Math.round(Number(rating) || 0) ? '#034956' : 'none'} stroke="#034956" strokeWidth="1.6"><path d="M12 2l2.9 6 6.6.6-5 4.3 1.5 6.5L12 16.9 5.9 20l1.6-6.5-5-4.3 6.6-.6z" /></svg>
+                      <svg key={n} width="15" height="15" viewBox="0 0 24 24" fill={n < Math.round(Number(rating) || 0) ? 'var(--accent)' : 'none'} stroke="var(--accent)" strokeWidth="1.6"><path d="M12 2l2.9 6 6.6.6-5 4.3 1.5 6.5L12 16.9 5.9 20l1.6-6.5-5-4.3 6.6-.6z" /></svg>
                     ))}
                   </div>
                 </div>
                 <div style={{ marginTop: 4, fontSize: '12.5px', color: 'var(--muted)' }}>{d.whyUs.satisfaction}</div>
               </div>
-              <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: 9999, backgroundColor: '#273c33' }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12l2 2 4-4" /><path d="M21 12c0 5-3.5 7.5-8.6 8.9a1 1 0 01-.8 0C6.5 19.5 3 17 3 12V6a1 1 0 01.7-1l8-2.6a1 1 0 01.6 0l8 2.6A1 1 0 0121 6z" /></svg>
+              <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: 9999, backgroundColor: 'var(--pine)' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--neon)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12l2 2 4-4" /><path d="M21 12c0 5-3.5 7.5-8.6 8.9a1 1 0 01-.8 0C6.5 19.5 3 17 3 12V6a1 1 0 01.7-1l8-2.6a1 1 0 01.6 0l8 2.6A1 1 0 0121 6z" /></svg>
               </div>
             </div>
             )}
@@ -123,8 +123,8 @@ export function WhyUs({ copy, kpi: kpiCopy }: { copy: SectionCopy; kpi: SectionC
           {/* right column */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ width: 26, height: 2, background: '#273c33', borderRadius: 2 }} />
-              <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', color: '#273c33', textTransform: 'uppercase' }}>{pick(copy.eyebrow, d.whyUs.eyebrow)}</span>
+              <span style={{ width: 26, height: 2, background: 'var(--pine)', borderRadius: 2 }} />
+              <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', color: 'var(--pine)', textTransform: 'uppercase' }}>{pick(copy.eyebrow, d.whyUs.eyebrow)}</span>
             </div>
             <h2 style={{ margin: '10px 0 12px', fontSize: 34, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>{pick(copy.headline, d.whyUs.heading)}</h2>
             <p style={{ margin: '0 0 28px', fontSize: 15, color: 'var(--muted)', lineHeight: 1.7, maxWidth: '560px' }}>{pick(copy.sub, d.whyUs.sub)}</p>
@@ -148,14 +148,14 @@ export function WhyUs({ copy, kpi: kpiCopy }: { copy: SectionCopy; kpi: SectionC
         <div className="rs-cols-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 18, marginTop: 44 }}>
           {features.map((f, i) => {
             const on = i === fhover;
-            const ghost = on ? 'rgba(45,251,145,.14)' : 'rgba(40,37,29,.05)';
+            const ghost = on ? 'rgba(var(--neon-rgb),.14)' : 'rgba(40,37,29,.05)';
             const titleColor = on ? '#fff' : 'var(--text)';
             const descColor = on ? '#B9C2BD' : 'var(--muted)';
             const card: React.CSSProperties = on
-              ? { position: 'relative', overflow: 'hidden', background: 'linear-gradient(120deg,#0A0E0C 0%,#0A0E0C 50%,#0E3A22 100%)', border: '1.5px solid rgba(45,251,145,.35)', borderRadius: '16px', padding: '24px 22px 26px', transition: 'transform .3s cubic-bezier(.2,.7,.3,1), box-shadow .3s', transform: 'translateY(-6px)', boxShadow: '0 20px 40px rgba(0,0,0,.32)' }
+              ? { position: 'relative', overflow: 'hidden', background: 'linear-gradient(120deg,#0A0E0C 0%,#0A0E0C 50%,#0E3A22 100%)', border: '1.5px solid rgba(var(--neon-rgb),.35)', borderRadius: '16px', padding: '24px 22px 26px', transition: 'transform .3s cubic-bezier(.2,.7,.3,1), box-shadow .3s', transform: 'translateY(-6px)', boxShadow: '0 20px 40px rgba(0,0,0,.32)' }
               : { position: 'relative', overflow: 'hidden', background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: '16px', padding: '24px 22px 26px', transition: 'transform .3s cubic-bezier(.2,.7,.3,1), box-shadow .3s, border-color .3s', transform: 'none', boxShadow: '0 1px 3px rgba(0,0,0,.05)' };
-            const cardGlow: React.CSSProperties = on ? { position: 'absolute', bottom: '-55%', right: '-15%', width: '75%', height: '170%', background: 'radial-gradient(ellipse at center,rgba(45,251,145,.36) 0%,rgba(45,251,145,0) 62%)', pointerEvents: 'none' } : { display: 'none' };
-            const tile: React.CSSProperties = { position: 'relative', zIndex: 1, width: '52px', height: '52px', borderRadius: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? '#2DFB91' : '#273c33', color: on ? '#04140C' : '#2DFB91', transition: 'all .3s', boxShadow: on ? '0 8px 20px rgba(45,251,145,.4)' : 'none' };
+            const cardGlow: React.CSSProperties = on ? { position: 'absolute', bottom: '-55%', right: '-15%', width: '75%', height: '170%', background: 'radial-gradient(ellipse at center,rgba(var(--neon-rgb),.36) 0%,rgba(var(--neon-rgb),0) 62%)', pointerEvents: 'none' } : { display: 'none' };
+            const tile: React.CSSProperties = { position: 'relative', zIndex: 1, width: '52px', height: '52px', borderRadius: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? 'var(--neon)' : 'var(--pine)', color: on ? '#04140C' : 'var(--neon)', transition: 'all .3s', boxShadow: on ? '0 8px 20px rgba(var(--neon-rgb),.4)' : 'none' };
             return (
               <div key={i} onMouseEnter={() => setFhover(i)} onMouseLeave={() => setFhover(null)} style={card}>
                 <div style={cardGlow} />

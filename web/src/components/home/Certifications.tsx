@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useDict } from '@/i18n/useDict';
 import type { SectionCopy } from '@/lib/server/sectionCopy';
 
-const T = '#034956';
+const T = 'var(--accent)';
 
 const certDefs: { name: string; tag: string; desc: string; icon: React.ReactNode }[] = [
   {
@@ -55,9 +55,9 @@ export function Certifications({ copy }: { copy: SectionCopy }) {
       <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '80px 24px' }}>
         <div style={{ textAlign: 'center', marginBottom: 8 }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ width: 26, height: 2, background: '#034956', borderRadius: 2 }} />
+            <span style={{ width: 26, height: 2, background: 'var(--accent)', borderRadius: 2 }} />
             <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', color: 'var(--accent)', textTransform: 'uppercase' }}>{pick(copy.eyebrow, d.certs.eyebrow)}</span>
-            <span style={{ width: 26, height: 2, background: '#034956', borderRadius: 2 }} />
+            <span style={{ width: 26, height: 2, background: 'var(--accent)', borderRadius: 2 }} />
           </div>
         </div>
         <h2 style={{ margin: '0 0 8px', textAlign: 'center', fontSize: 34, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>{pick(copy.headline, d.certs.heading)}</h2>
@@ -74,13 +74,13 @@ export function Certifications({ copy }: { copy: SectionCopy }) {
                   position: 'relative',
                   overflow: 'hidden',
                   background: 'var(--surface)',
-                  border: '1.5px solid ' + (on ? T : '#273c33'),
+                  border: '1.5px solid ' + (on ? T : 'var(--pine)'),
                   borderRadius: 18,
                   padding: '30px 26px 28px',
                   textAlign: 'center',
                   transition: 'transform .3s cubic-bezier(.2,.7,.3,1), box-shadow .3s, border-color .3s',
                   transform: on ? 'translateY(-8px)' : 'none',
-                  boxShadow: on ? '0 22px 44px rgba(3,73,86,.15)' : '0 2px 10px rgba(3,73,86,.06)',
+                  boxShadow: on ? '0 22px 44px rgba(var(--accent-rgb),.15)' : '0 2px 10px rgba(var(--accent-rgb),.06)',
                 }}
               >
                 <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', alignItems: 'center', gap: 5, height: 24, padding: '0 10px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: 11, fontWeight: 700 }}>
@@ -95,10 +95,10 @@ export function Certifications({ copy }: { copy: SectionCopy }) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    background: on ? '#2DFB91' : '#273c33',
-                    color: on ? '#022310' : '#2DFB91',
+                    background: on ? 'var(--neon)' : 'var(--pine)',
+                    color: on ? 'var(--ink)' : 'var(--neon)',
                     transition: 'all .3s',
-                    boxShadow: on ? '0 10px 26px rgba(45,251,145,.4)' : 'none',
+                    boxShadow: on ? '0 10px 26px rgba(var(--neon-rgb),.4)' : 'none',
                   }}
                 >
                   {c.icon}

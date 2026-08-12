@@ -68,7 +68,7 @@ export function RequirementForm() {
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {(f.options || []).map((opt) => {
                 const on = (values[f.key] ?? (f.options || [])[0]) === opt;
-                return <button type="button" key={opt} onClick={() => setV(f.key, opt)} aria-pressed={on} style={{ flex: '1 1 auto', minWidth: 100, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? 'rgba(13,108,59,.06)' : 'var(--bg)', color: on ? '#0D6C3B' : 'var(--text)' }}>{opt}</button>;
+                return <button type="button" key={opt} onClick={() => setV(f.key, opt)} aria-pressed={on} style={{ flex: '1 1 auto', minWidth: 100, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', border: '1.5px solid ' + (on ? 'var(--deep)' : 'var(--border)'), background: on ? 'rgba(var(--deep-rgb),.06)' : 'var(--bg)', color: on ? 'var(--deep)' : 'var(--text)' }}>{opt}</button>;
               })}
             </div>
           </div>
@@ -81,7 +81,7 @@ export function RequirementForm() {
             {lbl(f)}
             <button type="button" role="switch" aria-checked={!!values[f.key]} aria-label={enumLabel(f.label, locale)} onClick={() => setV(f.key, !values[f.key])} style={{ width: '100%', height: 46, padding: '0 14px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', fontFamily: 'inherit' }}>
               <span style={{ fontSize: 13, color: 'var(--text)' }}>{values[f.key] ? d.requirement.wanted : d.requirement.notSpecified}</span>
-              <div style={{ width: 40, height: 23, borderRadius: 9999, background: values[f.key] ? '#0D6C3B' : 'var(--border)', position: 'relative', transition: 'background .2s' }}><div style={{ position: 'absolute', top: '2.5px', left: values[f.key] ? '19px' : '2.5px', width: 18, height: 18, borderRadius: 9999, background: '#fff', transition: 'left .2s' }} /></div>
+              <div style={{ width: 40, height: 23, borderRadius: 9999, background: values[f.key] ? 'var(--deep)' : 'var(--border)', position: 'relative', transition: 'background .2s' }}><div style={{ position: 'absolute', top: '2.5px', left: values[f.key] ? '19px' : '2.5px', width: 18, height: 18, borderRadius: 9999, background: '#fff', transition: 'left .2s' }} /></div>
             </button>
           </div>
         );
@@ -156,7 +156,7 @@ export function RequirementForm() {
     return (
       <div style={{ minHeight: 320, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 12, padding: 20 }}>
         <div style={{ width: 64, height: 64, borderRadius: 9999, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" strokeWidth="2.6"><path d="M20 6L9 17l-5-5" /></svg>
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--deep)" strokeWidth="2.6"><path d="M20 6L9 17l-5-5" /></svg>
         </div>
         <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>{d.requirement.sent}</div>
         <div style={{ fontSize: '13.5px', color: 'var(--muted)', maxWidth: 320 }}>{d.form.successBody}</div>
@@ -186,9 +186,9 @@ export function RequirementForm() {
           {RESPONDENT_OPTS.map((opt) => {
             const on = respondent === opt;
             return (
-              <button type="button" key={opt} onClick={() => { setRespondent(opt); clearErr(); }} aria-pressed={on} style={{ flex: '1 1 auto', minWidth: 150, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 12, fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? 'rgba(13,108,59,.06)' : 'var(--bg)', color: on ? '#0D6C3B' : 'var(--text)' }}>
-                <span style={{ width: 16, height: 16, borderRadius: 9999, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--muted3)') }}>
-                  {on && <span style={{ width: 8, height: 8, borderRadius: 9999, background: '#0D6C3B' }} />}
+              <button type="button" key={opt} onClick={() => { setRespondent(opt); clearErr(); }} aria-pressed={on} style={{ flex: '1 1 auto', minWidth: 150, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 12, fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', border: '1.5px solid ' + (on ? 'var(--deep)' : 'var(--border)'), background: on ? 'rgba(var(--deep-rgb),.06)' : 'var(--bg)', color: on ? 'var(--deep)' : 'var(--text)' }}>
+                <span style={{ width: 16, height: 16, borderRadius: 9999, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid ' + (on ? 'var(--deep)' : 'var(--muted3)') }}>
+                  {on && <span style={{ width: 8, height: 8, borderRadius: 9999, background: 'var(--deep)' }} />}
                 </span>
                 {opt}
               </button>
@@ -204,7 +204,7 @@ export function RequirementForm() {
           {types.map((pt) => {
             const on = typeKey === pt.key;
             return (
-              <button type="button" key={pt.key} onClick={() => pickType(pt.key)} aria-pressed={on} style={{ flex: '1 1 auto', minWidth: 108, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 12, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? 'rgba(13,108,59,.06)' : 'var(--bg)', color: on ? '#0D6C3B' : 'var(--text)' }}>
+              <button type="button" key={pt.key} onClick={() => pickType(pt.key)} aria-pressed={on} style={{ flex: '1 1 auto', minWidth: 108, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 12, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', border: '1.5px solid ' + (on ? 'var(--deep)' : 'var(--border)'), background: on ? 'rgba(var(--deep-rgb),.06)' : 'var(--bg)', color: on ? 'var(--deep)' : 'var(--text)' }}>
                 <span style={{ display: 'flex', width: 16, height: 16 }} dangerouslySetInnerHTML={{ __html: pt.icon }} />
                 {enumLabel(pt.label, locale)}
               </button>
@@ -231,9 +231,9 @@ export function RequirementForm() {
       {/* honeypot — visually hidden; bots that fill it are silently dropped */}
       <input type="text" name="website" value={website} onChange={(e) => setWebsite(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: 'absolute', left: -9999, width: 1, height: 1, opacity: 0 }} />
 
-      <button type="submit" className="c-submit" disabled={sending} style={{ marginTop: 16, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, padding: '0 30px', borderRadius: 9999, border: 0, background: '#04140C', color: '#2DFB91', fontSize: 14, fontWeight: 800, fontFamily: 'inherit', cursor: sending ? 'default' : 'pointer', opacity: sending ? 0.75 : 1, transition: 'transform .2s,box-shadow .2s' }}>
+      <button type="submit" className="c-submit" disabled={sending} style={{ marginTop: 16, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, padding: '0 30px', borderRadius: 9999, border: 0, background: '#04140C', color: 'var(--neon)', fontSize: 14, fontWeight: 800, fontFamily: 'inherit', cursor: sending ? 'default' : 'pointer', opacity: sending ? 0.75 : 1, transition: 'transform .2s,box-shadow .2s' }}>
         {sending ? d.form.sending : d.form.submit}
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--neon)" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
       </button>
     </form>
   );

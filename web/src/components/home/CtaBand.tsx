@@ -6,7 +6,7 @@ export function CtaBand({ copy }: { copy: SectionCopy }) {
   const d = useDict();
   const pick = (v: string, fallback: string) => v || fallback;
   const primaryEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.currentTarget.style.boxShadow = '0 12px 34px rgba(45,251,145,.5)';
+    e.currentTarget.style.boxShadow = '0 12px 34px rgba(var(--neon-rgb),.5)';
   };
   const primaryLeave = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.currentTarget.style.boxShadow = 'none';
@@ -43,7 +43,7 @@ export function CtaBand({ copy }: { copy: SectionCopy }) {
               left: '-14%',
               width: '70%',
               height: '180%',
-              background: 'radial-gradient(ellipse at center,rgba(45,251,145,.55) 0%,rgba(45,251,145,.16) 38%,rgba(45,251,145,0) 66%)',
+              background: 'radial-gradient(ellipse at center,rgba(var(--neon-rgb),.55) 0%,rgba(var(--neon-rgb),.16) 38%,rgba(var(--neon-rgb),0) 66%)',
               animation: 'mesh1 10s ease-in-out infinite',
             }}
           />
@@ -54,7 +54,7 @@ export function CtaBand({ copy }: { copy: SectionCopy }) {
               right: '-6%',
               width: '52%',
               height: '150%',
-              background: 'radial-gradient(ellipse at center,rgba(3,73,86,.5) 0%,rgba(3,73,86,0) 62%)',
+              background: 'radial-gradient(ellipse at center,rgba(var(--accent-rgb),.5) 0%,rgba(var(--accent-rgb),0) 62%)',
               animation: 'mesh2 12s ease-in-out infinite',
             }}
           />
@@ -85,17 +85,17 @@ export function CtaBand({ copy }: { copy: SectionCopy }) {
               height: 30,
               padding: '0 14px',
               borderRadius: 9999,
-              background: 'rgba(45,251,145,.12)',
-              border: '1px solid rgba(45,251,145,.34)',
-              color: '#2DFB91',
+              background: 'rgba(var(--neon-rgb),.12)',
+              border: '1px solid rgba(var(--neon-rgb),.34)',
+              color: 'var(--neon)',
               fontSize: 12,
               fontWeight: 700,
               letterSpacing: '.02em',
             }}
           >
             <span style={{ position: 'relative', display: 'flex', width: 7, height: 7 }}>
-              <span style={{ position: 'absolute', inset: 0, borderRadius: 9999, background: '#2DFB91', animation: 'pinPulse 1.8s ease-out infinite' }} />
-              <span style={{ position: 'relative', width: 7, height: 7, borderRadius: 9999, background: '#2DFB91' }} />
+              <span style={{ position: 'absolute', inset: 0, borderRadius: 9999, background: 'var(--neon)', animation: 'pinPulse 1.8s ease-out infinite' }} />
+              <span style={{ position: 'relative', width: 7, height: 7, borderRadius: 9999, background: 'var(--neon)' }} />
             </span>
             {pick(copy.eyebrow, d.cta.eyebrow)}
           </div>
@@ -103,7 +103,7 @@ export function CtaBand({ copy }: { copy: SectionCopy }) {
             {/* the stock headline is two-tone; a CMS one is shown as written */}
             {copy.headline
               ? copy.headline
-              : <>{d.cta.headline}<span style={{ color: '#2DFB91' }}>{d.cta.headlineAccent}</span></>}
+              : <>{d.cta.headline}<span style={{ color: 'var(--neon)' }}>{d.cta.headlineAccent}</span></>}
           </h2>
           <p style={{ margin: '14px 0 0', fontSize: 15, color: '#B9C2BD', maxWidth: 440, lineHeight: 1.65 }}>
             {pick(copy.sub, d.cta.sub)}
@@ -120,7 +120,7 @@ export function CtaBand({ copy }: { copy: SectionCopy }) {
                 height: 52,
                 padding: '0 30px',
                 borderRadius: 9999,
-                background: '#2DFB91',
+                background: 'var(--neon)',
                 color: '#04140C',
                 fontSize: 15,
                 fontWeight: 800,
@@ -169,7 +169,7 @@ export function CtaBand({ copy }: { copy: SectionCopy }) {
               inset: '22px 22px 22px 0',
               borderRadius: '26px',
               overflow: 'hidden',
-              boxShadow: '0 0 0 1px rgba(45,251,145,.22), 0 20px 44px rgba(0,0,0,.45)',
+              boxShadow: '0 0 0 1px rgba(var(--neon-rgb),.22), 0 20px 44px rgba(0,0,0,.45)',
             }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -201,8 +201,8 @@ export function CtaBand({ copy }: { copy: SectionCopy }) {
               height: 38,
               padding: '0 16px 0 12px',
               borderRadius: 9999,
-              background: '#2DFB91',
-              boxShadow: '0 12px 28px rgba(45,251,145,.4)',
+              background: 'var(--neon)',
+              boxShadow: '0 12px 28px rgba(var(--neon-rgb),.4)',
               animation: 'floatY 4s ease-in-out infinite',
             }}
           >
@@ -246,7 +246,7 @@ export function CtaBand({ copy }: { copy: SectionCopy }) {
                 flexShrink: 0,
               }}
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--neon)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
                 <circle cx="9" cy="7" r="4" />
                 <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />

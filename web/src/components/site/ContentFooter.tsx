@@ -38,7 +38,7 @@ export function ContentFooter({
   const d = useDict();
   const place = location ?? d.common.address;
   const socialEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.currentTarget.style.background = '#034956';
+    e.currentTarget.style.background = 'var(--accent)';
     e.currentTarget.style.color = '#fff';
   };
   const socialLeave = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -46,7 +46,7 @@ export function ContentFooter({
     e.currentTarget.style.color = '#C9C5BD';
   };
   const contactEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.currentTarget.style.boxShadow = '0 10px 26px rgba(45,251,145,.45)';
+    e.currentTarget.style.boxShadow = '0 10px 26px rgba(var(--neon-rgb),.45)';
   };
   const contactLeave = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.currentTarget.style.boxShadow = 'none';
@@ -102,20 +102,20 @@ export function ContentFooter({
           <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 16 }}>{d.footer.contact}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 14, color: '#8E8B84' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
-              <svg style={{ flexShrink: 0, marginTop: 2 }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" strokeWidth="2">
+              <svg style={{ flexShrink: 0, marginTop: 2 }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--neon)" strokeWidth="2">
                 <path d="M22 6l-10 7L2 6" />
                 <rect x="2" y="4" width="20" height="16" rx="2" />
               </svg>
               {email}
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
-              <svg style={{ flexShrink: 0, marginTop: 2 }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" strokeWidth="2">
+              <svg style={{ flexShrink: 0, marginTop: 2 }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--neon)" strokeWidth="2">
                 <path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z" />
               </svg>
               {phone}
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
-              <svg style={{ flexShrink: 0, marginTop: 2 }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" strokeWidth="2">
+              <svg style={{ flexShrink: 0, marginTop: 2 }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--neon)" strokeWidth="2">
                 <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z" />
                 <circle cx="12" cy="10" r="3" />
               </svg>
@@ -126,7 +126,7 @@ export function ContentFooter({
             href="/contact"
             onMouseEnter={contactEnter}
             onMouseLeave={contactLeave}
-            style={{ marginTop: 20, display: 'inline-flex', alignItems: 'center', gap: 8, height: 44, padding: '0 22px', borderRadius: 9999, background: '#2DFB91', color: '#04140C', fontSize: 14, fontWeight: 800, transition: 'box-shadow .2s' }}
+            style={{ marginTop: 20, display: 'inline-flex', alignItems: 'center', gap: 8, height: 44, padding: '0 22px', borderRadius: 9999, background: 'var(--neon)', color: '#04140C', fontSize: 14, fontWeight: 800, transition: 'box-shadow .2s' }}
           >
             {d.nav.contact}
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">

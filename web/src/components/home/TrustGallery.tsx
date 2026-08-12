@@ -43,9 +43,9 @@ export function TrustGallery({ copy }: { copy: SectionCopy }) {
     <section data-anim="1" style={{ padding: '72px 0 88px', overflow: 'hidden' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ width: 26, height: 2, background: '#034956', borderRadius: 2 }} />
+          <span style={{ width: 26, height: 2, background: 'var(--accent)', borderRadius: 2 }} />
           <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', color: 'var(--accent)', textTransform: 'uppercase' }}>{pick(copy.eyebrow, d.trust.eyebrow)}</span>
-          <span style={{ width: 26, height: 2, background: '#034956', borderRadius: 2 }} />
+          <span style={{ width: 26, height: 2, background: 'var(--accent)', borderRadius: 2 }} />
         </div>
         <h2 style={{ margin: '10px 0 0', fontSize: 34, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>{pick(copy.headline, d.trust.heading)}</h2>
         <div style={{ margin: '18px auto 0', display: 'inline-flex', alignItems: 'center', gap: 9, height: 40, padding: '0 18px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: 14, fontWeight: 700 }}>
@@ -70,7 +70,7 @@ export function TrustGallery({ copy }: { copy: SectionCopy }) {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={tile.img} alt={tile.title ?? ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 </div>
-                <div style={{ position: 'absolute', inset: 0, borderRadius: 16, boxShadow: on ? 'inset 0 0 0 3px #034956' : 'inset 0 0 0 0 #034956', transition: 'box-shadow .3s', pointerEvents: 'none' }} />
+                <div style={{ position: 'absolute', inset: 0, borderRadius: 16, boxShadow: on ? 'inset 0 0 0 3px var(--accent)' : 'inset 0 0 0 0 var(--accent)', transition: 'box-shadow .3s', pointerEvents: 'none' }} />
               </div>
             );
           })}

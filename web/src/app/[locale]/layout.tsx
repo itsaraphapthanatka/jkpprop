@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { LOCALES, isLocale } from '@/i18n/config';
 import { SyncHtmlLang } from '@/i18n/SyncHtmlLang';
 import { getDictionary } from '@/i18n/dictionaries';
+import { brandThemeCss } from '@/lib/server/brandTheme';
 import type { Metadata } from 'next';
 
 /* Locale segment for the public site (AGENT.md §9). Admin is Thai-only and
@@ -34,8 +35,15 @@ export default async function LocaleLayout({
 }) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
+
+  /* Brand colours from /admin/branding, emitted as :root overrides ahead of
+     the page so the whole public tree picks them up. Server-rendered, so the
+     first paint is already themed — no flash of the default green. */
+  const theme = await brandThemeCss().catch(() => '');
+
   return (
     <>
+      {theme && <style dangerouslySetInnerHTML={{ __html: theme }} />}
       <SyncHtmlLang />
       {children}
     </>

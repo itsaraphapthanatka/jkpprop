@@ -41,7 +41,7 @@ export function ContactBody({ copy }: { copy: ContactCopy }) {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={copy.ch.img || "https://images.unsplash.com/photo-1536599424071-0b215a388ba7?w=1600&q=80"} alt={pick(copy.ch.headline, d.contact.hero)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         </div>
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg,rgba(2,29,14,.82) 0%,rgba(2,29,14,.5) 55%,rgba(2,29,14,.28) 100%)', pointerEvents: 'none', borderBottomRightRadius: '72px' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg,rgba(var(--ink2-rgb),.82) 0%,rgba(var(--ink2-rgb),.5) 55%,rgba(var(--ink2-rgb),.28) 100%)', pointerEvents: 'none', borderBottomRightRadius: '72px' }} />
         <div style={{ position: 'relative', zIndex: 2, maxWidth: '1320px', margin: '0 auto', padding: '0 24px', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
           <h1 style={{ margin: 0, fontSize: '34px', fontWeight: 800, color: '#fff', letterSpacing: '-.01em' }}>{pick(copy.ch.headline, d.contact.hero)}</h1>
           <p style={{ margin: '10px 0 0', fontSize: '14.5px', color: '#E8FFF0', maxWidth: '520px' }}>{pick(copy.ch.sub, d.contact.sub)}</p>
@@ -59,8 +59,8 @@ export function ContactBody({ copy }: { copy: ContactCopy }) {
       <div style={{ maxWidth: '1320px', margin: '0 auto', padding: '20px 24px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* location */}
         <div style={infoCard}>
-          <div style={iconCircle('#273c33')} {...iconHover('0 8px 18px rgba(39,60,51,.4)')}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z" /><circle cx="12" cy="10" r="3" /></svg>
+          <div style={iconCircle('var(--pine)')} {...iconHover('0 8px 18px rgba(var(--pine-rgb),.4)')}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--neon)" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z" /><circle cx="12" cy="10" r="3" /></svg>
           </div>
           <div>
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>{pick(copy.cm.headline, d.contact.ourLocation)}</div>
@@ -91,8 +91,8 @@ export function ContactBody({ copy }: { copy: ContactCopy }) {
 
         {/* emails */}
         <div style={infoCard}>
-          <div style={iconCircle('#04140C')} {...iconHover('0 8px 18px rgba(45,251,145,.35)')}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2DFB91" strokeWidth="2"><path d="M22 6l-10 7L2 6" /><rect x="2" y="4" width="20" height="16" rx="2" /></svg>
+          <div style={iconCircle('#04140C')} {...iconHover('0 8px 18px rgba(var(--neon-rgb),.35)')}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--neon)" strokeWidth="2"><path d="M22 6l-10 7L2 6" /><rect x="2" y="4" width="20" height="16" rx="2" /></svg>
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>{d.contact.reachUs}</div>
@@ -111,9 +111,9 @@ export function ContactBody({ copy }: { copy: ContactCopy }) {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 13, color: 'var(--muted2)' }}>{d.contact.contactAt}</span>
-            <a className="c-social" href="#" style={{ width: 38, height: 38, borderRadius: 11, background: '#04140C', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2DFB91', transition: 'transform .2s,background .2s,color .2s' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.4 8.4 0 01-9 8.4c-1.5 0-2.9-.4-4.1-1L3 20l1.2-4.8A8.3 8.3 0 013 11.5 8.5 8.5 0 0112 3a8.5 8.5 0 019 8.5z" /></svg></a>
-            <a className="c-social" href="#" style={{ width: 38, height: 38, borderRadius: 11, background: '#04140C', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2DFB91', transition: 'transform .2s,background .2s,color .2s' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21l-5-4-5 4V5a2 2 0 012-2h6a2 2 0 012 2z" /></svg></a>
-            <a className="c-social" href="#" style={{ width: 38, height: 38, borderRadius: 11, background: '#04140C', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2DFB91', transition: 'transform .2s,background .2s,color .2s' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><path d="M3 21l1.9-5.7A9 9 0 1112 21a9 9 0 01-9 0z" /><path d="M8.5 9.5c0 3 2.5 5.5 5.5 5.5" /></svg></a>
+            <a className="c-social" href="#" style={{ width: 38, height: 38, borderRadius: 11, background: '#04140C', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--neon)', transition: 'transform .2s,background .2s,color .2s' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.4 8.4 0 01-9 8.4c-1.5 0-2.9-.4-4.1-1L3 20l1.2-4.8A8.3 8.3 0 013 11.5 8.5 8.5 0 0112 3a8.5 8.5 0 019 8.5z" /></svg></a>
+            <a className="c-social" href="#" style={{ width: 38, height: 38, borderRadius: 11, background: '#04140C', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--neon)', transition: 'transform .2s,background .2s,color .2s' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21l-5-4-5 4V5a2 2 0 012-2h6a2 2 0 012 2z" /></svg></a>
+            <a className="c-social" href="#" style={{ width: 38, height: 38, borderRadius: 11, background: '#04140C', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--neon)', transition: 'transform .2s,background .2s,color .2s' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><path d="M3 21l1.9-5.7A9 9 0 1112 21a9 9 0 01-9 0z" /><path d="M8.5 9.5c0 3 2.5 5.5 5.5 5.5" /></svg></a>
           </div>
         </div>
       </div>

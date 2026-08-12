@@ -67,9 +67,9 @@ export function AboutBody({ copy }: { copy: AboutCopy }) {
     e.currentTarget.style.boxShadow = 'none';
   };
   const arrowEnter = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.currentTarget.style.background = '#2DFB91';
+    e.currentTarget.style.background = 'var(--neon)';
     e.currentTarget.style.color = '#04140C';
-    e.currentTarget.style.borderColor = '#2DFB91';
+    e.currentTarget.style.borderColor = 'var(--neon)';
   };
   const arrowLeave = (e: React.MouseEvent<HTMLDivElement>) => {
     e.currentTarget.style.background = 'rgba(255,255,255,.08)';
@@ -86,7 +86,7 @@ export function AboutBody({ copy }: { copy: AboutCopy }) {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={copy.ah.img || "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1600&q=80"} alt={pick(copy.ah.headline, d.about.hero)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         </div>
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg,rgba(2,29,14,.82) 0%,rgba(2,29,14,.5) 55%,rgba(2,29,14,.28) 100%)', pointerEvents: 'none', borderBottomRightRadius: '72px' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg,rgba(var(--ink2-rgb),.82) 0%,rgba(var(--ink2-rgb),.5) 55%,rgba(var(--ink2-rgb),.28) 100%)', pointerEvents: 'none', borderBottomRightRadius: '72px' }} />
         <div style={{ position: 'relative', zIndex: 2, maxWidth: '1320px', margin: '0 auto', padding: '0 24px', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
           <h1 style={{ margin: 0, fontSize: '34px', fontWeight: 800, color: '#fff', letterSpacing: '-.01em' }}>{pick(copy.ah.headline, d.about.hero)}</h1>
           <p style={{ margin: '10px 0 0', fontSize: '14.5px', color: '#E8FFF0', maxWidth: '520px' }}>{pick(copy.ah.sub, d.about.teamSub)}</p>
@@ -121,19 +121,19 @@ export function AboutBody({ copy }: { copy: AboutCopy }) {
                   </div>
                 ))}
               </div>
-              <Link href="/contact" onMouseEnter={liftEnter('0 10px 24px rgba(39,60,51,.4)')} onMouseLeave={liftLeave} style={{ marginTop: 26, display: 'inline-flex', alignItems: 'center', gap: 8, height: 46, padding: '0 24px', borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: 14, fontWeight: 700, transition: 'transform .2s,box-shadow .2s' }}>
+              <Link href="/contact" onMouseEnter={liftEnter('0 10px 24px rgba(var(--pine-rgb),.4)')} onMouseLeave={liftLeave} style={{ marginTop: 26, display: 'inline-flex', alignItems: 'center', gap: 8, height: 46, padding: '0 24px', borderRadius: 9999, background: 'var(--pine)', color: '#fff', fontSize: 14, fontWeight: 700, transition: 'transform .2s,box-shadow .2s' }}>
                 {d.nav.contact}
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
               </Link>
             </div>
-            <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', boxShadow: '0 20px 44px rgba(2,35,16,.15)' }}>
+            <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', boxShadow: '0 20px 44px rgba(var(--ink-rgb),.15)' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={copy.st.img || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=700&q=80"} alt={d.about.storyCaption} style={{ width: '100%', height: '360px', objectFit: 'cover', display: 'block' }} />
               <div style={{ position: 'absolute', top: 14, left: 14, display: 'flex', alignItems: 'center', gap: 6, height: 26, padding: '0 12px', borderRadius: 9999, background: 'rgba(255,255,255,.92)', color: 'var(--accent)', fontSize: 11, fontWeight: 700 }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.4"><path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 19.3 7.2 17l.9-5.4L4.2 7.7l5.4-.8z" /></svg>
                 {d.about.storyCaption}
               </div>
-              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '16px 18px', background: 'linear-gradient(180deg,rgba(2,29,14,0) 0%,rgba(2,29,14,.72) 100%)' }}>
+              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '16px 18px', background: 'linear-gradient(180deg,rgba(var(--ink2-rgb),0) 0%,rgba(var(--ink2-rgb),.72) 100%)' }}>
                 <div style={{ fontSize: 17, fontWeight: 800, color: '#fff' }}>{pick(copy.st.cta, "คุณกิตติพงษ์ พรหมทอง")}</div>
                 <div style={{ fontSize: '12.5px', color: '#DDE8E2' }}>{d.about.awardCaption}</div>
               </div>
@@ -170,10 +170,10 @@ export function AboutBody({ copy }: { copy: AboutCopy }) {
                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg,rgba(10,14,12,.92) 0%,rgba(10,14,12,.86) 45%,rgba(15,35,24,.88) 100%)', pointerEvents: 'none' }} />
               </>
             )}
-            <div style={{ position: 'absolute', top: -60, right: -60, width: 220, height: 220, borderRadius: 9999, background: 'radial-gradient(circle,rgba(45,251,145,.16),rgba(45,251,145,0) 70%)', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', top: -60, right: -60, width: 220, height: 220, borderRadius: 9999, background: 'radial-gradient(circle,rgba(var(--neon-rgb),.16),rgba(var(--neon-rgb),0) 70%)', pointerEvents: 'none' }} />
             <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <span style={{ width: 22, height: 2, background: '#2DFB91', borderRadius: 2 }} />
-              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.08em', color: '#2DFB91', textTransform: 'uppercase' }}>{pick(copy.as.eyebrow, d.about.teamEyebrow)}</span>
+              <span style={{ width: 22, height: 2, background: 'var(--neon)', borderRadius: 2 }} />
+              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.08em', color: 'var(--neon)', textTransform: 'uppercase' }}>{pick(copy.as.eyebrow, d.about.teamEyebrow)}</span>
             </div>
             <h2 style={{ position: 'relative', margin: '10px 0 0', fontSize: 24, fontWeight: 800, color: '#fff', letterSpacing: '-.01em' }}>{pick(copy.as.headline, d.about.teamHeading)}</h2>
             <p style={{ position: 'relative', margin: '14px 0 0', fontSize: '13.5px', color: '#B9C2BD', lineHeight: 1.7 }}>{pick(copy.as.sub, d.about.teamBlurb)}</p>
@@ -193,7 +193,7 @@ export function AboutBody({ copy }: { copy: AboutCopy }) {
                   <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', height: 240 }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={m.img} alt={m.title ?? ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(2,29,14,0) 55%,rgba(2,29,14,.55) 100%)', pointerEvents: 'none' }} />
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(var(--ink2-rgb),0) 55%,rgba(var(--ink2-rgb),.55) 100%)', pointerEvents: 'none' }} />
                   </div>
                   <div style={{ marginTop: 10, fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{m.title}</div>
                   <div style={{ fontSize: '12.5px', color: 'var(--muted2)' }}>{m.role}</div>

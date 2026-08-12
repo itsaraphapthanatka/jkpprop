@@ -32,7 +32,7 @@ export function Steps({ copy }: { copy: SectionCopy }) {
     return () => clearInterval(t);
   }, []);
 
-  const T = '#034956';
+  const T = 'var(--accent)';
   const active = hover != null ? hover : step;
 
   return (
@@ -40,9 +40,9 @@ export function Steps({ copy }: { copy: SectionCopy }) {
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '80px 24px' }}>
         <div style={{ textAlign: 'center', marginBottom: 14 }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ width: 26, height: 2, background: '#034956', borderRadius: 2 }} />
+            <span style={{ width: 26, height: 2, background: 'var(--accent)', borderRadius: 2 }} />
             <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', color: 'var(--accent)', textTransform: 'uppercase' }}>{pick(copy.eyebrow, d.steps.eyebrow)}</span>
-            <span style={{ width: 26, height: 2, background: '#034956', borderRadius: 2 }} />
+            <span style={{ width: 26, height: 2, background: 'var(--accent)', borderRadius: 2 }} />
           </div>
         </div>
         <h2 style={{ margin: '0 0 8px', textAlign: 'center', fontSize: 34, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.01em' }}>{pick(copy.headline, d.steps.heading)}</h2>
@@ -55,7 +55,7 @@ export function Steps({ copy }: { copy: SectionCopy }) {
             const done = i < active;
             const reached = i <= active;
             const nodeWrap: React.CSSProperties = { position: 'absolute', top: '50%', left: (12.5 + i * 25) + '%', transform: 'translate(-50%,-50%)', width: '44px', height: '44px', cursor: 'pointer', zIndex: 2 };
-            const node: React.CSSProperties = { position: 'absolute', inset: 0, borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', fontWeight: 800, background: reached ? '#273c33' : '#fff', color: reached ? '#fff' : '#9B968D', border: '2.5px solid ' + (reached ? '#273c33' : '#DAD5CC'), boxShadow: on ? '0 6px 16px rgba(3,73,86,.4)' : '0 2px 6px rgba(0,0,0,.08)', transition: 'all .35s' };
+            const node: React.CSSProperties = { position: 'absolute', inset: 0, borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', fontWeight: 800, background: reached ? 'var(--pine)' : '#fff', color: reached ? '#fff' : '#9B968D', border: '2.5px solid ' + (reached ? 'var(--pine)' : '#DAD5CC'), boxShadow: on ? '0 6px 16px rgba(var(--accent-rgb),.4)' : '0 2px 6px rgba(0,0,0,.08)', transition: 'all .35s' };
             const nodeRing: React.CSSProperties = on ? { position: 'absolute', inset: 0, borderRadius: '9999px', border: '2.5px solid ' + T, animation: 'pinPulse 1.9s ease-out infinite' } : { display: 'none' };
             return (
               <div key={i} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} onClick={() => setHover(i)} style={nodeWrap}>
@@ -74,14 +74,14 @@ export function Steps({ copy }: { copy: SectionCopy }) {
         <div className="rs-cols-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 22, marginTop: 16 }}>
           {steps.map((item, i) => {
             const on = i === active;
-            const ghostColor = on ? 'rgba(45,251,145,.14)' : 'rgba(40,37,29,.05)';
+            const ghostColor = on ? 'rgba(var(--neon-rgb),.14)' : 'rgba(40,37,29,.05)';
             const titleColor = on ? '#fff' : 'var(--text)';
             const descColor = on ? '#B9C2BD' : 'var(--muted)';
             const card: React.CSSProperties = on
-              ? { position: 'relative', overflow: 'hidden', background: 'linear-gradient(120deg,#0A0E0C 0%,#0A0E0C 50%,#0E3A22 100%)', border: '1.5px solid rgba(45,251,145,.35)', borderRadius: '18px', padding: '26px 22px 24px', cursor: 'default', transition: 'transform .3s cubic-bezier(.2,.7,.3,1), box-shadow .3s', transform: 'translateY(-8px)', boxShadow: '0 22px 44px rgba(0,0,0,.35)' }
+              ? { position: 'relative', overflow: 'hidden', background: 'linear-gradient(120deg,#0A0E0C 0%,#0A0E0C 50%,#0E3A22 100%)', border: '1.5px solid rgba(var(--neon-rgb),.35)', borderRadius: '18px', padding: '26px 22px 24px', cursor: 'default', transition: 'transform .3s cubic-bezier(.2,.7,.3,1), box-shadow .3s', transform: 'translateY(-8px)', boxShadow: '0 22px 44px rgba(0,0,0,.35)' }
               : { position: 'relative', overflow: 'hidden', background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: '18px', padding: '26px 22px 24px', cursor: 'default', transition: 'transform .3s cubic-bezier(.2,.7,.3,1), box-shadow .3s, border-color .3s', transform: 'none', boxShadow: '0 1px 3px rgba(0,0,0,.05)' };
-            const cardGlow: React.CSSProperties = on ? { position: 'absolute', bottom: '-55%', right: '-15%', width: '75%', height: '170%', background: 'radial-gradient(ellipse at center,rgba(45,251,145,.38) 0%,rgba(45,251,145,0) 62%)', pointerEvents: 'none' } : { display: 'none' };
-            const iconTile: React.CSSProperties = { position: 'relative', zIndex: 1, width: '58px', height: '58px', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? '#2DFB91' : '#273c33', color: on ? '#273c33' : '#2DFB91', transition: 'all .3s', boxShadow: on ? '0 8px 20px rgba(45,251,145,.4)' : 'none' };
+            const cardGlow: React.CSSProperties = on ? { position: 'absolute', bottom: '-55%', right: '-15%', width: '75%', height: '170%', background: 'radial-gradient(ellipse at center,rgba(var(--neon-rgb),.38) 0%,rgba(var(--neon-rgb),0) 62%)', pointerEvents: 'none' } : { display: 'none' };
+            const iconTile: React.CSSProperties = { position: 'relative', zIndex: 1, width: '58px', height: '58px', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? 'var(--neon)' : 'var(--pine)', color: on ? 'var(--pine)' : 'var(--neon)', transition: 'all .3s', boxShadow: on ? '0 8px 20px rgba(var(--neon-rgb),.4)' : 'none' };
             return (
               <div key={i} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} style={card}>
                 <div style={cardGlow} />

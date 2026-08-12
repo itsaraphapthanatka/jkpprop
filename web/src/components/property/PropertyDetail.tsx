@@ -59,7 +59,7 @@ export type RelatedProperty = { code: string; deal: string; title: string; loc: 
 const sectionCard: React.CSSProperties = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, padding: '26px 28px' };
 const sectionHead = (title: string, mb = 18): React.ReactNode => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: mb }}>
-    <span style={{ width: 26, height: 2, background: '#273c33', borderRadius: 2 }} />
+    <span style={{ width: 26, height: 2, background: 'var(--pine)', borderRadius: 2 }} />
     <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>{title}</h2>
   </div>
 );
@@ -107,18 +107,18 @@ function RelatedCard({ r }: { r: RelatedProperty }) {
           ? /* eslint-disable-next-line @next/next/no-img-element */
             <img src={r.img} alt={r.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           : <PhotoPlaceholder />}
-        <span style={{ position: 'absolute', top: 12, left: 12, height: 26, padding: '0 11px', borderRadius: 9999, background: 'rgba(255,255,255,.95)', color: '#0D6C3B', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5 }}>
-          <span style={{ width: 7, height: 7, borderRadius: 9999, background: '#0D6C3B' }} />{r.deal}
+        <span style={{ position: 'absolute', top: 12, left: 12, height: 26, padding: '0 11px', borderRadius: 9999, background: 'rgba(255,255,255,.95)', color: 'var(--deep)', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5 }}>
+          <span style={{ width: 7, height: 7, borderRadius: 9999, background: 'var(--deep)' }} />{r.deal}
         </span>
       </div>
       <div style={{ padding: '16px 18px' }}>
-        <code style={{ fontSize: '11.5px', color: '#0D6C3B', fontWeight: 700 }}>{r.code}</code>
+        <code style={{ fontSize: '11.5px', color: 'var(--deep)', fontWeight: 700 }}>{r.code}</code>
         <div style={{ marginTop: 6, fontSize: 14, fontWeight: 700, color: 'var(--text)', lineHeight: 1.45 }}>{r.title}</div>
         <div style={{ marginTop: 8, fontSize: 12, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 5 }}>
           {pin(13, 'var(--muted2)')}{r.loc}
         </div>
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 15, fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: '#034956' }}>{r.price}</span>
+          <span style={{ fontSize: 15, fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: 'var(--accent)' }}>{r.price}</span>
           <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 4 }}>
             {d.common.viewDetail}
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
@@ -190,12 +190,12 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
                 <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--text)', letterSpacing: '-.01em', lineHeight: 1.3 }}>{heading}</h1>
                 <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '13.5px', color: 'var(--muted)' }}>{pin(15, 'var(--accent)')}{place}</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted2)' }}>{d.property.code}: <code style={{ fontWeight: 700, color: '#0D6C3B' }}>{code}</code></span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted2)' }}>{d.property.code}: <code style={{ fontWeight: 700, color: 'var(--deep)' }}>{code}</code></span>
                 </div>
               </div>
               <div style={{ textAlign: w640 ? 'left' : 'right', flexShrink: 0 }}>
                 <div style={{ fontSize: 12, color: 'var(--muted2)' }}>{priceLabel}</div>
-                <div style={{ fontSize: 26, fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: '#034956' }}>{priceValue}</div>
+                <div style={{ fontSize: 26, fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: 'var(--accent)' }}>{priceValue}</div>
                 <div style={{ fontSize: '12.5px', color: 'var(--muted)' }}>{priceUnit}</div>
               </div>
             </div>
@@ -315,7 +315,7 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
       {related.length > 0 && (
         <section style={{ maxWidth: '1320px', margin: '0 auto', padding: '0 24px 80px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
-            <span style={{ width: 26, height: 2, background: '#273c33', borderRadius: 2 }} />
+            <span style={{ width: 26, height: 2, background: 'var(--pine)', borderRadius: 2 }} />
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>{d.property.similar}</h2>
           </div>
           <div className="rs-cols-3" id="pd-related" style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(3, related.length)}, 1fr)`, gap: 20 }}>

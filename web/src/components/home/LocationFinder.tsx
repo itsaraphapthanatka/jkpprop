@@ -37,7 +37,7 @@ const chipDefs: ChipDef[] = [
   { key: 'air', label: 'สนามบิน', c: CAT.air },
   { key: 'port', label: 'ท่าเรือ', c: CAT.port },
   { key: 'bkk', label: 'ใจกลางกรุงเทพฯ', c: CAT.bkk },
-  { key: 'eec', label: 'EEC', c: '#034956' },
+  { key: 'eec', label: 'EEC', c: 'var(--accent)' },
 ];
 
 const STATS: Record<Loc, Stat> = {
@@ -76,9 +76,9 @@ const SUB_DEFS: Record<Loc, string> = {
 };
 
 /* ---- style helpers (verbatim from locationVals / adviceVals) ---- */
-const factorCardStyle = (on: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: '14px', background: on ? 'rgba(39,60,51,.05)' : 'var(--surface)', border: '1.5px solid ' + (on ? '#273c33' : 'var(--border)'), borderRadius: '12px', padding: '14px 16px', cursor: 'pointer', transition: 'all .2s' });
+const factorCardStyle = (on: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: '14px', background: on ? 'rgba(var(--pine-rgb),.05)' : 'var(--surface)', border: '1.5px solid ' + (on ? 'var(--pine)' : 'var(--border)'), borderRadius: '12px', padding: '14px 16px', cursor: 'pointer', transition: 'all .2s' });
 const iconWrapStyle: React.CSSProperties = { flexShrink: 0, width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#28251D' };
-const checkStyle = (on: boolean): React.CSSProperties => ({ flexShrink: 0, width: '20px', height: '20px', borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? '#273c33' : 'transparent', border: '1.5px solid ' + (on ? '#273c33' : '#D4D1CA'), transition: 'all .2s' });
+const checkStyle = (on: boolean): React.CSSProperties => ({ flexShrink: 0, width: '20px', height: '20px', borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? 'var(--pine)' : 'transparent', border: '1.5px solid ' + (on ? 'var(--pine)' : '#D4D1CA'), transition: 'all .2s' });
 
 const pinWrapStyle = (p: PinDef, on: boolean): React.CSSProperties => ({ position: 'absolute', left: p.x + '%', top: p.y + '%', transform: 'translate(-50%,-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', zIndex: on ? 5 : 3, opacity: on ? 1 : 0.34, transition: 'opacity .35s, filter .35s', filter: on ? 'none' : 'grayscale(0.6)' });
 const pinDotStyle = (col: string, on: boolean): React.CSSProperties => ({ position: 'absolute', inset: '7px', borderRadius: '9999px', background: on ? col : '#8A867E', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: on ? ('0 6px 16px ' + col + '80') : '0 2px 6px rgba(0,0,0,.25)', transition: 'all .35s' });
@@ -88,8 +88,8 @@ const HIDDEN: React.CSSProperties = { display: 'none' };
 const chipStyle = (c: ChipDef, on: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: '7px', height: '32px', padding: '0 13px', borderRadius: '9999px', cursor: 'pointer', fontSize: '12.5px', fontWeight: 700, background: on ? '#fff' : 'rgba(255,255,255,.72)', color: on ? '#28251D' : '#5F5A52', boxShadow: on ? ('0 4px 12px rgba(0,0,0,.16), inset 0 0 0 1.5px ' + c.c) : '0 2px 6px rgba(0,0,0,.08)', backdropFilter: 'blur(4px)', transition: 'all .2s' });
 const chipDotStyle = (c: ChipDef): React.CSSProperties => ({ width: '8px', height: '8px', borderRadius: '9999px', background: c.c, flexShrink: 0 });
 
-const optionStyle = (on: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 15px', borderRadius: '12px', cursor: 'pointer', border: '1.5px solid ' + (on ? '#273c33' : 'var(--border)'), background: on ? 'rgba(39,60,51,.05)' : 'transparent', color: on ? '#273c33' : 'var(--text)' });
-const radioStyle = (on: boolean): React.CSSProperties => ({ width: '19px', height: '19px', borderRadius: '9999px', border: '1.5px solid ' + (on ? '#273c33' : 'var(--border)'), background: on ? '#273c33' : 'transparent', boxShadow: on ? 'inset 0 0 0 3px var(--surface)' : 'none' });
+const optionStyle = (on: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 15px', borderRadius: '12px', cursor: 'pointer', border: '1.5px solid ' + (on ? 'var(--pine)' : 'var(--border)'), background: on ? 'rgba(var(--pine-rgb),.05)' : 'transparent', color: on ? 'var(--pine)' : 'var(--text)' });
+const radioStyle = (on: boolean): React.CSSProperties => ({ width: '19px', height: '19px', borderRadius: '9999px', border: '1.5px solid ' + (on ? 'var(--pine)' : 'var(--border)'), background: on ? 'var(--pine)' : 'transparent', boxShadow: on ? 'inset 0 0 0 3px var(--surface)' : 'none' });
 
 const adviceFabStyle = (hov: boolean): React.CSSProperties => ({ position: 'absolute', bottom: '16px', right: '16px', zIndex: 7, display: 'flex', alignItems: 'center', gap: hov ? '10px' : '0', height: '46px', padding: hov ? '0 20px' : '0', width: hov ? 'auto' : '46px', borderRadius: '9999px', background: '#D9A62B', cursor: 'pointer', boxShadow: '0 10px 26px rgba(217,166,43,.4)', transition: 'all .3s cubic-bezier(.2,.8,.3,1)', justifyContent: 'center', overflow: 'hidden' });
 
@@ -166,7 +166,7 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
 
             {/* live result card */}
             <div style={{ position: 'relative', overflow: 'hidden', marginTop: '2px', background: 'linear-gradient(120deg,#0A0E0C 0%,#0A0E0C 50%,#0E3A22 100%)', borderRadius: '16px', padding: '20px', color: '#fff', boxShadow: '0 18px 40px rgba(0,0,0,.4)' }}>
-              <div style={{ position: 'absolute', bottom: '-45%', right: '-12%', width: '64%', height: '180%', background: 'radial-gradient(ellipse at center,rgba(45,251,145,.28) 0%,rgba(45,251,145,0) 62%)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', bottom: '-45%', right: '-12%', width: '64%', height: '180%', background: 'radial-gradient(ellipse at center,rgba(var(--neon-rgb),.28) 0%,rgba(var(--neon-rgb),0) 62%)', pointerEvents: 'none' }} />
               <div style={{ position: 'relative', fontSize: '12px', fontWeight: 600, letterSpacing: '.04em', color: '#5FE39B', textTransform: 'uppercase' }}>{d.locations.available}</div>
               <div style={{ position: 'relative', display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '8px' }}>
                 <div style={{ fontSize: '40px', fontWeight: 800, lineHeight: 1, letterSpacing: '-.02em', color: '#FFFFFF' }}>{counts[loc] ?? 0}</div>
@@ -182,20 +182,20 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
                   <div style={{ fontSize: '16px', fontWeight: 700, marginTop: '2px' }}>{result.prov.split(' · ').map((x) => enumLabel(x, locale)).join(' · ')}</div>
                 </div>
               </div>
-              <div onClick={openLocationModal} style={{ position: 'relative', marginTop: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', height: '46px', borderRadius: '9999px', background: '#2DFB91', color: '#04140C', fontSize: '14px', fontWeight: 800, cursor: 'pointer', transition: 'transform .15s' }}>{d.locations.seeInArea}
+              <div onClick={openLocationModal} style={{ position: 'relative', marginTop: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', height: '46px', borderRadius: '9999px', background: 'var(--neon)', color: '#04140C', fontSize: '14px', fontWeight: 800, cursor: 'pointer', transition: 'transform .15s' }}>{d.locations.seeInArea}
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#04140C" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
               </div>
             </div>
           </div>
 
           {/* RIGHT: interactive map */}
-          <div style={{ position: 'relative', background: 'var(--tint)', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden', minHeight: '520px', boxShadow: '0 18px 44px rgba(2,35,16,.12), inset 0 0 0 1px rgba(255,255,255,.4)' }}>
+          <div style={{ position: 'relative', background: 'var(--tint)', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden', minHeight: '520px', boxShadow: '0 18px 44px rgba(var(--ink-rgb),.12), inset 0 0 0 1px rgba(255,255,255,.4)' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/assets/thailand-map-bg.png" alt="แผนที่ทำเล" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55 }} />
 
             {/* result pill */}
             <div style={{ position: 'absolute', top: '16px', left: '16px', zIndex: 6, display: 'flex', alignItems: 'center', gap: '9px', height: '40px', padding: '0 16px', borderRadius: '9999px', background: 'rgba(255,255,255,.94)', backdropFilter: 'blur(6px)', boxShadow: '0 6px 18px rgba(0,0,0,.14)' }}>
-              <span style={{ position: 'relative', display: 'flex', width: '9px', height: '9px' }}><span style={{ position: 'absolute', inset: 0, borderRadius: '9999px', background: '#2DFB91', animation: 'pinPulse 1.8s ease-out infinite' }} /><span style={{ position: 'relative', width: '9px', height: '9px', borderRadius: '9999px', background: '#034956' }} /></span>
+              <span style={{ position: 'relative', display: 'flex', width: '9px', height: '9px' }}><span style={{ position: 'absolute', inset: 0, borderRadius: '9999px', background: 'var(--neon)', animation: 'pinPulse 1.8s ease-out infinite' }} /><span style={{ position: 'relative', width: '9px', height: '9px', borderRadius: '9999px', background: 'var(--accent)' }} /></span>
               <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{counts[loc] ?? 0} {d.locations.properties} · {enumLabel(result.title, locale)}</span>
             </div>
 
@@ -248,8 +248,8 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
                   </div>
                   <h3 style={{ margin: 0, fontSize: '22px', fontWeight: 800, color: 'var(--text)' }}>{d.locations.adviceCta}</h3>
                   <p style={{ margin: '14px 0 0', fontSize: '14.5px', color: 'var(--muted)', lineHeight: 1.7 }}>{d.locations.adviceHeading}</p>
-                  <a href="Contact.dc.html" style={{ marginTop: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', height: '52px', borderRadius: '9999px', background: '#2DFB91', color: '#022310', fontSize: '15px', fontWeight: 800, transition: 'transform .2s,box-shadow .2s' }}>ติดต่อผู้เชี่ยวชาญของเรา
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#022310" strokeWidth="2.6"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
+                  <a href="Contact.dc.html" style={{ marginTop: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', height: '52px', borderRadius: '9999px', background: 'var(--neon)', color: 'var(--ink)', fontSize: '15px', fontWeight: 800, transition: 'transform .2s,box-shadow .2s' }}>ติดต่อผู้เชี่ยวชาญของเรา
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2.6"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
                   </a>
                 </div>
               </div>
@@ -281,7 +281,7 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
                 );
               })}
             </div>
-            <div onClick={submitLocation} style={{ marginTop: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '48px', borderRadius: '9999px', background: '#273c33', color: '#fff', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>ยืนยัน
+            <div onClick={submitLocation} style={{ marginTop: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '48px', borderRadius: '9999px', background: 'var(--pine)', color: '#fff', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>ยืนยัน
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" style={{ marginLeft: '6px' }}><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
             </div>
           </div>

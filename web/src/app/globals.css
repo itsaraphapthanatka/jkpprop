@@ -5,7 +5,23 @@
    `style-hover` feature which React does not support.
    ============================================================ */
 * { box-sizing: border-box; }
-:root { --bg:#F9F8F5; --bg2:#F3F0EC; --surface:#FFFFFF; --tint:#EEF4F3; --text:#28251D; --muted:#5F5A52; --muted2:#7A7974; --muted3:#9B968D; --border:#E7E3DC; --accent:#034956; }
+/* Brand colours live here so /admin/branding can override them at runtime.
+   The public site used to hard-code these hexes in hundreds of inline styles,
+   so the colour picker saved to the database and changed nothing on screen.
+   The -rgb triplets exist because the design uses the same colours at low
+   opacity in gradients and glows, and rgba() cannot take a hex var. */
+:root {
+  --bg:#F9F8F5; --bg2:#F3F0EC; --surface:#FFFFFF; --tint:#EEF4F3;
+  --text:#28251D; --muted:#5F5A52; --muted2:#7A7974; --muted3:#9B968D; --border:#E7E3DC;
+  --primary:#034956;   --primary-rgb:3,73,86;
+  --accent:#034956;    --accent-rgb:3,73,86;
+  --neon:#2DFB91;      --neon-rgb:45,251,145;
+  --pine:#273c33;      --pine-rgb:39,60,51;
+  --deep:#0D6C3B;      --deep-rgb:13,108,59;
+  /* the near-black greens the dark panels and image overlays are built from */
+  --ink:#022310;       --ink-rgb:2,35,16;
+  --ink2-rgb:2,29,14;
+}
 html { overflow-x: hidden; }
 html, body { margin: 0; width: 100%; }
 body { font-family: 'Noto Sans Thai','Inter',system-ui,sans-serif; color: var(--text); background: var(--bg); line-height: 1.5; -webkit-font-smoothing: antialiased; }

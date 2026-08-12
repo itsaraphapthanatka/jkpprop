@@ -82,8 +82,8 @@ export function Floating() {
         }}
       >
         <span style={{ fontSize: 13, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap' }}>{d.floating.backToTop}</span>
-        <div style={{ width: 38, height: 38, borderRadius: 9999, background: '#2DFB91', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#022310" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+        <div style={{ width: 38, height: 38, borderRadius: 9999, background: 'var(--neon)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 19V5" />
             <path d="M5 12l7-7 7 7" />
           </svg>
@@ -103,7 +103,7 @@ export function Floating() {
             background: 'var(--surface)',
             border: '1px solid var(--border)',
             borderRadius: 18,
-            boxShadow: '0 20px 50px rgba(2,35,16,.24)',
+            boxShadow: '0 20px 50px rgba(var(--ink-rgb),.24)',
             padding: 22,
             animation: 'cookieUp .45s cubic-bezier(.2,.7,.3,1) both',
           }}
@@ -146,9 +146,9 @@ export function Floating() {
                 e.currentTarget.style.background = '#023742';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#034956';
+                e.currentTarget.style.background = 'var(--accent)';
               }}
-              style={{ flex: 1, height: 44, border: 0, borderRadius: 10, background: '#034956', color: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer', transition: 'background .2s' }}
+              style={{ flex: 1, height: 44, border: 0, borderRadius: 10, background: 'var(--accent)', color: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer', transition: 'background .2s' }}
             >
               {d.floating.accept}
             </button>
