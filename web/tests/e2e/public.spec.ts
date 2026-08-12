@@ -161,4 +161,47 @@ test.describe('FAQ answers from the CMS', () => {
     await expect(page.locator('body')).not.toContainText('</strong>');
     expect(errors, 'a script in the CMS body executed').toEqual([]);
   });
+
+  /* The accordion rendered its answer only after a click, so the server sent
+     the questions and none of the answers — on a page whose entire purpose is
+     the answers, built to be found in search. */
+  test('answers are in the server HTML, not only after a click', async ({ request }) => {
+    const html = await (await request.get('/th/faq')).text();
+    const withoutScripts = html.replace(/<script(?![^>]*ld\+json)[\s\S]*?<\/script>/g, '');
+    if (!withoutScripts.includes(RG4)) test.skip(true, 'no FAQ row seeded in this database');
+
+    expect(withoutScripts, 'the answer never reaches a crawler').toContain('สำเนาโฉนด');
+    // present but collapsed until opened
+    expect(withoutScripts).toMatch(/hidden=""/);
+  });
+
+  test('the page declares FAQPage structured data', async ({ request }) => {
+    const html = await (await request.get('/th/faq')).text();
+    const m = /<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/.exec(html);
+    if (!m) test.skip(true, 'no FAQ row seeded in this database');
+
+    const data = JSON.parse(m![1].replace(/\\u003c/g, '<'));
+    expect(data['@type']).toBe('FAQPage');
+    expect(Array.isArray(data.mainEntity)).toBe(true);
+    expect(data.mainEntity.length).toBeGreaterThan(0);
+
+    const first = data.mainEntity[0];
+    expect(first['@type']).toBe('Question');
+    expect(first.name).toBeTruthy();
+    expect(first.acceptedAnswer.text).toBeTruthy();
+    // schema text is plain: a stray tag invalidates the whole block for Google
+    expect(first.acceptedAnswer.text).not.toMatch(/<[a-z]/i);
+  });
+
+  test('the accordion is operable by keyboard and announces its state', async ({ page }) => {
+    await page.goto('/th/faq');
+    const q = page.getByRole('button', { name: new RegExp(RG4) });
+    if (!(await q.count())) test.skip(true, 'no FAQ row seeded in this database');
+
+    await expect(q).toHaveAttribute('aria-expanded', 'false');
+    await q.focus();
+    await page.keyboard.press('Enter');
+    await expect(q).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('#faq-layout strong', { hasText: 'สำเนาโฉนด' })).toBeVisible();
+  });
 });

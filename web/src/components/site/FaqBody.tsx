@@ -167,7 +167,13 @@ export function FaqBody({ cats, copy }: { cats?: FaqCategory[]; copy: SectionCop
                   const open = !!openMap[k];
                   return (
                     <div key={k} style={{ borderRadius: 14, overflow: 'hidden', background: open ? '#273c33' : 'var(--surface)', border: '1px solid ' + (open ? '#273c33' : 'var(--border)') }}>
-                      <div onClick={() => toggle(k)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, padding: '16px 18px', cursor: 'pointer' }}>
+                      <button
+                        type="button"
+                        onClick={() => toggle(k)}
+                        aria-expanded={open}
+                        aria-controls={`faq-a-${k}`}
+                        style={{ width: '100%', textAlign: 'start', font: 'inherit', background: 'transparent', border: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, padding: '16px 18px', cursor: 'pointer' }}
+                      >
                         <div style={{ fontSize: '14.5px', fontWeight: 600, color: open ? '#fff' : 'var(--text)' }}>{question}</div>
                         <div style={{ width: 26, height: 26, borderRadius: 9999, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: open ? '#2DFB91' : 'var(--tint)', color: open ? '#022310' : 'var(--accent)', transition: 'all .2s' }}>
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#022310" strokeWidth="2.6">
@@ -175,9 +181,17 @@ export function FaqBody({ cats, copy }: { cats?: FaqCategory[]; copy: SectionCop
                             <path d="M12 5v14" style={{ transition: 'transform .2s', transform: open ? 'scaleY(0)' : 'scaleY(1)', transformOrigin: 'center' }} />
                           </svg>
                         </div>
-                      </div>
-                      {open && (
-                        <div style={{ padding: '0 18px 20px', fontSize: '13.5px', color: '#D8DED9', lineHeight: 1.85 }}>
+                      </button>
+                      {/* Always in the HTML, hidden with CSS when collapsed.
+                          Rendering it only on click meant the answers never
+                          reached the server response, so a crawler — and any
+                          AI reading the page — saw the questions and none of
+                          the answers, on a page whose whole job is answering. */}
+                      <div
+                        id={`faq-a-${k}`}
+                        hidden={!open}
+                        style={{ padding: '0 18px 20px', fontSize: '13.5px', color: '#D8DED9', lineHeight: 1.85 }}
+                      >
                           {/* the CMS body is markup; it arrives sanitised from faqCopy,
                               so paragraphs and lists render instead of showing their tags */}
                           <div dangerouslySetInnerHTML={{ __html: answer }} />
@@ -197,8 +211,7 @@ export function FaqBody({ cats, copy }: { cats?: FaqCategory[]; copy: SectionCop
                               แชร์
                             </div>
                           </div>
-                        </div>
-                      )}
+                      </div>
                     </div>
                   );
                 })}

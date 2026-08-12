@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { loadFaq } from '@/lib/server/faqCopy';
 import { loadPageCopy, section } from '@/lib/server/sectionCopy';
+import { htmlToText } from '@/lib/sanitizeHtml';
 import { isLocale, DEFAULT_LOCALE } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { ContentHeader } from '@/components/site/ContentHeader';
@@ -38,9 +39,34 @@ export default async function FaqPage({ params }: { params: Promise<{ locale: st
   const cats = await loadFaq(locale).catch(() => []);
   const c = await loadPageCopy('faq', locale).catch(() => ({}));
 
+  /* FAQPage structured data.
+   *
+   * The answers are on the page now, but a crawler still has to work out which
+   * text answers which question. This states it outright, which is what Google
+   * reads for FAQ rich results and what the AI crawlers quote from.
+   *
+   * Plain text, not markup: schema.org allows a little HTML here, but the
+   * subset differs from ours and a tag Google rejects invalidates the whole
+   * block. `<` is escaped so nothing can close the script tag early. */
+  const qa = cats.flatMap((c) => c.qs);
+  const faqSchema = qa.length
+    ? JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: qa.map(([question, answer]) => ({
+        '@type': 'Question',
+        name: question,
+        acceptedAnswer: { '@type': 'Answer', text: htmlToText(answer) },
+      })),
+    }).replace(/</g, '\\u003c')
+    : null;
+
   return (
     <div style={{ width: '100%', background: 'var(--bg)', minHeight: '100vh' }}>
       <style dangerouslySetInnerHTML={{ __html: faqCss }} />
+      {faqSchema && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: faqSchema }} />
+      )}
       <ContentHeader active="faq" />
       <FaqBody cats={cats} copy={section(c, 'fh')} />
       <ContentFooter />
