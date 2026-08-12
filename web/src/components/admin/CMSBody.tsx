@@ -26,6 +26,10 @@ const cmsCss = `
 }
 .cms-tb-btn:hover{background:var(--tint);}
 .cms-linkchoice:hover{background:var(--tint);}
+/* A real placeholder. The hint used to be written into the editable area as
+   content, so pressing Publish on a language nobody had written stored the
+   hint itself as the answer. */
+#cms-body-edit:empty::before{content:attr(data-placeholder);color:#9B968D;font-style:italic;}
 `;
 
 const TYPE_DEFS = [
@@ -115,6 +119,9 @@ const langCodeStyle = (on: boolean): React.CSSProperties => ({ height: 17, paddi
 type ApiArticle = {
   id: string; kind: string; slug: string; title: string; category: string;
   status: string; cover: string | null; links: string[]; body: string;
+  /* what is stored for each language. `title`/`body` above are the Thai
+     record; the editor must read from here or every tab shows Thai. */
+  blocks?: Record<string, { title: string; body: string }>;
   langs: Lang[]; updatedAt: number;
 };
 
@@ -175,11 +182,19 @@ export function CMSBody() {
 
   const apiCur = apiItems?.[selected] ?? null;
 
-  /* keep the editor fields in step with the selected record + language */
+  /* keep the editor fields in step with the selected record + language.
+   *
+   * Both fields used to be filled from the Thai record whatever tab was open,
+   * so a translated entry looked untranslated — and saving from that tab wrote
+   * the Thai text back over the translation. An empty box is the honest
+   * answer for a language nobody has written yet. */
   React.useEffect(() => {
     if (!apiCur) return;
-    setDraftTitle(apiCur.title);
-    setDraftBody(apiCur.body || '');
+    const block = apiCur.blocks?.[lang];
+    // older Thai rows keep the title in the column rather than in the block
+    const thaiFallback = lang === 'th';
+    setDraftTitle(block?.title || (thaiFallback ? apiCur.title : ''));
+    setDraftBody(block?.body || (thaiFallback ? apiCur.body || '' : ''));
     setCatVal(null);
     setLinks(apiCur.links?.length ? apiCur.links : []);
     setCover(!!apiCur.cover);
@@ -242,8 +257,11 @@ export function CMSBody() {
   // Titles are user data — escape before they go anywhere near an HTML string,
   // otherwise a title typed in the CMS becomes stored XSS on this page.
   const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
-  const genericBody = '<div style="font-size:19px;font-weight:800;margin-bottom:10px;">' + esc(cur.title) + '</div><p style="margin:0 0 12px;color:#5F5A52;">เนื้อหาของ "' + esc(cur.title) + '" (' + esc(cur.cat) + ') — คลิกในพื้นที่นี้เพื่อแก้ไขด้วย rich text editor รองรับหัวข้อ ย่อหน้า รายการ ลิงก์ รูปภาพ และตาราง</p><p style="margin:0;color:#9B968D;font-style:italic;">ยังไม่มีเนื้อหาฉบับเต็มสำหรับภาษานี้ — เริ่มพิมพ์เพื่อเพิ่ม</p>';
-  const curBody = apiCur ? (draftBody || genericBody) : (BODY_MAP[cur.title] || genericBody);
+  const genericBody = '<div style="font-size:19px;font-weight:800;margin-bottom:10px;">' + esc(cur.title) + '</div><p style="margin:0 0 12px;color:#5F5A52;">เนื้อหาของ "' + esc(cur.title) + '" (' + esc(cur.cat) + ') — คลิกในพื้นที่นี้เพื่อแก้ไขด้วย rich text editor รองรับหัวข้อ ย่อหน้า รายการ ลิงก์ รูปภาพ และตาราง</p>';
+  /* a record from the API shows exactly what is stored for this language —
+     empty when nothing is, so the placeholder below can do its job */
+  const curBody = apiCur ? draftBody : (BODY_MAP[cur.title] || genericBody);
+  const bodyPlaceholder = `ยังไม่มีเนื้อหาภาษา${langName} — เริ่มพิมพ์เพื่อเพิ่ม`;
   const curCat = catVal || cur.cat;
 
   const actions = (
@@ -330,7 +348,7 @@ export function CMSBody() {
           <div style={{ padding: '16px 22px 0', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', gap: 6 }}>
               {langDefs.map((l) => (
-                <div key={l.k} onClick={() => setLang(l.k)} style={langTabStyle(lang === l.k)}>
+                <div key={l.k} data-lang-tab={l.k} onClick={() => setLang(l.k)} style={langTabStyle(lang === l.k)}>
                   <span style={{ width: 18, height: 18, borderRadius: 4, overflow: 'hidden', display: 'flex' }} dangerouslySetInnerHTML={{ __html: l.flag }} />
                   {l.name}
                   {l.done && <span style={{ width: 7, height: 7, borderRadius: 9999, background: '#0D6C3B' }} />}
@@ -355,6 +373,7 @@ export function CMSBody() {
             {/* title */}
             <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>หัวข้อ ({langName})</label>
             <input
+              id="cms-title-input"
               value={apiCur ? draftTitle : cur.title}
               onChange={(e) => setDraftTitle(e.target.value)}
               readOnly={!apiCur}
@@ -382,6 +401,8 @@ export function CMSBody() {
                   document.execCommand on this contentEditable region */}
               <div
                 ref={bodyRef}
+                id="cms-body-edit"
+                data-placeholder={bodyPlaceholder}
                 key={`${apiCur?.id ?? 'demo'}-${lang}`}
                 contentEditable={!!apiCur}
                 suppressContentEditableWarning

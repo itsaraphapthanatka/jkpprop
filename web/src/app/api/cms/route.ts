@@ -15,8 +15,23 @@ const KINDS = ['pages', 'articles', 'faq', 'certs'] as const;
 type LangBlock = { title?: string; body?: string; done?: boolean };
 type Content = Record<string, LangBlock>;
 
+const LANGS = ['th', 'en', 'zh'] as const;
+
 const langFlags = (content: Content) =>
-  ['th', 'en', 'zh'].map((k) => ({ k: k.toUpperCase(), on: !!content?.[k]?.done }));
+  LANGS.map((k) => ({ k: k.toUpperCase(), on: !!content?.[k]?.done }));
+
+/* Every language, not just Thai.
+ *
+ * This list was the editor's only source of content and it returned
+ * `content.th.body` no matter which language tab was open, so /admin/cms
+ * showed Thai in the EN and 中文 tabs even for entries that were fully
+ * translated. Worse than confusing: the editor holds those fields in state and
+ * PUTs them back under the selected language, so opening the EN tab and
+ * pressing Publish wrote the Thai text over the English translation. */
+const blocksOf = (content: Content) =>
+  Object.fromEntries(
+    LANGS.map((k) => [k, { title: content?.[k]?.title ?? '', body: content?.[k]?.body ?? '' }]),
+  ) as Record<string, { title: string; body: string }>;
 
 export const GET = handler(async (req: Request) => {
   const user = await requireUser();
@@ -42,6 +57,7 @@ export const GET = handler(async (req: Request) => {
         cover: p.cover,
         links: p.links,
         body: content.th?.body ?? '',
+        blocks: blocksOf(content),
         langs: langFlags(content),
         updatedAt: p.updatedAt.getTime(),
       };

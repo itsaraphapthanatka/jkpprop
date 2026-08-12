@@ -519,3 +519,57 @@ test.describe('brand colours reach the public site', () => {
     expect(after).not.toContain('--ink-rgb:2,35,16');
   });
 });
+
+test.describe('the CMS editor shows each language its own text', () => {
+  /* /api/cms returned `content.th.body` regardless of the language tab, and the
+     editor rendered that. A fully translated FAQ entry therefore looked
+     untranslated on the EN and 中文 tabs — and because the editor holds those
+     fields in state and PUTs them back under the selected language, opening the
+     EN tab and pressing Publish overwrote the English translation with Thai. */
+  test('the feed carries every language, not just Thai', async ({ page, request }) => {
+    await signIn(page, OWNER);
+    const cookies = await page.context().cookies();
+    const cookie = cookies.map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const res = await request.get('/api/cms?kind=faq', { headers: { cookie } });
+    expect(res.ok(), 'the CMS feed did not load').toBeTruthy();
+    const { items } = await res.json();
+    expect(Array.isArray(items) && items.length, 'no FAQ entries to check').toBeTruthy();
+
+    for (const it of items) {
+      expect(it.blocks, `${it.slug} has no per-language blocks`).toBeTruthy();
+      for (const l of ['th', 'en', 'zh']) {
+        expect(typeof it.blocks[l]?.title, `${it.slug}.${l}.title`).toBe('string');
+        expect(typeof it.blocks[l]?.body, `${it.slug}.${l}.body`).toBe('string');
+      }
+    }
+
+    /* At least one translated entry must differ between Thai and English,
+       otherwise the payload is still the Thai record wearing three hats. */
+    const translated = items.filter(
+      (it: { blocks: Record<string, { title: string }> }) => it.blocks.en.title && it.blocks.th.title,
+    );
+    test.skip(translated.length === 0, 'nothing is translated yet — run npm run faq:translate');
+    expect(
+      translated.some((it: { blocks: Record<string, { title: string }> }) => it.blocks.en.title !== it.blocks.th.title),
+      'every English title equals its Thai one — the feed is still returning Thai',
+    ).toBeTruthy();
+  });
+
+  test('switching to EN shows the English text, not the Thai', async ({ page }) => {
+    await signIn(page, OWNER);
+    await page.goto('/admin/cms');
+    await page.getByText('FAQ', { exact: false }).first().click();
+
+    const title = page.locator('#cms-title-input');
+    await expect(title).toBeVisible();
+    await expect.poll(async () => title.inputValue()).not.toBe('');
+    const thai = await title.inputValue();
+
+    await page.locator('[data-lang-tab="en"]').click();
+    await expect
+      .poll(async () => title.inputValue(), { message: 'the EN tab still shows the Thai title' })
+      .not.toBe(thai);
+    expect(await title.inputValue(), 'the EN title is empty').not.toBe('');
+  });
+});
