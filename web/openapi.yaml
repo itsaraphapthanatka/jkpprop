@@ -1708,6 +1708,49 @@ paths:
         "400": *a6
         "401": *a7
         "403": *a8
+  /api/company:
+    get:
+      tags:
+        - Content
+      summary: ข้อมูลติดต่อของบริษัท
+      security: *a5
+      responses:
+        "200":
+          description: ที่อยู่ เบอร์ อีเมล เวลาทำการ
+          content:
+            application/json:
+              schema:
+                type: object
+    put:
+      tags:
+        - Content
+      summary: บันทึกข้อมูลบริษัท (owner / marketing)
+      description: ที่อยู่ / ที่อยู่แบบสั้น / วันทำการ เป็นอ็อบเจ็กต์ { th, en, zh } · phones เป็นรายการ { number, label } สูงสุด 6 รายการ
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                legalName: *a1
+                address: *a1
+                shortLocation: *a1
+                phones: *a1
+                salesEmail: *a1
+                generalEmail: *a1
+                hoursDays: *a1
+                hoursValue: *a1
+      responses:
+        "200":
+          description: บันทึกแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
   /api/branding:
     get:
       tags:

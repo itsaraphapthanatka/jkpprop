@@ -12,6 +12,7 @@ import { Floating } from '@/components/home/Floating';
 import { loadPublicListings } from '@/lib/server/publicListings';
 import { loadPageCopy, section } from '@/lib/server/sectionCopy';
 import { isLocale, DEFAULT_LOCALE } from '@/i18n/config';
+import { loadCompany } from '@/lib/server/company';
 
 /* Which provinces each location tab covers. The tab used to print a fixed
    "640+ / 820+ / 1,150+ รายการ" — inventory the catalogue never had. */
@@ -50,6 +51,7 @@ const homeCss = `
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale: raw } = await params;
   const locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
+  const company = await loadCompany(locale);
   const featured = await loadPublicListings({ locale, limit: 6 }).catch(() => []);
   const c = await loadPageCopy('home', locale).catch(() => ({}));
 
@@ -89,7 +91,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       </div>
 
       {/* fixed footer + spacer (revealed under the rounded page-sheet) */}
-      <SiteFooter />
+      <SiteFooter company={company} />
 
       {/* back-to-top + cookie/PDPA */}
       <Floating />

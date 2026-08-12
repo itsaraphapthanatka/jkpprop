@@ -13,6 +13,7 @@ const ic = (paths: React.ReactNode, color: string) => (
 
 const CARDS = [
   { title: 'เปลี่ยนรหัสผ่าน', desc: 'ตั้งรหัสผ่านของบัญชีคุณเอง', meta: 'ออกจากระบบอุปกรณ์อื่นให้อัตโนมัติ', href: '/admin/change-password', iconBg: '#EEF4F3', icon: ic(<><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></>, '#034956') },
+  { title: 'ข้อมูลบริษัท', desc: 'ที่อยู่ เบอร์โทร อีเมล เวลาทำการ — ใช้ทั้งเว็บ', meta: 'แก้ที่เดียว ใช้ทุกหน้า', href: '/admin/company', iconBg: '#E8F3EC', icon: ic(<><path d="M3 21h18M5 21V7l7-4 7 4v14" /><path d="M9 21v-6h6v6" /></>, '#0D6C3B') },
   { title: 'Users & Roles', desc: 'จัดการผู้ใช้ + สิทธิ์ RBAC 7 บทบาท', meta: '7 roles · ขอบเขต + สิทธิ์พิเศษ', href: '/admin/users', iconBg: '#EEF4F3', icon: ic(<><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></>, '#034956') },
   { title: 'Geography & โซน', desc: 'จังหวัด/อำเภอ/ตำบล + นิคมอุตสาหกรรม', meta: '77 จังหวัด · 6 นิคม', href: '/admin/geography', iconBg: '#EEF4F3', icon: ic(<><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z" /><circle cx="12" cy="10" r="3" /></>, '#034956') },
   { title: 'Field Builder', desc: 'สร้างฟิลด์ทรัพย์เอง + ตัวเลือก dropdown', meta: 'no-code · ต่อ tenant', href: '/admin/field-builder', iconBg: '#F0ECF9', icon: ic(<path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" />, '#7A3FB0') },

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { loadPageCopy, section } from '@/lib/server/sectionCopy';
+import { loadCompany } from '@/lib/server/company';
 import { isLocale, DEFAULT_LOCALE } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { ContentHeader } from '@/components/site/ContentHeader';
@@ -48,14 +49,15 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
   const { locale: raw } = await params;
   const locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
   const c = await loadPageCopy('contact', locale).catch(() => ({}));
+  const company = await loadCompany(locale);
   const copy = { ch: section(c, 'ch'), cm: section(c, 'cm') };
 
   return (
     <div style={{ width: '100%', background: 'var(--bg)', minHeight: '100vh' }}>
       <style dangerouslySetInnerHTML={{ __html: contactCss }} />
       <ContentHeader />
-      <ContactBody copy={copy} />
-      <ContentFooter email="atsokoproperty@gmail.com" phone="+66 80-830-4005" location="สมุทรปราการ, ประเทศไทย" />
+      <ContactBody company={company} copy={copy} />
+      <ContentFooter email={company.generalEmail} phone={company.phones[0]?.number} location={company.shortLocation} />
     </div>
   );
 }

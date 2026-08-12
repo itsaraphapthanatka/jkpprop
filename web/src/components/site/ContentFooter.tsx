@@ -13,9 +13,9 @@ import { useDict } from '@/i18n/useDict';
    ============================================================ */
 
 export interface ContentFooterProps {
-  email?: string;
+  email: string;
   phone?: string;
-  location?: string;
+  location: string;
 }
 
 const socialBase: React.CSSProperties = {
@@ -30,11 +30,12 @@ const socialBase: React.CSSProperties = {
   transition: 'all .2s',
 };
 
-export function ContentFooter({
-  email = 'info@thaiindustrialproperty.com',
-  phone = '+66 90-000-0000',
-  location,
-}: ContentFooterProps) {
+/* The defaults here used to be `info@thaiindustrialproperty.com` and
+   `+66 90-000-0000` — a domain the company does not own and a number that does
+   not ring. Only the Contact page passed real values, so About and FAQ served
+   those to every visitor. Callers must supply them now; the details come from
+   /admin/company. */
+export function ContentFooter({ email, phone, location }: ContentFooterProps) {
   const d = useDict();
   const place = location ?? d.common.address;
   const socialEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {

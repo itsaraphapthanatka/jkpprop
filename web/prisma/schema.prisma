@@ -406,3 +406,30 @@ model AuditLog {
 
   @@index([orgId, createdAt])
 }
+
+/* Company contact details — one row per org.
+ *
+ * The address, the two phone numbers and the two mailboxes were spread across
+ * a component, the dictionary and a page's props. They had already drifted:
+ * the About and FAQ footers were serving info@thaiindustrialproperty.com, a
+ * domain the company does not own, and +66 90-000-0000, a number that does not
+ * ring. This is the single place they live now.
+ *
+ * The translated fields are Json ({ th, en, zh }) to match how PageSection
+ * stores copy; the rest are the same in every language. */
+model CompanyProfile {
+  orgId         String   @id
+  legalName     String   @default("")
+  /** { th, en, zh } — the full postal address */
+  address       Json?
+  /** { th, en, zh } — the short form used in footers, e.g. "สมุทรปราการ, ประเทศไทย" */
+  shortLocation Json?
+  /** [{ number, label }] — label names the language the line is answered in */
+  phones        Json?
+  salesEmail    String   @default("")
+  generalEmail  String   @default("")
+  /** { th, en, zh } — e.g. "จันทร์ - ศุกร์:" */
+  hoursDays     Json?
+  hoursValue    String   @default("")
+  updatedAt     DateTime @updatedAt
+}

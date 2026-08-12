@@ -5,6 +5,7 @@ import Link from '@/i18n/LocaleLink';
 import { useDict } from '@/i18n/useDict';
 import { parseGeoPoint, mapEmbedUrl, mapLinkUrl } from '@/lib/geoPoint';
 import type { SectionCopy } from '@/lib/server/sectionCopy';
+import { telHref, type Company } from '@/lib/server/company';
 
 /* ============================================================
    Ported verbatim from Contact.dc.html — hero, info cards
@@ -31,7 +32,7 @@ const iconHover = (shadow: string) => ({
 
 export type ContactCopy = { ch: SectionCopy; cm: SectionCopy };
 
-export function ContactBody({ copy }: { copy: ContactCopy }) {
+export function ContactBody({ copy, company }: { copy: ContactCopy; company: Company }) {
   const d = useDict();
   const pick = (v: string, fallback: string) => v || fallback;
   const point = parseGeoPoint(copy.cm.map);
@@ -66,8 +67,8 @@ export function ContactBody({ copy }: { copy: ContactCopy }) {
           </div>
           <div>
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>{pick(copy.cm.headline, d.contact.ourLocation)}</div>
-            <div style={{ marginTop: 10, fontSize: '14.5px', fontWeight: 700, color: 'var(--text)' }}>JKP PROPERTY CO., LTD.</div>
-            <div style={{ marginTop: 4, fontSize: '13.5px', color: 'var(--muted)', lineHeight: 1.7 }}>{pick(copy.cm.sub, d.contact.address)}</div>
+            <div style={{ marginTop: 10, fontSize: '14.5px', fontWeight: 700, color: 'var(--text)' }}>{company.legalName}</div>
+            <div style={{ marginTop: 4, fontSize: '13.5px', color: 'var(--muted)', lineHeight: 1.7 }}>{pick(copy.cm.sub, company.address)}</div>
           </div>
         </div>
 
@@ -80,13 +81,21 @@ export function ContactBody({ copy }: { copy: ContactCopy }) {
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>{d.contact.ourPhone}</div>
             <div style={{ marginTop: 14, fontSize: '12.5px', fontWeight: 700, color: 'var(--muted2)' }}>{d.contact.salesEnquiry}</div>
             <div style={{ marginTop: 8, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <a className="c-phone" href="tel:+66808304005" style={phonePill}>+66 80-830-4005 <span style={{ color: 'var(--muted2)', marginLeft: 5 }}>{d.contact.langNote}</span></a>
-              <a className="c-phone" href="tel:+66902174005" style={phonePill}>+66 90-217-4005 <span style={{ color: 'var(--muted2)', marginLeft: 5 }}>(中文)</span></a>
+              {company.phones.map((ph) => (
+                <a key={ph.number} className="c-phone" href={telHref(ph.number)} style={phonePill}>
+                  {ph.number}
+                  {ph.label && <span style={{ color: 'var(--muted2)', marginLeft: 5 }}>({ph.label})</span>}
+                </a>
+              ))}
             </div>
             <div style={{ marginTop: 16, fontSize: '12.5px', fontWeight: 700, color: 'var(--muted2)' }}>{d.contact.generalEnquiry}</div>
             <div style={{ marginTop: 8, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <a className="c-phone" href="tel:+66808304005" style={phonePill}>+66 80-830-4005 <span style={{ color: 'var(--muted2)', marginLeft: 5 }}>{d.contact.langNote}</span></a>
-              <a className="c-phone" href="tel:+66902174005" style={phonePill}>+66 90-217-4005 <span style={{ color: 'var(--muted2)', marginLeft: 5 }}>(中文)</span></a>
+              {company.phones.map((ph) => (
+                <a key={ph.number} className="c-phone" href={telHref(ph.number)} style={phonePill}>
+                  {ph.number}
+                  {ph.label && <span style={{ color: 'var(--muted2)', marginLeft: 5 }}>({ph.label})</span>}
+                </a>
+              ))}
             </div>
           </div>
         </div>
@@ -99,9 +108,9 @@ export function ContactBody({ copy }: { copy: ContactCopy }) {
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>{d.contact.reachUs}</div>
             <div style={{ marginTop: 14, fontSize: '12.5px', fontWeight: 700, color: 'var(--muted2)' }}>{d.contact.salesEnquiry}</div>
-            <a className="c-email" href="mailto:atsokoproperty.sales@gmail.com" style={emailPill}>atsokoproperty.sales@gmail.com</a>
+            <a className="c-email" href={`mailto:${company.salesEmail}`} style={emailPill}>{company.salesEmail}</a>
             <div style={{ marginTop: 16, fontSize: '12.5px', fontWeight: 700, color: 'var(--muted2)' }}>{d.contact.generalEnquiry}</div>
-            <a className="c-email" href="mailto:atsokoproperty@gmail.com" style={emailPill}>atsokoproperty@gmail.com</a>
+            <a className="c-email" href={`mailto:${company.generalEmail}`} style={emailPill}>{company.generalEmail}</a>
           </div>
         </div>
 
@@ -109,7 +118,7 @@ export function ContactBody({ copy }: { copy: ContactCopy }) {
         <div id="hours-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, padding: '6px 4px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)' }}>{d.contact.hours}</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', height: 32, padding: '0 14px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', fontSize: 13, color: 'var(--muted)' }}>{d.contact.weekdays} <span style={{ fontWeight: 700, color: 'var(--text)', marginLeft: 5 }}>{d.contact.hoursValue}</span></span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', height: 32, padding: '0 14px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', fontSize: 13, color: 'var(--muted)' }}>{company.hoursDays} <span style={{ fontWeight: 700, color: 'var(--text)', marginLeft: 5 }}>{company.hoursValue}</span></span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 13, color: 'var(--muted2)' }}>{d.contact.contactAt}</span>

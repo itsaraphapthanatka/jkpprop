@@ -1,6 +1,7 @@
 import { ListingHeader } from './ListingHeader';
 import { ListingBody, type ListingPreset, type ListingFilterKey } from './ListingBody';
 import { SiteFooter } from '@/components/home/SiteFooter';
+import { loadCompany } from '@/lib/server/company';
 import { Floating } from '@/components/home/Floating';
 import { loadPublicListings } from '@/lib/server/publicListings';
 import { headers } from 'next/headers';
@@ -57,6 +58,9 @@ export async function ListingShell({ preset }: { preset?: ListingPreset }) {
      twelve pages and reading it here keeps them from each threading it down */
   const raw = (await headers()).get('x-locale') ?? '';
   const locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
+  /* every listing and landing page renders through here, so the footer
+     details come from the one place they are edited */
+  const company = await loadCompany(locale);
   const q = preset?.filterKey ? PRESET_QUERY[preset.filterKey] : {};
   const items = await loadPublicListings({ locale, ...q, province: preset?.province, limit: 60 }).catch(() => []);
 
@@ -82,7 +86,7 @@ export async function ListingShell({ preset }: { preset?: ListingPreset }) {
       </div>
 
       {/* fixed footer + spacer (revealed under the page-sheet) */}
-      <SiteFooter />
+      <SiteFooter company={company} />
 
       {/* back-to-top + cookie/PDPA */}
       <Floating />

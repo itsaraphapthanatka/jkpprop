@@ -4,8 +4,12 @@ import { useEffect, useRef } from 'react';
 import Link from '@/i18n/LocaleLink';
 import Image from 'next/image';
 import { useDict } from '@/i18n/useDict';
+import type { Company } from '@/lib/server/company';
 
-export function SiteFooter() {
+/* Contact details come from /admin/company. They were literals here —
+   `info@thaiindustrialproperty.com` on a domain the company does not own, and
+   `+66 90-000-0000`, which does not ring. */
+export function SiteFooter({ company }: { company: Company }) {
   const d = useDict();
   const footerRef = useRef<HTMLElement | null>(null);
   const spacerRef = useRef<HTMLDivElement | null>(null);
@@ -148,20 +152,20 @@ export function SiteFooter() {
                   <path d="M22 6l-10 7L2 6" />
                   <rect x="2" y="4" width="20" height="16" rx="2" />
                 </svg>
-                info@thaiindustrialproperty.com
+                {company.generalEmail}
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
                 <svg style={{ flexShrink: 0, marginTop: 2 }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--neon)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z" />
                 </svg>
-                +66 90-000-0000
+                {company.phones[0]?.number}
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
                 <svg style={{ flexShrink: 0, marginTop: 2 }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--neon)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z" />
                   <circle cx="12" cy="10" r="3" />
                 </svg>
-                {d.common.address}
+                {company.shortLocation}
               </div>
             </div>
             <Link

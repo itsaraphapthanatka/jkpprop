@@ -11,6 +11,7 @@ import { enumLabel } from '@/i18n/enums';
 import { isLocale, DEFAULT_LOCALE, type Locale } from '@/i18n/config';
 import { buildSpecs } from '@/lib/server/propertySpecs';
 import { loadPublicListings } from '@/lib/server/publicListings';
+import { loadCompany } from '@/lib/server/company';
 
 /* Public property detail. Read straight from the database in the server
    component — no client fetch, so the page is indexable.
@@ -48,6 +49,7 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
 export default async function PropertyByCodePage({ params }: { params: Promise<{ locale: string; code: string }> }) {
   const { locale: raw, code } = await params;
   const locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
+  const company = await loadCompany(locale);
   const found = await load(code);
   if (!found) notFound();
 
@@ -88,7 +90,7 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
         <PropertyHeader />
         <PropertyDetail property={property} />
       </div>
-      <SiteFooter />
+      <SiteFooter company={company} />
       <Floating />
     </div>
   );

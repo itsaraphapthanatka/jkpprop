@@ -510,6 +510,15 @@ export const openapi = {
         responses: { 200: okRes('บันทึกแล้ว'), ...AUTH_ERRORS },
       },
     },
+    '/api/company': {
+      get: { tags: ['Content'], summary: 'ข้อมูลติดต่อของบริษัท', ...PUBLIC, responses: { 200: okRes('ที่อยู่ เบอร์ อีเมล เวลาทำการ') } },
+      put: {
+        tags: ['Content'], summary: 'บันทึกข้อมูลบริษัท (owner / marketing)',
+        description: 'ที่อยู่ / ที่อยู่แบบสั้น / วันทำการ เป็นอ็อบเจ็กต์ { th, en, zh } · phones เป็นรายการ { number, label } สูงสุด 6 รายการ',
+        requestBody: body(obj({ legalName: STR, address: STR, shortLocation: STR, phones: STR, salesEmail: STR, generalEmail: STR, hoursDays: STR, hoursValue: STR })),
+        responses: { 200: okRes('บันทึกแล้ว'), ...AUTH_ERRORS },
+      },
+    },
     '/api/branding': {
       get: { tags: ['Content'], summary: 'ธีมของ tenant', ...PUBLIC, responses: { 200: okRes('ค่าธีม') } },
       put: {
