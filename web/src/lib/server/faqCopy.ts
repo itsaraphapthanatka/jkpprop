@@ -14,7 +14,7 @@ import { sanitizeHtml } from '@/lib/sanitizeHtml';
 
 export type FaqCategory = { key: string; title: string; qs: [string, string][] };
 
-type LangBlock = { title?: unknown; body?: unknown; done?: unknown };
+type LangBlock = { title?: unknown; body?: unknown; done?: unknown; category?: unknown };
 
 const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 
@@ -46,8 +46,12 @@ export async function loadFaq(locale: Locale): Promise<FaqCategory[]> {
     const answer = sanitizeHtml(str(block.body) || str(th.body));
     if (!question || !answer) continue;
 
+    /* The category heading is translated too, or the questions read as English
+       under a Thai heading. It rides in the same per-locale block as the
+       question, falling back to Thai and then to the column. */
     const key = row.category || 'general';
-    if (!byCategory.has(key)) byCategory.set(key, { key, title: row.category || '', qs: [] });
+    const catTitle = str(block.category) || str(th.category) || row.category || '';
+    if (!byCategory.has(key)) byCategory.set(key, { key, title: catTitle, qs: [] });
     byCategory.get(key)!.qs.push([question, answer]);
   }
 

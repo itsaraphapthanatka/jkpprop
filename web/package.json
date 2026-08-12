@@ -19,7 +19,8 @@
     "sections:sync": "tsx scripts/sync-sections.mts",
     "sections:copy": "tsx scripts/seed-page-copy.mts",
     "sections:images": "tsx scripts/link-section-images.mts",
-    "faq:seed": "tsx scripts/seed-faq.mts"
+    "faq:seed": "tsx scripts/seed-faq.mts",
+    "faq:translate": "tsx scripts/translate-faq.mts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
