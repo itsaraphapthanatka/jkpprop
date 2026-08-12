@@ -27,12 +27,12 @@ export type Dictionary = {
     address: string; search: string; viewDetail: string; viewAll: string; showAll: string; contactUs: string;
     perMonth: string; sqm: string; priceOnRequest: string; loading: string;
     backToHome: string; language: string; price: string; apply: string; clear: string;
-    home: string; noPhoto: string;
+    home: string; noPhoto: string; confirm: string;
   };
   hero: {
     headline1: string; headline2: string; headlineTail: string; sub: string; searchPlaceholder: string;
     filters: string; moreFilters: string; propertyType: string; size: string; priceRange: string;
-    zone: string; features: string; floorLoading: string;
+    zone: string; zoneColor: string; features: string; floorLoading: string;
   };
   featured: {
     eyebrow: string; heading: string; sub: string;
@@ -42,7 +42,7 @@ export type Dictionary = {
     eyebrow: string; heading: string; seeInArea: string; properties: string; available: string; results: string;
     avgDistance: string; topProvinces: string; inArea: string;
     unsureTitle: string; adviceHeading: string; adviceBody: string;
-    adviceQuestion: string; adviceCta: string; getAdvice: string;
+    adviceQuestion: string; adviceCta: string; getAdvice: string; contactExpert: string; mapAlt: string;
   };
   steps: { eyebrow: string; heading: string; sub: string; step: string; items: { title: string; desc: string }[] };
   whyUs: {
@@ -107,6 +107,7 @@ export type Dictionary = {
   faq: {
     searchPlaceholder: string; noResults: string; copied: string; copyQuestion: string;
     hero: string; heroSub: string; categories: string; stillStuck: string; stillStuckSub: string; heroAlt: string;
+    share: string;
   };
   /* Browser-tab and search-result titles.
    *
@@ -141,7 +142,7 @@ const th: Dictionary = {
     address: 'กรุงเทพมหานคร, ประเทศไทย', search: 'ค้นหา', viewDetail: 'ดูรายละเอียด', viewAll: 'ดูทั้งหมด', showAll: 'แสดงทั้งหมด',
     contactUs: 'ติดต่อเรา', perMonth: '/ เดือน', sqm: 'ตร.ม.', priceOnRequest: 'ติดต่อสอบถาม',
     loading: 'กำลังโหลด…', backToHome: 'กลับสู่หน้าแรก', language: 'ภาษา', price: 'ราคา',
-    apply: 'นำไปใช้', clear: 'ล้างค่า', home: 'หน้าแรก', noPhoto: 'ยังไม่มีรูป',
+    apply: 'นำไปใช้', clear: 'ล้างค่า', home: 'หน้าแรก', noPhoto: 'ยังไม่มีรูป', confirm: 'ยืนยัน',
   },
   hero: {
     headline1: 'สำรวจอสังหาริมทรัพย์อุตสาหกรรม', headline2: 'หรือโรงงานทั่วประเทศไทย',
@@ -149,7 +150,7 @@ const th: Dictionary = {
     sub: 'รวมรายการโรงงานและโกดังให้เช่า–ขายทั่วประเทศ ที่ผ่านการตรวจสอบและคัดกรองโดยทีมงานมืออาชีพ',
     searchPlaceholder: 'ค้นหาตามทำเล, จังหวัด, รหัสทรัพย์…',
     filters: 'ตัวกรองการค้นหา', moreFilters: 'ตัวกรองเพิ่มเติม', propertyType: 'ประเภทอสังหา',
-    size: 'ขนาดพื้นที่', priceRange: 'ช่วงราคา', zone: 'โซน', features: 'คุณสมบัติ',
+    size: 'ขนาดพื้นที่', priceRange: 'ช่วงราคา', zone: 'โซน', zoneColor: 'พื้นที่สี (ผังเมือง)', features: 'คุณสมบัติ',
     floorLoading: 'น้ำหนักที่พื้นรับได้',
   },
   featured: {
@@ -167,6 +168,7 @@ const th: Dictionary = {
     adviceBody: 'ปัจจัยไหนสำคัญที่สุดสำหรับคุณ?',
     adviceQuestion: 'ปัจจัยไหนสำคัญที่สุดสำหรับคุณ?',
     adviceCta: 'รับคำแนะนำทำเลฟรี', getAdvice: 'ขอคำแนะนำ',
+    contactExpert: 'ติดต่อผู้เชี่ยวชาญของเรา', mapAlt: 'แผนที่ทำเล',
   },
   steps: {
     eyebrow: 'ขั้นตอนง่ายๆ', heading: 'ค้นหาทรัพย์ใน 4 ขั้นตอน',
@@ -291,6 +293,7 @@ const th: Dictionary = {
     searchPlaceholder: 'ค้นหาคำถาม…', noResults: 'ไม่พบคำถามที่ตรงกับคำค้น', copied: 'คัดลอกแล้ว', copyQuestion: 'คัดลอกคำถาม',
     hero: 'คำถามที่พบบ่อย', heroSub: 'รวมคำตอบเกี่ยวกับการเช่า การขาย เอกสาร และการจดทะเบียนอสังหาริมทรัพย์อุตสาหกรรม',
     categories: 'หมวดหมู่', stillStuck: 'ยังหาคำตอบไม่เจอ?', stillStuckSub: 'ทีมงานของเราพร้อมช่วยตอบคำถามทุกข้อสงสัย ติดต่อเราได้ที่นี่', heroAlt: 'ภาพเมืองและย่านอุตสาหกรรม',
+    share: 'แชร์',
   },
   titles: {
     faq: 'คำถามที่พบบ่อย', listing: 'อสังหาริมทรัพย์ทั้งหมด',
@@ -325,7 +328,7 @@ const en: Dictionary = {
     address: 'Bangkok, Thailand', search: 'Search', viewDetail: 'View details', viewAll: 'View all', showAll: 'Show all',
     contactUs: 'Contact us', perMonth: '/ month', sqm: 'sqm', priceOnRequest: 'Price on request',
     loading: 'Loading…', backToHome: 'Back to home', language: 'Language', price: 'Price',
-    apply: 'Apply', clear: 'Clear', home: 'Home', noPhoto: 'No photo yet',
+    apply: 'Apply', clear: 'Clear', home: 'Home', noPhoto: 'No photo yet', confirm: 'Confirm',
   },
   hero: {
     headline1: 'Find industrial property', headline2: 'and factories across Thailand',
@@ -333,7 +336,7 @@ const en: Dictionary = {
     sub: 'Factories and warehouses for rent and sale nationwide, each one checked and screened by our team.',
     searchPlaceholder: 'Search by area, province or property code…',
     filters: 'Search filters', moreFilters: 'More filters', propertyType: 'Property type',
-    size: 'Floor area', priceRange: 'Price range', zone: 'Zone', features: 'Features',
+    size: 'Floor area', priceRange: 'Price range', zone: 'Zone', zoneColor: 'Zoning colour', features: 'Features',
     floorLoading: 'Floor loading',
   },
   featured: {
@@ -351,6 +354,7 @@ const en: Dictionary = {
     adviceBody: 'What matters most to you?',
     adviceQuestion: 'What matters most to you?',
     adviceCta: 'Get a free location recommendation', getAdvice: 'Ask for advice',
+    contactExpert: 'Talk to one of our specialists', mapAlt: 'Map of Thailand',
   },
   steps: {
     eyebrow: 'How it works', heading: 'Find a property in four steps',
@@ -475,6 +479,7 @@ const en: Dictionary = {
     searchPlaceholder: 'Search the questions…', noResults: 'No questions match your search', copied: 'Copied', copyQuestion: 'Copy question',
     hero: 'Frequently asked questions', heroSub: 'Answers on renting, buying, paperwork and registering industrial property.',
     categories: 'Categories', stillStuck: 'Still no answer?', stillStuckSub: 'Our team is happy to work through anything that is not covered here — get in touch.', heroAlt: 'City and industrial district',
+    share: 'Share',
   },
   titles: {
     faq: 'Frequently asked questions', listing: 'All properties',
@@ -509,7 +514,7 @@ const zh: Dictionary = {
     address: '泰国曼谷', search: '搜索', viewDetail: '查看详情', viewAll: '查看全部', showAll: '显示全部',
     contactUs: '联系我们', perMonth: '/ 月', sqm: '平方米', priceOnRequest: '价格面议',
     loading: '加载中…', backToHome: '返回首页', language: '语言', price: '价格',
-    apply: '应用', clear: '清除', home: '首页', noPhoto: '暂无照片',
+    apply: '应用', clear: '清除', home: '首页', noPhoto: '暂无照片', confirm: '确认',
   },
   hero: {
     headline1: '寻找泰国工业地产', headline2: '与厂房资源',
@@ -517,7 +522,7 @@ const zh: Dictionary = {
     sub: '汇集全泰国出租与出售的厂房和仓库，每一处均经过团队核验筛选。',
     searchPlaceholder: '按地区、府或房源编号搜索…',
     filters: '搜索筛选', moreFilters: '更多筛选', propertyType: '房源类型',
-    size: '建筑面积', priceRange: '价格区间', zone: '区域', features: '设施特点',
+    size: '建筑面积', priceRange: '价格区间', zone: '区域', zoneColor: '城市规划分区颜色', features: '设施特点',
     floorLoading: '楼板承重',
   },
   featured: {
@@ -535,6 +540,7 @@ const zh: Dictionary = {
     adviceBody: '您最看重哪一点？',
     adviceQuestion: '您最看重哪一点？',
     adviceCta: '免费获取选址建议', getAdvice: '咨询建议',
+    contactExpert: '联系我们的专家', mapAlt: '泰国地图',
   },
   steps: {
     eyebrow: '服务流程', heading: '四步找到合适房源',
@@ -659,6 +665,7 @@ const zh: Dictionary = {
     searchPlaceholder: '搜索问题…', noResults: '没有符合搜索条件的问题', copied: '已复制', copyQuestion: '复制问题',
     hero: '常见问题', heroSub: '关于租赁、购买、文件与工业地产登记的解答。',
     categories: '分类', stillStuck: '还没找到答案？', stillStuckSub: '这里没写到的问题，欢迎直接联系我们的团队。', heroAlt: '城市与工业区',
+    share: '分享',
   },
   titles: {
     faq: '常见问题', listing: '全部房源',

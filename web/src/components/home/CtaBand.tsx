@@ -1,4 +1,5 @@
 'use client';
+import Link from '@/i18n/LocaleLink';
 import { useDict } from '@/i18n/useDict';
 import type { SectionCopy } from '@/lib/server/sectionCopy';
 import { telHref, type Company } from '@/lib/server/company';
@@ -110,8 +111,9 @@ export function CtaBand({ copy, company }: { copy: SectionCopy; company: Company
             {pick(copy.sub, d.cta.sub)}
           </p>
           <div style={{ marginTop: 26, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-            <a
-              href="Contact.dc.html"
+            {/* was href="Contact.dc.html" — the prototype filename, a 404 on the live site */}
+            <Link
+              href="/contact"
               onMouseEnter={primaryEnter}
               onMouseLeave={primaryLeave}
               style={{
@@ -133,7 +135,7 @@ export function CtaBand({ copy, company }: { copy: SectionCopy; company: Company
                 <path d="M5 12h14" />
                 <path d="M13 6l6 6-6 6" />
               </svg>
-            </a>
+            </Link>
             {/* the secondary "call" button pointed at "#" — it dials now */}
             <a
               href={telHref(company.phones[0]?.number ?? '')}

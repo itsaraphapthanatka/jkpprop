@@ -224,7 +224,7 @@ export function Hero({ copy }: { copy: SectionCopy }) {
                 </div>
               </MoreSection>
               {/* color zone (ผังเมือง) */}
-              <MoreSection title="พื้นที่สี (ผังเมือง)" open={secOpen.color} onToggle={() => setSecOpen((s) => ({ ...s, color: !s.color }))} icon="color">
+              <MoreSection title={d.hero.zoneColor} open={secOpen.color} onToggle={() => setSecOpen((s) => ({ ...s, color: !s.color }))} icon="color">
                 <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr', gap: 4 }}>
                   {COLORZONE_ITEMS.map((z) => {
                     const on = colorSel.includes(z.name);
@@ -256,7 +256,7 @@ export function Hero({ copy }: { copy: SectionCopy }) {
                 </div>
               </MoreSection>
               {/* load */}
-              <MoreSection title="รับน้ำหนักพื้น" open={secOpen.load} onToggle={() => setSecOpen((s) => ({ ...s, load: !s.load }))} icon="load">
+              <MoreSection title={d.hero.floorLoading} open={secOpen.load} onToggle={() => setSecOpen((s) => ({ ...s, load: !s.load }))} icon="load">
                 <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr', gap: 4 }}>
                   {LOAD_VALS.map(([key, label]) => {
                     const on = loadSel === key;

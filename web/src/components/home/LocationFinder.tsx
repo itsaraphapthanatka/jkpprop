@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from '@/i18n/LocaleLink';
 import { useI18n } from '@/i18n/useDict';
 import { enumLabel } from '@/i18n/enums';
 import type { SectionCopy } from '@/lib/server/sectionCopy';
@@ -191,7 +192,7 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
           {/* RIGHT: interactive map */}
           <div style={{ position: 'relative', background: 'var(--tint)', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden', minHeight: '520px', boxShadow: '0 18px 44px rgba(var(--ink-rgb),.12), inset 0 0 0 1px rgba(255,255,255,.4)' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/assets/thailand-map-bg.png" alt="แผนที่ทำเล" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55 }} />
+            <img src="/assets/thailand-map-bg.png" alt={d.locations.mapAlt} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55 }} />
 
             {/* result pill */}
             <div style={{ position: 'absolute', top: '16px', left: '16px', zIndex: 6, display: 'flex', alignItems: 'center', gap: '9px', height: '40px', padding: '0 16px', borderRadius: '9999px', background: 'rgba(255,255,255,.94)', backdropFilter: 'blur(6px)', boxShadow: '0 6px 18px rgba(0,0,0,.14)' }}>
@@ -248,9 +249,10 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
                   </div>
                   <h3 style={{ margin: 0, fontSize: '22px', fontWeight: 800, color: 'var(--text)' }}>{d.locations.adviceCta}</h3>
                   <p style={{ margin: '14px 0 0', fontSize: '14.5px', color: 'var(--muted)', lineHeight: 1.7 }}>{d.locations.adviceHeading}</p>
-                  <a href="Contact.dc.html" style={{ marginTop: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', height: '52px', borderRadius: '9999px', background: 'var(--neon)', color: 'var(--ink)', fontSize: '15px', fontWeight: 800, transition: 'transform .2s,box-shadow .2s' }}>ติดต่อผู้เชี่ยวชาญของเรา
+                  {/* was href="Contact.dc.html" — the prototype filename, a 404 on the live site */}
+                  <Link href="/contact" style={{ marginTop: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', height: '52px', borderRadius: '9999px', background: 'var(--neon)', color: 'var(--ink)', fontSize: '15px', fontWeight: 800, transition: 'transform .2s,box-shadow .2s' }}>{d.locations.contactExpert}
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2.6"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
-                  </a>
+                  </Link>
                 </div>
               </div>
             )}
@@ -281,7 +283,7 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
                 );
               })}
             </div>
-            <div onClick={submitLocation} style={{ marginTop: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '48px', borderRadius: '9999px', background: 'var(--pine)', color: '#fff', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>ยืนยัน
+            <div onClick={submitLocation} style={{ marginTop: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '48px', borderRadius: '9999px', background: 'var(--pine)', color: '#fff', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>{d.common.confirm}
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" style={{ marginLeft: '6px' }}><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
             </div>
           </div>
