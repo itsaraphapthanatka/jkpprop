@@ -3,6 +3,7 @@ import { ok, handler, ApiError } from '@/lib/server/api';
 import { requireUser, requireRole } from '@/lib/server/auth';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
+import { advanceLead } from '@/lib/server/leadPipeline';
 
 export const GET = handler(async () => {
   const user = await requireUser();
@@ -39,6 +40,8 @@ export const POST = handler(async (req: Request) => {
       amount: Number.isFinite(body?.amount) ? Math.max(0, Math.round(body!.amount!)) : 0,
     },
   });
+  // Flow D: opening a deal is what makes the lead `negotiating`
+  await advanceLead(deal.leadId, 'negotiating', { user, orgId: user.orgId, reason: `deal ${deal.id}` });
   await audit({ user, orgId: user.orgId, action: 'deal.create', entity: 'deal', entityId: deal.id, after: { title: deal.title, amount: deal.amount } });
   return ok({ id: deal.id }, { status: 201 });
 });

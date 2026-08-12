@@ -25,26 +25,26 @@ model Org {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  orgId        String
-  org          Org       @relation(fields: [orgId], references: [id])
-  email        String    @unique
-  passwordHash String
-  name         String
-  phone        String?
+  id                 String    @id @default(cuid())
+  orgId              String
+  org                Org       @relation(fields: [orgId], references: [id])
+  email              String    @unique
+  passwordHash       String
+  name               String
+  phone              String?
   // RBAC (§12) — mirrors web/src/lib/rbac.ts
-  role         String    @default("agent") // owner|manager|agent|co_agent|ops|marketing|translator
-  scope        String    @default("own") // own|all
-  privileges   String[]  @default([]) // pii|publish|price|deal_unlock|internal_note|export|audit
-  expiresAt    DateTime? // required for co_agent
-  active       Boolean   @default(true)
+  role               String    @default("agent") // owner|manager|agent|co_agent|ops|marketing|translator
+  scope              String    @default("own") // own|all
+  privileges         String[]  @default([]) // pii|publish|price|deal_unlock|internal_note|export|audit
+  expiresAt          DateTime? // required for co_agent
+  active             Boolean   @default(true)
   // lease-alert ids the user marked read (§7.2 readIds)
-  readAlertIds String[]  @default([])
+  readAlertIds       String[]  @default([])
   // set when an admin issues a temporary password — blocks everything until
   // the user picks their own, so a handed-over password can't become permanent
-  mustChangePassword Boolean @default(false)
+  mustChangePassword Boolean   @default(false)
   passwordChangedAt  DateTime?
-  createdAt    DateTime  @default(now())
+  createdAt          DateTime  @default(now())
 
   sessions Session[]
 }
@@ -74,7 +74,7 @@ model FieldOverride {
 
 // Geography (§10 step 3): province/district/subdistrict/estate tree
 model GeoItem {
-  id       String  @id @default(cuid())
+  id       String    @id @default(cuid())
   orgId    String
   kind     String // province | district | subdistrict | estate
   name     String
@@ -88,18 +88,18 @@ model GeoItem {
 }
 
 model MediaAsset {
-  id         String   @id @default(cuid())
-  orgId      String
-  filename   String // original name
-  mime       String
-  size       Int
-  path       String // public URL path, e.g. /uploads/xxxx.webp
-  uploaderId String?
+  id            String   @id @default(cuid())
+  orgId         String
+  filename      String // original name
+  mime          String
+  size          Int
+  path          String // public URL path, e.g. /uploads/xxxx.webp
+  uploaderId    String?
   // FR-ADM-09: two watermark styles per image. `none` keeps the file as-is;
   // the others produce a derivative that is the ONLY thing served publicly,
   // while the untouched original stays available to signed-in admins.
-  watermarkType String @default("none") // none | corner | tiled
-  createdAt  DateTime @default(now())
+  watermarkType String   @default("none") // none | corner | tiled
+  createdAt     DateTime @default(now())
 
   @@index([orgId])
 }
@@ -166,8 +166,9 @@ model Lead {
   assigneeId     String? // row-level scope 'own' checks this
   updatedAt      DateTime @updatedAt
 
-  notes LeadNote[]
-  tasks LeadTask[]
+  notes        LeadNote[]
+  tasks        LeadTask[]
+  requirements Requirement[]
 
   @@index([orgId, status])
   @@index([orgId, assigneeId])
@@ -193,16 +194,91 @@ model LeadTask {
   createdAt DateTime  @default(now())
 }
 
-model Shortlist {
-  id        String   @id @default(cuid())
-  orgId     String
-  leadId    String?
-  name      String   @default("")
-  token     String   @unique // /client-shortlist?token=…
-  status    String   @default("open") // open|sent|closed
+// Flow B — what the customer is looking for, as a thing of its own.
+//
+// This used to live only as `Lead.req`, an untyped JSON list of {k,v} pairs, so
+// a requirement had no status, could not be confirmed or cancelled, could not
+// be corrected after it arrived, and had no list screen. Lead.req is kept as
+// the raw record of what the form submitted; this table is what Ops work on.
+model Requirement {
+  id     String @id @default(cuid())
+  orgId  String
+  code   String // REQ-1042 — the number the team says out loud
+  leadId String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  // submitted → confirmed → (shortlisted) · cancelled from anywhere
+  status String @default("submitted")
+
+  dealIntent String @default("") // เช่า | ขาย
+  typeKey    String @default("") // warehouse | factory
+  usage      String @default("") // คลังสินค้า/โลจิสติกส์ …
+
+  areaMin   Int? // ตร.ม.
+  areaMax   Int?
+  budgetMin Int? // บาท/เดือน สำหรับเช่า, บาท สำหรับขาย
+  budgetMax Int?
+  moveIn    DateTime?
+
+  // the special conditions Ops must check against each property before it may
+  // enter a shortlist (FR-AVL-04 §3.6)
+  needsRor4 Boolean @default(false)
+  nearPort  Boolean @default(false)
+  pollution String  @default("") // free text: ประเภทกิจการที่อาจมีปัญหา
+  note      String  @default("")
+
+  // ranked provinces/districts, best first — [{ name }]
+  locations Json @default("[]")
+
+  // FR-CRM-07: cancelling must say why, and which requirement item was the problem
+  cancelReason String    @default("")
+  cancelField  String    @default("")
+  cancelledAt  DateTime?
+  confirmedAt  DateTime?
+
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  checks     AvailabilityCheck[]
+  shortlists Shortlist[]
+
+  @@unique([orgId, code])
+  @@index([orgId, status])
+  @@index([leadId])
+}
+
+// One "is it still free?" answer from the landlord, per property per
+// requirement. The screen showed these as a hardcoded list of three.
+model AvailabilityCheck {
+  id            String      @id @default(cuid())
+  requirementId String
+  requirement   Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  propertyId    String
+  // available | unavailable — recorded by whoever rang the landlord
+  result        String
+  note          String      @default("")
+  checkedBy     String?
+  checkedAt     DateTime    @default(now())
+
+  @@unique([requirementId, propertyId])
+  @@index([requirementId])
+}
+
+model Shortlist {
+  id            String       @id @default(cuid())
+  orgId         String
+  leadId        String?
+  // set when the shortlist was built from a requirement (Flow B)
+  requirementId String?
+  requirement   Requirement? @relation(fields: [requirementId], references: [id], onDelete: SetNull)
+  name          String       @default("")
+  token         String       @unique // /client-shortlist?token=…
+  status        String       @default("open") // open|sent|closed
+  createdAt     DateTime     @default(now())
 
   items ShortlistItem[]
+
+  @@index([requirementId])
 }
 
 model ShortlistItem {
@@ -229,11 +305,11 @@ model Visit {
 }
 
 model VisitStop {
-  id         String @id @default(cuid())
+  id         String  @id @default(cuid())
   visitId    String
-  visit      Visit  @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  visit      Visit   @relation(fields: [visitId], references: [id], onDelete: Cascade)
   propertyId String
-  sort       Int    @default(0)
+  sort       Int     @default(0)
   result     String? // feedback after the visit
 }
 
@@ -407,33 +483,43 @@ model AuditLog {
   @@index([orgId, createdAt])
 }
 
-/* Company contact details — one row per org.
- *
+/**
+ * Company contact details — one row per org.
  * The address, the two phone numbers and the two mailboxes were spread across
  * a component, the dictionary and a page's props. They had already drifted:
  * the About and FAQ footers were serving info@thaiindustrialproperty.com, a
  * domain the company does not own, and +66 90-000-0000, a number that does not
  * ring. This is the single place they live now.
- *
  * The translated fields are Json ({ th, en, zh }) to match how PageSection
- * stores copy; the rest are the same in every language. */
+ * stores copy; the rest are the same in every language.
+ */
 model CompanyProfile {
   orgId         String   @id
   legalName     String   @default("")
-  /** { th, en, zh } — the full postal address */
+  /**
+   * { th, en, zh } — the full postal address
+   */
   address       Json?
-  /** { th, en, zh } — the short form used in footers, e.g. "สมุทรปราการ, ประเทศไทย" */
+  /**
+   * { th, en, zh } — the short form used in footers, e.g. "สมุทรปราการ, ประเทศไทย"
+   */
   shortLocation Json?
-  /** [{ number, label }] — label names the language the line is answered in */
+  /**
+   * [{ number, label }] — label names the language the line is answered in
+   */
   phones        Json?
   salesEmail    String   @default("")
   generalEmail  String   @default("")
-  /** { th, en, zh } — e.g. "จันทร์ - ศุกร์:" */
+  /**
+   * { th, en, zh } — e.g. "จันทร์ - ศุกร์:"
+   */
   hoursDays     Json?
   hoursValue    String   @default("")
-  /* Contact channels. The icons for these were `href="#"` on the contact page
-     and in both footers — eighteen dead links in all. An empty value hides
-     its icon rather than rendering one that goes nowhere. */
+  /**
+   * Contact channels. The icons for these were `href="#"` on the contact page
+   * and in both footers — eighteen dead links in all. An empty value hides
+   * its icon rather than rendering one that goes nowhere.
+   */
   lineUrl       String   @default("")
   facebookUrl   String   @default("")
   whatsappUrl   String   @default("")

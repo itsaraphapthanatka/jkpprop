@@ -9,6 +9,7 @@ import { ok, handler, ApiError } from '@/lib/server/api';
 import { requireUser, requireRole } from '@/lib/server/auth';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
+import { advanceLead } from '@/lib/server/leadPipeline';
 import { displayArea } from '@/lib/server/propertyDto';
 
 async function loadScoped(id: string, orgId: string) {
@@ -109,6 +110,10 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
       if (!items.length) throw new ApiError('VALIDATION', 'ส่งไม่ได้ — ยังไม่มีทรัพย์ใน shortlist', 400);
     }
     await db.shortlist.update({ where: { id }, data: { status: body.status } });
+    // Flow B: sending it to the customer is what makes the lead `shortlisted`
+    if (body.status === 'sent') {
+      await advanceLead(s.leadId, 'shortlisted', { user, orgId: user.orgId, reason: `shortlist ${id} sent` });
+    }
     await audit({
       user, orgId: user.orgId, action: `shortlist.${body.status}`, entity: 'shortlist', entityId: id,
       before: { status: s.status }, after: { status: body.status },

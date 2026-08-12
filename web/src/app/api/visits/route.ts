@@ -5,6 +5,7 @@ import { ok, handler, ApiError } from '@/lib/server/api';
 import { requireUser, requireRole } from '@/lib/server/auth';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
+import { advanceLead } from '@/lib/server/leadPipeline';
 
 export const GET = handler(async () => {
   const user = await requireUser();
@@ -53,6 +54,8 @@ export const POST = handler(async (req: Request) => {
       stops: { create: props.map((p, i) => ({ propertyId: p.id, sort: i })) },
     },
   });
+  // Flow C: booking the viewing is what makes the lead `visit_scheduled`
+  await advanceLead(visit.leadId, 'visit_scheduled', { user, orgId: user.orgId, reason: `visit ${visit.id}` });
   await audit({ user, orgId: user.orgId, action: 'visit.create', entity: 'visit', entityId: visit.id, after: { codes, date: date.toISOString() } });
   return ok({ id: visit.id }, { status: 201 });
 });

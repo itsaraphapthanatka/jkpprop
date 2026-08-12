@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { NotificationBell } from './NotificationBell';
 import { useMe, clearMeCache } from '@/lib/useMe';
+import { useNavCounts } from '@/lib/useNavCounts';
 import { useRouter, usePathname } from 'next/navigation';
 import { apiPost } from '@/lib/apiClient';
 import { ROLES } from '@/lib/rbac';
@@ -94,7 +95,7 @@ export const ADMIN_CSS = `
 
 type NavEntry =
   | { group: string }
-  | { key: AdminNavKey; label: string; href: string; icon: string; badge?: string };
+  | { key: AdminNavKey; label: string; href: string; icon: string; badge?: 'leads' | 'requirements' };
 
 const NAV: NavEntry[] = [
   { key: 'dashboard', label: 'Dashboard', href: '/admin', icon: '<rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect>' },
@@ -103,8 +104,8 @@ const NAV: NavEntry[] = [
   { key: 'listings', label: 'Listings', href: '/admin/listings', icon: '<rect x="3" y="4" width="18" height="4" rx="1"></rect><rect x="3" y="10" width="18" height="4" rx="1"></rect><rect x="3" y="16" width="18" height="4" rx="1"></rect>' },
   { key: 'social', label: 'Social Status', href: '/admin/social-status', icon: '<path d="M4 12v8a1 1 0 001 1h14a1 1 0 001-1v-8"></path><path d="M16 6l-4-4-4 4"></path><path d="M12 2v14"></path>' },
   { group: 'งานขาย' },
-  { key: 'leads', label: 'Leads', href: '/admin/leads', icon: '<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path><circle cx="9" cy="7" r="4"></circle>', badge: '18' },
-  { key: 'requirements', label: 'Requirements', href: '/admin/requirements', icon: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><path d="M14 2v6h6"></path>', badge: '7' },
+  { key: 'leads', label: 'Leads', href: '/admin/leads', icon: '<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path><circle cx="9" cy="7" r="4"></circle>', badge: 'leads' },
+  { key: 'requirements', label: 'Requirements', href: '/admin/requirements', icon: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><path d="M14 2v6h6"></path>', badge: 'requirements' },
   { key: 'shortlists', label: 'Shortlists', href: '/admin/shortlists', icon: '<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>' },
   { key: 'visits', label: 'Visits', href: '/admin/visits', icon: '<rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path>' },
   { key: 'deals', label: 'Deals', href: '/admin/deals', icon: '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"></path>' },
@@ -146,6 +147,7 @@ function SidebarUser() {
 }
 
 function AdminSidebar({ active, mobileOpen, onClose }: { active?: AdminNavKey; mobileOpen: boolean; onClose: () => void }) {
+  const navCounts = useNavCounts();
   return (
     <aside id="admin-sidebar" className={mobileOpen ? 'admin-sidebar-open' : undefined} style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: 248, background: 'var(--sidebar)', display: 'flex', flexDirection: 'column', zIndex: 100 }}>
       <div style={{ padding: '22px 20px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, borderBottom: '1px solid rgba(255,255,255,.08)' }}>
@@ -175,8 +177,9 @@ function AdminSidebar({ active, mobileOpen, onClose }: { active?: AdminNavKey; m
             >
               <span style={{ display: 'flex', width: 18, height: 18, flexShrink: 0 }} dangerouslySetInnerHTML={{ __html: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="' + (on ? '#2DFB91' : '#9AA39D') + '" stroke-width="1.8">' + n.icon + '</svg>' }} />
               <span style={{ flex: 1 }}>{n.label}</span>
-              {n.badge && (
-                <span style={{ height: 18, minWidth: 18, padding: '0 6px', borderRadius: 9999, background: '#2DFB91', color: '#04140C', fontSize: '10.5px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{n.badge}</span>
+              {/* nothing to show is not "0" — the badge disappears */}
+              {n.badge && !!navCounts?.[n.badge] && (
+                <span data-badge={n.badge} style={{ height: 18, minWidth: 18, padding: '0 6px', borderRadius: 9999, background: '#2DFB91', color: '#04140C', fontSize: '10.5px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{navCounts[n.badge]}</span>
               )}
             </a>
           );

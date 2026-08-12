@@ -5,6 +5,7 @@ import { ok, handler, ApiError, rateLimit, clientIp } from '@/lib/server/api';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
 import type { Prisma } from '@prisma/client';
+import { nextRequirementCode, requirementInput } from '@/lib/server/requirements';
 
 type ReqItem = { k: string; v: string };
 
@@ -48,9 +49,45 @@ export const POST = handler(async (req: Request) => {
     },
   });
 
+  /* Flow B starts here. The form's answers used to stop at `Lead.req` — an
+     untyped list Ops could read but not work on. A Requirement is created
+     alongside so the submission arrives in the queue with a code, a status and
+     somewhere to record the availability checks. `req` is kept as the verbatim
+     record of what was submitted. */
+  const pick = (...keys: string[]) => {
+    for (const k of keys) {
+      const hit = reqItems.find((r) => r.k.includes(k));
+      if (hit) return hit.v;
+    }
+    return '';
+  };
+
+  let requirementCode = '';
+  try {
+    requirementCode = await nextRequirementCode(org.id);
+    await db.requirement.create({
+      data: {
+        orgId: org.id,
+        code: requirementCode,
+        leadId: lead.id,
+        ...requirementInput({
+          dealIntent: lead.dealIntent,
+          typeKey: lead.typeKey,
+          usage: pick('ประเภทการใช้งาน', 'การใช้งาน'),
+          note: lead.message,
+          locations: pick('ทำเล', 'พื้นที่', 'จังหวัด').split(/[,·]/),
+        }),
+      },
+    });
+  } catch {
+    /* the customer's submission is already saved; a missing working copy is a
+       problem for Ops to fix, not a reason to tell them the form failed */
+  }
+
   await audit({
     user: null, orgId: org.id, action: 'lead.create', entity: 'lead', entityId: lead.id,
-    after: { source: 'requirement form', typeKey: lead.typeKey }, ip: clientIp(req),
+    after: { source: 'requirement form', typeKey: lead.typeKey, requirement: requirementCode },
+    ip: clientIp(req),
   });
 
   return ok({ ok: true });

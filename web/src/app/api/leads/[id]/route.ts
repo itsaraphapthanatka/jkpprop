@@ -5,10 +5,10 @@ import { ok, handler, ApiError } from '@/lib/server/api';
 import { requireUser } from '@/lib/server/auth';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
+import { rank } from '@/lib/server/leadPipeline';
 import { leadDto } from '@/lib/server/leadDto';
 import type { Prisma } from '@prisma/client';
 
-const PIPELINE = ['new', 'qualified', 'profile_received', 'requirements_confirmed', 'shortlisted', 'visit_scheduled', 'negotiating', 'won', 'lost'];
 
 export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: string }> }) => {
   const user = await requireUser();
@@ -24,9 +24,9 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
 
   const data: Prisma.LeadUncheckedUpdateInput = {};
   if (typeof body.status === 'string') {
-    if (!PIPELINE.includes(body.status)) throw new ApiError('VALIDATION', 'สถานะไม่ถูกต้อง', 400);
-    const from = PIPELINE.indexOf(lead.status);
-    const to = PIPELINE.indexOf(body.status);
+    if (rank(body.status) < 0) throw new ApiError('VALIDATION', 'สถานะไม่ถูกต้อง', 400);
+    const from = rank(lead.status);
+    const to = rank(body.status);
     const isManager = user.role === 'owner' || user.role === 'manager';
     if (to < from && !isManager) {
       throw new ApiError('PIPELINE_FORWARD_ONLY', 'สถานะ lead เดินหน้าอย่างเดียว — ถอยกลับได้เฉพาะผู้จัดการขึ้นไป', 400);

@@ -503,6 +503,92 @@ export const openapi = {
         responses: { 200: okRes('ลบแล้ว'), ...WITH_404, 400: errRes('ลบหน้าหลักของเว็บไม่ได้') },
       },
     },
+    /* Flow B (SPEC_PACK §3.6). Until this release the stage had no table and no
+       routes at all — the screen was a mock-up. */
+    '/api/requirements': {
+      get: {
+        tags: ['Pipeline'], summary: 'คิว requirement',
+        description: 'กรองตามสถานะ และค้นด้วยรหัส / ชื่อ / บริษัท · counts นับจากตารางจริง',
+        parameters: [
+          queryParam('status', 'submitted | confirmed | shortlisted | cancelled'),
+          queryParam('q', 'รหัส REQ- หรือชื่อลูกค้า/บริษัท'),
+        ],
+        responses: { 200: okRes('รายการ requirement + counts ต่อสถานะ'), ...AUTH_ERRORS },
+      },
+      post: {
+        tags: ['Pipeline'], summary: 'สร้าง requirement ให้ lead',
+        description: 'สำหรับความต้องการที่รับมาทางโทรศัพท์ · ฟอร์มหน้าเว็บสร้างให้เองอยู่แล้ว',
+        requestBody: body(obj({
+          leadId: STR, dealIntent: STR, typeKey: STR, usage: STR,
+          areaMin: INT, areaMax: INT, budgetMin: INT, budgetMax: INT,
+          moveIn: STR, needsRor4: BOOL, nearPort: BOOL, pollution: STR, note: STR,
+          locations: arrayOf(STR),
+        }, ['leadId'])),
+        responses: { 201: okRes('สร้างแล้ว'), ...WITH_404 },
+      },
+    },
+    '/api/requirements/{id}': {
+      get: {
+        tags: ['Pipeline'], summary: 'รายละเอียด requirement',
+        description: 'รวมผลเช็คความว่างที่บันทึกไว้ และ shortlist ที่สร้างจาก requirement นี้',
+        parameters: [pathParam('id', 'id ของ requirement')],
+        responses: { 200: okRes('รายละเอียด'), ...WITH_404 },
+      },
+      patch: {
+        tags: ['Pipeline'], summary: 'แก้เกณฑ์ / ยืนยัน / ยกเลิก / เปิดใหม่',
+        description: 'action=confirm เลื่อน lead เป็น requirements_confirmed อัตโนมัติ · action=cancel ต้องระบุทั้งข้อที่เป็นปัญหาและเหตุผล (FR-CRM-07)',
+        parameters: [pathParam('id', 'id ของ requirement')],
+        requestBody: body(obj({
+          action: { ...STR, enum: ['confirm', 'cancel', 'reopen'] },
+          cancelField: STR, cancelReason: STR,
+          dealIntent: STR, typeKey: STR, usage: STR,
+          areaMin: INT, areaMax: INT, budgetMin: INT, budgetMax: INT,
+          moveIn: STR, needsRor4: BOOL, nearPort: BOOL, pollution: STR, note: STR,
+          locations: arrayOf(STR),
+        }, [])),
+        responses: { 200: okRes('อัปเดตแล้ว'), ...WITH_404 },
+      },
+      delete: {
+        tags: ['Pipeline'], summary: 'ลบ requirement',
+        description: 'owner + manager · ลบไม่ได้ถ้าสร้าง shortlist จาก requirement นี้ไปแล้ว — ใช้ยกเลิกแทน',
+        parameters: [pathParam('id', 'id ของ requirement')],
+        responses: { 200: okRes('ลบแล้ว'), ...WITH_404 },
+      },
+    },
+    '/api/requirements/{id}/checks': {
+      post: {
+        tags: ['Pipeline'], summary: 'บันทึกผลเช็คความว่างกับเจ้าของทรัพย์',
+        description: 'หนึ่งแถวต่อทรัพย์ต่อ requirement — เช็คซ้ำทับของเดิม (FR-AVL-04)',
+        parameters: [pathParam('id', 'id ของ requirement')],
+        requestBody: body(obj({ code: STR, result: { ...STR, enum: ['available', 'unavailable'] }, note: STR }, ['code', 'result'])),
+        responses: { 200: okRes('บันทึกแล้ว'), ...WITH_404 },
+      },
+      delete: {
+        tags: ['Pipeline'], summary: 'เอาทรัพย์ออกจากรายการที่เช็ค',
+        parameters: [pathParam('id', 'id ของ requirement'), queryParam('code', 'รหัสทรัพย์')],
+        responses: { 200: okRes('เอาออกแล้ว'), ...WITH_404 },
+      },
+    },
+    '/api/requirements/{id}/shortlist': {
+      post: {
+        tags: ['Pipeline'], summary: 'สร้าง shortlist จากทรัพย์ที่ผ่านเงื่อนไขว่าง',
+        description: 'ประตู FR-AVL-04 บังคับที่ server: เข้าได้เฉพาะทรัพย์ที่ผลเช็คล่าสุด = available และยัง active อยู่ · สำเร็จแล้วเลื่อน lead เป็น shortlisted',
+        parameters: [pathParam('id', 'id ของ requirement')],
+        requestBody: body(obj({ name: STR }, [])),
+        responses: {
+          201: okRes('สร้าง shortlist แล้ว'),
+          ...WITH_404,
+          400: errRes('ยังไม่มีทรัพย์ที่เช็คแล้วว่าว่าง'),
+        },
+      },
+    },
+    '/api/nav-counts': {
+      get: {
+        tags: ['Admin'], summary: 'ตัวเลขบนเมนู',
+        description: 'lead ที่ยังไม่ได้แตะ และ requirement ที่รอตรวจสอบ — เคยเป็นเลขตายตัว 18 กับ 7',
+        responses: { 200: okRes('{ leads, requirements }'), ...AUTH_ERRORS },
+      },
+    },
     '/api/sections': {
       get: {
         tags: ['Content'], summary: 'Section ของหน้าเว็บ',

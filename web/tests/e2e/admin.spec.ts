@@ -841,3 +841,187 @@ test.describe('deleting CMS content', () => {
     expect((after.items as { slug: string }[]).some((p) => p.slug === 'home')).toBeTruthy();
   });
 });
+
+test.describe('Flow B — requirement to shortlist', () => {
+  /* This whole stage was a mock-up: no table, no routes, no list screen. The
+     detail page showed one imaginary enquiry whose Cancel button repainted the
+     screen and forgot on refresh, whose availability panel always said the same
+     three things, and whose "สร้าง Shortlist" was a plain link.
+
+     These drive it through the API the way the screens do, then check the two
+     rules the spec puts at the centre of Flow B: a cancellation must name the
+     failing item (FR-CRM-07), and only checked-available properties may enter a
+     shortlist (FR-AVL-04). */
+  let cookie = '';
+  let leadId = '';
+  const made: string[] = [];
+
+  const api = (page: Page) => async () => {
+    const cookies = await page.context().cookies();
+    return cookies.map((c) => `${c.name}=${c.value}`).join('; ');
+  };
+
+  test.beforeEach(async ({ page, request }) => {
+    await signIn(page, OWNER);
+    cookie = await (api(page))();
+    const leads = await (await request.get('/api/leads', { headers: { cookie } })).json();
+    leadId = leads.items?.[0]?.id ?? '';
+    expect(leadId, 'no lead to attach a requirement to').toBeTruthy();
+  });
+
+  test.afterAll(async () => {
+    if (!db) {
+      const { PrismaClient } = await import('@prisma/client');
+      db = new PrismaClient();
+    }
+    for (const id of made) await db.requirement.deleteMany({ where: { id } });
+  });
+
+  const create = async (request: import('@playwright/test').APIRequestContext, extra: Record<string, unknown> = {}) => {
+    const res = await request.post('/api/requirements', {
+      headers: { cookie },
+      data: { leadId, dealIntent: 'เช่า', usage: 'คลังสินค้า', areaMin: 2000, areaMax: 3500, needsRor4: true, ...extra },
+    });
+    expect(res.status(), await res.text()).toBe(201);
+    const r = await res.json();
+    made.push(r.id);
+    return r;
+  };
+
+  test('a requirement gets a code and lands in the queue', async ({ request }) => {
+    const r = await create(request);
+    expect(r.code, 'no REQ code issued').toMatch(/^REQ-\d+$/);
+    expect(r.status).toBe('submitted');
+    // ranges arrive the way round they read
+    expect(r.areaMin).toBe(2000);
+    expect(r.areaMax).toBe(3500);
+
+    const list = await (await request.get('/api/requirements?status=submitted', { headers: { cookie } })).json();
+    expect((list.items as { id: string }[]).some((x) => x.id === r.id)).toBeTruthy();
+    expect(list.counts.submitted, 'the chip count is not from the table').toBeGreaterThan(0);
+  });
+
+  test('a reversed range is stored the way it reads', async ({ request }) => {
+    const r = await create(request, { areaMin: 5000, areaMax: 1000, budgetMin: 300000, budgetMax: 100000 });
+    expect(r.areaMin).toBe(1000);
+    expect(r.areaMax).toBe(5000);
+    expect(r.budgetMin).toBe(100000);
+    expect(r.budgetMax).toBe(300000);
+  });
+
+  test('cancelling without naming the failing item is refused (FR-CRM-07)', async ({ request }) => {
+    const r = await create(request);
+
+    const noField = await request.patch(`/api/requirements/${r.id}`, {
+      headers: { cookie }, data: { action: 'cancel', cancelReason: 'งบไม่ถึง' },
+    });
+    expect(noField.status()).toBe(400);
+
+    const noReason = await request.patch(`/api/requirements/${r.id}`, {
+      headers: { cookie }, data: { action: 'cancel', cancelField: 'budget' },
+    });
+    expect(noReason.status()).toBe(400);
+
+    const ok = await request.patch(`/api/requirements/${r.id}`, {
+      headers: { cookie }, data: { action: 'cancel', cancelField: 'budget', cancelReason: 'งบไม่ถึงราคาตลาด' },
+    });
+    expect(ok.ok(), await ok.text()).toBeTruthy();
+    expect((await ok.json()).status).toBe('cancelled');
+  });
+
+  test('a shortlist needs a confirmed requirement and an available property (FR-AVL-04)', async ({ request }) => {
+    const r = await create(request);
+
+    // still submitted → refused
+    const early = await request.post(`/api/requirements/${r.id}/shortlist`, { headers: { cookie }, data: {} });
+    expect(early.status(), 'an unconfirmed requirement must not build a shortlist').toBe(400);
+
+    await request.patch(`/api/requirements/${r.id}`, { headers: { cookie }, data: { action: 'confirm' } });
+
+    // confirmed but nothing checked → still refused
+    const unchecked = await request.post(`/api/requirements/${r.id}/shortlist`, { headers: { cookie }, data: {} });
+    expect(unchecked.status(), 'no availability check should block the shortlist').toBe(400);
+    expect(JSON.stringify(await unchecked.json())).toContain('ว่าง');
+
+    // record "not free" → still refused
+    const listings = await (await request.get('/api/properties', { headers: { cookie } })).json();
+    const active = (listings.items as { publicCode: string; status: string }[]).find((p) => p.status === 'active');
+    test.skip(!active, 'no active property to check against');
+
+    await request.post(`/api/requirements/${r.id}/checks`, {
+      headers: { cookie }, data: { code: active!.publicCode, result: 'unavailable' },
+    });
+    const stillNo = await request.post(`/api/requirements/${r.id}/shortlist`, { headers: { cookie }, data: {} });
+    expect(stillNo.status(), 'an unavailable property must not open the gate').toBe(400);
+
+    // record "free" → allowed
+    await request.post(`/api/requirements/${r.id}/checks`, {
+      headers: { cookie }, data: { code: active!.publicCode, result: 'available' },
+    });
+    const built = await request.post(`/api/requirements/${r.id}/shortlist`, { headers: { cookie }, data: {} });
+    expect(built.status(), await built.text()).toBe(201);
+    const sl = await built.json();
+    expect(sl.count).toBeGreaterThan(0);
+    expect(sl.url).toContain('/client-shortlist?token=');
+  });
+
+  test('re-checking a property replaces its answer rather than stacking', async ({ request }) => {
+    const r = await create(request);
+    const listings = await (await request.get('/api/properties', { headers: { cookie } })).json();
+    const active = (listings.items as { publicCode: string; status: string }[]).find((p) => p.status === 'active');
+    test.skip(!active, 'no active property to check against');
+
+    for (const result of ['available', 'unavailable', 'available']) {
+      await request.post(`/api/requirements/${r.id}/checks`, {
+        headers: { cookie }, data: { code: active!.publicCode, result },
+      });
+    }
+    const detail = await (await request.get(`/api/requirements/${r.id}`, { headers: { cookie } })).json();
+    const rows = (detail.checks as { code: string; result: string }[]).filter((c) => c.code === active!.publicCode);
+    expect(rows.length, 'checks stacked instead of replacing').toBe(1);
+    expect(rows[0].result).toBe('available');
+  });
+
+  test('confirming moves the lead forward, and never backwards', async ({ request }) => {
+    const r = await create(request);
+    const statusOf = async () => {
+      const list = await (await request.get('/api/leads', { headers: { cookie } })).json();
+      return (list.items as { id: string; status: string }[]).find((l) => l.id === leadId)?.status ?? '';
+    };
+    const beforeStatus = await statusOf();
+
+    await request.patch(`/api/requirements/${r.id}`, { headers: { cookie }, data: { action: 'confirm' } });
+
+    const afterStatus = await statusOf();
+
+    const ORDER = ['new', 'qualified', 'profile_received', 'requirements_confirmed', 'shortlisted', 'visit_scheduled', 'negotiating', 'won', 'lost'];
+    expect(
+      ORDER.indexOf(afterStatus),
+      `lead went backwards: ${beforeStatus} → ${afterStatus}`,
+    ).toBeGreaterThanOrEqual(ORDER.indexOf(beforeStatus));
+  });
+
+  test('the queue screen lists requirements and opens one', async ({ page }) => {
+    await page.goto('/admin/requirements');
+    const rows = page.locator('a.req-row');
+    await expect.poll(async () => rows.count(), { message: 'the queue is empty' }).toBeGreaterThan(0);
+    await rows.first().click();
+    await expect(page).toHaveURL(/\/admin\/requirements\/[a-z0-9]+/);
+    // the detail page shows a real code, not the hardcoded REQ-1042
+    await expect(page.locator('h1')).toContainText(/REQ-\d+/);
+  });
+
+  test('the sidebar badge counts real rows, not the literal 18 and 7', async ({ page, request }) => {
+    const counts = await (await request.get('/api/nav-counts', { headers: { cookie } })).json();
+    expect(typeof counts.leads).toBe('number');
+    expect(typeof counts.requirements).toBe('number');
+
+    await page.goto('/admin/requirements');
+    const badge = page.locator('[data-badge="requirements"]');
+    if (counts.requirements === 0) {
+      await expect(badge, 'a zero badge should not be shown at all').toHaveCount(0);
+    } else {
+      await expect(badge).toHaveText(String(counts.requirements));
+    }
+  });
+});
