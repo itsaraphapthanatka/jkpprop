@@ -1104,3 +1104,83 @@ test.describe('the shortlist screen shows the shortlist it will send', () => {
     await expect(page.getByText('ยังไม่มี shortlist')).toBeVisible();
   });
 });
+
+test.describe('lead notes and follow-up tasks', () => {
+  /* Both were POSTed and never read back, so "Timeline & Notes" was four
+     invented events and "งานติดตาม" three invented rows, identical on every
+     lead — and the POST's failure was swallowed, so a rejected save looked
+     exactly like a saved one. Ticking a task called a setState that changed
+     nothing; there was no PATCH to tick it with. */
+  let cookie = '';
+  let leadId = '';
+
+  test.beforeEach(async ({ page, request }) => {
+    await signIn(page, OWNER);
+    cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    const leads = await (await request.get('/api/leads', { headers: { cookie } })).json();
+    leadId = leads.items?.[0]?.id ?? '';
+    expect(leadId, 'no lead to work with').toBeTruthy();
+  });
+
+  test('a note survives a reload', async ({ page, request }) => {
+    const text = `โน้ตทดสอบ ${Date.now().toString(36)}`;
+    await page.goto('/admin/leads');
+    await page.locator('#lead-note-input').fill(text);
+    await page.locator('#lead-note-save').click();
+
+    await expect.poll(async () => {
+      const d = await (await request.get(`/api/leads/${leadId}`, { headers: { cookie } })).json();
+      return (d.notes as { text: string }[]).some((n) => n.text === text);
+    }, { message: 'the note never reached the server' }).toBeTruthy();
+
+    await page.reload();
+    await expect(page.getByText(text)).toBeVisible();
+  });
+
+  test('a task survives a reload and can be ticked off', async ({ page, request }) => {
+    const title = `งานทดสอบ ${Date.now().toString(36)}`;
+    await page.goto('/admin/leads');
+    await page.getByText('งานติดตาม').first().locator('..').locator('span').last().click();
+    await page.locator('#lead-task-input').fill(title);
+    await page.locator('#lead-task-save').click();
+
+    const taskOf = async () => {
+      const d = await (await request.get(`/api/leads/${leadId}`, { headers: { cookie } })).json();
+      return (d.tasks as { title: string; done: boolean }[]).find((t) => t.title === title);
+    };
+    await expect.poll(async () => !!(await taskOf()), { message: 'the task never reached the server' }).toBeTruthy();
+
+    await page.reload();
+    const row = page.getByText(title);
+    await expect(row).toBeVisible();
+
+    // tick it — the box used to be decoration
+    await row.locator('../..').locator('div').first().click();
+    await expect.poll(async () => (await taskOf())?.done, { message: 'ticking did not persist' }).toBe(true);
+  });
+
+  test('the timeline is this lead\'s notes, not four invented events', async ({ page, request }) => {
+    const d = await (await request.get(`/api/leads/${leadId}`, { headers: { cookie } })).json();
+    await page.goto('/admin/leads');
+    // the ported demo events must be gone
+    for (const ghost of ['โทรครั้งแรก — ลูกค้าสนใจโซนบางนา', 'มอบหมายให้ อารยา', 'เตรียม shortlist 5 รายการ']) {
+      await expect(page.getByText(ghost), `${ghost} is demo data`).toHaveCount(0);
+    }
+    // and every real note is shown
+    for (const n of (d.notes as { text: string }[]).slice(0, 3)) {
+      await expect(page.getByText(n.text).first()).toBeVisible();
+    }
+  });
+
+  test('the linked strip points at records that exist', async ({ page, request }) => {
+    const d = await (await request.get(`/api/leads/${leadId}`, { headers: { cookie } })).json();
+    await page.goto('/admin/leads');
+    await expect(page.getByText('Requirement #REQ-1042'), 'REQ-1042 never existed').toHaveCount(0);
+    await expect(page.getByText('Shortlist #SL-208'), 'SL-208 never existed').toHaveCount(0);
+
+    const reqs = d.linked?.requirements as { code: string }[] | undefined;
+    if (reqs?.length) {
+      await expect(page.getByText(`Requirement ${reqs[0].code}`)).toBeVisible();
+    }
+  });
+});

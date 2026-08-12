@@ -285,6 +285,12 @@ export const openapi = {
       },
     },
     '/api/leads/{id}': {
+      get: {
+        tags: ['Leads'], summary: 'รายละเอียด lead',
+        description: 'lead + โน้ต + งานติดตาม + requirement / shortlist / นัดชม ที่ผูกอยู่ · ก่อนหน้านี้ไม่มี endpoint นี้ หน้าจอจึงเขียน timeline กับงานติดตามไว้ตายตัว',
+        parameters: [pathParam('id', 'id ของ lead')],
+        responses: { 200: okRes('รายละเอียด lead'), ...WITH_404 },
+      },
       patch: {
         tags: ['Leads'], summary: 'เปลี่ยนสถานะ / มอบหมาย agent',
         description: 'pipeline เดินหน้าอย่างเดียว — ถอยกลับได้เฉพาะ owner/manager',
@@ -317,6 +323,18 @@ export const openapi = {
         parameters: [pathParam('id', 'id ของ lead')],
         requestBody: body(obj({ title: STR, due: STR }, ['title'])),
         responses: { 200: okRes('เพิ่มแล้ว'), ...WITH_404 },
+      },
+      patch: {
+        tags: ['Leads'], summary: 'ติ๊กงานเสร็จ / เปลี่ยนชื่องาน',
+        description: 'ก่อนหน้านี้ไม่มี — ช่องติ๊กบนหน้าจอจึงเป็นแค่การตกแต่ง ติ๊กแล้วหายเมื่อ refresh',
+        parameters: [pathParam('id', 'id ของ lead')],
+        requestBody: body(obj({ taskId: STR, done: BOOL, title: STR }, ['taskId'])),
+        responses: { 200: okRes('อัปเดตแล้ว'), ...WITH_404 },
+      },
+      delete: {
+        tags: ['Leads'], summary: 'ลบงานติดตาม',
+        parameters: [pathParam('id', 'id ของ lead'), queryParam('taskId', 'id ของงาน')],
+        responses: { 200: okRes('ลบแล้ว'), ...WITH_404 },
       },
     },
     '/api/leads/{id}/reveal-contact': {

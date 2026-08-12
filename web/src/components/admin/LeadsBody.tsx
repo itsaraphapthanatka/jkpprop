@@ -22,7 +22,6 @@ type Lead = {
 /* GET /api/leads item — StoredLead shape + pipeline fields (leadDto) */
 type ApiLead = StoredLead & { status?: string; agentName?: string | null; piiMasked?: boolean };
 
-type Task = { title: string; due: string; color: string; done?: boolean };
 
 const st = (bg: string, fg: string): React.CSSProperties => ({
   height: 20, padding: '0 9px', borderRadius: 9999, background: bg, color: fg,
@@ -92,18 +91,15 @@ const dd = (active: boolean): React.CSSProperties => ({
   cursor: 'pointer', color: active ? '#0D6C3B' : 'var(--text)', background: active ? 'rgba(13,108,59,.06)' : 'transparent',
 });
 
-const baseTasks: Task[] = [
-  { title: 'โทรกลับยืนยันความต้องการ', due: 'วันนี้ 15:00', color: '#C0392B' },
-  { title: 'เตรียม shortlist 5 รายการ', due: 'พรุ่งนี้', color: '#D9A62B' },
-  { title: 'ส่งโบรชัวร์ EN', due: '2 วัน', color: '#0D6C3B' },
-];
-
-const baseTimeline = [
-  { text: 'ระบบสร้าง lead จากฟอร์ม requirement', by: 'ระบบ', time: 'วันนี้ 09:05', dotBg: '#EEF4F3', icon: ti('<path d="M12 5v14M5 12h14"></path>', '#034956') },
-  { text: 'มอบหมายให้ อารยา', by: 'ops', time: 'วันนี้ 09:20', dotBg: '#EEF4F3', icon: ti('<circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-4 4-6 8-6s8 2 8 6"></path>', '#034956') },
-  { text: 'โทรครั้งแรก — ลูกค้าสนใจโซนบางนา', by: 'อารยา', time: 'วันนี้ 10:40', dotBg: '#E8F3EC', icon: ti('<path d="M22 16.9v3a2 2 0 01-2.2 2A19.8 19.8 0 013 5.2 2 2 0 015 3h3a2 2 0 012 1.7l.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5l2.8.7A2 2 0 0122 16.9z"></path>', '#0D6C3B') },
-  { text: 'requirement confirmed → เลื่อนสถานะอัตโนมัติ', by: 'ระบบ', time: 'วันนี้ 11:15', dotBg: '#E8F3EC', icon: ti('<path d="M20 6L9 17l-5-5"></path>', '#0D6C3B') },
-];
+type LeadDetail = {
+  notes: { id: string; text: string; createdAt: number; by: string }[];
+  tasks: { id: string; title: string; done: boolean; due: number | null; createdAt: number }[];
+  linked: {
+    requirements: { id: string; code: string; status: string }[];
+    shortlists: { id: string; name: string; status: string; count: number }[];
+    visits: { id: string; date: number; status: string }[];
+  };
+};
 
 const noteIcon = ti('<path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"></path>', '#034956');
 
@@ -116,7 +112,6 @@ const req = [
   { k: 'ต้องการ', v: 'เช่าโกดัง' }, { k: 'ขนาด', v: '2,000–3,500 ตร.ม.' },
   { k: 'งบเช่า', v: '฿150K–250K/ด.' }, { k: 'ต้องการ ร.ง.4', v: 'ใช่' }, { k: 'พื้นที่', v: 'สมุทรปราการ, ชลบุรี' },
 ];
-const linked = ['Requirement #REQ-1042', 'Shortlist #SL-208', '2 Visits'];
 
 const panelSm: React.CSSProperties = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 20 };
 const dropdownPanelBase: React.CSSProperties = { position: 'absolute', top: 44, zIndex: 30, width: 190, maxWidth: 'calc(100vw - 16px)', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 13, boxShadow: '0 18px 40px rgba(0,0,0,.16)', padding: 6 };
@@ -141,11 +136,16 @@ export function LeadsBody() {
   const [agentVal, setAgentVal] = React.useState<string | null>(null);
   const [taskAdding, setTaskAdding] = React.useState(false);
   const [taskText, setTaskText] = React.useState('');
-  const [extraTasks, setExtraTasks] = React.useState<Task[]>([]);
+  /* What the panel shows for this lead, straight from the server.
+   *
+   * Notes and tasks were POSTed but never read back, so the timeline was four
+   * hardcoded events and the task list three hardcoded rows — the same on
+   * every lead — and anything typed vanished on refresh. The POST's failure
+   * was swallowed too, so a rejected save looked identical to a saved one. */
+  const [detail, setDetail] = React.useState<LeadDetail | null>(null);
+  const [saveErr, setSaveErr] = React.useState('');
   const [noteText, setNoteText] = React.useState('');
-  const [extraNotes, setExtraNotes] = React.useState<string[]>([]);
   const [filters, setFilters] = React.useState<Record<string, string>>({ status: 'ทั้งหมด', agent: 'ทั้งหมด', source: 'ทั้งหมด', date: 'ทุกช่วง' });
-  const [, setBaseDone] = React.useState<Record<string, boolean>>({});
 
   // add-lead
   const [rows, setRows] = React.useState<Lead[]>(leadsData);
@@ -176,6 +176,15 @@ export function LeadsBody() {
 
   const cur = rows[selected];
 
+  const curApiId = cur?.apiId;
+  const loadDetail = React.useCallback(() => {
+    if (!curApiId) { setDetail(null); return; }
+    apiGet<LeadDetail>(`/api/leads/${curApiId}`)
+      .then((d) => setDetail(d))
+      .catch(() => setDetail(null));
+  }, [curApiId]);
+  React.useEffect(loadDetail, [loadDetail]);
+
   const leads = rows.map((d, i) => ({
     ...d,
     statusStyle: stMap[d.statusK] || stMap.new,
@@ -187,32 +196,57 @@ export function LeadsBody() {
     select: () => setSelected(i),
   }));
 
-  const allTasks = baseTasks.concat(extraTasks);
-  const tasks = allTasks.map((t, i) => {
-    const done = !!t.done;
-    return {
-      ...t,
-      done,
-      box: {
-        width: 16, height: 16, borderRadius: 5, flexShrink: 0, marginTop: 1, cursor: 'pointer',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        border: '1.5px solid ' + (done ? '#0D6C3B' : (t.color || 'var(--border)')),
-        background: done ? '#0D6C3B' : 'transparent',
-      } as React.CSSProperties,
-      toggle: () => {
-        if (i >= baseTasks.length) {
-          const j = i - baseTasks.length;
-          setExtraTasks((ex) => ex.map((it, k) => (k === j ? { ...it, done: !it.done } : it)));
-        } else {
-          setBaseDone((bd) => ({ ...bd }));
-        }
-      },
-    };
-  });
+  /* Real tasks for this lead. `baseTasks` was three fixed rows whose tick box
+     called a setState that changed nothing — pure decoration. */
+  const serverTasks = detail?.tasks ?? [];
+  const fmtDue = (ms: number | null) => (ms
+    ? new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short' }).format(new Date(ms))
+    : 'ยังไม่กำหนด');
 
-  const timeline = extraNotes
-    .map((n) => ({ text: n, by: 'คุณ', time: 'เมื่อสักครู่', dotBg: '#E8F3EC', icon: noteIcon }))
-    .concat(baseTimeline);
+  const tasks = serverTasks.map((t) => ({
+    id: t.id,
+    title: t.title,
+    due: fmtDue(t.due),
+    done: t.done,
+    color: t.done ? '#0D6C3B' : '#D9A62B',
+    box: {
+      width: 16, height: 16, borderRadius: 5, flexShrink: 0, marginTop: 1, cursor: 'pointer',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      border: '1.5px solid ' + (t.done ? '#0D6C3B' : 'var(--border)'),
+      background: t.done ? '#0D6C3B' : 'transparent',
+    } as React.CSSProperties,
+    toggle: () => {
+      if (!cur.apiId) return;
+      setSaveErr('');
+      apiPatch(`/api/leads/${cur.apiId}/tasks`, { taskId: t.id, done: !t.done })
+        .then(loadDetail)
+        .catch((e) => setSaveErr(e instanceof ApiClientError ? e.message : 'ติ๊กงานไม่สำเร็จ'));
+    },
+  }));
+
+  /* The timeline is the notes actually on this lead, newest first, with the
+     lead's own creation at the bottom. It used to be the same four invented
+     events on every record. */
+  const fmtWhen = (ms: number) => relTime(ms);
+  const timeline = (detail?.notes ?? [])
+    .map((n) => ({ text: n.text, by: n.by, time: fmtWhen(n.createdAt), dotBg: '#E8F3EC', icon: noteIcon }))
+    .concat(cur.apiId && detail
+      ? [{
+        text: `สร้าง lead จาก ${cur.source || 'ฟอร์ม'}`,
+        by: 'ระบบ',
+        time: cur.time || '',
+        dotBg: '#EEF4F3',
+        icon: ti('<path d="M12 5v14M5 12h14"></path>', '#034956'),
+      }]
+      : []);
+
+  /* was a fixed ['Requirement #REQ-1042', 'Shortlist #SL-208', '2 Visits'] */
+  const L = detail?.linked;
+  const linkedChips = [
+    ...(L?.requirements ?? []).map((r) => ({ label: `Requirement ${r.code}`, href: `/admin/requirements/${r.id}` })),
+    ...(L?.shortlists ?? []).map((sl) => ({ label: `Shortlist ${sl.name} · ${sl.count} ทรัพย์`, href: `/admin/shortlists/${sl.id}` })),
+    ...(L?.visits?.length ? [{ label: `${L.visits.length} Visits`, href: '/admin/visits' }] : []),
+  ];
 
   const curStatus = statusVal || statusLabelMap[cur.statusK];
   const curAgent = agentVal || 'อารยา';
@@ -298,20 +332,29 @@ export function LeadsBody() {
   const toggleAgent = () => { setAgentOpen(!agentOpen); setStatusOpen(false); setOpenChip(null); };
 
   const addTask = () => setTaskAdding(!taskAdding);
+
+  /* Both of these used to add the row to local state and fire a POST whose
+     failure was thrown away — so a save that the server rejected looked
+     exactly like one that worked, right up until the page was reloaded. The
+     row now appears because the server said so. */
   const saveTask = () => {
     const v = taskText.trim();
     if (!v) return;
-    setExtraTasks([...extraTasks, { title: v, due: 'ยังไม่กำหนด', color: '#0D6C3B' }]);
-    setTaskText('');
-    setTaskAdding(false);
-    if (cur.apiId) void apiPost(`/api/leads/${cur.apiId}/tasks`, { title: v }).catch(() => { /* stays local */ });
+    if (!cur.apiId) { setSaveErr('lead นี้ยังไม่ได้บันทึกลงระบบ'); return; }
+    setSaveErr('');
+    apiPost(`/api/leads/${cur.apiId}/tasks`, { title: v })
+      .then(() => { setTaskText(''); setTaskAdding(false); loadDetail(); })
+      .catch((e) => setSaveErr(e instanceof ApiClientError ? e.message : 'เพิ่มงานไม่สำเร็จ'));
   };
+
   const saveNote = () => {
     const v = noteText.trim();
     if (!v) return;
-    setExtraNotes([v, ...extraNotes]);
-    setNoteText('');
-    if (cur.apiId) void apiPost(`/api/leads/${cur.apiId}/notes`, { text: v }).catch(() => { /* stays local */ });
+    if (!cur.apiId) { setSaveErr('lead นี้ยังไม่ได้บันทึกลงระบบ'); return; }
+    setSaveErr('');
+    apiPost(`/api/leads/${cur.apiId}/notes`, { text: v })
+      .then(() => { setNoteText(''); loadDetail(); })
+      .catch((e) => setSaveErr(e instanceof ApiClientError ? e.message : 'บันทึกโน้ตไม่สำเร็จ'));
   };
 
   const addLead = async () => {
@@ -569,15 +612,21 @@ export function LeadsBody() {
                   </div>
                 ))}
               </div>
-              {cur.message ? (
+              {cur.message && (
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
                   <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--muted)', marginBottom: 6 }}>ข้อความจากลูกค้า</div>
                   <div style={{ fontSize: '12.5px', color: 'var(--text)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{cur.message}</div>
                 </div>
-              ) : !cur.web && (
+              )}
+              {/* the linked records used to be hidden whenever the customer had
+                  left a message — two different things sharing one slot */}
+              {cur.apiId && (
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {linked.map((lk) => (
-                    <span key={lk} style={{ height: 26, padding: '0 11px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: '11.5px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}>{lk}</span>
+                  {linkedChips.length === 0 && (
+                    <span style={{ fontSize: '11.5px', color: 'var(--muted3)' }}>ยังไม่มี requirement / shortlist / นัดชม ที่ผูกกับ lead นี้</span>
+                  )}
+                  {linkedChips.map((lk) => (
+                    <Link key={lk.href + lk.label} href={lk.href} style={{ height: 26, padding: '0 11px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: '11.5px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}>{lk.label}</Link>
                   ))}
                 </div>
               )}
@@ -593,11 +642,17 @@ export function LeadsBody() {
               </div>
               {taskAdding && (
                 <div style={{ display: 'flex', gap: 8, marginBottom: 9 }}>
-                  <input value={taskText} onChange={(e) => setTaskText(e.target.value)} placeholder="งานใหม่…" style={{ flex: 1, minWidth: 0, height: 38, padding: '0 12px', borderRadius: 10, border: '1px solid #0D6C3B', fontFamily: 'inherit', fontSize: '12.5px', background: 'var(--surface)', outline: 'none' }} />
-                  <div onClick={saveTask} style={{ height: 38, padding: '0 14px', borderRadius: 10, background: '#0D6C3B', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>เพิ่ม</div>
+                  <input id="lead-task-input" value={taskText} onChange={(e) => setTaskText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') saveTask(); }} placeholder="งานใหม่…" style={{ flex: 1, minWidth: 0, height: 38, padding: '0 12px', borderRadius: 10, border: '1px solid #0D6C3B', fontFamily: 'inherit', fontSize: '12.5px', background: 'var(--surface)', outline: 'none' }} />
+                  <div id="lead-task-save" onClick={saveTask} style={{ height: 38, padding: '0 14px', borderRadius: 10, background: '#0D6C3B', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>เพิ่ม</div>
                 </div>
               )}
+              {saveErr && (
+                <div id="lead-save-error" style={{ marginBottom: 9, padding: '9px 11px', borderRadius: 10, background: '#FDECEC', color: '#A32A2A', fontSize: '12px', fontWeight: 600 }}>{saveErr}</div>
+              )}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                {tasks.length === 0 && (
+                  <div style={{ padding: '14px 10px', textAlign: 'center', fontSize: '12px', color: 'var(--muted3)' }}>ยังไม่มีงานติดตาม</div>
+                )}
                 {tasks.map((t, i) => (
                   <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: 10, borderRadius: 11, background: 'var(--bg)' }}>
                     <div onClick={t.toggle} style={t.box}>
@@ -617,10 +672,18 @@ export function LeadsBody() {
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 22 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', marginBottom: 6 }}>Timeline &amp; Notes</div>
             <div style={{ display: 'flex', gap: 10, margin: '12px 0 18px' }}>
-              <input value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="เพิ่มบันทึก…" style={{ flex: 1, minWidth: 0, height: 42, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontFamily: 'inherit', fontSize: 13, background: 'var(--bg)', outline: 'none' }} />
-              <div onClick={saveNote} style={{ height: 42, padding: '0 18px', borderRadius: 11, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>บันทึก</div>
+              <input id="lead-note-input" value={noteText} onChange={(e) => setNoteText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') saveNote(); }} placeholder="เพิ่มบันทึก…" style={{ flex: 1, minWidth: 0, height: 42, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontFamily: 'inherit', fontSize: 13, background: 'var(--bg)', outline: 'none' }} />
+              <div id="lead-note-save" onClick={saveNote} style={{ height: 42, padding: '0 18px', borderRadius: 11, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>บันทึก</div>
             </div>
+            {saveErr && (
+              <div style={{ marginBottom: 14, padding: '9px 11px', borderRadius: 10, background: '#FDECEC', color: '#A32A2A', fontSize: '12px', fontWeight: 600 }}>{saveErr}</div>
+            )}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {timeline.length === 0 && (
+                <div style={{ padding: '18px 10px', textAlign: 'center', fontSize: '12px', color: 'var(--muted3)' }}>
+                  {cur.apiId ? 'ยังไม่มีบันทึก' : 'lead นี้ยังไม่ได้บันทึกลงระบบ'}
+                </div>
+              )}
               {timeline.map((e, i) => (
                 <div key={i} style={{ display: 'flex', gap: 14, paddingBottom: 16 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
