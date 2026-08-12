@@ -23,6 +23,8 @@ import { PrismaClient, type Prisma } from '@prisma/client';
 const commit = process.argv.includes('--commit');
 const db = new PrismaClient();
 
+/* contact:cm is deliberately absent: that block takes a coordinate now, not a
+   picture of a map. */
 /** section → the media filename that should fill its image slot */
 const SECTION_IMAGE: Record<string, string> = {
   'home:h': 'placeholder-hero-warehouse.jpg',
@@ -33,7 +35,6 @@ const SECTION_IMAGE: Record<string, string> = {
   'about:as': 'placeholder-team-office.jpg',
   'about:aw': 'placeholder-award-ceremony.jpg',
   'contact:ch': 'placeholder-city-skyline.jpg',
-  'contact:cm': 'placeholder-map-aerial.jpg',
   'faq:fh': 'placeholder-aerial-logistics.jpg',
 };
 
