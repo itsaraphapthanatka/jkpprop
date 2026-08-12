@@ -60,7 +60,7 @@ const sectionsCss = `
 
 /* GET /api/sections item — same table the Page Builder writes */
 type Item = { title?: string; desc?: string; role?: string; img?: string };
-type Block = { eyebrow?: string; headline?: string; sub?: string; cta?: string; note?: string; items?: Item[] };
+type Block = { eyebrow?: string; headline?: string; sub?: string; cta?: string; note?: string; items?: Item[]; map?: string };
 type ApiSection = {
   key: string; name: string; desc: string; enabled: boolean; img: string | null;
   content: Record<string, Block>;
@@ -117,6 +117,9 @@ function MediaPicker({ items, current, onPick }: { items: { id: string; src: str
   );
 }
 
+/** same shape parseGeoPoint accepts — this only colours the field */
+const GEO = /^-?\d{1,3}(\.\d+)?\s*,\s*-?\d{1,3}(\.\d+)?$/;
+
 const isPageKey = (v: string): v is PageKey => PAGE_TABS.some((p) => p.key === v);
 
 export function SectionsBody() {
@@ -132,6 +135,9 @@ export function SectionsBody() {
   const [lang, setLang] = React.useState<Locale>('th');
   const [draft, setDraft] = React.useState<Record<string, Block>>({});
   const [img, setImg] = React.useState<string>('');
+  /* Values that are the same in every language. Kept out of `draft`'s locale
+     blocks so the editor asks for them once, not once per tab. */
+  const [mapPoint, setMapPoint] = React.useState<string>('');
   /* which field the media picker will write into: the section image, or the
      `img` of one row in the list editor */
   const [picker, setPicker] = React.useState<'section' | number | null>(null);
@@ -202,8 +208,10 @@ export function SectionsBody() {
   // reload the editor fields whenever the selection or page changes
   const curApi = apiList?.[selected];
   React.useEffect(() => {
-    setDraft((curApi?.content ?? {}) as Record<string, Block>);
+    const content = (curApi?.content ?? {}) as Record<string, Block>;
+    setDraft(content);
     setImg(curApi?.img ?? '');
+    setMapPoint(typeof content.settings?.map === 'string' ? content.settings.map : '');
   }, [curApi]);
 
   const field = (name: 'eyebrow' | 'headline' | 'sub' | 'cta' | 'note') => draft[lang]?.[name] ?? '';
@@ -268,6 +276,7 @@ export function SectionsBody() {
       const rows = (block.items ?? []).filter((it) => it.title || it.desc || it.role || it.img);
       cleaned[loc] = block.items ? { ...block, items: rows } : block;
     }
+    if (has('map')) cleaned.settings = { ...(cleaned.settings ?? {}), map: mapPoint.trim() };
 
     try {
       await apiPut('/api/sections', {
@@ -437,6 +446,27 @@ export function SectionsBody() {
             {picker === 'section' && <MediaPicker items={mediaItems} current={img} onPick={chooseMedia} />}
 
             </>)}
+
+            {has('map') && (
+              <>
+                <label htmlFor="sec-f-map" style={{ display: 'block', marginTop: 18, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>
+                  {def?.labels?.map ?? 'พิกัดที่ตั้ง (ละติจูด, ลองจิจูด)'}
+                </label>
+                <input
+                  id="sec-f-map"
+                  value={mapPoint}
+                  onChange={(e) => setMapPoint(e.target.value)}
+                  placeholder="13.7563, 100.5018"
+                  inputMode="decimal"
+                  style={{ marginTop: 6, width: '100%', height: 40, padding: '0 14px', borderRadius: 11, border: '1.5px solid ' + (mapPoint.trim() && !GEO.test(mapPoint.trim()) ? '#F5C2BE' : 'var(--border)'), fontSize: 13, background: 'var(--bg)', outline: 'none' }}
+                />
+                <div style={{ marginTop: 6, fontSize: 11, color: mapPoint.trim() && !GEO.test(mapPoint.trim()) ? '#B4231F' : 'var(--muted3)', lineHeight: 1.6 }}>
+                  {mapPoint.trim() && !GEO.test(mapPoint.trim())
+                    ? 'รูปแบบไม่ถูกต้อง — ต้องเป็นตัวเลขสองค่าคั่นด้วยจุลภาค เช่น 13.7563, 100.5018'
+                    : 'เปิด Google Maps คลิกขวาที่จุดที่ตั้ง แล้วกดตัวเลขคู่แรกเพื่อคัดลอก · ใช้ร่วมกันทุกภาษา ไม่ต้องกรอกซ้ำ'}
+                </div>
+              </>
+            )}
 
             <div style={{ marginTop: 18, display: 'flex', gap: 6 }}>
               {LANGS.map((l) => (

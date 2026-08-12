@@ -5,6 +5,9 @@ export type SectionItem = { title?: string; desc?: string; role?: string; img?: 
 export type SectionBlock = {
   eyebrow?: string; headline?: string; sub?: string; cta?: string; note?: string;
   items?: SectionItem[];
+  /* only on the `settings` pseudo-locale: values that are the same in every
+     language, so they are entered once rather than three times */
+  map?: string;
 };
 export type SectionContent = Record<string, SectionBlock>;
 

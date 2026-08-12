@@ -3,6 +3,7 @@
 import { RequirementForm } from './RequirementForm';
 import Link from '@/i18n/LocaleLink';
 import { useDict } from '@/i18n/useDict';
+import { parseGeoPoint, mapEmbedUrl, mapLinkUrl } from '@/lib/geoPoint';
 import type { SectionCopy } from '@/lib/server/sectionCopy';
 
 /* ============================================================
@@ -33,6 +34,7 @@ export type ContactCopy = { ch: SectionCopy; cm: SectionCopy };
 export function ContactBody({ copy }: { copy: ContactCopy }) {
   const d = useDict();
   const pick = (v: string, fallback: string) => v || fallback;
+  const point = parseGeoPoint(copy.cm.map);
   return (
     <>
       {/* HERO */}
@@ -128,9 +130,35 @@ export function ContactBody({ copy }: { copy: ContactCopy }) {
         {copy.cm.enabled && (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '20px 24px 0', fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>{pick(copy.cm.headline, d.contact.ourLocation)}</div>
-          <div style={{ flex: 1, margin: '16px 0 0', minHeight: 280 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={copy.cm.img || "https://images.unsplash.com/photo-1524661135-423995f22d0b?w=1000&q=80"} alt="แผนที่ที่ตั้งบริษัท (Google Maps)" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          <div style={{ flex: 1, margin: '16px 0 0', minHeight: 280, position: 'relative' }}>
+            {/* A photograph of a map used to sit here — decorative, and no help
+                to anyone trying to find the office. The pin comes from the CMS
+                as a coordinate, and the URL is rebuilt from the parsed numbers
+                so nothing typed there reaches the iframe. */}
+            {point ? (
+              <>
+                <iframe
+                  src={mapEmbedUrl(point)}
+                  title={pick(copy.cm.headline, d.contact.ourLocation)}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  style={{ width: '100%', height: '100%', minHeight: 280, border: 0, display: 'block' }}
+                />
+                <a
+                  href={mapLinkUrl(point)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ position: 'absolute', right: 14, bottom: 14, display: 'inline-flex', alignItems: 'center', gap: 6, height: 38, padding: '0 14px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: '0 4px 14px rgba(0,0,0,.14)', fontSize: 13, fontWeight: 700, color: 'var(--text)' }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1118 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                  {d.contact.openInMaps}
+                </a>
+              </>
+            ) : (
+              <div style={{ height: '100%', minHeight: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 24, background: 'var(--bg2)', color: 'var(--muted2)', fontSize: 13, lineHeight: 1.7 }}>
+                {d.contact.mapMissing}
+              </div>
+            )}
           </div>
         </div>
         )}

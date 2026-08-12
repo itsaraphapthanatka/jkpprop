@@ -205,3 +205,27 @@ test.describe('FAQ answers from the CMS', () => {
     await expect(page.locator('#faq-layout strong', { hasText: 'สำเนาโฉนด' })).toBeVisible();
   });
 });
+
+test.describe('the contact map', () => {
+  /* It was a stock photograph of a world map — decorative, and no use to
+     anyone trying to find the office. It takes a coordinate from the CMS now. */
+  test('shows a real map for the saved coordinate, in every language', async ({ request }) => {
+    for (const locale of ['th', 'en', 'zh']) {
+      const html = await (await request.get(`/${locale}/contact`)).text();
+      if (html.includes('ยังไม่ได้ตั้งพิกัด') || /No location set yet|尚未设置坐标/.test(html)) {
+        test.skip(true, 'no coordinate set in this database');
+      }
+      expect(html, `${locale} has no map frame`).toMatch(/<iframe[^>]+google\.com\/maps\?q=-?\d/);
+      // a photograph of a map is not a map
+      expect(html).not.toContain('photo-1524661135-423995f22d0b');
+    }
+  });
+
+  test('an unparseable coordinate says so instead of embedding junk', async ({ request }) => {
+    const html = await (await request.get('/th/contact')).text();
+    const src = /<iframe[^>]+src="([^"]+)"/.exec(html)?.[1] ?? '';
+    if (!src) test.skip(true, 'no coordinate set in this database');
+    // the URL is rebuilt from parsed numbers, so it can only ever look like this
+    expect(src).toMatch(/^https:\/\/www\.google\.com\/maps\?q=-?\d+(\.\d+)?,-?\d+(\.\d+)?&/);
+  });
+});

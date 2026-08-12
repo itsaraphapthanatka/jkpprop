@@ -97,7 +97,7 @@ export type Dictionary = {
     hero: string; sub: string; breadcrumb: string;
     reachUs: string; ourPhone: string; salesEnquiry: string; generalEnquiry: string;
     ourLocation: string; contactAt: string; hours: string; weekdays: string; hoursValue: string;
-    address: string; langNote: string;
+    address: string; langNote: string; openInMaps: string; mapMissing: string;
   };
   requirement: {
     heading: string; sub: string; respondentStatus: string; agent: string; customer: string;
@@ -276,6 +276,7 @@ const th: Dictionary = {
     hours: 'เวลาทำการ', weekdays: 'จันทร์ - ศุกร์:', hoursValue: '9:00 - 18:00 น.',
     address: '41/6 หมู่ 7 ถ.บางนาตราด กม. 16.5 ต.บางโฉลง อ.บางพลี จ.สมุทรปราการ 10540 (สำนักงานใหญ่)',
     langNote: '(English / ไทย)',
+    openInMaps: 'เปิดใน Google Maps', mapMissing: 'ยังไม่ได้ตั้งพิกัดที่ตั้ง — ใส่ได้ที่ CMS › จัดการ Section › ติดต่อเรา',
   },
   requirement: {
     heading: 'แจ้งความต้องการ',
@@ -459,6 +460,7 @@ const en: Dictionary = {
     hours: 'Opening hours', weekdays: 'Monday – Friday:', hoursValue: '9:00 – 18:00',
     address: '41/6 Moo 7, Bangna-Trad Rd km 16.5, Bang Chalong, Bang Phli, Samut Prakan 10540 (head office)',
     langNote: '(English / Thai)',
+    openInMaps: 'Open in Google Maps', mapMissing: 'No location set yet — add the coordinates under CMS › Sections › Contact.',
   },
   requirement: {
     heading: 'Tell us what you need',
@@ -642,6 +644,7 @@ const zh: Dictionary = {
     hours: '营业时间', weekdays: '周一至周五：', hoursValue: '9:00 – 18:00',
     address: '41/6 Moo 7, Bangna-Trad Rd km 16.5, Bang Chalong, Bang Phli, Samut Prakan 10540（总部）',
     langNote: '（英文 / 泰文）',
+    openInMaps: '在 Google 地图中打开', mapMissing: '尚未设置坐标 — 请在 CMS › 页面区块 › 联系我们 中填写。',
   },
   requirement: {
     heading: '提交需求',

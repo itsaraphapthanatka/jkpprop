@@ -28,6 +28,11 @@ export type SectionCopy = {
   cta: string;
   /** small line under the body copy — award name, caption, disclaimer */
   note: string;
+  /* Settings that are the same in every language. A map pin is a place, not
+     a sentence: asking for it once per language tab would be three chances to
+     disagree about where the office is. Stored beside the locale blocks under
+     `settings`, not inside them. */
+  map: string;
   img: string | null;
   enabled: boolean;
   /** items entered for THIS locale only — use for anything that reads as prose */
@@ -38,7 +43,7 @@ export type SectionCopy = {
 
 export type PageCopy = Record<string, SectionCopy>;
 
-const EMPTY: SectionCopy = { eyebrow: '', headline: '', sub: '', cta: '', note: '', img: null, enabled: true, items: [], itemsAny: [] };
+const EMPTY: SectionCopy = { eyebrow: '', headline: '', sub: '', cta: '', note: '', map: '', img: null, enabled: true, items: [], itemsAny: [] };
 
 type Block = Partial<Record<keyof SectionCopy, unknown>>;
 
@@ -89,6 +94,7 @@ export async function loadPageCopy(pageKey: string, locale: Locale): Promise<Pag
       sub: pick(content, locale, 'sub'),
       cta: pick(content, locale, 'cta'),
       note: pick(content, locale, 'note'),
+      map: typeof content.settings?.map === 'string' ? content.settings.map.trim() : '',
       img: row.img || null,
       enabled: row.enabled,
       items: pickItems(content, locale, false),

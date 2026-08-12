@@ -23,7 +23,7 @@ export type ItemListDef = {
 };
 
 /** Fields the page actually renders for a section. */
-export type SectionField = 'eyebrow' | 'headline' | 'sub' | 'cta' | 'note' | 'img' | 'items';
+export type SectionField = 'eyebrow' | 'headline' | 'sub' | 'cta' | 'note' | 'img' | 'items' | 'map';
 
 export type SectionDef = {
   key: string;
@@ -48,7 +48,7 @@ export type SectionDef = {
   canDisable?: boolean;
   /** overrides for the generic field labels, where the block uses them for
       something specific enough that "CTA" would be a lie */
-  labels?: Partial<Record<'eyebrow' | 'headline' | 'sub' | 'cta' | 'note' | 'img', string>>;
+  labels?: Partial<Record<'eyebrow' | 'headline' | 'sub' | 'cta' | 'note' | 'img' | 'map', string>>;
   items?: ItemListDef;
 };
 
@@ -216,7 +216,12 @@ export const SECTION_CATALOG: Record<'home' | 'about' | 'contact' | 'faq', Secti
 
   contact: [
     { key: 'ch', type: 'hero', name: 'Hero', desc: 'แถบรูปใหญ่บนสุดของหน้าติดต่อ', supports: ['headline', 'sub', 'img'], canDisable: false },
-    { key: 'cm', type: 'section', name: 'แผนที่ & ช่องทาง', desc: 'แผนที่ + ช่องทางติดต่อ', supports: ['headline', 'sub', 'img'] },
+    {
+      key: 'cm', type: 'section', name: 'แผนที่ & ช่องทาง',
+      desc: 'แผนที่ที่ตั้งจริง — ใส่พิกัด ไม่ใช่รูปแผนที่',
+      supports: ['headline', 'sub', 'map'],
+      labels: { map: 'พิกัดที่ตั้ง (ละติจูด, ลองจิจูด)' },
+    },
   ],
 };
 
