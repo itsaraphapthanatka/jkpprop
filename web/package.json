@@ -18,7 +18,8 @@
     "import:properties": "tsx scripts/import-properties.mts",
     "sections:sync": "tsx scripts/sync-sections.mts",
     "sections:copy": "tsx scripts/seed-page-copy.mts",
-    "sections:images": "tsx scripts/link-section-images.mts"
+    "sections:images": "tsx scripts/link-section-images.mts",
+    "faq:seed": "tsx scripts/seed-faq.mts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

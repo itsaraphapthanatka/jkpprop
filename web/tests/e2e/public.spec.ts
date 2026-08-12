@@ -229,3 +229,20 @@ test.describe('the contact map', () => {
     expect(src).toMatch(/^https:\/\/www\.google\.com\/maps\?q=-?\d+(\.\d+)?,-?\d+(\.\d+)?&/);
   });
 });
+
+test.describe('the FAQ reads the same in every language', () => {
+  /* The 24 questions were an all-or-nothing fallback inside the component, so
+     writing one entry in the CMS in Thai cut the Thai page down to that entry
+     while English and Chinese still listed all 24 — in Thai. Three languages,
+     three different FAQs. */
+  test('every language lists the same questions', async ({ request }) => {
+    const counts: Record<string, number> = {};
+    for (const locale of ['th', 'en', 'zh']) {
+      const html = await (await request.get(`/${locale}/faq`)).text();
+      counts[locale] = (html.match(/aria-controls="faq-a-/g) ?? []).length;
+    }
+    expect(counts.th, 'the FAQ is empty — seed it with npm run faq:seed').toBeGreaterThan(0);
+    expect(counts.en, `th=${counts.th} en=${counts.en}`).toBe(counts.th);
+    expect(counts.zh, `th=${counts.th} zh=${counts.zh}`).toBe(counts.th);
+  });
+});

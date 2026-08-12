@@ -9,7 +9,7 @@
  * never blank while the team is still filling the CMS in.
  */
 import { db } from './db';
-import type { Locale } from '@/i18n/config';
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/config';
 import { sanitizeHtml } from '@/lib/sanitizeHtml';
 
 export type FaqCategory = { key: string; title: string; qs: [string, string][] };
@@ -27,12 +27,23 @@ export async function loadFaq(locale: Locale): Promise<FaqCategory[]> {
 
   for (const row of rows) {
     const content = (row.content ?? {}) as Record<string, LangBlock>;
-    const block = content[locale];
-    // only show an entry in a language it was actually written in
-    const question = str(block?.title) || (locale === 'th' ? row.title : '');
+    /* Fall back to Thai per entry, rather than per page.
+     *
+     * Strictness — showing an entry only in the language it was written in —
+     * is right for marketing copy, where a translated default ships in the
+     * dictionary. An FAQ has no translated default: the built-in set is Thai
+     * either way. So being strict produced three different FAQs. One question
+     * written in Thai cut the Thai page down to that one question, while
+     * English and Chinese still listed all 24 built-ins, in Thai.
+     *
+     * Per-entry fallback means every language lists the same questions, and
+     * each turns into English or Chinese as it gets translated. */
+    const block = content[locale] ?? {};
+    const th = content[DEFAULT_LOCALE] ?? {};
+    const question = str(block.title) || str(th.title) || row.title;
     /* The editor stores markup, and the page renders it as HTML — so it is
        cleaned here, once, on the server, rather than trusting the database. */
-    const answer = sanitizeHtml(str(block?.body));
+    const answer = sanitizeHtml(str(block.body) || str(th.body));
     if (!question || !answer) continue;
 
     const key = row.category || 'general';
