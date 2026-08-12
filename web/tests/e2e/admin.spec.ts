@@ -573,3 +573,56 @@ test.describe('the CMS editor shows each language its own text', () => {
     expect(await title.inputValue(), 'the EN title is empty').not.toBe('');
   });
 });
+
+test.describe('adding CMS content', () => {
+  /* The "+" beside the search box had a pointer cursor and no onClick, so the
+     only way to add a page, article or FAQ entry was to insert a row by hand.
+     The search box next to it had no state either. */
+  const stamp = () => `e2e-${Date.now().toString(36)}`;
+
+  /* these tests write real rows — take them back out */
+  test.afterAll(async () => {
+    if (!db) {
+      const { PrismaClient } = await import('@prisma/client');
+      db = new PrismaClient();
+    }
+    await db.cmsPage.deleteMany({ where: { slug: { startsWith: 'e2e-' } } });
+  });
+
+  test('the + button creates an entry that appears in the list', async ({ page }) => {
+    await signIn(page, OWNER);
+    await page.goto('/admin/cms');
+    await page.locator('#cms-new-btn').click();
+
+    const title = `ทดสอบเพิ่มบทความ ${stamp()}`;
+    await page.locator('#cms-new-title').fill(title);
+    await page.locator('#cms-new-slug').fill(stamp());
+    await page.locator('#cms-new-submit').click();
+
+    // the new record is selected, so the editor shows its title
+    await expect.poll(async () => page.locator('#cms-title-input').inputValue()).toBe(title);
+    await expect(page.getByText(title).first()).toBeVisible();
+  });
+
+  test('creating without a title reports the problem instead of doing nothing', async ({ page }) => {
+    await signIn(page, OWNER);
+    await page.goto('/admin/cms');
+    await page.locator('#cms-new-btn').click();
+    await page.locator('#cms-new-submit').click();
+    await expect(page.locator('#cms-new-error')).toBeVisible();
+    // the dialog stays open so the title can be typed
+    await expect(page.locator('#cms-new-title')).toBeVisible();
+  });
+
+  test('the search box filters the list', async ({ page }) => {
+    await signIn(page, OWNER);
+    await page.goto('/admin/cms');
+    const rows = page.locator('#cms-split > div').first().locator('.a-scroll > div');
+    await expect.poll(async () => rows.count()).toBeGreaterThan(0);
+    const before = await rows.count();
+
+    await page.locator('#cms-search').fill('ไม่มีทางตรงกับอะไรเลย-zzz');
+    await expect.poll(async () => rows.count()).toBeLessThan(before);
+    await expect(page.getByText(/ไม่พบเนื้อหาที่ตรงกับ/)).toBeVisible();
+  });
+});

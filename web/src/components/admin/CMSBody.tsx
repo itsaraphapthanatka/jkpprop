@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { AdminShell } from '@/components/admin/AdminShell';
-import { apiGet, apiPut, ApiClientError } from '@/lib/apiClient';
+import { apiGet, apiPost, apiPut, ApiClientError } from '@/lib/apiClient';
 import Link from 'next/link';
 
 /* Ported verbatim from AdminCMS.dc.html — content-type tabs, article
@@ -153,6 +153,15 @@ export function CMSBody() {
   const [catVal, setCatVal] = React.useState<string | null>(null);
   const [cover, setCover] = React.useState(false);
   const [addLinkOpen, setAddLinkOpen] = React.useState(false);
+  /* the "+" beside the search box had a pointer cursor and no handler, and the
+     search box had no state — both looked live and did nothing */
+  const [newOpen, setNewOpen] = React.useState(false);
+  const [newTitle, setNewTitle] = React.useState('');
+  const [newSlug, setNewSlug] = React.useState('');
+  const [newErr, setNewErr] = React.useState('');
+  const [creating, setCreating] = React.useState(false);
+  const [query, setQuery] = React.useState('');
+  const [pendingSelectId, setPendingSelectId] = React.useState<string | null>(null);
   const [links, setLinks] = React.useState<string[]>(['→ บริการ: หาทำเล', '→ พื้นที่: ระยอง']);
   const toastTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -173,6 +182,14 @@ export function CMSBody() {
     } catch { setApiItems(null); }
   }, []);
   React.useEffect(() => { void reload(type); }, [type, reload]);
+
+  /* select the record that was just created, once the reloaded list arrives */
+  React.useEffect(() => {
+    if (!pendingSelectId || !apiItems) return;
+    const i = apiItems.findIndex((a) => a.id === pendingSelectId);
+    if (i >= 0) setSelected(i);
+    setPendingSelectId(null);
+  }, [pendingSelectId, apiItems]);
 
   const flash = (msg: string, ms: number) => {
     setToast(msg);
@@ -227,8 +244,41 @@ export function CMSBody() {
   const openPreview = () => setPreviewOpen(true);
   const closePreview = () => setPreviewOpen(false);
 
+  const createItem = async () => {
+    const title = newTitle.trim();
+    if (!title) { setNewErr('กรุณากรอกชื่อเรื่อง'); return; }
+    if (creating) return;
+    setCreating(true);
+    setNewErr('');
+    try {
+      const created = await apiPost<{ id: string }>('/api/cms', {
+        kind: type, title, slug: newSlug.trim(), category: catVal ?? '',
+      });
+      await reload(type);
+      setNewOpen(false);
+      setNewTitle('');
+      setNewSlug('');
+      setQuery('');
+      /* land on the new record — reload() sorts by updatedAt so it is first,
+         but find it by id rather than trusting that */
+      setPendingSelectId(created?.id ?? null);
+      flash('สร้างเนื้อหาใหม่แล้ว — ยังเป็นร่าง กด "เผยแพร่" เมื่อพร้อม', 2600);
+    } catch (e) {
+      setNewErr(e instanceof ApiClientError ? e.message : 'สร้างไม่สำเร็จ กรุณาลองใหม่');
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const artData = apiItems ? apiItems.map(apiToArticle) : (DATA_BY_TYPE[type] || DATA_BY_TYPE.articles);
   const cur = artData[selected] || artData[0];
+
+  /* search filters the rendered rows but selection still indexes the full
+     list, so filtering never silently edits a different record */
+  const q = query.trim().toLowerCase();
+  const visible = artData
+    .map((a, i) => ({ a, i }))
+    .filter(({ a }) => !q || a.title.toLowerCase().includes(q) || a.cat.toLowerCase().includes(q));
 
   const langDefs = [
     { k: 'th', name: 'ไทย', flag: flagTh, done: true },
@@ -309,14 +359,25 @@ export function CMSBody() {
           <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: 38, padding: '0 12px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--border)', flex: 1 }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
-              <input placeholder="ค้นหาบทความ" style={{ border: 0, outline: 'none', background: 'transparent', fontSize: '12.5px', color: 'var(--text)', flex: 1, minWidth: 0 }} />
+              <input
+                id="cms-search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="ค้นหาบทความ"
+                style={{ border: 0, outline: 'none', background: 'transparent', fontSize: '12.5px', color: 'var(--text)', flex: 1, minWidth: 0 }}
+              />
             </div>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: '#0D6C3B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+            <div
+              id="cms-new-btn"
+              title="เพิ่มเนื้อหาใหม่"
+              onClick={() => { setNewErr(''); setNewOpen(true); }}
+              style={{ width: 38, height: 38, borderRadius: 10, background: '#0D6C3B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+            >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M12 5v14M5 12h14" /></svg>
             </div>
           </div>
           <div className="a-scroll" style={{ maxHeight: 640, overflowY: 'auto' }}>
-            {artData.map((a, i) => (
+            {visible.map(({ a, i }) => (
               <div
                 key={i}
                 onClick={() => setSelected(i)}
@@ -339,6 +400,11 @@ export function CMSBody() {
                 </div>
               </div>
             ))}
+            {!visible.length && (
+              <div style={{ padding: '28px 16px', textAlign: 'center', fontSize: '12.5px', color: 'var(--muted3)' }}>
+                ไม่พบเนื้อหาที่ตรงกับ &ldquo;{query}&rdquo;
+              </div>
+            )}
           </div>
         </div>
 
@@ -491,6 +557,56 @@ export function CMSBody() {
           </div>
         </div>
       </div>
+
+      {/* NEW ITEM MODAL — the "+" beside the search box */}
+      {newOpen && (
+        <div onClick={() => setNewOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 850, background: 'rgba(2,14,8,.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 460, background: 'var(--surface)', borderRadius: 20, boxShadow: '0 40px 80px rgba(0,0,0,.4)', padding: '26px 28px' }}>
+            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)' }}>
+              เพิ่ม{TYPE_DEFS.find((t) => t.key === type)?.label ?? 'เนื้อหา'}ใหม่
+            </div>
+            <p style={{ margin: '6px 0 18px', fontSize: '12.5px', color: 'var(--muted)', lineHeight: 1.6 }}>
+              สร้างเป็นภาษาไทยก่อน แล้วค่อยสลับไปแท็บ EN / 中文 เพื่อใส่คำแปล
+            </p>
+
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>ชื่อเรื่อง (ไทย)</label>
+            <input
+              id="cms-new-title"
+              autoFocus
+              value={newTitle}
+              onChange={(e) => { setNewTitle(e.target.value); if (newErr) setNewErr(''); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') void createItem(); }}
+              placeholder={type === 'faq' ? 'เช่น ขอใบ ร.ง.4 ใช้เวลานานไหม?' : 'เช่น ขั้นตอนเช่าโรงงาน'}
+              style={{ marginTop: 6, width: '100%', height: 46, padding: '0 14px', borderRadius: 12, border: '1px solid var(--border)', fontSize: 14, fontWeight: 600, background: 'var(--bg)', outline: 'none' }}
+            />
+
+            <label style={{ marginTop: 14, display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>
+              slug (ไม่ใส่ก็ได้ — ระบบตั้งให้)
+            </label>
+            <input
+              id="cms-new-slug"
+              value={newSlug}
+              onChange={(e) => { setNewSlug(e.target.value); if (newErr) setNewErr(''); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') void createItem(); }}
+              placeholder="rg4-timeline"
+              style={{ marginTop: 6, width: '100%', height: 46, padding: '0 14px', borderRadius: 12, border: '1px solid var(--border)', fontSize: 14, fontFamily: "'JetBrains Mono',monospace", background: 'var(--bg)', outline: 'none' }}
+            />
+
+            {newErr && (
+              <div id="cms-new-error" style={{ marginTop: 12, padding: '10px 12px', borderRadius: 10, background: '#FDECEC', color: '#A32A2A', fontSize: '12.5px', fontWeight: 600 }}>
+                {newErr}
+              </div>
+            )}
+
+            <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <div onClick={() => setNewOpen(false)} style={{ height: 42, padding: '0 20px', borderRadius: 9999, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 700, color: 'var(--text)', cursor: 'pointer' }}>ยกเลิก</div>
+              <div id="cms-new-submit" onClick={() => void createItem()} style={{ height: 42, padding: '0 24px', borderRadius: 9999, background: creating ? '#6E8C7C' : '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 700, cursor: creating ? 'default' : 'pointer' }}>
+                {creating ? 'กำลังสร้าง…' : 'สร้าง'}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* PREVIEW MODAL */}
       {previewOpen && (
