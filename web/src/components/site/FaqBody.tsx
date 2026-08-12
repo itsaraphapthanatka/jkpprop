@@ -178,7 +178,9 @@ export function FaqBody({ cats, copy }: { cats?: FaqCategory[]; copy: SectionCop
                       </div>
                       {open && (
                         <div style={{ padding: '0 18px 20px', fontSize: '13.5px', color: '#D8DED9', lineHeight: 1.85 }}>
-                          {answer}
+                          {/* the CMS body is markup; it arrives sanitised from faqCopy,
+                              so paragraphs and lists render instead of showing their tags */}
+                          <div dangerouslySetInnerHTML={{ __html: answer }} />
                           <div
                             onClick={(e) => {
                               e.stopPropagation();

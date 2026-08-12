@@ -10,6 +10,7 @@
  */
 import { db } from './db';
 import type { Locale } from '@/i18n/config';
+import { sanitizeHtml } from '@/lib/sanitizeHtml';
 
 export type FaqCategory = { key: string; title: string; qs: [string, string][] };
 
@@ -29,7 +30,9 @@ export async function loadFaq(locale: Locale): Promise<FaqCategory[]> {
     const block = content[locale];
     // only show an entry in a language it was actually written in
     const question = str(block?.title) || (locale === 'th' ? row.title : '');
-    const answer = str(block?.body);
+    /* The editor stores markup, and the page renders it as HTML — so it is
+       cleaned here, once, on the server, rather than trusting the database. */
+    const answer = sanitizeHtml(str(block?.body));
     if (!question || !answer) continue;
 
     const key = row.category || 'general';

@@ -136,3 +136,29 @@ test.describe('AI-readable files', () => {
     for (const l of ['th', 'en', 'zh']) expect(body).toContain(`hreflang="${l}"`);
   });
 });
+
+test.describe('FAQ answers from the CMS', () => {
+  /* The editor stores rich text, so an answer is markup. The page printed it
+     as text and visitors read "<p>ขอใบ ร.ง.4 …</p>" tags and all. Rendering it
+     as HTML fixes that but makes the CMS body an injection point on a public
+     page, so it is sanitised server-side — both halves are checked here. */
+  const RG4 = 'ขอใบ ร.ง.4 ต้องเตรียมอะไรบ้าง';
+
+  test('renders formatting instead of showing the tags, and drops scripts', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('dialog', (d) => { errors.push('alert fired'); void d.dismiss(); });
+
+    await page.goto('/th/faq');
+    const q = page.getByText(RG4).first();
+    if (!(await q.count())) test.skip(true, 'no FAQ row seeded in this database');
+
+    await q.click();
+    const answer = page.locator('#faq-layout strong', { hasText: 'สำเนาโฉนด' });
+    await expect(answer).toBeVisible();
+
+    // the literal tags must not appear as words on the page
+    await expect(page.locator('body')).not.toContainText('<p>');
+    await expect(page.locator('body')).not.toContainText('</strong>');
+    expect(errors, 'a script in the CMS body executed').toEqual([]);
+  });
+});
