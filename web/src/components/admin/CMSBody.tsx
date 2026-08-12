@@ -162,6 +162,8 @@ export function CMSBody() {
   const [creating, setCreating] = React.useState(false);
   const [query, setQuery] = React.useState('');
   const [pendingSelectId, setPendingSelectId] = React.useState<string | null>(null);
+  const [slugEdit, setSlugEdit] = React.useState(false);
+  const [slugDraft, setSlugDraft] = React.useState('');
   const [links, setLinks] = React.useState<string[]>(['→ บริการ: หาทำเล', '→ พื้นที่: ระยอง']);
   const toastTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -212,6 +214,7 @@ export function CMSBody() {
     const thaiFallback = lang === 'th';
     setDraftTitle(block?.title || (thaiFallback ? apiCur.title : ''));
     setDraftBody(block?.body || (thaiFallback ? apiCur.body || '' : ''));
+    setSlugEdit(false);
     setCatVal(null);
     setLinks(apiCur.links?.length ? apiCur.links : []);
     setCover(!!apiCur.cover);
@@ -243,6 +246,24 @@ export function CMSBody() {
   };
   const openPreview = () => setPreviewOpen(true);
   const closePreview = () => setPreviewOpen(false);
+
+  const saveSlug = async () => {
+    if (!apiCur || saving) return;
+    const next = slugDraft.trim();
+    if (!next || next === apiCur.slug) { setSlugEdit(false); return; }
+    setSaving(true);
+    try {
+      await apiPut(`/api/cms/${apiCur.id}`, { slug: next });
+      await reload(type);
+      setPendingSelectId(apiCur.id);
+      setSlugEdit(false);
+      flash('เปลี่ยน slug แล้ว — ลิงก์เดิมจะเปิดไม่ได้แล้ว', 2600);
+    } catch (e) {
+      flash(e instanceof ApiClientError ? e.message : 'เปลี่ยน slug ไม่สำเร็จ', 2600);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const createItem = async () => {
     const title = newTitle.trim();
@@ -445,11 +466,40 @@ export function CMSBody() {
               readOnly={!apiCur}
               style={{ marginTop: 6, width: '100%', height: 48, padding: '0 16px', borderRadius: 12, border: '1px solid var(--border)', fontSize: 16, fontWeight: 700, background: 'var(--bg)', outline: 'none' }}
             />
-            {/* slug */}
-            <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 11, background: 'var(--tint)' }}>
-              <span style={{ fontSize: 12, color: 'var(--muted2)' }}>slug:</span>
-              <code style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 700, flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{curSlug}</code>
-              <span style={{ fontSize: 11, color: '#0D6C3B', fontWeight: 700, cursor: 'pointer' }}>แก้</span>
+            {/* slug — "แก้" used to be decoration; the API had no way to change it */}
+            <div style={{ marginTop: 14, padding: '10px 14px', borderRadius: 11, background: 'var(--tint)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 12, color: 'var(--muted2)' }}>slug:</span>
+                {slugEdit ? (
+                  <input
+                    id="cms-slug-input"
+                    autoFocus
+                    value={slugDraft}
+                    onChange={(e) => setSlugDraft(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') void saveSlug(); if (e.key === 'Escape') setSlugEdit(false); }}
+                    style={{ flex: 1, minWidth: 0, height: 30, padding: '0 10px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 12, fontFamily: "'JetBrains Mono',monospace", background: 'var(--surface)', outline: 'none' }}
+                  />
+                ) : (
+                  <code style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 700, flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{curSlug}</code>
+                )}
+                {slugEdit ? (
+                  <>
+                    <span id="cms-slug-save" onClick={() => void saveSlug()} style={{ fontSize: 11, color: '#0D6C3B', fontWeight: 700, cursor: 'pointer' }}>บันทึก</span>
+                    <span onClick={() => setSlugEdit(false)} style={{ fontSize: 11, color: 'var(--muted2)', fontWeight: 700, cursor: 'pointer' }}>ยกเลิก</span>
+                  </>
+                ) : (
+                  <span
+                    id="cms-slug-edit"
+                    onClick={() => { if (!apiCur) return; setSlugDraft(apiCur.slug); setSlugEdit(true); }}
+                    style={{ fontSize: 11, color: apiCur ? '#0D6C3B' : 'var(--muted3)', fontWeight: 700, cursor: apiCur ? 'pointer' : 'default' }}
+                  >แก้</span>
+                )}
+              </div>
+              {slugEdit && (
+                <div style={{ marginTop: 7, fontSize: '11px', color: '#9A741C', lineHeight: 1.5 }}>
+                  เปลี่ยน slug แล้วลิงก์เดิมจะเปิดไม่ได้ — ถ้าเคยส่งลิงก์นี้ให้ใครหรือ Google เก็บไว้แล้ว ควรเปลี่ยนเฉพาะตอนที่ยังไม่เผยแพร่
+                </div>
+              )}
             </div>
 
             {/* rich text toolbar */}

@@ -19,7 +19,7 @@ export const PUT = handler(async (req: Request, ctx: { params: Promise<{ id: str
   if (!page) throw new ApiError('NOT_FOUND', 'ไม่พบเนื้อหานี้', 404);
 
   const body = (await req.json().catch(() => null)) as
-    | { lang?: string; title?: string; body?: string; category?: string; cover?: string | null; links?: string[]; status?: string }
+    | { lang?: string; title?: string; body?: string; category?: string; cover?: string | null; links?: string[]; status?: string; slug?: string }
     | null;
   if (!body) throw new ApiError('VALIDATION', 'ข้อมูลไม่ถูกต้อง', 400);
 
@@ -36,6 +36,21 @@ export const PUT = handler(async (req: Request, ctx: { params: Promise<{ id: str
   // the Thai title is the record's display title
   if (lang === 'th' && typeof body.title === 'string' && body.title.trim()) data.title = body.title.trim().slice(0, 300);
   if (typeof body.category === 'string') data.category = body.category.slice(0, 120);
+
+  /* The slug is the public URL. The editor showed it with an "แก้" link that
+     did nothing, because there was no way to change it here. Same normalising
+     and same duplicate check as POST, so the two cannot disagree. */
+  if (typeof body.slug === 'string' && body.slug.trim()) {
+    const slug = body.slug.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-|-$/g, '');
+    if (!slug) throw new ApiError('VALIDATION', 'slug ต้องมีตัวอักษร a-z หรือ 0-9', 400, { slug: 'slug ไม่ถูกต้อง' });
+    if (slug !== page.slug) {
+      const dup = await db.cmsPage.findFirst({
+        where: { orgId: user.orgId, kind: page.kind, slug, NOT: { id } },
+      });
+      if (dup) throw new ApiError('DUPLICATE', 'slug นี้มีอยู่แล้วในหมวดนี้', 400, { slug: 'slug ซ้ำ' });
+      data.slug = slug;
+    }
+  }
   if (body.cover !== undefined) data.cover = body.cover;
   if (Array.isArray(body.links)) data.links = body.links.map(String).slice(0, 20);
 
@@ -56,6 +71,7 @@ export const PUT = handler(async (req: Request, ctx: { params: Promise<{ id: str
   const out = (updated.content ?? {}) as Content;
   return ok({
     id: updated.id, status: updated.status, category: updated.category,
+    slug: updated.slug,
     cover: updated.cover, links: updated.links,
     langs: ['th', 'en', 'zh'].map((k) => ({ k: k.toUpperCase(), on: !!out[k]?.done })),
   });

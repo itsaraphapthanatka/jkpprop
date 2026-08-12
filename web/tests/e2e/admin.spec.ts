@@ -626,3 +626,57 @@ test.describe('adding CMS content', () => {
     await expect(page.getByText(/ไม่พบเนื้อหาที่ตรงกับ/)).toBeVisible();
   });
 });
+
+test.describe('changing a CMS slug', () => {
+  /* The slug row showed an "แก้" link with a pointer cursor that did nothing —
+     and PUT /api/cms/:id had no slug handling at all, so even a hand-written
+     request could not change the public URL of a page. */
+  test.afterAll(async () => {
+    if (!db) {
+      const { PrismaClient } = await import('@prisma/client');
+      db = new PrismaClient();
+    }
+    await db.cmsPage.deleteMany({ where: { slug: { startsWith: 'e2e-' } } });
+  });
+
+  test('the slug can be edited and the new one sticks', async ({ page }) => {
+    await signIn(page, OWNER);
+    await page.goto('/admin/cms');
+
+    // work on a throwaway record, never on real content
+    await page.locator('#cms-new-btn').click();
+    await page.locator('#cms-new-title').fill('ทดสอบแก้ slug');
+    const first = `e2e-${Date.now().toString(36)}`;
+    await page.locator('#cms-new-slug').fill(first);
+    await page.locator('#cms-new-submit').click();
+    await expect.poll(async () => page.locator('#cms-title-input').inputValue()).toBe('ทดสอบแก้ slug');
+
+    const next = `${first}-x`;
+    await page.locator('#cms-slug-edit').click();
+    await page.locator('#cms-slug-input').fill(next);
+    await page.locator('#cms-slug-save').click();
+
+    await expect.poll(async () => page.locator('code').first().innerText()).toContain(next);
+  });
+
+  test('a duplicate slug is refused rather than silently ignored', async ({ page }) => {
+    await signIn(page, OWNER);
+    await page.goto('/admin/cms');
+
+    const base = `e2e-${Date.now().toString(36)}`;
+    for (const s of [`${base}-a`, `${base}-b`]) {
+      await page.locator('#cms-new-btn').click();
+      await page.locator('#cms-new-title').fill(`ทดสอบ slug ซ้ำ ${s}`);
+      await page.locator('#cms-new-slug').fill(s);
+      await page.locator('#cms-new-submit').click();
+      await expect.poll(async () => page.locator('#cms-title-input').inputValue()).toContain(s);
+    }
+
+    // the second record is selected; try to take the first one's slug
+    await page.locator('#cms-slug-edit').click();
+    await page.locator('#cms-slug-input').fill(`${base}-a`);
+    await page.locator('#cms-slug-save').click();
+
+    await expect(page.getByText(/slug นี้มีอยู่แล้ว/)).toBeVisible();
+  });
+});
