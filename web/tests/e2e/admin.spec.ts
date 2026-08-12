@@ -680,3 +680,77 @@ test.describe('changing a CMS slug', () => {
     await expect(page.getByText(/slug นี้มีอยู่แล้ว/)).toBeVisible();
   });
 });
+
+test.describe('the CMS category dropdown', () => {
+  /* Two faults in one control. The option list was seven names hardcoded from
+     the design prototype, so it offered categories nothing used and could not
+     offer the nine the FAQ actually runs on — and there was no way to add one.
+     The menu was also absolutely positioned inside a card with
+     overflow:hidden, so the list was cut off by the card's edge. */
+  test.afterAll(async () => {
+    if (!db) {
+      const { PrismaClient } = await import('@prisma/client');
+      db = new PrismaClient();
+    }
+    await db.cmsPage.deleteMany({ where: { slug: { startsWith: 'e2e-' } } });
+  });
+
+  test('the options are the categories actually in use', async ({ page }) => {
+    await signIn(page, OWNER);
+    await page.goto('/admin/cms');
+
+    /* the category on the selected record must be offered by the menu — read
+       it only once the list has settled, or the tab switch races the reload */
+    await expect.poll(async () => (await page.locator('#cms-cat-trigger').innerText()).trim()).not.toBe('');
+    const shown = (await page.locator('#cms-cat-trigger').innerText()).trim();
+    test.skip(!shown || shown === '—', 'the selected record has no category');
+
+    await page.locator('#cms-cat-trigger').click();
+    await expect(page.locator('#cms-cat-menu')).toBeVisible();
+    await expect(page.locator('#cms-cat-menu').getByText(shown, { exact: true }).first()).toBeVisible();
+  });
+
+  test('the whole menu is on screen, not clipped by the card', async ({ page }) => {
+    await signIn(page, OWNER);
+    await page.goto('/admin/cms');
+    await page.locator('#cms-cat-trigger').click();
+
+    const menu = page.locator('#cms-cat-menu');
+    await expect(menu).toBeVisible();
+    const box = await menu.boundingBox();
+    expect(box, 'the menu has no box').toBeTruthy();
+
+    const viewport = page.viewportSize()!;
+    expect(box!.x, 'the menu starts off the left edge').toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width, 'the menu runs past the right edge').toBeLessThanOrEqual(viewport.width + 1);
+    expect(box!.height, 'the menu has no height').toBeGreaterThan(40);
+
+    // the last option must be reachable, not hidden behind an ancestor's clip
+    const last = menu.locator('> div').filter({ hasText: /\S/ }).last();
+    await expect(last).toBeVisible();
+  });
+
+  test('a new category can be typed and is kept', async ({ page }) => {
+    await signIn(page, OWNER);
+    await page.goto('/admin/cms');
+
+    // never touch real content
+    await page.locator('#cms-new-btn').click();
+    await page.locator('#cms-new-title').fill('ทดสอบหมวดใหม่');
+    await page.locator('#cms-new-slug').fill(`e2e-${Date.now().toString(36)}`);
+    await page.locator('#cms-new-submit').click();
+    await expect.poll(async () => page.locator('#cms-title-input').inputValue()).toBe('ทดสอบหมวดใหม่');
+
+    const name = `หมวดทดสอบ ${Date.now().toString(36)}`;
+    await page.locator('#cms-cat-trigger').click();
+    await page.locator('#cms-cat-add').click();
+    await page.locator('#cms-cat-new').fill(name);
+    await page.locator('#cms-cat-new-ok').click();
+
+    await expect(page.locator('#cms-cat-trigger')).toContainText(name);
+
+    // it survives a save
+    await page.getByText('บันทึกร่าง').click();
+    await expect.poll(async () => (await page.locator('#cms-cat-trigger').innerText()).trim()).toContain(name);
+  });
+});

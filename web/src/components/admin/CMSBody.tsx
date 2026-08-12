@@ -92,7 +92,31 @@ const SLUG_BASE_MAP: Record<string, string> = {
   'หน้าแรก (Home)': 'home',
 };
 
-const CAT_OPTIONS = ['EEC & โลจิสติกส์', 'ใบอนุญาต', 'การลงทุน', 'สัญญา', 'เทคนิค', 'หน้าหลัก', 'ใบรับรอง'];
+/* Fallback only. The real list is built from the categories already in use for
+   the kind being edited — this array was seven names carried over from the
+   design prototype, so the dropdown offered categories nothing used and could
+   not offer the nine the FAQ actually runs on. */
+const CAT_FALLBACK = ['EEC & โลจิสติกส์', 'ใบอนุญาต', 'การลงทุน', 'สัญญา', 'เทคนิค', 'หน้าหลัก', 'ใบรับรอง'];
+
+const CAT_MENU_MAX = 300;
+
+/* Where the category menu goes. The field sits at the bottom of a tall editor,
+   so opening downwards put the list below the fold on a short window — flip it
+   above when there is more room there, and never let it start off-screen. */
+function placeMenu(r: DOMRect): { top: number; left: number; width: number; maxHeight: number } {
+  const margin = 8;
+  const below = window.innerHeight - r.bottom - margin;
+  const above = r.top - margin;
+  const flip = below < 160 && above > below;
+  const maxHeight = Math.max(120, Math.min(CAT_MENU_MAX, flip ? above : below));
+  const width = Math.max(r.width, 240);
+  return {
+    top: flip ? Math.max(margin, r.top - maxHeight - 6) : r.bottom + 6,
+    left: Math.max(margin, Math.min(r.left, window.innerWidth - width - margin)),
+    width,
+    maxHeight,
+  };
+}
 const LINK_CHOICES = ['→ บริการ: ปรึกษาฟรี', '→ พื้นที่: ชลบุรี', '→ ทรัพย์: โกดังให้เช่า', '→ บทความ: ขอ ร.ง.4'];
 
 const tbi = (p: string) => ({ __html: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">' + p + '</svg>' });
@@ -150,6 +174,12 @@ export function CMSBody() {
   const [toast, setToast] = React.useState('');
   const [pubOverride, setPubOverride] = React.useState<Record<number, boolean>>({});
   const [catOpen, setCatOpen] = React.useState(false);
+  /* the menu is inside a card with overflow:hidden, so it was clipped — it is
+     positioned against the trigger's screen rect instead of the card */
+  const catRef = React.useRef<HTMLDivElement | null>(null);
+  const [catRect, setCatRect] = React.useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
+  const [catAdding, setCatAdding] = React.useState(false);
+  const [catNew, setCatNew] = React.useState('');
   const [catVal, setCatVal] = React.useState<string | null>(null);
   const [cover, setCover] = React.useState(false);
   const [addLinkOpen, setAddLinkOpen] = React.useState(false);
@@ -184,6 +214,24 @@ export function CMSBody() {
     } catch { setApiItems(null); }
   }, []);
   React.useEffect(() => { void reload(type); }, [type, reload]);
+
+  /* the menu is placed from a rect measured when it opened, so anything that
+     moves the field underneath it has to close it rather than let it drift */
+  React.useEffect(() => {
+    if (!catOpen) return;
+    /* follow the field rather than close: scrolling a panel, or the menu's own
+       list, would otherwise dismiss the thing the reader is trying to use */
+    const reposition = () => {
+      const r = catRef.current?.getBoundingClientRect();
+      if (r) setCatRect(placeMenu(r));
+    };
+    window.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
+    return () => {
+      window.removeEventListener('scroll', reposition, true);
+      window.removeEventListener('resize', reposition);
+    };
+  }, [catOpen]);
 
   /* select the record that was just created, once the reloaded list arrives */
   React.useEffect(() => {
@@ -296,6 +344,24 @@ export function CMSBody() {
 
   /* search filters the rendered rows but selection still indexes the full
      list, so filtering never silently edits a different record */
+  /* the categories this kind actually uses, plus whatever this record has —
+     a record whose category was typed before is still selectable */
+  const catOptions = React.useMemo(() => {
+    const used = (apiItems ?? []).map((a) => (a.category || '').trim()).filter(Boolean);
+    const merged = [...used, ...(catVal ? [catVal] : [])];
+    const uniq = Array.from(new Set(merged)).sort((a, b) => a.localeCompare(b, 'th'));
+    return uniq.length ? uniq : CAT_FALLBACK;
+  }, [apiItems, catVal]);
+
+  const openCatMenu = () => {
+    if (catOpen) { setCatOpen(false); return; }
+    const r = catRef.current?.getBoundingClientRect();
+    if (r) setCatRect(placeMenu(r));
+    setCatAdding(false);
+    setCatNew('');
+    setCatOpen(true);
+  };
+
   const q = query.trim().toLowerCase();
   const visible = artData
     .map((a, i) => ({ a, i }))
@@ -532,23 +598,10 @@ export function CMSBody() {
             <div id="cms-meta-row" style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div style={{ position: 'relative' }}>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>หมวดหมู่</label>
-                <div onClick={() => setCatOpen(!catOpen)} style={{ marginTop: 6, height: 44, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, color: 'var(--text)', cursor: 'pointer' }}>
-                  {curCat}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2.4" style={{ transform: catOpen ? 'rotate(180deg)' : undefined, transition: 'transform .2s' }}><path d="M6 9l6 6 6-6" /></svg>
+                <div ref={catRef} id="cms-cat-trigger" onClick={openCatMenu} style={{ marginTop: 6, height: 44, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 13, color: 'var(--text)', cursor: 'pointer' }}>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{curCat}</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2.4" style={{ flexShrink: 0, transform: catOpen ? 'rotate(180deg)' : undefined, transition: 'transform .2s' }}><path d="M6 9l6 6 6-6" /></svg>
                 </div>
-                {catOpen && (
-                  <div style={{ position: 'absolute', top: 74, left: 0, right: 0, zIndex: 30, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, boxShadow: '0 18px 40px rgba(0,0,0,.16)', padding: 6 }}>
-                    {CAT_OPTIONS.map((c) => {
-                      const activeC = curCat === c;
-                      return (
-                        <div key={c} onClick={() => { setCatVal(c); setCatOpen(false); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '9px 11px', borderRadius: 9, fontSize: '12.5px', fontWeight: activeC ? 700 : 600, cursor: 'pointer', color: activeC ? '#0D6C3B' : 'var(--text)', background: activeC ? 'rgba(13,108,59,.06)' : 'transparent' }}>
-                          <span>{c}</span>
-                          {activeC && <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" strokeWidth="2.6"><path d="M20 6L9 17l-5-5" /></svg>}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>รูปหน้าปก</label>
@@ -607,6 +660,66 @@ export function CMSBody() {
           </div>
         </div>
       </div>
+
+      {/* CATEGORY MENU — rendered here, not beside its field.
+          The editor card is overflow:hidden, which cut the list off; a fixed
+          element positioned from the trigger's rect escapes that. */}
+      {catOpen && catRect && (
+        <>
+          <div onClick={() => setCatOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 890 }} />
+          <div
+            id="cms-cat-menu"
+            style={{ position: 'fixed', top: catRect.top, left: catRect.left, width: catRect.width, zIndex: 900, maxHeight: catRect.maxHeight, overflowY: 'auto', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, boxShadow: '0 18px 40px rgba(0,0,0,.16)', padding: 6 }}
+          >
+            {catOptions.map((c) => {
+              const activeC = curCat === c;
+              return (
+                <div key={c} onClick={() => { setCatVal(c); setCatOpen(false); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '9px 11px', borderRadius: 9, fontSize: '12.5px', fontWeight: activeC ? 700 : 600, cursor: 'pointer', color: activeC ? '#0D6C3B' : 'var(--text)', background: activeC ? 'rgba(13,108,59,.06)' : 'transparent' }}>
+                  <span>{c}</span>
+                  {activeC && <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" strokeWidth="2.6"><path d="M20 6L9 17l-5-5" /></svg>}
+                </div>
+              );
+            })}
+
+            <div style={{ margin: '6px 4px', height: 1, background: 'var(--border)' }} />
+
+            {catAdding ? (
+              <div style={{ display: 'flex', gap: 6, padding: '4px 5px' }}>
+                <input
+                  id="cms-cat-new"
+                  autoFocus
+                  value={catNew}
+                  onChange={(e) => setCatNew(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && catNew.trim()) { setCatVal(catNew.trim()); setCatOpen(false); }
+                    if (e.key === 'Escape') setCatAdding(false);
+                  }}
+                  placeholder="ชื่อหมวดใหม่"
+                  style={{ flex: 1, minWidth: 0, height: 34, padding: '0 10px', borderRadius: 8, border: '1px solid var(--border)', fontSize: '12.5px', background: 'var(--bg)', outline: 'none' }}
+                />
+                <div
+                  id="cms-cat-new-ok"
+                  onClick={() => { if (catNew.trim()) { setCatVal(catNew.trim()); setCatOpen(false); } }}
+                  style={{ height: 34, padding: '0 12px', borderRadius: 8, background: '#0D6C3B', color: '#fff', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                >ใช้</div>
+              </div>
+            ) : (
+              <div
+                id="cms-cat-add"
+                onClick={() => setCatAdding(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 11px', borderRadius: 9, fontSize: '12.5px', fontWeight: 700, color: '#0D6C3B', cursor: 'pointer' }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"><path d="M12 5v14M5 12h14" /></svg>
+                เพิ่มหมวดใหม่
+              </div>
+            )}
+
+            <div style={{ padding: '2px 11px 6px', fontSize: 11, color: 'var(--muted3)', lineHeight: 1.5 }}>
+              หมวดจะถูกบันทึกเมื่อกด &ldquo;บันทึกร่าง&rdquo; หรือ &ldquo;เผยแพร่&rdquo;
+            </div>
+          </div>
+        </>
+      )}
 
       {/* NEW ITEM MODAL — the "+" beside the search box */}
       {newOpen && (
