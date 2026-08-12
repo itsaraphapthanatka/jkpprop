@@ -11,7 +11,7 @@
  * reach this DTO (AGENT.md §7, FR-LST-02).
  */
 import { db } from './db';
-import { getDictionary } from '@/i18n/dictionaries';
+import { getDictionary, type Dictionary } from '@/i18n/dictionaries';
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/config';
 import { stripInternal, displayArea, displayLocation, displayProvince } from './propertyDto';
 
@@ -23,6 +23,9 @@ export type PublicListing = {
   deal: string;
   loc: string;
   price: string;
+  /** the same figure in baht, so sorting and the price filter never have to
+      read it back out of `price` — that text is translated */
+  priceValue: number;
   area: number | null;
   areaLabel: string;
   typeKey: string;
@@ -41,11 +44,18 @@ export type ListingQuery = {
   limit?: number;
 };
 
-const baht = (n: number) =>
-  n >= 1_000_000 ? `฿ ${(n / 1_000_000).toFixed(n % 1_000_000 ? 1 : 0)} ล้าน` : `฿ ${n.toLocaleString('th-TH')}`;
+/* Every card label is built here, so anything written in Thai below ships to
+   /en and /zh unchanged. `perMonth` was already read from the dictionary; the
+   unit, the "price on request" fallback, the rent/sale badge and the word for
+   a million were not, so an English card read "฿ 4.5 ล้าน · 2,700 ตร.ม." */
+const money = (n: number, d: Dictionary) =>
+  n >= 1_000_000
+    ? `฿ ${(n / 1_000_000).toFixed(n % 1_000_000 ? 1 : 0)} ${d.common.million}`
+    : `฿ ${n.toLocaleString('en-US')}`;
 
 export async function loadPublicListings(q: ListingQuery = {}): Promise<PublicListing[]> {
-  const perMonth = getDictionary(q.locale ?? DEFAULT_LOCALE).common.perMonth;
+  const d = getDictionary(q.locale ?? DEFAULT_LOCALE);
+  const perMonth = d.common.perMonth;
   const limit = Math.min(60, Math.max(1, Number(q.limit ?? 24)));
 
   const rows = await db.property.findMany({
@@ -73,19 +83,26 @@ export async function loadPublicListings(q: ListingQuery = {}): Promise<PublicLi
     const area = displayArea(values);
 
     // "both" reads as rent on the card — the detail page shows both prices
-    const price = isRent && Number.isFinite(rent)
-      ? `${baht(rent)} ${perMonth}`
-      : Number.isFinite(sale) ? baht(sale)
-        : Number.isFinite(rent) ? `${baht(rent)} ${perMonth}` : 'ติดต่อสอบถาม';
+    const shown =
+      isRent && Number.isFinite(rent) ? { baht: rent, monthly: true }
+        : Number.isFinite(sale) ? { baht: sale, monthly: false }
+          : Number.isFinite(rent) ? { baht: rent, monthly: true }
+            : null;
+    const price = shown
+      ? shown.monthly ? `${money(shown.baht, d)} ${perMonth}` : money(shown.baht, d)
+      : d.common.priceOnRequest;
 
     return [{
       code: p.publicCode,
       title: p.title,
+      /* stays Thai on purpose: this is the enum key. Both the badge
+         (enumLabel) and the listing page's rent/sale filter match on it. */
       deal: isRent ? 'ให้เช่า' : 'ขาย',
       loc: displayLocation(values) || province || '—',
       price,
+      priceValue: shown?.baht ?? 0,
       area,
-      areaLabel: area !== null ? `${area.toLocaleString('th-TH')} ตร.ม.` : '',
+      areaLabel: area !== null ? `${area.toLocaleString('en-US')} ${d.common.sqm}` : '',
       typeKey: p.typeKey,
       img: photos[0] ?? null,
       photos: String(photos.length),

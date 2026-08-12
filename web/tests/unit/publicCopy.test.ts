@@ -26,7 +26,9 @@ const PUBLIC_DIRS = ['components/site', 'components/home', 'components/property'
    whole until it reads from the database. Tracked, not forgotten. */
 const KNOWN_UNTRANSLATED = ['components/site/ClientShortlistBody.tsx'];
 
-const THAI = /[฀-๿]/;
+/* Thai letters only — the block also holds ฿ (U+0E3F), which is the correct
+   currency symbol on the English and Chinese pages too. */
+const THAI = /[\u0E01-\u0E3A\u0E40-\u0E5B]/;
 
 const walk = (dir: string): string[] => {
   let out: string[] = [];

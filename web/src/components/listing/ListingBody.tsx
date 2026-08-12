@@ -43,6 +43,7 @@ export type ListingItem = {
   deal: string;
   loc: string;
   price: string;
+  priceValue: number;
   area: number | null;
   areaLabel: string;
   typeKey: string;
@@ -64,13 +65,10 @@ type Listing = {
   area: string;
   areaSqm: number | null;
   province: string;
-  /* numeric price for sorting; the display string carries ฿/ล้าน/เดือน */
+  /* numeric price for sorting and the price filter. Comes straight from the
+     server: it used to be parsed back out of `price`, which broke the moment
+     that string was translated (the parser looked for the Thai word ล้าน). */
   priceValue: number;
-};
-
-const priceValue = (s: string): number => {
-  const n = Number(s.replace(/[^\d.]/g, '')) || 0;
-  return /ล้าน/.test(s) ? n * 1_000_000 : n;
 };
 
 const toListing = (it: ListingItem): Listing => ({
@@ -86,7 +84,7 @@ const toListing = (it: ListingItem): Listing => ({
   area: it.areaLabel || '—',
   areaSqm: it.area,
   province: it.province,
-  priceValue: priceValue(it.price),
+  priceValue: it.priceValue,
 });
 
 export type ListingFilterKey = 'factory-rent' | 'factory-sale' | 'warehouse-rent' | 'warehouse-sale';

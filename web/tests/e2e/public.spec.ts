@@ -246,3 +246,70 @@ test.describe('the FAQ reads the same in every language', () => {
     expect(counts.zh, `th=${counts.th} zh=${counts.zh}`).toBe(counts.th);
   });
 });
+
+test.describe('property cards read in the visitor\'s language', () => {
+  /* Every label on a card is assembled server-side in loadPublicListings. It
+     already took a locale — but only used it for "/ month". The unit, the
+     "price on request" fallback and the word for a million stayed Thai, so an
+     English card read "฿ 4.5 ล้าน · 2,700 ตร.ม.".
+
+     Sorting made this worse than cosmetic: the listing page recovered the
+     numeric price by regex-matching ล้าน out of the display string, so
+     translating that word would have silently divided every price by a
+     million on /en and /zh. The number travels as its own field now.
+
+     Asserted against the feed rather than the page, because a property's
+     *title* is data the team typed in Thai — legitimately Thai on every
+     locale until someone translates the listing itself. */
+  /* Thai letters only. The Thai Unicode block also holds ฿ (U+0E3F), which is
+     the right currency symbol in every language — matching it would fail a
+     correctly translated price. */
+  const THAI = /[\u0E01-\u0E3A\u0E40-\u0E5B]/;
+
+  const feed = async (request: import('@playwright/test').APIRequestContext, locale: string) => {
+    const res = await request.get(`/api/public/listings?locale=${locale}&limit=60`);
+    expect(res.ok(), `feed failed for ${locale}`).toBeTruthy();
+    const body = await res.json();
+    const items = Array.isArray(body) ? body : body.items;
+    expect(Array.isArray(items), 'feed did not return a list').toBeTruthy();
+    return items as Array<Record<string, unknown>>;
+  };
+
+  test('the unit and the price carry no Thai on /en', async ({ request }) => {
+    const items = await feed(request, 'en');
+    test.skip(items.length === 0, 'no published inventory to check');
+    for (const it of items) {
+      expect(String(it.areaLabel), `areaLabel of ${it.code}`).not.toMatch(THAI);
+      expect(String(it.price), `price of ${it.code}`).not.toMatch(THAI);
+    }
+  });
+
+  test('the unit and the price carry no Thai on /zh', async ({ request }) => {
+    const items = await feed(request, 'zh');
+    test.skip(items.length === 0, 'no published inventory to check');
+    for (const it of items) {
+      expect(String(it.areaLabel), `areaLabel of ${it.code}`).not.toMatch(THAI);
+      expect(String(it.price), `price of ${it.code}`).not.toMatch(THAI);
+    }
+  });
+
+  test('Thai keeps its own unit', async ({ request }) => {
+    const items = await feed(request, 'th');
+    test.skip(items.length === 0, 'no published inventory to check');
+    const withArea = items.filter((it) => String(it.areaLabel));
+    test.skip(withArea.length === 0, 'no property records an area');
+    for (const it of withArea) expect(String(it.areaLabel)).toContain('ตร.ม.');
+  });
+
+  test('the numeric price travels as its own field, not parsed back out of the label', async ({ request }) => {
+    const items = await feed(request, 'en');
+    test.skip(items.length === 0, 'no published inventory to check');
+    for (const it of items) {
+      expect(typeof it.priceValue, `priceValue of ${it.code}`).toBe('number');
+      // a million-baht listing must not collapse to "4.5" once ล้าน is gone
+      if (/million/.test(String(it.price))) {
+        expect(Number(it.priceValue), `${it.code} shows ${it.price}`).toBeGreaterThanOrEqual(1_000_000);
+      }
+    }
+  });
+});

@@ -159,7 +159,7 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
     : property.priceSale !== null ? baht(property.priceSale)
       : d.common.priceOnRequest;
   const priceUnit = property.priceRent !== null
-    ? `${d.common.perMonth}${property.area ? ` · ฿${Math.round(property.priceRent / property.area)}/ตร.ม.` : ''}`
+    ? `${d.common.perMonth}${property.area ? ` · ฿${Math.round(property.priceRent / property.area)}/${d.common.sqm}` : ''}`
     : '';
 
   return (

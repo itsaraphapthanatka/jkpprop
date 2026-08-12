@@ -9,6 +9,7 @@ import { stripInternal, displayArea, displayLocation } from '@/lib/server/proper
 import { propertyType } from '@/lib/propertySchema';
 import { enumLabel } from '@/i18n/enums';
 import { isLocale, DEFAULT_LOCALE, type Locale } from '@/i18n/config';
+import { getDictionary } from '@/i18n/dictionaries';
 import { buildSpecs } from '@/lib/server/propertySpecs';
 import { loadPublicListings } from '@/lib/server/publicListings';
 import { loadCompany } from '@/lib/server/company';
@@ -35,14 +36,18 @@ async function load(code: string) {
   return { p, values };
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {
-  const { code } = await params;
+/* The search-result snippet, which is the whole point of rendering this on the
+   server — it was written in Thai for all three locales. */
+export async function generateMetadata({ params }: { params: Promise<{ locale: string; code: string }> }): Promise<Metadata> {
+  const { locale: raw, code } = await params;
+  const locale: Locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
+  const d = getDictionary(locale);
   const found = await load(code).catch(() => null);
-  if (!found) return { title: 'ไม่พบทรัพย์ · JKP Property' };
+  if (!found) return { title: `${d.listing.emptyTitle} · JKP Property` };
   const area = displayArea(found.values);
   return {
     title: `${found.p.title} · ${found.p.publicCode} · JKP Property`,
-    description: [found.p.title, displayLocation(found.values), area ? `${area.toLocaleString('th-TH')} ตร.ม.` : '']
+    description: [found.p.title, displayLocation(found.values), area ? `${area.toLocaleString('en-US')} ${d.common.sqm}` : '']
       .filter(Boolean).join(' · '),
   };
 }

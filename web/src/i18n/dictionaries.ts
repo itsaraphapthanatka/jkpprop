@@ -27,7 +27,7 @@ export type Dictionary = {
     address: string; search: string; viewDetail: string; viewAll: string; showAll: string; contactUs: string;
     perMonth: string; sqm: string; priceOnRequest: string; loading: string;
     backToHome: string; language: string; price: string; apply: string; clear: string;
-    home: string; noPhoto: string; confirm: string;
+    home: string; noPhoto: string; confirm: string; million: string;
   };
   hero: {
     headline1: string; headline2: string; headlineTail: string; sub: string; searchPlaceholder: string;
@@ -142,7 +142,7 @@ const th: Dictionary = {
     address: 'กรุงเทพมหานคร, ประเทศไทย', search: 'ค้นหา', viewDetail: 'ดูรายละเอียด', viewAll: 'ดูทั้งหมด', showAll: 'แสดงทั้งหมด',
     contactUs: 'ติดต่อเรา', perMonth: '/ เดือน', sqm: 'ตร.ม.', priceOnRequest: 'ติดต่อสอบถาม',
     loading: 'กำลังโหลด…', backToHome: 'กลับสู่หน้าแรก', language: 'ภาษา', price: 'ราคา',
-    apply: 'นำไปใช้', clear: 'ล้างค่า', home: 'หน้าแรก', noPhoto: 'ยังไม่มีรูป', confirm: 'ยืนยัน',
+    apply: 'นำไปใช้', clear: 'ล้างค่า', home: 'หน้าแรก', noPhoto: 'ยังไม่มีรูป', confirm: 'ยืนยัน', million: 'ล้าน',
   },
   hero: {
     headline1: 'สำรวจอสังหาริมทรัพย์อุตสาหกรรม', headline2: 'หรือโรงงานทั่วประเทศไทย',
@@ -328,7 +328,7 @@ const en: Dictionary = {
     address: 'Bangkok, Thailand', search: 'Search', viewDetail: 'View details', viewAll: 'View all', showAll: 'Show all',
     contactUs: 'Contact us', perMonth: '/ month', sqm: 'sqm', priceOnRequest: 'Price on request',
     loading: 'Loading…', backToHome: 'Back to home', language: 'Language', price: 'Price',
-    apply: 'Apply', clear: 'Clear', home: 'Home', noPhoto: 'No photo yet', confirm: 'Confirm',
+    apply: 'Apply', clear: 'Clear', home: 'Home', noPhoto: 'No photo yet', confirm: 'Confirm', million: 'million',
   },
   hero: {
     headline1: 'Find industrial property', headline2: 'and factories across Thailand',
@@ -514,7 +514,7 @@ const zh: Dictionary = {
     address: '泰国曼谷', search: '搜索', viewDetail: '查看详情', viewAll: '查看全部', showAll: '显示全部',
     contactUs: '联系我们', perMonth: '/ 月', sqm: '平方米', priceOnRequest: '价格面议',
     loading: '加载中…', backToHome: '返回首页', language: '语言', price: '价格',
-    apply: '应用', clear: '清除', home: '首页', noPhoto: '暂无照片', confirm: '确认',
+    apply: '应用', clear: '清除', home: '首页', noPhoto: '暂无照片', confirm: '确认', million: '百万',
   },
   hero: {
     headline1: '寻找泰国工业地产', headline2: '与厂房资源',
