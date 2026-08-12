@@ -11,11 +11,22 @@ import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
 import { advanceLead } from '@/lib/server/leadPipeline';
 import { displayArea } from '@/lib/server/propertyDto';
+import { asLocations } from '@/lib/server/requirements';
 
 async function loadScoped(id: string, orgId: string) {
   const s = await db.shortlist.findFirst({
     where: { id, orgId },
-    include: { items: { orderBy: { sort: 'asc' } } },
+    include: {
+      items: { orderBy: { sort: 'asc' } },
+      /* the criteria this list is meant to satisfy — the screen showed a
+         hardcoded "REQ-1042 · 2,000–3,500 ตร.ม." summary next to whatever
+         shortlist happened to be open */
+      requirement: { select: {
+        id: true, code: true, dealIntent: true, usage: true,
+        areaMin: true, areaMax: true, budgetMin: true, budgetMax: true,
+        moveIn: true, needsRor4: true, locations: true,
+      } },
+    },
   });
   if (!s) throw new ApiError('NOT_FOUND', 'ไม่พบ shortlist นี้', 404);
   return s;
@@ -57,6 +68,21 @@ export const GET = handler(async (_req: Request, ctx: { params: Promise<{ id: st
     id: s.id, name: s.name, token: s.token, status: s.status,
     url: `/client-shortlist?token=${s.token}`,
     leadId: s.leadId,
+    requirement: s.requirement
+      ? {
+        id: s.requirement.id,
+        code: s.requirement.code,
+        dealIntent: s.requirement.dealIntent,
+        usage: s.requirement.usage,
+        areaMin: s.requirement.areaMin,
+        areaMax: s.requirement.areaMax,
+        budgetMin: s.requirement.budgetMin,
+        budgetMax: s.requirement.budgetMax,
+        moveIn: s.requirement.moveIn ? s.requirement.moveIn.getTime() : null,
+        needsRor4: s.requirement.needsRor4,
+        locations: asLocations(s.requirement.locations),
+      }
+      : null,
     items: await itemsDto(s.items),
   });
 });

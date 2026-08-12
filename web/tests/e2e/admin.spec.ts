@@ -1025,3 +1025,82 @@ test.describe('Flow B — requirement to shortlist', () => {
     }
   });
 });
+
+test.describe('the shortlist screen shows the shortlist it will send', () => {
+  /* The rows, the candidates, the requirement summary and the title were all
+     constants — but the send button was real, PATCHing the newest actual
+     shortlist. You could read two properties off the screen, press send, and
+     the customer would receive two different ones. Reorder, remove and add
+     were local state that vanished on refresh; the note field had no handler
+     at all. The API behind it was complete the whole time. */
+  let cookie = '';
+
+  test.beforeEach(async ({ page }) => {
+    await signIn(page, OWNER);
+    cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  });
+
+  test('the rows on screen are the rows in the record', async ({ page, request }) => {
+    const list = await (await request.get('/api/shortlists', { headers: { cookie } })).json();
+    const withRows = (list.items as { id: string; count: number }[]).find((s) => s.count > 0);
+    test.skip(!withRows, 'no shortlist with rows to look at');
+
+    const detail = await (await request.get(`/api/shortlists/${withRows!.id}`, { headers: { cookie } })).json();
+    const codes = (detail.items as { code: string }[]).map((i) => i.code);
+    expect(codes.length, 'the record says it has rows but the detail is empty').toBeGreaterThan(0);
+
+    await page.goto(`/admin/shortlists/${withRows!.id}`);
+    for (const code of codes) {
+      await expect(page.getByText(code, { exact: true }).first(), `${code} is missing from the screen`).toBeVisible();
+    }
+
+    // and the invented ones are gone
+    for (const ghost of ['JKP-PTE0033', 'SL-208']) {
+      await expect(page.getByText(ghost, { exact: true }), `${ghost} is demo data`).toHaveCount(0);
+    }
+  });
+
+  test('the header names the real record, not SL-208', async ({ page, request }) => {
+    const list = await (await request.get('/api/shortlists', { headers: { cookie } })).json();
+    const first = list.items?.[0];
+    test.skip(!first, 'no shortlist to look at');
+
+    await page.goto(`/admin/shortlists/${first.id}`);
+    await expect(page.locator('h1')).toContainText(first.name);
+  });
+
+  test('removing a row persists across a reload', async ({ page, request }) => {
+    // build a throwaway shortlist from real properties
+    const props = await (await request.get('/api/properties', { headers: { cookie } })).json();
+    const codes = (props.items as { publicCode: string; status: string }[])
+      .filter((p) => p.status === 'active').slice(0, 2).map((p) => p.publicCode);
+    test.skip(codes.length < 2, 'need two active properties');
+
+    const made = await request.post('/api/shortlists', {
+      headers: { cookie }, data: { name: `e2e-shortlist-${Date.now().toString(36)}`, codes },
+    });
+    expect(made.status()).toBe(201);
+    const { id } = await made.json();
+
+    await page.goto(`/admin/shortlists/${id}`);
+    await expect(page.getByText(codes[0], { exact: true }).first()).toBeVisible();
+
+    await page.getByTitle('เอาออกจาก shortlist').first().click();
+    await expect.poll(async () => {
+      const d = await (await request.get(`/api/shortlists/${id}`, { headers: { cookie } })).json();
+      return (d.items as unknown[]).length;
+    }, { message: 'the removal never reached the server' }).toBe(1);
+
+    await page.reload();
+    await expect(page.getByTitle('เอาออกจาก shortlist')).toHaveCount(1);
+
+    await request.delete(`/api/shortlists/${id}`, { headers: { cookie } }).catch(() => null);
+  });
+
+  test('an empty database says so instead of showing a demo shortlist', async ({ page, request }) => {
+    const list = await (await request.get('/api/shortlists', { headers: { cookie } })).json();
+    test.skip((list.items ?? []).length > 0, 'there are real shortlists — nothing to assert');
+    await page.goto('/admin/shortlists');
+    await expect(page.getByText('ยังไม่มี shortlist')).toBeVisible();
+  });
+});

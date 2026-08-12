@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { apiGet, apiPatch, ApiClientError } from '@/lib/apiClient';
 
 /* ============================================================
@@ -19,38 +20,61 @@ import { apiGet, apiPatch, ApiClientError } from '@/lib/apiClient';
 const MONO = "'JetBrains Mono',monospace";
 const telHref = (phone: string) => 'tel:' + phone.replace(/[^+\d]/g, '');
 
-type CandDef = { id: string; title: string; code: string; size: string; price: string; owner: string; phone: string; blocked: boolean };
+/* Everything on this screen used to be a constant: two invented properties
+ * with invented landlord phone numbers, two "candidates", a requirement
+ * summary reading REQ-1042, and a title reading SL-208.
+ *
+ * The send button, though, was real — it PATCHed the newest actual shortlist
+ * to `sent`. So you could read two properties off the screen, press send, and
+ * the customer would receive two completely different ones. Reordering,
+ * removing and adding were local state that vanished on refresh.
+ *
+ * The API behind all of this already existed and was complete. This now uses
+ * it: GET /api/shortlists/:id for the rows, PATCH for order / add / remove /
+ * send. Availability is the property's live status, not a local toggle.
+ */
 
-const CAND_DEFS: CandDef[] = [
-  { id: 'c1', title: 'โรงงานผลิตอาหาร นวนคร 4,200 ตร.ม.', code: 'JKP-PTE0033', size: '4,200 ตร.ม.', price: '฿245,000/ด.', owner: 'คุณอนันต์ (เจ้าของ)', phone: '+66 82-345-6789', blocked: false },
-  { id: 'c2', title: 'คลังสินค้าแหลมฉบัง 5,000 ตร.ม.', code: 'JKP-CBI0007', size: '5,000 ตร.ม.', price: '฿310,000/ด.', owner: 'คุณเมธี (เจ้าของ)', phone: '+66 84-567-8901', blocked: true },
-];
-
-type BaseItem = { title: string; code: string; size: string; price: string; note: string; owner: string; phone: string };
-const INITIAL_ITEMS: BaseItem[] = [
-  { title: 'โกดังพร้อมสำนักงาน 2,700 ตร.ม.', code: 'JKP-SPK0042', size: '2,700 ตร.ม.', price: '฿176,000/ด.', note: 'ตรงงบ + มี ร.ง.4 พร้อม', owner: 'คุณสมชาย (เจ้าของ)', phone: '+66 81-234-5678' },
-  { title: 'โกดังให้เช่า มหาชัย 1,800 ตร.ม.', code: 'JKP-SKN0015', size: '1,800 ตร.ม.', price: '฿88,000/ด.', note: 'เล็กกว่าเกณฑ์เล็กน้อย แต่ทำเลดี', owner: 'คุณวิภา (เจ้าของ)', phone: '+66 89-876-5432' },
-];
-
-const REQ_SUMMARY = [
-  { k: 'ต้องการ', v: 'เช่าโกดัง' }, { k: 'ขนาด', v: '2,000–3,500 ตร.ม.' },
-  { k: 'งบเช่า', v: '฿150K–250K/ด.' }, { k: 'ร.ง.4', v: 'ต้องได้' }, { k: 'ย้ายเข้า', v: '1 ก.ย. 2026' },
-];
-
-const LOCATIONS = [
-  { rank: '1', name: 'สมุทรปราการ' }, { rank: '2', name: 'ชลบุรี (ศรีราชา)' }, { rank: '3', name: 'ฉะเชิงเทรา' },
-];
-
-/* one lookup for every possible row (base items + candidates) */
-type Row = { key: string; cid?: string; title: string; code: string; size: string; price: string; note: string; owner: string; phone: string };
-const DATA_BY_KEY: Record<string, Row> = {};
-INITIAL_ITEMS.forEach((it, i) => { DATA_BY_KEY['base' + i] = { key: 'base' + i, title: it.title, code: it.code, size: it.size, price: it.price, note: it.note, owner: it.owner, phone: it.phone }; });
-CAND_DEFS.forEach((c) => { DATA_BY_KEY['add' + c.id] = { key: 'add' + c.id, cid: c.id, title: c.title, code: c.code, size: c.size, price: c.price, note: '', owner: c.owner, phone: c.phone }; });
+type ApiItem = {
+  id: string; code: string; title: string; size: string; price: string;
+  note: string; owner: string; phone: string; available: boolean; sort: number;
+};
+type ApiRequirement = {
+  id: string; code: string; dealIntent: string; usage: string;
+  areaMin: number | null; areaMax: number | null;
+  budgetMin: number | null; budgetMax: number | null;
+  moveIn: number | null; needsRor4: boolean; locations: { name: string }[];
+};
+type ApiDetail = {
+  id: string; name: string; token: string; status: string; url: string;
+  leadId: string | null; requirement: ApiRequirement | null; items: ApiItem[];
+};
+type ApiProperty = { publicCode: string; title: string; status: string; location?: string; area?: number | null };
 
 type Avail = 'available' | 'unavailable';
 
-type CandidateVal = CandDef & { canAdd: boolean; isAdded: boolean; dim: boolean; add: () => void };
-type ItemVal = Row & { rank: string; avail: Avail; rechecked: boolean; remove: () => void };
+type Row = { key: string; title: string; code: string; size: string; price: string; note: string; owner: string; phone: string };
+type CandidateVal = { id: string; title: string; code: string; size: string; price: string; owner: string; phone: string; blocked: boolean; canAdd: boolean; isAdded: boolean; dim: boolean; add: () => void };
+type ItemVal = Row & { rank: string; avail: Avail; remove: () => void };
+
+const nf = new Intl.NumberFormat('en-US');
+const fmtRange = (a: number | null, b: number | null, unit: string) => {
+  if (a === null && b === null) return '—';
+  if (a !== null && b !== null) return `${nf.format(a)}–${nf.format(b)} ${unit}`;
+  return `${nf.format((a ?? b)!)} ${unit}`;
+};
+
+/** the criteria panel, built from the requirement this shortlist answers */
+function summaryOf(r: ApiRequirement | null): { k: string; v: string }[] {
+  if (!r) return [];
+  const out = [{ k: 'ต้องการ', v: [r.dealIntent, r.usage].filter(Boolean).join(' · ') || '—' }];
+  if (r.areaMin !== null || r.areaMax !== null) out.push({ k: 'ขนาด', v: fmtRange(r.areaMin, r.areaMax, 'ตร.ม.') });
+  if (r.budgetMin !== null || r.budgetMax !== null) {
+    out.push({ k: r.dealIntent.includes('ขาย') ? 'งบซื้อ' : 'งบเช่า', v: fmtRange(r.budgetMin, r.budgetMax, r.dealIntent.includes('ขาย') ? '฿' : '฿/ด.') });
+  }
+  if (r.needsRor4) out.push({ k: 'ร.ง.4', v: 'ต้องได้' });
+  if (r.moveIn) out.push({ k: 'ย้ายเข้า', v: new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(r.moveIn)) });
+  return out;
+}
 
 interface ShortlistState {
   sendOpen: boolean;
@@ -60,15 +84,23 @@ interface ShortlistState {
   items: ItemVal[];
   itemCount: number;
   reorder: (fromKey: string, toKey: string) => void;
-  setAvailability: (key: string, status: Avail) => void;
+  /** per-item internal note — the field used to be write-only */
+  saveNote: (itemId: string, text: string) => void;
   /** the tokenized client link, once the shortlist exists server-side */
   shareUrl: string;
   sending: boolean;
   sent: boolean;
   confirmSend: () => void;
+  /* what the header and the side panels used to hardcode */
+  name: string;
+  status: string;
+  requirement: ApiRequirement | null;
+  reqSummary: { k: string; v: string }[];
+  locations: { rank: string; name: string }[];
+  loading: boolean;
+  empty: boolean;
+  error: string;
 }
-
-type ApiShortlist = { id: string; name: string; token: string; url: string; status: string };
 
 const ShortlistCtx = React.createContext<ShortlistState | null>(null);
 
@@ -77,99 +109,116 @@ function useShortlist(): ShortlistState {
   if (!ctx) throw new Error('useShortlist must be used within ShortlistProvider');
   return ctx;
 }
+export { useShortlist };
 
 export function ShortlistProvider({ children, shortlistId }: { children: React.ReactNode; shortlistId?: string }) {
   const [sendOpen, setSendOpen] = React.useState(false);
-  const [added, setAdded] = React.useState<Record<string, boolean>>({});
-  const [removed, setRemoved] = React.useState<Record<string, boolean>>({});
-  const [order, setOrder] = React.useState<string[]>(INITIAL_ITEMS.map((_, i) => 'base' + i));
-  const [avail, setAvail] = React.useState<Record<string, Avail>>({});
-  const [rechecked, setRechecked] = React.useState<Record<string, boolean>>({});
-
-  const candidates: CandidateVal[] = CAND_DEFS.map((c) => {
-    const isAdded = !!added[c.id];
-    return {
-      ...c,
-      canAdd: !c.blocked && !isAdded,
-      isAdded,
-      dim: c.blocked || isAdded,
-      add: () => {
-        setAdded((prev) => ({ ...prev, [c.id]: true }));
-        setOrder((prev) => (prev.includes('add' + c.id) ? prev : [...prev, 'add' + c.id]));
-      },
-    };
-  });
-
-  // current members (base not removed + added candidates), sequenced by `order`
-  const memberKeys = new Set<string>();
-  INITIAL_ITEMS.forEach((_, i) => { const k = 'base' + i; if (!removed[k]) memberKeys.add(k); });
-  CAND_DEFS.forEach((c) => { if (added[c.id]) memberKeys.add('add' + c.id); });
-  const seq = order.filter((k) => memberKeys.has(k));
-  memberKeys.forEach((k) => { if (!seq.includes(k)) seq.push(k); });
-
-  const removeKey = (key: string, cid?: string) => {
-    if (cid) setAdded((prev) => { const a = { ...prev }; delete a[cid]; return a; });
-    else setRemoved((prev) => ({ ...prev, [key]: true }));
-    setOrder((prev) => prev.filter((k) => k !== key));
-  };
-
-  const items: ItemVal[] = seq.map((key, i) => {
-    const d = DATA_BY_KEY[key];
-    return {
-      ...d,
-      rank: String(i + 1),
-      avail: avail[key] ?? 'available',
-      rechecked: !!rechecked[key],
-      remove: () => removeKey(key, d.cid),
-    };
-  });
-
-  const reorder = (fromKey: string, toKey: string) => {
-    if (fromKey === toKey) return;
-    setOrder((prev) => {
-      const cur = prev.filter((k) => memberKeys.has(k));
-      // include any member missing from order (safety)
-      memberKeys.forEach((k) => { if (!cur.includes(k)) cur.push(k); });
-      const fi = cur.indexOf(fromKey);
-      const ti = cur.indexOf(toKey);
-      if (fi < 0 || ti < 0) return prev;
-      const [moved] = cur.splice(fi, 1);
-      const dest = cur.indexOf(toKey);
-      cur.splice(fi < ti ? dest + 1 : dest, 0, moved);
-      return cur;
-    });
-  };
-
-  const setAvailability = (key: string, status: Avail) => {
-    setAvail((prev) => ({ ...prev, [key]: status }));
-    setRechecked((prev) => ({ ...prev, [key]: true }));
-  };
-
-  /* the shortlist record behind this screen (no :id segment yet, so the most
-     recent open one) — gives us the real token link and the send action */
-  const [record, setRecord] = React.useState<ApiShortlist | null>(null);
+  const [detail, setDetail] = React.useState<ApiDetail | null>(null);
+  const [pool, setPool] = React.useState<ApiProperty[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState('');
+  const [busy, setBusy] = React.useState(false);
   const [sending, setSending] = React.useState(false);
-  const [sent, setSent] = React.useState(false);
-  React.useEffect(() => {
-    apiGet<{ items: ApiShortlist[] }>('/api/shortlists')
-      .then((r) => {
-        // /admin/shortlists/<id> pins a record; the plain route takes the newest
-        const s = shortlistId ? r.items?.find((x) => x.id === shortlistId) : r.items?.[0];
-        if (!s) return;
-        setRecord(s);
-        setSent(s.status === 'sent');
-      })
-      .catch(() => { /* none yet — the demo link stays */ });
+
+  /* resolve which shortlist this is: the pinned id, else the newest */
+  const load = React.useCallback(async () => {
+    try {
+      let id = shortlistId;
+      if (!id) {
+        const list = await apiGet<{ items: { id: string }[] }>('/api/shortlists');
+        id = list.items?.[0]?.id;
+      }
+      if (!id) { setDetail(null); setError(''); return; }
+      const d = await apiGet<ApiDetail>(`/api/shortlists/${id}`);
+      setDetail(d);
+      setError('');
+    } catch (e) {
+      setError(e instanceof ApiClientError ? e.message : 'โหลด shortlist ไม่สำเร็จ');
+    } finally {
+      setLoading(false);
+    }
   }, [shortlistId]);
 
+  React.useEffect(() => { void load(); }, [load]);
+
+  /* properties that could still be added — published inventory only, minus
+     what is already in the list. The old "candidates" were two fixed rows. */
+  React.useEffect(() => {
+    apiGet<{ items: ApiProperty[] }>('/api/properties')
+      .then((r) => setPool((r.items ?? []).filter((p) => p.status === 'active')))
+      .catch(() => setPool([]));
+  }, []);
+
+  const patch = async (payload: Record<string, unknown>) => {
+    if (!detail || busy) return;
+    setBusy(true);
+    try {
+      await apiPatch(`/api/shortlists/${detail.id}`, payload);
+      await load();
+    } catch (e) {
+      window.alert(e instanceof ApiClientError ? e.message : 'บันทึกไม่สำเร็จ');
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const rows = detail?.items ?? [];
+  const inList = new Set(rows.map((r) => r.code));
+
+  const items: ItemVal[] = rows.map((it, i) => ({
+    key: it.id,
+    title: it.title,
+    code: it.code,
+    size: it.size,
+    price: it.price,
+    note: it.note,
+    owner: it.owner,
+    phone: it.phone,
+    rank: String(i + 1),
+    // live, from the property's own status — not a local toggle
+    avail: it.available ? 'available' : 'unavailable',
+    remove: () => void patch({ removeIds: [it.id] }),
+  }));
+
+  const candidates: CandidateVal[] = pool
+    .filter((p) => !inList.has(p.publicCode))
+    .slice(0, 8)
+    .map((p) => ({
+      id: p.publicCode,
+      code: p.publicCode,
+      title: p.title,
+      size: p.area ? `${nf.format(p.area)} ตร.ม.` : '—',
+      price: '—',
+      owner: '—',
+      phone: '',
+      blocked: false,
+      canAdd: true,
+      isAdded: false,
+      dim: false,
+      add: () => void patch({ addCodes: [p.publicCode] }),
+    }));
+
+  const reorder = (fromKey: string, toKey: string) => {
+    const ids = rows.map((r) => r.id);
+    const fi = ids.indexOf(fromKey);
+    const ti = ids.indexOf(toKey);
+    if (fi < 0 || ti < 0 || fi === ti) return;
+    const next = [...ids];
+    const [moved] = next.splice(fi, 1);
+    next.splice(ti, 0, moved);
+    void patch({ order: next });
+  };
+
+  const saveNote = (itemId: string, text: string) => void patch({ notes: { [itemId]: text } });
+
   const confirmSend = () => {
-    if (sending) return;
-    if (!record) { setSendOpen(false); setSent(true); return; }
+    if (!detail || sending) return;
     setSending(true);
     // the server re-checks availability (FR-AVL-04) and refuses to send a
     // shortlist containing a listing that is no longer on the market
-    apiPatch<ApiShortlist>(`/api/shortlists/${record.id}`, { status: 'sent' })
-      .then(() => { setSent(true); setSendOpen(false); })
+    apiPatch(`/api/shortlists/${detail.id}`, { status: 'sent' })
+      .then(() => { setSendOpen(false); return load(); })
       .catch((e) => window.alert(e instanceof ApiClientError ? e.message : 'ส่ง shortlist ไม่สำเร็จ'))
       .finally(() => setSending(false));
   };
@@ -182,11 +231,19 @@ export function ShortlistProvider({ children, shortlistId }: { children: React.R
     items,
     itemCount: items.length,
     reorder,
-    setAvailability,
-    shareUrl: record ? `${typeof window === 'undefined' ? '' : window.location.origin}${record.url}` : 'jkp.co/s/SL-208-x9f2a1',
+    saveNote,
+    shareUrl: detail ? `${typeof window === 'undefined' ? '' : window.location.origin}${detail.url}` : '',
     sending,
-    sent,
+    sent: detail?.status === 'sent',
     confirmSend,
+    name: detail?.name ?? '',
+    status: detail?.status ?? '',
+    requirement: detail?.requirement ?? null,
+    reqSummary: summaryOf(detail?.requirement ?? null),
+    locations: (detail?.requirement?.locations ?? []).map((l, i) => ({ rank: String(i + 1), name: l.name })),
+    loading,
+    empty: !loading && !detail && !error,
+    error,
   };
 
   return <ShortlistCtx.Provider value={value}>{children}</ShortlistCtx.Provider>;
@@ -207,7 +264,9 @@ export function ShortlistActions() {
 
 /* A single ranked shortlist row (drag handle + call re-check + trash). */
 function ShortlistItem({ it }: { it: ItemVal }) {
-  const { reorder, setAvailability } = useShortlist();
+  const { reorder, saveNote } = useShortlist();
+  const [note, setNote] = React.useState(it.note);
+  React.useEffect(() => setNote(it.note), [it.note]);
   const [drag, setDrag] = React.useState<null | 'src' | 'over'>(null);
   const [checkOpen, setCheckOpen] = React.useState(false);
   const cardRef = React.useRef<HTMLDivElement | null>(null);
@@ -265,8 +324,7 @@ function ShortlistItem({ it }: { it: ItemVal }) {
               </span>
             ) : (
               <span style={{ height: 19, padding: '0 8px', borderRadius: 9999, background: '#2DFB91', color: '#022310', fontSize: 10, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                {it.rechecked && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#022310" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg>}
-                {it.rechecked ? 'ว่าง · เช็คแล้ว' : 'ว่าง'}
+                ว่าง
               </span>
             )}
           </div>
@@ -308,20 +366,17 @@ function ShortlistItem({ it }: { it: ItemVal }) {
               โทร {it.phone}
             </a>
           </div>
+          {/* The two buttons that used to sit here ("ยังว่าง" / "ไม่ว่างแล้ว")
+              only coloured themselves in — nothing was saved, and the send
+              gate never read them. Availability on this screen is the
+              property's own status, so it is changed where it lives. */}
           <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 12, color: 'var(--muted)' }}>ผลการเช็ค:</span>
-            <div
-              onClick={() => setAvailability(it.key, 'available')}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 32, padding: '0 13px', borderRadius: 9999, cursor: 'pointer', fontSize: 12, fontWeight: 700, border: '1.5px solid #0D6C3B', color: it.rechecked && !unavailable ? '#fff' : '#0D6C3B', background: it.rechecked && !unavailable ? '#0D6C3B' : 'transparent' }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"><path d="M20 6L9 17l-5-5" /></svg>ยังว่าง
-            </div>
-            <div
-              onClick={() => setAvailability(it.key, 'unavailable')}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 32, padding: '0 13px', borderRadius: 9999, cursor: 'pointer', fontSize: 12, fontWeight: 700, border: '1.5px solid #C0392B', color: unavailable ? '#fff' : '#C0392B', background: unavailable ? '#C0392B' : 'transparent' }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"><path d="M18 6L6 18M6 6l12 12" /></svg>ไม่ว่างแล้ว
-            </div>
+            <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+              สถานะว่างอ่านจากสถานะทรัพย์ — ถ้าปล่อยไปแล้ว ให้เปลี่ยนที่หน้าทรัพย์
+            </span>
+            <Link href={`/admin/properties?q=${encodeURIComponent(it.code)}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 32, padding: '0 13px', borderRadius: 9999, fontSize: 12, fontWeight: 700, border: '1.5px solid var(--border)', color: 'var(--accent)' }}>
+              เปิด {it.code}
+            </Link>
           </div>
         </div>
       )}
@@ -329,7 +384,15 @@ function ShortlistItem({ it }: { it: ItemVal }) {
       {/* internal note */}
       <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg)', borderRadius: 10, padding: '9px 12px' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.8" style={{ flexShrink: 0 }}><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" /></svg>
-        <input defaultValue={it.note} placeholder="โน้ตภายใน (ลูกค้าไม่เห็น)" style={{ border: 0, outline: 'none', background: 'transparent', fontSize: '12.5px', color: 'var(--text)', flex: 1, minWidth: 0 }} />
+        {/* the note was a defaultValue with no handler — typed, then lost */}
+        <input
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          onBlur={() => { if (note !== it.note) saveNote(it.key, note); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+          placeholder="โน้ตภายใน (ลูกค้าไม่เห็น)"
+          style={{ border: 0, outline: 'none', background: 'transparent', fontSize: '12.5px', color: 'var(--text)', flex: 1, minWidth: 0 }}
+        />
       </div>
     </div>
   );
@@ -337,7 +400,22 @@ function ShortlistItem({ it }: { it: ItemVal }) {
 
 /* Ported <main> content. */
 export function ShortlistMain() {
-  const { candidates, items, sendOpen, closeSend, shareUrl, sending, sent, confirmSend } = useShortlist();
+  const { candidates, items, sendOpen, closeSend, shareUrl, sending, sent, confirmSend, name, requirement, reqSummary, locations, loading, empty, error } = useShortlist();
+
+  if (loading) return <div style={{ padding: '48px 0', textAlign: 'center', fontSize: 13, color: 'var(--muted3)' }}>กำลังโหลด…</div>;
+  if (error) return <div style={{ padding: '20px 22px', borderRadius: 14, background: '#FDECEC', color: '#A32A2A', fontSize: 13, fontWeight: 600 }}>{error}</div>;
+  /* An empty state, rather than a demo shortlist that looks like data. */
+  if (empty) {
+    return (
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '48px 22px', textAlign: 'center' }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>ยังไม่มี shortlist</div>
+        <div style={{ marginTop: 6, fontSize: '12.5px', color: 'var(--muted)', lineHeight: 1.7 }}>
+          สร้างจากหน้า Requirement — เช็คความว่างกับเจ้าของทรัพย์ก่อน แล้วกด &ldquo;สร้าง Shortlist&rdquo;
+        </div>
+        <Link href="/admin/requirements" style={{ display: 'inline-block', marginTop: 14, fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>ไปหน้า Requirements →</Link>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -346,10 +424,17 @@ export function ShortlistMain() {
         <div id="sl-side" style={{ position: 'sticky', top: 88, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ background: 'linear-gradient(135deg,#043F20 0%,#022310 100%)', borderRadius: 16, padding: 22, color: '#fff' }}>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.06em', color: '#8FE6B6', textTransform: 'uppercase' }}>ตรึงไว้เทียบ</div>
-            <div style={{ marginTop: 6, fontSize: 16, fontWeight: 800 }}>บ. ไทยโลจิสติกส์</div>
-            <div style={{ fontSize: '12.5px', color: '#C3FED5' }}>REQ-1042 · เช่าโกดัง</div>
+            <div style={{ marginTop: 6, fontSize: 16, fontWeight: 800 }}>{name || 'Shortlist'}</div>
+            <div style={{ fontSize: '12.5px', color: '#C3FED5' }}>
+              {requirement ? `${requirement.code} · ${[requirement.dealIntent, requirement.usage].filter(Boolean).join(' ')}` : 'ไม่ได้ผูกกับ requirement'}
+            </div>
             <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {REQ_SUMMARY.map((q) => (
+              {reqSummary.length === 0 && (
+                <div style={{ fontSize: '12.5px', color: '#9FD9BA', lineHeight: 1.7 }}>
+                  shortlist นี้สร้างขึ้นเองโดยไม่ได้ผูกกับ requirement จึงไม่มีเกณฑ์ให้เทียบ
+                </div>
+              )}
+              {reqSummary.map((q) => (
                 <div key={q.k} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingBottom: 10, borderBottom: '1px solid rgba(255,255,255,.1)' }}>
                   <span style={{ fontSize: 12, color: '#B9C2BD' }}>{q.k}</span>
                   <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#fff', textAlign: 'right' }}>{q.v}</span>
@@ -359,7 +444,10 @@ export function ShortlistMain() {
           </div>
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '18px 20px' }}>
             <div style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text)', marginBottom: 10 }}>พื้นที่ที่ต้องการ</div>
-            {LOCATIONS.map((l) => (
+            {locations.length === 0 && (
+              <div style={{ fontSize: '12px', color: 'var(--muted3)' }}>ไม่ได้ระบุไว้</div>
+            )}
+            {locations.map((l) => (
               <div key={l.rank} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 0' }}>
                 <span style={{ width: 20, height: 20, borderRadius: 6, background: 'var(--tint)', color: 'var(--accent)', fontSize: '10.5px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{l.rank}</span>
                 <span style={{ fontSize: '12.5px', color: 'var(--text)' }}>{l.name}</span>
