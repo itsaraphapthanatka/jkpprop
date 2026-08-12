@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from '@/i18n/LocaleLink';
 import { useDict } from '@/i18n/useDict';
 
 export function Floating() {
@@ -137,7 +138,8 @@ export function Floating() {
           </div>
           <p style={{ margin: '14px 0 0', fontSize: 13, color: 'var(--muted)', lineHeight: 1.65 }}>
             {d.floating.cookieBody}{' '}
-            <a href="#" style={{ color: 'var(--accent)', fontWeight: 600 }}>{d.floating.pdpa}</a>
+            {/* the PDPA notice linked to "#" — the one link a cookie banner must have */}
+            <Link href="/p/privacy" style={{ color: 'var(--accent)', fontWeight: 600 }}>{d.floating.pdpa}</Link>
           </p>
           <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
             <button

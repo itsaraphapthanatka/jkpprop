@@ -4,6 +4,7 @@ import { loadPageCopy, section } from '@/lib/server/sectionCopy';
 import { htmlToText } from '@/lib/sanitizeHtml';
 import { isLocale, DEFAULT_LOCALE } from '@/i18n/config';
 import { loadCompany } from '@/lib/server/company';
+import { listCmsPages } from '@/lib/server/cmsPages';
 import { getDictionary } from '@/i18n/dictionaries';
 import { ContentHeader } from '@/components/site/ContentHeader';
 import { ContentFooter } from '@/components/site/ContentFooter';
@@ -38,6 +39,7 @@ export default async function FaqPage({ params }: { params: Promise<{ locale: st
   const { locale: raw } = await params;
   const locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
   const company = await loadCompany(locale);
+  const pages = await listCmsPages(locale).catch(() => []);
   const cats = await loadFaq(locale).catch(() => []);
   const c = await loadPageCopy('faq', locale).catch(() => ({}));
 
@@ -71,7 +73,7 @@ export default async function FaqPage({ params }: { params: Promise<{ locale: st
       )}
       <ContentHeader active="faq" />
       <FaqBody cats={cats} copy={section(c, 'fh')} />
-      <ContentFooter email={company.generalEmail} phone={company.phones[0]?.number} location={company.shortLocation} />
+      <ContentFooter email={company.generalEmail} phone={company.phones[0]?.number} location={company.shortLocation} socials={company.socials} pages={pages} />
     </div>
   );
 }

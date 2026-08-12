@@ -5,11 +5,12 @@ import Link from '@/i18n/LocaleLink';
 import Image from 'next/image';
 import { useDict } from '@/i18n/useDict';
 import type { Company } from '@/lib/server/company';
+import { SocialLinks } from '@/components/site/SocialLinks';
 
 /* Contact details come from /admin/company. They were literals here —
    `info@thaiindustrialproperty.com` on a domain the company does not own, and
    `+66 90-000-0000`, which does not ring. */
-export function SiteFooter({ company }: { company: Company }) {
+export function SiteFooter({ company, pages = [] }: { company: Company; pages?: { slug: string; title: string }[] }) {
   const d = useDict();
   const footerRef = useRef<HTMLElement | null>(null);
   const spacerRef = useRef<HTMLDivElement | null>(null);
@@ -43,14 +44,6 @@ export function SiteFooter({ company }: { company: Company }) {
     };
   }, []);
 
-  const socialEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.currentTarget.style.background = 'var(--accent)';
-    e.currentTarget.style.color = '#fff';
-  };
-  const socialLeave = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.currentTarget.style.background = 'rgba(255,255,255,.07)';
-    e.currentTarget.style.color = '#C9C5BD';
-  };
   const contactEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.currentTarget.style.boxShadow = '0 10px 26px rgba(var(--neon-rgb),.45)';
   };
@@ -106,23 +99,7 @@ export function SiteFooter({ company }: { company: Company }) {
               {d.footer.tagline}
             </p>
             <div style={{ marginTop: 20, display: 'flex', gap: 10 }}>
-              <a href="#" onMouseEnter={socialEnter} onMouseLeave={socialLeave} style={socialBase}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                  <path d="M13 22v-8h2.7l.4-3H13V9c0-.9.3-1.5 1.5-1.5H16V4.8c-.3 0-1.3-.1-2.4-.1-2.4 0-4 1.4-4 4.1V11H7v3h2.6v8z" />
-                </svg>
-              </a>
-              <a href="#" onMouseEnter={socialEnter} onMouseLeave={socialLeave} style={socialBase}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="2" width="20" height="20" rx="5" />
-                  <circle cx="12" cy="12" r="4" />
-                  <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
-                </svg>
-              </a>
-              <a href="#" onMouseEnter={socialEnter} onMouseLeave={socialLeave} style={socialBase}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 11.5a8.4 8.4 0 01-9 8.4c-1.5 0-2.9-.4-4.1-1L3 20l1.2-4.8A8.3 8.3 0 013 11.5 8.5 8.5 0 0112 3a8.5 8.5 0 019 8.5z" />
-                </svg>
-              </a>
+              <SocialLinks socials={company.socials} iconStyle={socialBase} stroke="currentColor" />
             </div>
           </div>
           <div>
@@ -130,7 +107,6 @@ export function SiteFooter({ company }: { company: Company }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 11, fontSize: 14 }}>
               <Link href="/factory-rent" style={{ color: '#C9C5BD' }}>{d.nav.factoryRent}</Link>
               <Link href="/warehouse-rent" style={{ color: '#C9C5BD' }}>{d.nav.warehouseRent}</Link>
-              <a href="#" style={{ color: '#C9C5BD' }}>{d.footer.industrialLand}</a>
               <Link href="/factory-sale" style={{ color: '#C9C5BD' }}>{d.nav.factorySale}</Link>
             </div>
           </div>
@@ -138,8 +114,6 @@ export function SiteFooter({ company }: { company: Company }) {
             <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 16 }}>{d.footer.company}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 11, fontSize: 14 }}>
               <Link href="/about" style={{ color: '#C9C5BD' }}>{d.nav.about}</Link>
-              <a href="#" style={{ color: '#C9C5BD' }}>{d.footer.services}</a>
-              <a href="#" style={{ color: '#C9C5BD' }}>{d.footer.articles}</a>
               <Link href="/contact" style={{ color: '#C9C5BD' }}>{d.nav.contact}</Link>
             </div>
           </div>
@@ -212,8 +186,10 @@ export function SiteFooter({ company }: { company: Company }) {
           >
             <div>{d.footer.rights}</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24 }}>
-              <a href="#" style={{ color: '#8E8B84' }}>{d.footer.privacy}</a>
-              <a href="#" style={{ color: '#8E8B84' }}>{d.footer.terms}</a>
+              {/* only documents that exist — these were href="#" */}
+              {pages.map((pg) => (
+                <Link key={pg.slug} href={`/p/${pg.slug}`} style={{ color: '#8E8B84' }}>{pg.title}</Link>
+              ))}
             </div>
           </div>
         </div>

@@ -296,10 +296,11 @@ export function Header() {
               )}
             </div>
 
-            {/* contact */}
-            <a
+            {/* contact — was href="#", so the page's main call to action went
+                nowhere. Link, not <a>, or the visitor loses their language. */}
+            <Link
               className="contact-btn"
-              href="#"
+              href="/contact"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -318,7 +319,7 @@ export function Header() {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 5v14M5 12h14" />
               </svg>
-            </a>
+            </Link>
 
             {/* mobile menu button */}
             <div
@@ -422,13 +423,13 @@ export function Header() {
               </div>
             ))}
           </div>
-          <a href="#" style={{ marginTop: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, borderRadius: 9999, background: 'var(--neon)', color: 'var(--ink)', fontSize: '14.5px', fontWeight: 800 }}>
+          <Link href="/contact" style={{ marginTop: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, borderRadius: 9999, background: 'var(--neon)', color: 'var(--ink)', fontSize: '14.5px', fontWeight: 800 }}>
             {d.nav.contactTeam}
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2.4">
               <path d="M5 12h14" />
               <path d="M13 6l6 6-6 6" />
             </svg>
-          </a>
+          </Link>
         </div>
       </div>
     </>

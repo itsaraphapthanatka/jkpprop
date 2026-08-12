@@ -6,6 +6,7 @@ import { useDict } from '@/i18n/useDict';
 import { parseGeoPoint, mapEmbedUrl, mapLinkUrl } from '@/lib/geoPoint';
 import type { SectionCopy } from '@/lib/server/sectionCopy';
 import { telHref, type Company } from '@/lib/server/company';
+import { SocialLinks } from './SocialLinks';
 
 /* ============================================================
    Ported verbatim from Contact.dc.html — hero, info cards
@@ -122,9 +123,10 @@ export function ContactBody({ copy, company }: { copy: ContactCopy; company: Com
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 13, color: 'var(--muted2)' }}>{d.contact.contactAt}</span>
-            <a className="c-social" href="#" style={{ width: 38, height: 38, borderRadius: 11, background: '#04140C', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--neon)', transition: 'transform .2s,background .2s,color .2s' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.4 8.4 0 01-9 8.4c-1.5 0-2.9-.4-4.1-1L3 20l1.2-4.8A8.3 8.3 0 013 11.5 8.5 8.5 0 0112 3a8.5 8.5 0 019 8.5z" /></svg></a>
-            <a className="c-social" href="#" style={{ width: 38, height: 38, borderRadius: 11, background: '#04140C', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--neon)', transition: 'transform .2s,background .2s,color .2s' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21l-5-4-5 4V5a2 2 0 012-2h6a2 2 0 012 2z" /></svg></a>
-            <a className="c-social" href="#" style={{ width: 38, height: 38, borderRadius: 11, background: '#04140C', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--neon)', transition: 'transform .2s,background .2s,color .2s' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><path d="M3 21l1.9-5.7A9 9 0 1112 21a9 9 0 01-9 0z" /><path d="M8.5 9.5c0 3 2.5 5.5 5.5 5.5" /></svg></a>
+            <SocialLinks
+              socials={company.socials}
+              iconStyle={{ width: 38, height: 38, borderRadius: 11, background: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--neon)' }}
+            />
           </div>
         </div>
       </div>

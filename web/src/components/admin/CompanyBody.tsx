@@ -17,7 +17,17 @@ type Profile = {
   legalName: string; address: Tr; shortLocation: Tr;
   phones: Phone[]; salesEmail: string; generalEmail: string;
   hoursDays: Tr; hoursValue: string;
+  lineUrl: string; facebookUrl: string; whatsappUrl: string; instagramUrl: string;
 };
+
+/* The icons for these were href="#" on the contact page and in both footers.
+   A channel with no link shows no icon, rather than one that goes nowhere. */
+const SOCIALS: { key: 'lineUrl' | 'facebookUrl' | 'whatsappUrl' | 'instagramUrl'; label: string; placeholder: string }[] = [
+  { key: 'lineUrl', label: 'LINE', placeholder: 'https://line.me/R/ti/p/@yourid' },
+  { key: 'facebookUrl', label: 'Facebook', placeholder: 'https://facebook.com/yourpage' },
+  { key: 'whatsappUrl', label: 'WhatsApp', placeholder: 'https://wa.me/66808304005' },
+  { key: 'instagramUrl', label: 'Instagram', placeholder: 'https://instagram.com/youraccount' },
+];
 
 const LANGS: { key: keyof Tr; label: string }[] = [
   { key: 'th', label: 'ไทย' }, { key: 'en', label: 'EN' }, { key: 'zh', label: '中文' },
@@ -27,6 +37,7 @@ const EMPTY_TR: Tr = { th: '', en: '', zh: '' };
 const BLANK: Profile = {
   legalName: '', address: { ...EMPTY_TR }, shortLocation: { ...EMPTY_TR },
   phones: [], salesEmail: '', generalEmail: '', hoursDays: { ...EMPTY_TR }, hoursValue: '',
+  lineUrl: '', facebookUrl: '', whatsappUrl: '', instagramUrl: '',
 };
 
 const label: React.CSSProperties = { display: 'block', marginTop: 16, fontSize: 12, fontWeight: 700, color: 'var(--muted)' };
@@ -56,6 +67,8 @@ export function CompanyBody() {
           phones: Array.isArray(r.phones) ? r.phones : [],
           salesEmail: r.salesEmail ?? '', generalEmail: r.generalEmail ?? '',
           hoursDays: asTr(r.hoursDays), hoursValue: r.hoursValue ?? '',
+          lineUrl: r.lineUrl ?? '', facebookUrl: r.facebookUrl ?? '',
+          whatsappUrl: r.whatsappUrl ?? '', instagramUrl: r.instagramUrl ?? '',
         });
       })
       .catch((e) => alive && setLoadError(e instanceof ApiClientError ? e.message : 'โหลดข้อมูลไม่สำเร็จ'));
@@ -160,6 +173,28 @@ export function CompanyBody() {
 
           <label htmlFor="c-hours" style={label}>เวลาทำการ</label>
           <input id="c-hours" style={input} value={p.hoursValue} onChange={(e) => setP((s) => ({ ...s, hoursValue: e.target.value }))} placeholder="9:00 - 18:00 น." />
+        </div>
+
+        <div style={card}>
+          <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>ช่องทางติดต่อออนไลน์</span>
+          <div style={{ marginTop: 4, fontSize: 11, color: 'var(--muted2)', lineHeight: 1.6 }}>
+            แสดงเป็นไอคอนในหน้าติดต่อและท้ายทุกหน้า · <strong>เว้นว่าง = ไม่แสดงไอคอนนั้น</strong> ดีกว่าโชว์ไอคอนที่กดแล้วไม่ไปไหน
+          </div>
+          {SOCIALS.map((sc) => {
+            const v = p[sc.key];
+            const bad = !!v.trim() && !/^https?:\/\/\S+$/i.test(v.trim());
+            return (
+              <div key={sc.key}>
+                <label htmlFor={`c-${sc.key}`} style={label}>{sc.label}</label>
+                <input
+                  id={`c-${sc.key}`} value={v} placeholder={sc.placeholder}
+                  onChange={(e) => setP((s) => ({ ...s, [sc.key]: e.target.value }))}
+                  style={{ ...input, border: '1.5px solid ' + (bad ? '#F5C2BE' : 'var(--border)') }}
+                />
+                {bad && <div style={{ marginTop: 5, fontSize: 11, color: '#B4231F' }}>ต้องขึ้นต้นด้วย https://</div>}
+              </div>
+            );
+          })}
         </div>
       </div>
     </AdminShell>

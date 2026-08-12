@@ -1,8 +1,9 @@
 'use client';
 import { useDict } from '@/i18n/useDict';
 import type { SectionCopy } from '@/lib/server/sectionCopy';
+import { telHref, type Company } from '@/lib/server/company';
 
-export function CtaBand({ copy }: { copy: SectionCopy }) {
+export function CtaBand({ copy, company }: { copy: SectionCopy; company: Company }) {
   const d = useDict();
   const pick = (v: string, fallback: string) => v || fallback;
   const primaryEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -133,8 +134,9 @@ export function CtaBand({ copy }: { copy: SectionCopy }) {
                 <path d="M13 6l6 6-6 6" />
               </svg>
             </a>
+            {/* the secondary "call" button pointed at "#" — it dials now */}
             <a
-              href="#"
+              href={telHref(company.phones[0]?.number ?? '')}
               onMouseEnter={ghostEnter}
               onMouseLeave={ghostLeave}
               style={{

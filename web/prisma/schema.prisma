@@ -431,5 +431,12 @@ model CompanyProfile {
   /** { th, en, zh } — e.g. "จันทร์ - ศุกร์:" */
   hoursDays     Json?
   hoursValue    String   @default("")
+  /* Contact channels. The icons for these were `href="#"` on the contact page
+     and in both footers — eighteen dead links in all. An empty value hides
+     its icon rather than rendering one that goes nowhere. */
+  lineUrl       String   @default("")
+  facebookUrl   String   @default("")
+  whatsappUrl   String   @default("")
+  instagramUrl  String   @default("")
   updatedAt     DateTime @updatedAt
 }

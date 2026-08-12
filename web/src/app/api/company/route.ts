@@ -23,6 +23,8 @@ const trBlock = (v: unknown): Tr => {
 };
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const URL_RE = /^https?:\/\/[^\s<>"']+$/i;
+const SOCIALS = ['lineUrl', 'facebookUrl', 'whatsappUrl', 'instagramUrl'] as const;
 
 export const GET = handler(async () => {
   const row = await db.companyProfile.findFirst();
@@ -41,8 +43,6 @@ export const PUT = handler(async (req: Request) => {
   const fields: Record<string, string> = {};
   if (salesEmail && !EMAIL.test(salesEmail)) fields.salesEmail = 'อีเมลไม่ถูกต้อง';
   if (generalEmail && !EMAIL.test(generalEmail)) fields.generalEmail = 'อีเมลไม่ถูกต้อง';
-  if (Object.keys(fields).length) throw new ApiError('VALIDATION', 'ตรวจสอบข้อมูลอีกครั้ง', 400, fields);
-
   /* A phone with no number is a row somebody started and abandoned; it would
      render as an empty pill on the contact page. */
   const phones = (Array.isArray(body.phones) ? body.phones : [])
@@ -50,7 +50,16 @@ export const PUT = handler(async (req: Request) => {
     .filter((p) => p.number)
     .slice(0, 6);
 
+  const socials: Record<string, string> = {};
+  for (const k of SOCIALS) {
+    const v = text(body[k], 300);
+    if (v && !URL_RE.test(v)) fields[k] = 'ต้องขึ้นต้นด้วย https:// เท่านั้น';
+    socials[k] = v;
+  }
+  if (Object.keys(fields).length) throw new ApiError('VALIDATION', 'ตรวจสอบข้อมูลอีกครั้ง', 400, fields);
+
   const data = {
+    ...socials,
     legalName: text(body.legalName, 200),
     address: trBlock(body.address) as Prisma.InputJsonValue,
     shortLocation: trBlock(body.shortLocation) as Prisma.InputJsonValue,

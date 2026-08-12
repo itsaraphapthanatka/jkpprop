@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { loadPageCopy, section } from '@/lib/server/sectionCopy';
 import { isLocale, DEFAULT_LOCALE } from '@/i18n/config';
 import { loadCompany } from '@/lib/server/company';
+import { listCmsPages } from '@/lib/server/cmsPages';
 import { getDictionary } from '@/i18n/dictionaries';
 import { ContentHeader } from '@/components/site/ContentHeader';
 import { ContentFooter } from '@/components/site/ContentFooter';
@@ -42,6 +43,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
   const { locale: raw } = await params;
   const locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
   const company = await loadCompany(locale);
+  const pages = await listCmsPages(locale).catch(() => []);
   const c = await loadPageCopy('about', locale).catch(() => ({}));
   const copy = {
     ah: section(c, 'ah'), st: section(c, 'st'), pl: section(c, 'pl'),
@@ -53,7 +55,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
       <style dangerouslySetInnerHTML={{ __html: aboutCss }} />
       <ContentHeader active="about" />
       <AboutBody copy={copy} />
-      <ContentFooter email={company.generalEmail} phone={company.phones[0]?.number} location={company.shortLocation} />
+      <ContentFooter email={company.generalEmail} phone={company.phones[0]?.number} location={company.shortLocation} socials={company.socials} pages={pages} />
     </div>
   );
 }

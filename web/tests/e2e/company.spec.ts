@@ -68,3 +68,55 @@ test('the settings page links to it, so it is not another orphaned screen', asyn
   await page.goto('/admin/settings');
   await expect(page.locator('a[href="/admin/company"]').first()).toBeVisible();
 });
+
+test.describe('links that go somewhere', () => {
+  /* The site shipped with eighteen href="#" links: the social icons on the
+     contact page and in both footers, the header's own "ติดต่อทีมงาน" button,
+     the CTA band's call button, the cookie banner's PDPA link, and the footer
+     entries for privacy and terms. Each looked like a way to reach the
+     company. */
+  const ALL = ['/th', '/th/about', '/th/faq', '/th/contact', '/th/listing', '/th/factory-rent'];
+
+  test('no page contains a link to nowhere', async ({ request }) => {
+    for (const p of ALL) {
+      const html = await (await request.get(p)).text();
+      const dead = html.match(/href="#"/g)?.length ?? 0;
+      expect(dead, `${p} has ${dead} link(s) pointing at "#"`).toBe(0);
+    }
+  });
+
+  test('the contact CTA keeps the visitor in their language', async ({ request }) => {
+    for (const locale of ['th', 'en', 'zh']) {
+      const html = await (await request.get(`/${locale}`)).text();
+      expect(html, `${locale} CTA lost the locale prefix`).toContain(`href="/${locale}/contact"`);
+    }
+  });
+
+  test('a social icon appears only once its link is set', async ({ page, request }) => {
+    await page.goto('/th/contact');
+    await expect(page.locator('a[aria-label="LINE"]')).toHaveCount(0);
+
+    await signIn(page);
+    await page.goto('/admin/company');
+    await page.locator('#c-lineUrl').fill('https://line.me/R/ti/p/@jkptest');
+    await page.getByText('บันทึก', { exact: true }).click();
+    await expect(page.getByText('บันทึกแล้ว')).toBeVisible();
+
+    for (const p of ['/th/contact', '/th', '/th/about']) {
+      const html = await (await request.get(p)).text();
+      expect(html, `${p} is missing the LINE icon`).toContain('aria-label="LINE"');
+      expect(html).toContain('https://line.me/R/ti/p/@jkptest');
+    }
+  });
+
+  test('a non-https social link is refused rather than rendered', async ({ page, request }) => {
+    await signIn(page);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    const res = await request.put('/api/company', {
+      headers: { cookie },
+      data: { lineUrl: 'javascript:alert(1)' },
+    });
+    expect(res.status()).toBe(400);
+    expect(await (await request.get('/th/contact')).text()).not.toContain('javascript:alert');
+  });
+});

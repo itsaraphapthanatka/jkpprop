@@ -12,6 +12,7 @@ import { isLocale, DEFAULT_LOCALE, type Locale } from '@/i18n/config';
 import { buildSpecs } from '@/lib/server/propertySpecs';
 import { loadPublicListings } from '@/lib/server/publicListings';
 import { loadCompany } from '@/lib/server/company';
+import { listCmsPages } from '@/lib/server/cmsPages';
 
 /* Public property detail. Read straight from the database in the server
    component — no client fetch, so the page is indexable.
@@ -50,6 +51,7 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
   const { locale: raw, code } = await params;
   const locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
   const company = await loadCompany(locale);
+  const pages = await listCmsPages(locale).catch(() => []);
   const found = await load(code);
   if (!found) notFound();
 
@@ -90,7 +92,7 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
         <PropertyHeader />
         <PropertyDetail property={property} />
       </div>
-      <SiteFooter company={company} />
+      <SiteFooter company={company} pages={pages} />
       <Floating />
     </div>
   );

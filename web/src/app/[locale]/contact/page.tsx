@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { loadPageCopy, section } from '@/lib/server/sectionCopy';
 import { loadCompany } from '@/lib/server/company';
+import { listCmsPages } from '@/lib/server/cmsPages';
 import { isLocale, DEFAULT_LOCALE } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { ContentHeader } from '@/components/site/ContentHeader';
@@ -50,6 +51,7 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
   const locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
   const c = await loadPageCopy('contact', locale).catch(() => ({}));
   const company = await loadCompany(locale);
+  const pages = await listCmsPages(locale).catch(() => []);
   const copy = { ch: section(c, 'ch'), cm: section(c, 'cm') };
 
   return (
@@ -57,7 +59,7 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
       <style dangerouslySetInnerHTML={{ __html: contactCss }} />
       <ContentHeader />
       <ContactBody company={company} copy={copy} />
-      <ContentFooter email={company.generalEmail} phone={company.phones[0]?.number} location={company.shortLocation} />
+      <ContentFooter email={company.generalEmail} phone={company.phones[0]?.number} location={company.shortLocation} socials={company.socials} pages={pages} />
     </div>
   );
 }

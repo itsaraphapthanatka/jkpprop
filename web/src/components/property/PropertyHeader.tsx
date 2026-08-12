@@ -215,9 +215,9 @@ export function PropertyHeader() {
             </div>
 
             {/* contact */}
-            <a
+            <Link
               className="contact-btn"
-              href="#"
+              href="/contact"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -235,7 +235,7 @@ export function PropertyHeader() {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2.4">
                 <path d="M5 12h14M13 6l6 6-6 6" />
               </svg>
-            </a>
+            </Link>
 
             {/* mobile menu button */}
             <div
@@ -299,7 +299,7 @@ export function PropertyHeader() {
           <Link href="/warehouse-rent" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>{d.nav.warehouseRent}</Link>
           <Link href="/faq" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>{d.nav.faq}</Link>
           <Link href="/about" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>{d.nav.about}</Link>
-          <a href="#" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, borderRadius: 9999, background: 'var(--neon)', color: 'var(--ink)', fontSize: '14.5px', fontWeight: 800 }}>{d.nav.contactTeam}</a>
+          <Link href="/contact" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, borderRadius: 9999, background: 'var(--neon)', color: 'var(--ink)', fontSize: '14.5px', fontWeight: 800 }}>{d.nav.contactTeam}</Link>
         </div>
       </div>
     </>

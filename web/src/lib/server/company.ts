@@ -24,7 +24,12 @@ export type Company = {
   generalEmail: string;
   hoursDays: string;
   hoursValue: string;
+  /** only the channels that have a link — an empty one renders no icon */
+  socials: Social[];
 };
+
+export type SocialKey = 'line' | 'facebook' | 'whatsapp' | 'instagram';
+export type Social = { key: SocialKey; url: string };
 
 type Tr = Partial<Record<Locale, string>>;
 
@@ -44,6 +49,14 @@ const DEFAULTS = {
   generalEmail: 'atsokoproperty@gmail.com',
   hoursDays: { th: 'จันทร์ - ศุกร์:', en: 'Monday – Friday:', zh: '周一至周五：' } as Tr,
   hoursValue: '9:00 - 18:00 น.',
+};
+
+/* Only http(s) — a contact icon is a link out, and `javascript:` has no
+   business being one. Stored values come from an admin form, but the form is
+   not the last line of defence. */
+const safeUrl = (v: unknown): string => {
+  const s = typeof v === 'string' ? v.trim() : '';
+  return /^https?:\/\/[^\s<>"']+$/i.test(s) ? s : '';
 };
 
 /** the visitor's language, then Thai — an address is the same place either way */
@@ -75,6 +88,14 @@ export async function loadCompany(locale: Locale): Promise<Company> {
     generalEmail: row?.generalEmail?.trim() || DEFAULTS.generalEmail,
     hoursDays: tr(row?.hoursDays, locale, DEFAULTS.hoursDays),
     hoursValue: row?.hoursValue?.trim() || DEFAULTS.hoursValue,
+    socials: ([
+      ['line', row?.lineUrl],
+      ['facebook', row?.facebookUrl],
+      ['whatsapp', row?.whatsappUrl],
+      ['instagram', row?.instagramUrl],
+    ] as const)
+      .map(([key, url]) => ({ key, url: safeUrl(url) }))
+      .filter((sc): sc is Social => !!sc.url),
   };
 }
 
