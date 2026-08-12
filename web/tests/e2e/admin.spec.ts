@@ -754,3 +754,90 @@ test.describe('the CMS category dropdown', () => {
     await expect.poll(async () => (await page.locator('#cms-cat-trigger').innerText()).trim()).toContain(name);
   });
 });
+
+test.describe('deleting CMS content', () => {
+  /* There was no DELETE route and no button. A page created by mistake could
+     only be removed by hand in the database. */
+  test.afterAll(async () => {
+    if (!db) {
+      const { PrismaClient } = await import('@prisma/client');
+      db = new PrismaClient();
+    }
+    await db.cmsPage.deleteMany({ where: { slug: { startsWith: 'e2e-' } } });
+  });
+
+  test('an entry can be deleted and stops being listed', async ({ page }) => {
+    await signIn(page, OWNER);
+    await page.goto('/admin/cms');
+
+    const title = `ทดสอบลบ ${Date.now().toString(36)}`;
+    await page.locator('#cms-new-btn').click();
+    await page.locator('#cms-new-title').fill(title);
+    await page.locator('#cms-new-slug').fill(`e2e-${Date.now().toString(36)}`);
+    await page.locator('#cms-new-submit').click();
+    await expect.poll(async () => page.locator('#cms-title-input').inputValue()).toBe(title);
+
+    await page.locator('#cms-delete-btn').click();
+    await page.locator('#cms-delete-confirm').click();
+
+    await expect(page.getByText(title, { exact: true })).toHaveCount(0);
+  });
+
+  test('the confirm step names what is about to go', async ({ page }) => {
+    await signIn(page, OWNER);
+    await page.goto('/admin/cms');
+
+    const title = `ทดสอบยกเลิกลบ ${Date.now().toString(36)}`;
+    await page.locator('#cms-new-btn').click();
+    await page.locator('#cms-new-title').fill(title);
+    await page.locator('#cms-new-slug').fill(`e2e-${Date.now().toString(36)}`);
+    await page.locator('#cms-new-submit').click();
+    await expect.poll(async () => page.locator('#cms-title-input').inputValue()).toBe(title);
+
+    await page.locator('#cms-delete-btn').click();
+    await expect(page.getByText('ลบเนื้อหานี้?')).toBeVisible();
+    // the dialog must show which record, not just "are you sure"
+    await expect(page.getByText(title).first()).toBeVisible();
+
+    await page.getByText('ยกเลิก', { exact: true }).click();
+    await expect(page.locator('#cms-title-input')).toHaveValue(title);
+  });
+
+  test('an agent cannot delete content', async ({ page, request }) => {
+    // create it as the owner, then try to remove it as an agent
+    await signIn(page, OWNER);
+    const ownerCookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    const slug = `e2e-${Date.now().toString(36)}`;
+    const made = await request.post('/api/cms', {
+      headers: { cookie: ownerCookie },
+      data: { kind: 'articles', title: 'ทดสอบสิทธิ์ลบ', slug },
+    });
+    expect(made.ok()).toBeTruthy();
+    const { id } = await made.json();
+
+    await page.goto('/admin/login');
+    await signIn(page, AGENT);
+    const agentCookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const res = await request.delete(`/api/cms/${id}`, { headers: { cookie: agentCookie } });
+    expect(res.status(), 'an agent must not be able to delete CMS content').toBe(403);
+  });
+
+  test('a core page refuses to be deleted', async ({ page, request }) => {
+    await signIn(page, OWNER);
+    const cookies = await page.context().cookies();
+    const cookie = cookies.map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const list = await (await request.get('/api/cms?kind=pages', { headers: { cookie } })).json();
+    const home = (list.items as { id: string; slug: string }[]).find((p) => p.slug === 'home');
+    test.skip(!home, 'no home metadata row in this database');
+
+    const res = await request.delete(`/api/cms/${home!.id}`, { headers: { cookie } });
+    expect(res.status(), 'deleting the home row should be refused').toBe(400);
+    expect(JSON.stringify(await res.json())).toContain('หน้าหลักของเว็บ');
+
+    // and it is still there
+    const after = await (await request.get('/api/cms?kind=pages', { headers: { cookie } })).json();
+    expect((after.items as { slug: string }[]).some((p) => p.slug === 'home')).toBeTruthy();
+  });
+});

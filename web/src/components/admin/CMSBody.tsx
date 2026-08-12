@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { AdminShell } from '@/components/admin/AdminShell';
-import { apiGet, apiPost, apiPut, ApiClientError } from '@/lib/apiClient';
+import { apiDelete, apiGet, apiPost, apiPut, ApiClientError } from '@/lib/apiClient';
 import Link from 'next/link';
 
 /* Ported verbatim from AdminCMS.dc.html — content-type tabs, article
@@ -192,6 +192,8 @@ export function CMSBody() {
   const [creating, setCreating] = React.useState(false);
   const [query, setQuery] = React.useState('');
   const [pendingSelectId, setPendingSelectId] = React.useState<string | null>(null);
+  const [delOpen, setDelOpen] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
   const [slugEdit, setSlugEdit] = React.useState(false);
   const [slugDraft, setSlugDraft] = React.useState('');
   const [links, setLinks] = React.useState<string[]>(['→ บริการ: หาทำเล', '→ พื้นที่: ระยอง']);
@@ -294,6 +296,24 @@ export function CMSBody() {
   };
   const openPreview = () => setPreviewOpen(true);
   const closePreview = () => setPreviewOpen(false);
+
+  const deleteItem = async () => {
+    if (!apiCur || deleting) return;
+    setDeleting(true);
+    try {
+      await apiDelete(`/api/cms/${apiCur.id}`);
+      await reload(type);
+      setDelOpen(false);
+      /* reload() resets the selection to the first row, which is what we want:
+         the record this panel was showing no longer exists */
+      flash(`ลบ "${apiCur.title}" แล้ว`, 2400);
+    } catch (e) {
+      flash(e instanceof ApiClientError ? e.message : 'ลบไม่สำเร็จ กรุณาลองใหม่', 3000);
+      setDelOpen(false);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const saveSlug = async () => {
     if (!apiCur || saving) return;
@@ -652,6 +672,16 @@ export function CMSBody() {
           <div style={{ padding: '16px 22px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', rowGap: 10 }}>
             <span style={{ fontSize: 12, color: 'var(--muted3)', minWidth: 0 }}>บันทึกอัตโนมัติเมื่อ 2 นาทีที่แล้ว</span>
             <div style={{ display: 'flex', gap: 10, flexShrink: 0, marginLeft: 'auto' }}>
+              {apiCur && (
+                <div
+                  id="cms-delete-btn"
+                  onClick={() => setDelOpen(true)}
+                  style={{ height: 42, padding: '0 18px', borderRadius: 9999, border: '1.5px solid #E8C9C9', display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 700, color: '#A32A2A', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A32A2A" strokeWidth="2.2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg>
+                  ลบ
+                </div>
+              )}
               <div onClick={saveDraft} style={{ height: 42, padding: '0 20px', borderRadius: 9999, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 700, color: 'var(--text)', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>บันทึกร่าง</div>
               <div onClick={doPublish} style={{ height: 42, padding: '0 24px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M20 6L9 17l-5-5" /></svg>เผยแพร่
@@ -719,6 +749,28 @@ export function CMSBody() {
             </div>
           </div>
         </>
+      )}
+
+      {/* DELETE CONFIRM — there was no way to remove content at all */}
+      {delOpen && apiCur && (
+        <div onClick={() => setDelOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 860, background: 'rgba(2,14,8,.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 440, background: 'var(--surface)', borderRadius: 20, boxShadow: '0 40px 80px rgba(0,0,0,.4)', padding: '26px 28px' }}>
+            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)' }}>ลบเนื้อหานี้?</div>
+            <p style={{ margin: '10px 0 0', fontSize: '13.5px', color: 'var(--text)', fontWeight: 700, lineHeight: 1.6, overflowWrap: 'anywhere' }}>{apiCur.title}</p>
+            <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--muted2)', fontFamily: "'JetBrains Mono',monospace", overflowWrap: 'anywhere' }}>{apiCur.slug}</p>
+            <div style={{ marginTop: 14, padding: '10px 12px', borderRadius: 10, background: '#FDECEC', color: '#A32A2A', fontSize: '12.5px', lineHeight: 1.6 }}>
+              {apiCur.status === 'published'
+                ? 'เนื้อหานี้เผยแพร่อยู่ — ลบแล้วจะหายจากเว็บทันที และลิงก์เดิมจะเปิดไม่ได้'
+                : 'ลบแล้วเอากลับไม่ได้ ทั้งสามภาษาจะหายไปพร้อมกัน'}
+            </div>
+            <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <div onClick={() => setDelOpen(false)} style={{ height: 42, padding: '0 20px', borderRadius: 9999, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 700, color: 'var(--text)', cursor: 'pointer' }}>ยกเลิก</div>
+              <div id="cms-delete-confirm" onClick={() => void deleteItem()} style={{ height: 42, padding: '0 24px', borderRadius: 9999, background: deleting ? '#C98B8B' : '#A32A2A', color: '#fff', display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 700, cursor: deleting ? 'default' : 'pointer' }}>
+                {deleting ? 'กำลังลบ…' : 'ลบถาวร'}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* NEW ITEM MODAL — the "+" beside the search box */}

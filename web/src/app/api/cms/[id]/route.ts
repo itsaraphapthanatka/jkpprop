@@ -1,4 +1,5 @@
 /* PUT /api/cms/:id — save draft / publish one CMS item (§9).
+   DELETE /api/cms/:id — remove one item.
    Publishing needs the `publish` privilege (MATRIX "เผยแพร่หน้าเว็บ"),
    editing the body does not. */
 import { ok, handler, ApiError } from '@/lib/server/api';
@@ -75,4 +76,37 @@ export const PUT = handler(async (req: Request, ctx: { params: Promise<{ id: str
     cover: updated.cover, links: updated.links,
     langs: ['th', 'en', 'zh'].map((k) => ({ k: k.toUpperCase(), on: !!out[k]?.done })),
   });
+});
+
+/* Removing content had no route at all, so a page created by mistake could
+   only be taken out by hand in the database.
+ *
+ * home / about / contact under kind "pages" are not documents — they are the
+ * metadata rows for pages that have their own components, and deleting one
+ * would strip that page's title and description with no way back through the
+ * UI. They are refused here rather than merely hidden in the client. */
+const RESERVED_PAGE_SLUGS = new Set(['home', 'about', 'contact']);
+
+export const DELETE = handler(async (_req: Request, ctx: { params: Promise<{ id: string }> }) => {
+  const user = await requireUser();
+  requireRole(user, 'owner', 'marketing');
+  const { id } = await ctx.params;
+
+  const page = await db.cmsPage.findFirst({ where: { id, orgId: user.orgId } });
+  if (!page) throw new ApiError('NOT_FOUND', 'ไม่พบเนื้อหานี้', 404);
+
+  if (page.kind === 'pages' && RESERVED_PAGE_SLUGS.has(page.slug)) {
+    throw new ApiError(
+      'FORBIDDEN',
+      'หน้านี้เป็นหน้าหลักของเว็บ ลบไม่ได้ — แก้ไขเนื้อหาได้ แต่ต้องมีอยู่เสมอ',
+      400,
+    );
+  }
+
+  await db.cmsPage.delete({ where: { id } });
+  await audit({
+    user, orgId: user.orgId, action: 'cms.delete', entity: 'cmsPage', entityId: id,
+    before: { kind: page.kind, slug: page.slug, title: page.title, status: page.status },
+  });
+  return ok({ id });
 });

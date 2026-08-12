@@ -493,8 +493,14 @@ export const openapi = {
         tags: ['Content'], summary: 'บันทึกร่าง / เผยแพร่เนื้อหา',
         description: 'เผยแพร่ต้องมีสิทธิ์ publish · เนื้อหาเก็บแยกตามภาษา (th / en / zh)',
         parameters: [pathParam('id', 'id ของเนื้อหา')],
-        requestBody: body(obj({ lang: { ...STR, enum: ['th', 'en', 'zh'] }, title: STR, body: STR, category: STR, cover: NULLABLE_STR, links: arrayOf(STR), status: STR }, [])),
+        requestBody: body(obj({ lang: { ...STR, enum: ['th', 'en', 'zh'] }, title: STR, body: STR, category: STR, slug: STR, cover: NULLABLE_STR, links: arrayOf(STR), status: STR }, [])),
         responses: { 200: okRes('บันทึกแล้ว'), ...WITH_404 },
+      },
+      delete: {
+        tags: ['Content'], summary: 'ลบเนื้อหา',
+        description: 'owner + marketing เท่านั้น · หน้าหลัก (pages: home / about / contact) ลบไม่ได้ เพราะเป็นแถวข้อมูลของหน้าที่มีคอมโพเนนต์ของตัวเอง',
+        parameters: [pathParam('id', 'id ของเนื้อหา')],
+        responses: { 200: okRes('ลบแล้ว'), ...WITH_404, 400: errRes('ลบหน้าหลักของเว็บไม่ได้') },
       },
     },
     '/api/sections': {
