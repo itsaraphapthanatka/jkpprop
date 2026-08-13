@@ -104,6 +104,21 @@ export type Dictionary = {
     choose: string; wanted: string; notSpecified: string; company: string; companyPh: string;
     namePh: string; details: string; detailsPh: string; sent: string;
   };
+  /* The tokenized page a customer opens from a link. It has no [locale] in
+     its path — the language comes from ?lang= or the switcher on the page —
+     so its copy lives here rather than being written into the component, the
+     way it was when only Thai existed. */
+  clientShortlist: {
+    badge: string; forCustomer: string; clientLogo: string; picked: string;
+    heading: string; sub: string; criteria: string;
+    cards: string; compare: string;
+    yourOpinion: string; interested: string; undecided: string; notInterested: string;
+    saveFailed: string; viewDetail: string; available: string;
+    detail: string; photo: string; opinion: string;
+    askMore: string; call: string; emailUs: string;
+    notFound: string; notFoundBody: string; footer: string;
+    rows: { area: string; land: string; floor: string; height: string; power: string; rent: string; rentSqm: string; sale: string; deposit: string; advance: string; term: string };
+  };
   faq: {
     searchPlaceholder: string; noResults: string; copied: string; copyQuestion: string;
     hero: string; heroSub: string; categories: string; stillStuck: string; stillStuckSub: string; heroAlt: string;
@@ -288,6 +303,19 @@ const th: Dictionary = {
     company: 'ชื่อบริษัท / องค์กรของคุณ', companyPh: 'เช่น บ. ไทยโลจิสติกส์',
     namePh: 'กรอกชื่อของคุณ', details: 'รายละเอียดเพิ่มเติม',
     detailsPh: 'บอกเราเกี่ยวกับความต้องการของคุณเพิ่มเติม…', sent: 'ส่งความต้องการแล้ว',
+  },
+  clientShortlist: {
+    badge: 'ลิงก์ส่วนตัว · ไม่ต้องเข้าสู่ระบบ', forCustomer: 'คัดทรัพย์สำหรับ', clientLogo: 'โลโก้ลูกค้า', picked: 'รายการที่คัดให้',
+    heading: 'ทรัพย์ที่ตรงกับความต้องการของคุณ',
+    sub: 'ทีมงาน JKP Property คัดเลือกรายการที่ตรงเงื่อนไขและตรวจสอบว่าว่างแล้ว — กรุณาให้ความเห็นแต่ละรายการเพื่อให้เราจัดนัดเข้าชมต่อไป',
+    criteria: 'ความต้องการ:', cards: 'การ์ด', compare: 'ตารางเปรียบเทียบ',
+    yourOpinion: 'ความเห็นของคุณ', interested: 'สนใจ', undecided: 'ยังไม่ตัดสินใจ', notInterested: 'ไม่สนใจ',
+    saveFailed: 'ส่งความเห็นไม่สำเร็จ — ลองใหม่อีกครั้ง', viewDetail: 'ดูรายละเอียด', available: 'ว่าง',
+    detail: 'รายละเอียด', photo: 'รูปทรัพย์', opinion: 'ความเห็น',
+    askMore: 'สอบถามเพิ่มเติมหรือจัดนัดเข้าชมได้เลย', call: 'โทร', emailUs: 'อีเมลหาทีมงาน',
+    notFound: 'ไม่พบรายการนี้ หรือลิงก์หมดอายุแล้ว', notFoundBody: 'กรุณาติดต่อทีมงาน JKP Property เพื่อขอลิงก์ใหม่',
+    footer: 'ราคาและสถานะว่างอาจเปลี่ยนแปลง — ทีมงานจะยืนยันอีกครั้งก่อนนัดเข้าชม · Powered by JKP Property',
+    rows: { area: 'พื้นที่ทรัพย์', land: 'ขนาดที่ดิน', floor: 'รับน้ำหนักพื้น', height: 'ความสูง', power: 'ระบบไฟฟ้า', rent: 'ค่าเช่า/เดือน', rentSqm: 'ค่าเช่า/ตร.ม.', sale: 'ราคาขาย', deposit: 'เงินประกัน', advance: 'ชำระล่วงหน้า', term: 'ระยะสัญญา' },
   },
   faq: {
     searchPlaceholder: 'ค้นหาคำถาม…', noResults: 'ไม่พบคำถามที่ตรงกับคำค้น', copied: 'คัดลอกแล้ว', copyQuestion: 'คัดลอกคำถาม',
@@ -475,6 +503,19 @@ const en: Dictionary = {
     namePh: 'Your name', details: 'Additional details',
     detailsPh: 'Tell us more about what you are looking for…', sent: 'Enquiry sent',
   },
+  clientShortlist: {
+    badge: 'Private link · no sign-in needed', forCustomer: 'Selected for', clientLogo: 'Client logo', picked: 'Your shortlist',
+    heading: 'Properties that match what you asked for',
+    sub: 'Our team picked these against your criteria and confirmed each one is still free — tell us what you think of each so we can arrange the viewings.',
+    criteria: 'Requirements:', cards: 'Cards', compare: 'Comparison',
+    yourOpinion: 'What you think', interested: 'Interested', undecided: 'Not sure yet', notInterested: 'Not for us',
+    saveFailed: 'Could not send your answer — please try again', viewDetail: 'View details', available: 'Available',
+    detail: 'Detail', photo: 'Photo', opinion: 'Your answer',
+    askMore: 'Ask us anything, or book a viewing', call: 'Call', emailUs: 'Email the team',
+    notFound: 'This shortlist was not found, or the link has expired', notFoundBody: 'Please contact JKP Property for a new link',
+    footer: 'Prices and availability can change — we confirm both again before a viewing · Powered by JKP Property',
+    rows: { area: 'Floor area', land: 'Land size', floor: 'Floor loading', height: 'Clear height', power: 'Power supply', rent: 'Rent / month', rentSqm: 'Rent / sqm', sale: 'Sale price', deposit: 'Deposit', advance: 'Advance payment', term: 'Lease term' },
+  },
   faq: {
     searchPlaceholder: 'Search the questions…', noResults: 'No questions match your search', copied: 'Copied', copyQuestion: 'Copy question',
     hero: 'Frequently asked questions', heroSub: 'Answers on renting, buying, paperwork and registering industrial property.',
@@ -660,6 +701,19 @@ const zh: Dictionary = {
     company: '公司 / 机构名称', companyPh: '例如：泰国物流有限公司',
     namePh: '您的姓名', details: '补充说明',
     detailsPh: '请告诉我们更多您的需求…', sent: '已提交需求',
+  },
+  clientShortlist: {
+    badge: '专属链接 · 无需登录', forCustomer: '为您精选', clientLogo: '客户标识', picked: '为您筛选的房源',
+    heading: '符合您需求的房源',
+    sub: 'JKP Property 团队按您的条件筛选，并已确认每一处目前仍可租售 — 请对每处给出意见，方便我们安排看房。',
+    criteria: '需求条件：', cards: '卡片', compare: '对比表',
+    yourOpinion: '您的意见', interested: '有兴趣', undecided: '尚未决定', notInterested: '不合适',
+    saveFailed: '提交失败 — 请再试一次', viewDetail: '查看详情', available: '可租售',
+    detail: '项目', photo: '照片', opinion: '您的意见',
+    askMore: '如需咨询或安排看房，请随时联系', call: '致电', emailUs: '邮件联系团队',
+    notFound: '未找到此清单，或链接已失效', notFoundBody: '请联系 JKP Property 索取新链接',
+    footer: '价格与可租售状态可能变动 — 看房前我们会再次确认 · Powered by JKP Property',
+    rows: { area: '建筑面积', land: '土地面积', floor: '楼板承重', height: '净高', power: '供电', rent: '月租金', rentSqm: '每平方米租金', sale: '售价', deposit: '押金', advance: '预付款', term: '租期' },
   },
   faq: {
     searchPlaceholder: '搜索问题…', noResults: '没有符合搜索条件的问题', copied: '已复制', copyQuestion: '复制问题',

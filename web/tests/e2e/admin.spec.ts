@@ -1531,6 +1531,51 @@ test.describe('the chain from requirement to deal, clicked end to end', () => {
     await request.delete(`/api/shortlists/${sl.id}`, { headers: { cookie } }).catch(() => null);
   });
 
+
+  test('all three answers save, not just the cheerful one', async ({ request }) => {
+    const props = await (await request.get('/api/properties', { headers: { cookie } })).json();
+    const code = (props.items as { publicCode: string; status: string }[]).find((p) => p.status === 'active')?.publicCode;
+    test.skip(!code, 'no active property');
+
+    const sl = await (await request.post('/api/shortlists', {
+      headers: { cookie }, data: { name: `e2e-fb3-${Date.now().toString(36)}`, codes: [code] },
+    })).json();
+    const pub = await (await request.get(`/api/public/shortlists/${sl.token}`)).json();
+    const itemId = (pub.data ?? pub).items[0].itemId;
+
+    /* The UI keys ('interested' | 'undecided' | 'not') and the stored values
+       ('interested' | 'maybe' | 'not_interested') are different sets. A wrong
+       mapping quietly rejected two of the three — leaving only the good news
+       able to reach the team. */
+    for (const value of ['interested', 'maybe', 'not_interested']) {
+      const res = await request.post(`/api/public/shortlists/${sl.token}`, { data: { itemId, feedback: value } });
+      expect(res.ok(), `${value} was refused: ${await res.text()}`).toBeTruthy();
+      const back = await (await request.get(`/api/public/shortlists/${sl.token}`)).json();
+      expect((back.data ?? back).items[0].feedback, `${value} did not stick`).toBe(value);
+    }
+
+    await request.delete(`/api/shortlists/${sl.id}`, { headers: { cookie } }).catch(() => null);
+  });
+
+  test('the client page reads in the language the link asks for', async ({ page, request }) => {
+    const props = await (await request.get('/api/properties', { headers: { cookie } })).json();
+    const code = (props.items as { publicCode: string; status: string }[]).find((p) => p.status === 'active')?.publicCode;
+    test.skip(!code, 'no active property');
+    const sl = await (await request.post('/api/shortlists', {
+      headers: { cookie }, data: { name: `e2e-lang-${Date.now().toString(36)}`, codes: [code] },
+    })).json();
+
+    await page.goto(`/client-shortlist?token=${sl.token}&lang=en`);
+    await expect(page.getByText('Properties that match what you asked for')).toBeVisible();
+    await expect(page.getByText('ทรัพย์ที่ตรงกับความต้องการของคุณ')).toHaveCount(0);
+
+    // and the customer can switch it themselves
+    await page.locator('[data-lang="zh"]').click();
+    await expect(page.getByText('符合您需求的房源')).toBeVisible();
+
+    await request.delete(`/api/shortlists/${sl.id}`, { headers: { cookie } }).catch(() => null);
+  });
+
   test('the client link refuses to invent a shortlist when opened without a token', async ({ page }) => {
     await page.goto('/client-shortlist');
     await expect(page.getByText('ไม่พบรายการนี้')).toBeVisible();
