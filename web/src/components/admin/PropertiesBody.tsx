@@ -4,7 +4,8 @@ import * as React from 'react';
 import { DynamicFieldForm } from './DynamicFieldForm';
 import { PROPERTY_TYPES, enabledPropertyTypes } from '@/lib/propertySchema';
 import { useSchemaSync } from '@/lib/schemaSync';
-import { apiGet, apiPost, apiDelete, ApiClientError } from '@/lib/apiClient';
+import { apiGet, apiPost, apiPatch, apiDelete, ApiClientError } from '@/lib/apiClient';
+import { placeMenu, type MenuBox } from '@/lib/menuPlacement';
 import { relTime } from '@/lib/leadStore';
 import Link from 'next/link';
 
@@ -112,6 +113,34 @@ const badgeYet: React.CSSProperties = { height: 22, padding: '0 10px', borderRad
 
 const COMPLETE_PCT = '45%';
 
+/* The row and header boxes were `<div>`s with a border — they looked like
+   checkboxes and did nothing at all. A real input carries the state, keyboard
+   focus and the accessible name; the square is drawn over it. */
+function Check({ on, mixed, onChange, label }: { on: boolean; mixed?: boolean; onChange: (v: boolean) => void; label: string }) {
+  const ref = React.useRef<HTMLInputElement | null>(null);
+  // "some but not all" is not expressible in HTML — it is a DOM property
+  React.useEffect(() => { if (ref.current) ref.current.indeterminate = !!mixed && !on; }, [mixed, on]);
+  const filled = on || mixed;
+  return (
+    <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer', position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+      <input
+        ref={ref}
+        type="checkbox"
+        checked={on}
+        onChange={(e) => onChange(e.target.checked)}
+        aria-label={label}
+        style={{ position: 'absolute', opacity: 0, width: 16, height: 16, margin: 0, cursor: 'pointer' }}
+      />
+      <span style={{ width: 16, height: 16, borderRadius: 5, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid ' + (filled ? '#0D6C3B' : 'var(--border)'), background: filled ? '#0D6C3B' : 'transparent', transition: 'all .15s' }}>
+        {on && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.6"><path d="M20 6L9 17l-5-5" /></svg>}
+        {!on && mixed && <span style={{ width: 8, height: 2, borderRadius: 2, background: '#fff' }} />}
+      </span>
+    </label>
+  );
+}
+
+const bulkBtn = (danger: boolean): React.CSSProperties => ({ height: 34, padding: '0 14px', borderRadius: 9999, border: '1px solid ' + (danger ? '#E8C4BC' : 'var(--border)'), background: 'var(--surface)', color: danger ? '#C0392B' : 'var(--text)', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' });
+
 /* ---- topbar right cluster (design's <header> right side) ---- */
 export function PropertiesActions() {
   const { setNewOpen, exportCsv } = useNew();
@@ -162,8 +191,13 @@ export function PropertiesBody() {
     setTypes(en);
     setSelType((k) => (en.some((t) => t.key === k) ? k : en[0].key));
   }, [schemaV]);
-  const [openMenu, setOpenMenu] = React.useState<number | null>(null);
+  /* the menu is keyed by row id, not row index — a filter or a reload
+     reorders the list under an index and the menu jumps to another property */
+  const [openMenu, setOpenMenu] = React.useState<string | null>(null);
+  const [menuBox, setMenuBox] = React.useState<MenuBox | null>(null);
+  const menuBtns = React.useRef<Record<string, HTMLElement | null>>({});
   const [openFilter, setOpenFilter] = React.useState<FilterKey | null>(null);
+  const [sel, setSel] = React.useState<Set<string>>(new Set());
   const [filterVals, setFilterVals] = React.useState<Record<FilterKey, string>>({ type: 'ทั้งหมด', province: 'ทั้งหมด', status: 'ทั้งหมด' });
 
   /* live data — GET /api/properties with the chip filters + search */
@@ -180,12 +214,36 @@ export function PropertiesBody() {
       const r = await apiGet<{ items: ApiProperty[]; summary: ApiSummary }>(`/api/properties?${params}`);
       setItems(r.items);
       setSummary(r.summary);
+      /* Drop ticks on rows the new list no longer shows. Keeping a hidden row
+         selected is how a bulk action publishes a property nobody can see. */
+      setSel((prev) => {
+        if (!prev.size) return prev;
+        const live = new Set(r.items.map((i) => i.id));
+        const next = new Set([...prev].filter((id) => live.has(id)));
+        return next.size === prev.size ? prev : next;
+      });
     } catch { /* keep last data (§2.2) */ }
   }, []);
   React.useEffect(() => {
     const t = window.setTimeout(() => { void reload(filterVals, q); }, q ? 300 : 0);
     return () => window.clearTimeout(t);
   }, [filterVals, q, reload]);
+
+  /* the row menu is fixed-positioned to escape the table's clipping, so it has
+     to follow its button when anything scrolls rather than drift away from it */
+  React.useEffect(() => {
+    if (!openMenu) return;
+    const follow = () => {
+      const r = menuBtns.current[openMenu]?.getBoundingClientRect();
+      setMenuBox(r ? placeMenu(r, { width: 210, align: 'right', maxHeight: 280 }) : null);
+    };
+    window.addEventListener('scroll', follow, true);
+    window.addEventListener('resize', follow);
+    return () => {
+      window.removeEventListener('scroll', follow, true);
+      window.removeEventListener('resize', follow);
+    };
+  }, [openMenu]);
 
   /* create-form state (values stream from DynamicFieldForm) */
   const [newTitle, setNewTitle] = React.useState('');
@@ -213,7 +271,9 @@ export function PropertiesBody() {
      what the button always looked like it did. BOM first so Excel on Windows
      opens Thai without turning it into mojibake. */
   const exportCsv = () => {
-    const rows = items ?? [];
+    const all = items ?? [];
+    // ticking rows and pressing Export should give those rows, not the page
+    const rows = sel.size ? all.filter((r) => sel.has(r.id)) : all;
     if (!rows.length) { window.alert('ไม่มีทรัพย์ให้ export ตามเงื่อนไขที่เลือก'); return; }
     const cell = (v: unknown) => {
       const t = v === null || v === undefined ? '' : String(v);
@@ -251,6 +311,35 @@ export function PropertiesBody() {
     } catch (e) {
       window.alert(e instanceof ApiClientError ? e.message : 'ทำสำเนาไม่สำเร็จ');
     }
+  };
+
+  /* Bulk actions on the ticked rows. Each row is its own request, so a row the
+     account may not touch fails on its own instead of taking the batch with
+     it — and the ones that failed are named rather than counted. */
+  const [busy, setBusy] = React.useState('');
+  const runBulk = async (label: string, act: (p: ApiProperty) => Promise<unknown>) => {
+    const rows = (items ?? []).filter((r) => sel.has(r.id));
+    if (!rows.length || busy) return;
+    setBusy(label);
+    const failed: string[] = [];
+    for (const r of rows) {
+      try { await act(r); } catch { failed.push(r.publicCode); }
+    }
+    setBusy('');
+    setSel(new Set());
+    await reload(filterVals, q);
+    if (failed.length) {
+      window.alert(`${label}: สำเร็จ ${rows.length - failed.length} · ไม่สำเร็จ ${failed.length} (${failed.join(', ')})`);
+    }
+  };
+
+  const bulkStatus = (status: 'active' | 'draft', label: string) =>
+    runBulk(label, (r) => apiPatch(`/api/properties/${r.id}`, { status }));
+
+  const bulkDelete = () => {
+    const rows = (items ?? []).filter((r) => sel.has(r.id));
+    if (!window.confirm(`ลบทรัพย์ ${rows.length} รายการ?\n${rows.map((r) => `· ${r.publicCode} ${r.title}`).join('\n')}`)) return;
+    void runBulk('ลบทรัพย์', (r) => apiDelete(`/api/properties/${r.id}`));
   };
 
   const remove = async (p: ApiProperty) => {
@@ -324,13 +413,34 @@ export function PropertiesBody() {
         )}
       </div>
 
+      {/* BULK BAR — only exists once something is ticked */}
+      {sel.size > 0 && (
+        <div id="prop-bulk" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12, padding: '10px 14px', borderRadius: 12, background: 'var(--tint)', border: '1px solid rgba(3,73,86,.2)' }}>
+          <span style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--accent)' }}>เลือกไว้ {sel.size} รายการ</span>
+          <span style={{ flex: 1 }} />
+          {busy && <span style={{ fontSize: 12, color: 'var(--muted)' }}>กำลัง{busy}…</span>}
+          <button type="button" disabled={!!busy} onClick={() => void bulkStatus('active', 'เผยแพร่')} style={bulkBtn(false)}>เผยแพร่</button>
+          <button type="button" disabled={!!busy} onClick={() => void bulkStatus('draft', 'พักเป็นร่าง')} style={bulkBtn(false)}>พักเป็นร่าง</button>
+          <button type="button" disabled={!!busy} onClick={exportCsv} style={bulkBtn(false)}>Export ที่เลือก</button>
+          <button type="button" disabled={!!busy} onClick={bulkDelete} style={bulkBtn(true)}>ลบ</button>
+          <button type="button" onClick={() => setSel(new Set())} style={{ ...bulkBtn(false), border: 0, background: 'transparent' }}>ล้างการเลือก</button>
+        </div>
+      )}
+
       {/* TABLE */}
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }} className="a-scroll">
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
             <thead>
               <tr style={{ background: 'var(--bg)' }}>
-                <th style={{ ...thBase, width: 40 }}><div style={{ width: 16, height: 16, borderRadius: 5, border: '1.5px solid var(--border)' }} /></th>
+                <th style={{ ...thBase, width: 40 }}>
+                  <Check
+                    label="เลือกทรัพย์ทั้งหมดที่แสดงอยู่"
+                    on={!!items?.length && sel.size === items.length}
+                    mixed={sel.size > 0}
+                    onChange={(v) => setSel(v ? new Set((items ?? []).map((r) => r.id)) : new Set())}
+                  />
+                </th>
                 <th style={thBase}>รหัส / ทรัพย์</th>
                 <th style={thBase}>ประเภท</th>
                 <th style={thBase}>ทำเล</th>
@@ -342,11 +452,22 @@ export function PropertiesBody() {
               </tr>
             </thead>
             <tbody>
-              {(items ?? []).map((r, i) => {
-                const menuOpen = openMenu === i;
+              {(items ?? []).map((r) => {
+                const menuOpen = openMenu === r.id;
+                const ticked = sel.has(r.id);
                 return (
-                  <tr key={r.id} className="prop-row" style={{ borderTop: '1px solid var(--border)', transition: 'background .15s' }}>
-                    <td style={{ padding: '14px 16px' }}><div style={{ width: 16, height: 16, borderRadius: 5, border: '1.5px solid var(--border)' }} /></td>
+                  <tr key={r.id} className="prop-row" style={{ borderTop: '1px solid var(--border)', transition: 'background .15s', background: ticked ? 'rgba(13,108,59,.04)' : undefined }}>
+                    <td style={{ padding: '14px 16px' }}>
+                      <Check
+                        label={`เลือก ${r.publicCode}`}
+                        on={ticked}
+                        onChange={(v) => setSel((prev) => {
+                          const next = new Set(prev);
+                          if (v) next.add(r.id); else next.delete(r.id);
+                          return next;
+                        })}
+                      />
+                    </td>
                     <td style={{ padding: '14px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--tint)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }} dangerouslySetInnerHTML={{ __html: iconFor(r.typeKey) }} />
@@ -366,44 +487,23 @@ export function PropertiesBody() {
                     </td>
                     <td style={{ padding: '14px 16px', textAlign: 'center' }}><span style={{ fontSize: '11.5px', fontWeight: 700, color: '#9B968D' }}>—</span></td>
                     <td style={{ padding: '14px 16px', fontSize: 12, color: 'var(--muted3)' }}>{relTime(r.updatedAt)}</td>
-                    <td style={{ padding: '14px 16px', textAlign: 'center', position: 'relative' }}>
+                    <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                       <div
-                        onClick={(e) => { e.stopPropagation(); setOpenMenu(menuOpen ? null : i); }}
+                        ref={(el) => { menuBtns.current[r.id] = el; }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (menuOpen) { setOpenMenu(null); return; }
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setMenuBox(placeMenu(rect, { width: 210, align: 'right', maxHeight: 280 }));
+                          setOpenMenu(r.id);
+                          setOpenFilter(null);
+                        }}
                         className="prop-menu-btn"
+                        aria-label={`เมนูของ ${r.publicCode}`}
                         style={{ width: 30, height: 30, borderRadius: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted2)', cursor: 'pointer', ...(menuOpen ? { background: 'var(--border)' } : {}) }}
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="5" r="1.4" /><circle cx="12" cy="12" r="1.4" /><circle cx="12" cy="19" r="1.4" /></svg>
                       </div>
-                      {menuOpen && (
-                        <div onClick={stopP} style={{ position: 'absolute', top: 44, right: 14, zIndex: 30, width: 210, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, boxShadow: '0 20px 44px rgba(0,0,0,.18)', padding: 7, textAlign: 'left' }}>
-                          {ROW_MENU.map((mi, mIdx) => {
-                            if (mi.divider) return <div key={mIdx} style={{ height: 1, background: 'var(--border)', margin: '6px 4px' }} />;
-                            if (mi.danger) {
-                              return (
-                                <a key={mIdx} href="#" onClick={(e) => { e.preventDefault(); setOpenMenu(null); void remove(r); }} style={menuItemStyle(true)}>
-                                  <span style={{ display: 'flex', width: 16, height: 16, flexShrink: 0 }} dangerouslySetInnerHTML={{ __html: mi.icon }} />
-                                  {mi.label}
-                                </a>
-                              );
-                            }
-                            if (mi.label === 'ทำสำเนา') {
-                              return (
-                                <a key={mIdx} href="#" onClick={(e) => { e.preventDefault(); setOpenMenu(null); void duplicate(r); }} style={menuItemStyle(false)}>
-                                  <span style={{ display: 'flex', width: 16, height: 16, flexShrink: 0 }} dangerouslySetInnerHTML={{ __html: mi.icon }} />
-                                  {mi.label}
-                                </a>
-                              );
-                            }
-                            const href = mi.href === '#' ? '#' : `${mi.href}?code=${encodeURIComponent(r.publicCode)}`;
-                            return (
-                              <a key={mIdx} href={href} style={menuItemStyle(false)}>
-                                <span style={{ display: 'flex', width: 16, height: 16, flexShrink: 0 }} dangerouslySetInnerHTML={{ __html: mi.icon }} />
-                                {mi.label}
-                              </a>
-                            );
-                          })}
-                        </div>
-                      )}
                     </td>
                   </tr>
                 );
@@ -430,10 +530,50 @@ export function PropertiesBody() {
         </div>
       </div>
 
-      {/* row-menu overlay */}
-      {openMenu !== null && (
-        <div onClick={() => setOpenMenu(null)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
-      )}
+      {/* ROW MENU — rendered here, outside the table card. Inside it the card's
+          `overflow: hidden` and the horizontal scroller cut the last items off,
+          which is why "ลบทรัพย์" was unreachable on every row. */}
+      {openMenu !== null && menuBox !== null && (() => {
+        const r = (items ?? []).find((p) => p.id === openMenu);
+        if (!r) return null;
+        return (
+          <>
+            <div onClick={() => setOpenMenu(null)} style={{ position: 'fixed', inset: 0, zIndex: 890 }} />
+            <div
+              id="prop-row-menu"
+              onClick={stopP}
+              style={{ position: 'fixed', top: menuBox.top, left: menuBox.left, width: menuBox.width, maxHeight: menuBox.maxHeight, overflowY: 'auto', zIndex: 900, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, boxShadow: '0 20px 44px rgba(0,0,0,.18)', padding: 7, textAlign: 'left' }}
+            >
+              {ROW_MENU.map((mi, mIdx) => {
+                if (mi.divider) return <div key={mIdx} style={{ height: 1, background: 'var(--border)', margin: '6px 4px' }} />;
+                if (mi.danger) {
+                  return (
+                    <a key={mIdx} href="#" onClick={(e) => { e.preventDefault(); setOpenMenu(null); void remove(r); }} style={menuItemStyle(true)}>
+                      <span style={{ display: 'flex', width: 16, height: 16, flexShrink: 0 }} dangerouslySetInnerHTML={{ __html: mi.icon }} />
+                      {mi.label}
+                    </a>
+                  );
+                }
+                if (mi.label === 'ทำสำเนา') {
+                  return (
+                    <a key={mIdx} href="#" onClick={(e) => { e.preventDefault(); setOpenMenu(null); void duplicate(r); }} style={menuItemStyle(false)}>
+                      <span style={{ display: 'flex', width: 16, height: 16, flexShrink: 0 }} dangerouslySetInnerHTML={{ __html: mi.icon }} />
+                      {mi.label}
+                    </a>
+                  );
+                }
+                const href = mi.href === '#' ? '#' : `${mi.href}?code=${encodeURIComponent(r.publicCode)}`;
+                return (
+                  <a key={mIdx} href={href} style={menuItemStyle(false)}>
+                    <span style={{ display: 'flex', width: 16, height: 16, flexShrink: 0 }} dangerouslySetInnerHTML={{ __html: mi.icon }} />
+                    {mi.label}
+                  </a>
+                );
+              })}
+            </div>
+          </>
+        );
+      })()}
 
       {/* NEW PROPERTY MODAL — centered popup (matches Listings "สร้างประกาศใหม่") */}
       {newOpen && (

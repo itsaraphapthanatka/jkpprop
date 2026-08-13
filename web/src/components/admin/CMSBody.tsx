@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { apiDelete, apiGet, apiPost, apiPut, ApiClientError } from '@/lib/apiClient';
+import { placeMenu } from '@/lib/menuPlacement';
 import Link from 'next/link';
 
 /* Ported verbatim from AdminCMS.dc.html — content-type tabs, article
@@ -98,25 +99,10 @@ const SLUG_BASE_MAP: Record<string, string> = {
    not offer the nine the FAQ actually runs on. */
 const CAT_FALLBACK = ['EEC & โลจิสติกส์', 'ใบอนุญาต', 'การลงทุน', 'สัญญา', 'เทคนิค', 'หน้าหลัก', 'ใบรับรอง'];
 
-const CAT_MENU_MAX = 300;
-
-/* Where the category menu goes. The field sits at the bottom of a tall editor,
-   so opening downwards put the list below the fold on a short window — flip it
-   above when there is more room there, and never let it start off-screen. */
-function placeMenu(r: DOMRect): { top: number; left: number; width: number; maxHeight: number } {
-  const margin = 8;
-  const below = window.innerHeight - r.bottom - margin;
-  const above = r.top - margin;
-  const flip = below < 160 && above > below;
-  const maxHeight = Math.max(120, Math.min(CAT_MENU_MAX, flip ? above : below));
-  const width = Math.max(r.width, 240);
-  return {
-    top: flip ? Math.max(margin, r.top - maxHeight - 6) : r.bottom + 6,
-    left: Math.max(margin, Math.min(r.left, window.innerWidth - width - margin)),
-    width,
-    maxHeight,
-  };
-}
+/* The category field sits at the bottom of a tall editor, so the menu has to
+   flip above on a short window — shared with the properties row menu, which
+   was clipped by its table card for the same reason. */
+const placeCatMenu = (r: DOMRect) => placeMenu(r, { minWidth: 240, maxHeight: 300 });
 const LINK_CHOICES = ['→ บริการ: ปรึกษาฟรี', '→ พื้นที่: ชลบุรี', '→ ทรัพย์: โกดังให้เช่า', '→ บทความ: ขอ ร.ง.4'];
 
 const tbi = (p: string) => ({ __html: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">' + p + '</svg>' });
@@ -225,7 +211,7 @@ export function CMSBody() {
        list, would otherwise dismiss the thing the reader is trying to use */
     const reposition = () => {
       const r = catRef.current?.getBoundingClientRect();
-      if (r) setCatRect(placeMenu(r));
+      if (r) setCatRect(placeCatMenu(r));
     };
     window.addEventListener('scroll', reposition, true);
     window.addEventListener('resize', reposition);
@@ -376,7 +362,7 @@ export function CMSBody() {
   const openCatMenu = () => {
     if (catOpen) { setCatOpen(false); return; }
     const r = catRef.current?.getBoundingClientRect();
-    if (r) setCatRect(placeMenu(r));
+    if (r) setCatRect(placeCatMenu(r));
     setCatAdding(false);
     setCatNew('');
     setCatOpen(true);

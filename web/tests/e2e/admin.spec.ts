@@ -1723,4 +1723,92 @@ test.describe('the properties screen', () => {
     expect(csv).toContain('รหัส');
     expect(csv).toContain('JKP');
   });
+
+  /* The menu lived inside a card with `overflow: hidden` wrapped around a
+     horizontal scroller, so its lower half — "ทำสำเนา" and "ลบทรัพย์" — was
+     cut off by the card edge on every row. */
+  test('the row menu is not clipped by the table card', async ({ page }) => {
+    await page.goto('/admin/properties');
+    const rows = page.locator('tr.prop-row');
+    await expect(rows.first()).toBeVisible();
+
+    // the last row is the one the card used to cut in half
+    await rows.last().locator('.prop-menu-btn').click();
+    const menu = page.locator('#prop-row-menu');
+    await expect(menu).toBeVisible();
+    await expect(menu.getByText('ลบทรัพย์')).toBeInViewport();
+
+    const box = (await menu.boundingBox())!;
+    const vp = page.viewportSize()!;
+    expect(box.y + box.height).toBeLessThanOrEqual(vp.height);
+    expect(box.x + box.width).toBeLessThanOrEqual(vp.width);
+
+    // and it still belongs to the row it was opened from
+    const code = await rows.last().locator('code').innerText();
+    await menu.getByText('ดูรายละเอียด').click();
+    await expect(page.locator('h1')).toContainText(code);
+  });
+
+  test('the checkboxes select rows and the bulk bar acts on exactly those', async ({ page }) => {
+    await page.goto('/admin/properties');
+    const rows = page.locator('tr.prop-row');
+    await expect(rows.first()).toBeVisible();
+    const n = await rows.count();
+
+    // nothing ticked → no bulk bar at all
+    await expect(page.locator('#prop-bulk')).toHaveCount(0);
+
+    await rows.first().locator('input[type=checkbox]').check();
+    await expect(page.locator('#prop-bulk')).toContainText('เลือกไว้ 1 รายการ');
+
+    // the header box takes the whole visible list, and gives it back
+    await page.locator('thead input[type=checkbox]').check();
+    await expect(page.locator('#prop-bulk')).toContainText(`เลือกไว้ ${n} รายการ`);
+    await page.getByRole('button', { name: 'ล้างการเลือก' }).click();
+    await expect(page.locator('#prop-bulk')).toHaveCount(0);
+
+    // Export with a selection gives the ticked rows, not the whole page
+    const code = await rows.first().locator('code').innerText();
+    await rows.first().locator('input[type=checkbox]').check();
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('button', { name: 'Export ที่เลือก' }).click(),
+    ]);
+    const stream = await download.createReadStream();
+    const csv = await new Promise<string>((resolve) => {
+      let out = '';
+      stream.on('data', (c) => { out += c; });
+      stream.on('end', () => resolve(out));
+    });
+    expect(csv.split('\n').filter(Boolean)).toHaveLength(2); // header + the one row
+    expect(csv).toContain(code);
+  });
+
+  test('a bulk status change reaches the database', async ({ page, request }) => {
+    const made = await request.post('/api/properties', {
+      headers: { cookie },
+      data: { typeKey: 'warehouse', title: 'ทรัพย์ทดสอบ bulk', values: {}, status: 'draft' },
+    });
+    const p = (await made.json()) as { id: string; publicCode: string };
+
+    try {
+      await page.goto(`/admin/properties?`);
+      await page.getByPlaceholder('ค้นหาด้วยรหัส').fill(p.publicCode);
+      const row = page.locator('tr.prop-row');
+      await expect(row).toHaveCount(1);
+
+      await row.locator('input[type=checkbox]').check();
+      await page.getByRole('button', { name: 'เผยแพร่' }).click();
+
+      // the row is what the server says it is, not what the button implied
+      await expect.poll(async () => {
+        const r = await request.get(`/api/properties/${p.id}`, { headers: { cookie } });
+        return (await r.json()).status;
+      }).toBe('active');
+      // and the selection is released once the work is done
+      await expect(page.locator('#prop-bulk')).toHaveCount(0);
+    } finally {
+      await request.delete(`/api/properties/${p.id}`, { headers: { cookie } });
+    }
+  });
 });
