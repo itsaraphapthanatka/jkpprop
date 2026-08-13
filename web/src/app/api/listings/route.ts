@@ -4,7 +4,8 @@
 import { ok, handler } from '@/lib/server/api';
 import { requireUser, scopeWhere } from '@/lib/server/auth';
 import { db } from '@/lib/server/db';
-import { displayProvince } from '@/lib/server/propertyDto';
+import { displayArea, displayProvince } from '@/lib/server/propertyDto';
+import { isFeatured } from '@/lib/server/publicListings';
 
 const fmtPrice = (values: Record<string, unknown>): { text: string; dealK: string; deal: string } => {
   const deal = String(values.deal_type ?? '');
@@ -37,12 +38,15 @@ export const GET = handler(async () => {
         id: p.id,
         title: p.title,
         code: p.publicCode,
+        // the admin table used to guess the type from words in the title
+        typeKey: p.typeKey,
+        area: displayArea(values),
         location: displayProvince(values) || '—',
         deal: price.deal,
         dealK: price.dealK,
         price: price.text,
         status: STATUS_OUT[p.status] ?? 'draft',
-        featured: false,
+        featured: isFeatured(p.values),
         updatedAt: p.updatedAt.getTime(),
       };
     }),

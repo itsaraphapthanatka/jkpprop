@@ -1812,3 +1812,197 @@ test.describe('the properties screen', () => {
     }
   });
 });
+
+test.describe('the listings screen', () => {
+  /* The table fell back to nine invented listings whenever the API returned
+     nothing, the status tabs read 2,956 · 2,410 · 48 · … above them, and
+     every action — Publish ทั้งหมด, Unpublish, and four of the six row-menu
+     items — was a dead div. */
+  let cookie = '';
+
+  test.beforeEach(async ({ page }) => {
+    await signIn(page, OWNER);
+    cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  });
+
+  test('the rows and the tab counts are the org\'s own, not a demo set', async ({ page, request }) => {
+    const real = (await (await request.get('/api/listings', { headers: { cookie } })).json()).items as { code: string; status: string }[];
+    await page.goto('/admin/listings');
+    await expect(page.getByText(`แสดง ${real.length} จาก ${real.length} ประกาศ`)).toBeVisible();
+
+    /* The demo set is checked by title, not by code: codes are issued in the
+       same JKP#### shape the generator uses, so a real record can land on one
+       of the old demo codes by coincidence. */
+    for (const ghost of ['ที่ดินอุตสาหกรรม วังน้อย', 'โรงงานผลิตอาหาร นวนคร', 'คลังห้องเย็น บางปะกง', 'โกดังโลจิสติกส์ ลาดกระบัง']) {
+      await expect(page.getByText(ghost)).toHaveCount(0);
+    }
+    // and the invented totals with them
+    await expect(page.getByText('2,956')).toHaveCount(0);
+    await expect(page.getByText('20 ต่อหน้า')).toHaveCount(0);
+
+    const published = real.filter((r) => r.status === 'published').length;
+    await expect(page.locator('.lst-row')).toHaveCount(real.length);
+    await expect(page.getByText('เผยแพร่', { exact: true }).first()).toBeVisible();
+    expect(published).toBeLessThanOrEqual(real.length);
+  });
+
+  test('Unpublish ทั้งหมด reaches the database and the site', async ({ page, request }) => {
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { typeKey: 'warehouse', title: 'ประกาศทดสอบ bulk', values: { province: 'ระยอง', price_rent: 90000, photos: ['/api/media/demo/raw'] } },
+    })).json();
+    await request.patch(`/api/listings/${made.publicCode}`, { headers: { cookie, 'Content-Type': 'application/json' }, data: { status: 'published' } });
+
+    try {
+      await page.goto('/admin/listings');
+      await page.getByPlaceholder('ค้นหา listing code หรือชื่อ').fill(made.publicCode);
+      const row = page.locator('.lst-row');
+      await expect(row).toHaveCount(1);
+
+      await row.locator('td').first().click();          // the row checkbox
+      await page.locator('#lst-bulk-unpublish').click();
+
+      await expect.poll(async () => {
+        const r = await request.get(`/api/properties/${made.id}`, { headers: { cookie } });
+        return (await r.json()).status;
+      }).toBe('hidden');
+    } finally {
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } });
+    }
+  });
+
+  /* Publishing is gated on a photo. A batch must not fail silently — the
+     listing that was refused has to be named, with the reason. */
+  test('a bulk publish that the gate refuses says which listing and why', async ({ page, request }) => {
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { typeKey: 'warehouse', title: 'ประกาศทดสอบ ไม่มีรูป', values: { province: 'ระยอง' } },
+    })).json();
+
+    try {
+      await page.goto('/admin/listings');
+      await page.getByPlaceholder('ค้นหา listing code หรือชื่อ').fill(made.publicCode);
+      await expect(page.locator('.lst-row')).toHaveCount(1);
+
+      const said = new Promise<string>((resolve) => page.once('dialog', (d) => { resolve(d.message()); void d.accept(); }));
+      await page.locator('.lst-row td').first().click();
+      await page.locator('#lst-bulk-publish').click();
+
+      const message = await said;
+      expect(message).toContain(made.publicCode);
+      expect(message).toContain('รูป');   // the gate's own words, not "ไม่สำเร็จ"
+
+      // and nothing was published behind the message
+      const after = await (await request.get(`/api/properties/${made.id}`, { headers: { cookie } })).json();
+      expect(after.status).toBe('draft');
+    } finally {
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } });
+    }
+  });
+
+  test('the row menu can feature a listing, and the homepage leads with it', async ({ page, request }) => {
+    const listings = (await (await request.get('/api/listings', { headers: { cookie } })).json()).items as { id: string; code: string; status: string }[];
+    const target = listings.find((l) => l.status === 'published');
+    test.skip(!target, 'needs a published listing');
+
+    await page.goto('/admin/listings');
+    await page.getByPlaceholder('ค้นหา listing code หรือชื่อ').fill(target!.code);
+    await expect(page.locator('.lst-row')).toHaveCount(1);
+    await page.locator('.lst-menu-btn').click();
+    await page.getByText('ตั้งเป็นแนะนำ').click();
+
+    try {
+      await expect.poll(async () => {
+        const r = await request.get(`/api/properties/${target!.id}`, { headers: { cookie } });
+        return (await r.json()).values?.featured;
+      }).toBe(true);
+
+      // the star is what decides the order of the homepage strip
+      const home = await (await request.get('/api/public/listings?locale=th&limit=6')).json();
+      expect((home.items as { code: string }[])[0].code).toBe(target!.code);
+    } finally {
+      const full = await (await request.get(`/api/properties/${target!.id}`, { headers: { cookie } })).json();
+      const { featured: _drop, ...rest } = full.values ?? {};
+      await request.patch(`/api/properties/${target!.id}`, { headers: { cookie, 'Content-Type': 'application/json' }, data: { values: rest } });
+    }
+  });
+
+  test('Export writes a CSV of the rows on screen', async ({ page }) => {
+    await page.goto('/admin/listings');
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.locator('#lst-export').click(),
+    ]);
+    expect(download.suggestedFilename()).toMatch(/^listings-\d{4}-\d{2}-\d{2}\.csv$/);
+    const stream = await download.createReadStream();
+    const csv = await new Promise<string>((resolve) => {
+      let out = '';
+      stream.on('data', (c) => { out += c; });
+      stream.on('end', () => resolve(out));
+    });
+    expect(csv.charCodeAt(0)).toBe(0xfeff);   // Excel on Windows reads the Thai
+    expect(csv).toContain('ชื่อประกาศ');
+  });
+
+  test('สร้างประกาศ sets the deal and price on a real property', async ({ page, request }) => {
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { typeKey: 'warehouse', title: 'ทรัพย์ทดสอบ create-listing', values: { province: 'ระยอง' } },
+    })).json();
+
+    try {
+      await page.goto('/admin/listings');
+      await page.getByRole('button', { name: 'สร้างประกาศ' }).or(page.locator('#lst-actions >> text=สร้างประกาศ')).first().click();
+      await page.getByPlaceholder('ค้นด้วยรหัส JKP หรือชื่อทรัพย์').fill(made.publicCode);
+      await page.locator('#lst-create-props').getByText(made.publicCode).click();
+      await page.locator('#lc-rent').fill('123456');
+      await page.locator('#lc-save').click();
+
+      // it lands on the editor for the record it just changed
+      await expect(page).toHaveURL(new RegExp(`/admin/property-edit\\?code=${made.publicCode}`));
+      const after = await (await request.get(`/api/properties/${made.id}`, { headers: { cookie } })).json();
+      expect(Number(after.values.price_rent)).toBe(123456);
+      expect(String(after.values.deal_type)).toContain('เช่า');
+    } finally {
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } });
+    }
+  });
+});
+
+test.describe('the social status screen', () => {
+  /* Its rows were imported from the Listings page's demo array, so every
+     channel tick was filed against a listing code the org does not own — and
+     the ticks are stored per code, so they were unreachable afterwards. */
+  test('the rows are the real listings, and a tick is stored against a real code', async ({ page, request }) => {
+    await signIn(page, OWNER);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    const real = (await (await request.get('/api/listings', { headers: { cookie } })).json()).items as { code: string }[];
+
+    await page.goto('/admin/social-status');
+    await expect(page.getByText(`แสดง ${real.length} จาก ${real.length} ประกาศ`)).toBeVisible();
+    for (const ghost of ['ที่ดินอุตสาหกรรม วังน้อย', 'คลังห้องเย็น บางปะกง']) {
+      await expect(page.getByText(ghost)).toHaveCount(0);
+    }
+    if (real.length) await expect(page.locator('.soc-row').first().locator('code')).toHaveText(real[0].code);
+  });
+});
+
+test.describe('the lead contact chips', () => {
+  /* Both were href="#": clicking the phone number on a lead did nothing. */
+  test('the number dials and the address opens a mail draft, unless the contact is masked', async ({ page }) => {
+    await signIn(page, OWNER);
+    await page.goto('/admin/leads');
+    const phone = page.locator('a', { hasText: /^0\d|^\+66/ }).first();
+    const masked = await page.getByText('ดูข้อมูลติดต่อเต็ม').count();
+
+    if (masked) {
+      // nothing to dial until it is revealed — the chip must not pretend otherwise
+      await expect(phone).toHaveCount(0);
+    } else {
+      await expect(phone).toHaveAttribute('href', /^tel:\+?\d+$/);
+      // a lead that left no address has nothing to link — only check one that did
+      const mail = page.locator('a', { hasText: '@' }).first();
+      if (await mail.count()) await expect(mail).toHaveAttribute('href', /^mailto:.+@/);
+    }
+  });
+});

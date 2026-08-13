@@ -53,16 +53,28 @@ const money = (n: number, d: Dictionary) =>
     ? `฿ ${(n / 1_000_000).toFixed(n % 1_000_000 ? 1 : 0)} ${d.common.million}`
     : `฿ ${n.toLocaleString('en-US')}`;
 
+/* "แนะนำ" is stored on the property itself, not a column — v1 has one listing
+   per property, so there is nowhere else to hang it yet. */
+export const isFeatured = (values: unknown): boolean =>
+  !!values && typeof values === 'object' && (values as Record<string, unknown>).featured === true;
+
 export async function loadPublicListings(q: ListingQuery = {}): Promise<PublicListing[]> {
   const d = getDictionary(q.locale ?? DEFAULT_LOCALE);
   const perMonth = d.common.perMonth;
   const limit = Math.min(60, Math.max(1, Number(q.limit ?? 24)));
 
-  const rows = await db.property.findMany({
+  const found = await db.property.findMany({
     where: { status: 'active', ...(q.type ? { typeKey: q.type } : {}) },
     orderBy: { updatedAt: 'desc' },
     take: 200,
   });
+
+  /* The star Ops ticks on /admin/listings decides what leads the homepage
+     strip; recency only breaks the tie. Sort is stable, so within each group
+     the newest still comes first. */
+  const rows = [...found].sort(
+    (a, b) => Number(isFeatured(b.values)) - Number(isFeatured(a.values)),
+  );
 
   return rows.flatMap((p) => {
     const values = stripInternal(p.typeKey, (p.values ?? {}) as Record<string, unknown>, null);

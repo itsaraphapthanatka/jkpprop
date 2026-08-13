@@ -612,11 +612,21 @@ export function LeadsBody() {
               </div>
             </div>
             <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <a href="#" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 36, padding: '0 14px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: '12.5px', fontWeight: 700 }}>
+              {/* Both chips were href="#". A masked number stays unclickable —
+                  there is nothing to dial until the contact is revealed. */}
+              <a
+                href={cur.piiMasked || !cur.phone || cur.phone === '—' ? undefined : `tel:${cur.phone.replace(/[^\d+]/g, '')}`}
+                title={cur.piiMasked ? 'กด "ดูข้อมูลติดต่อเต็ม" ก่อนจึงจะโทรได้' : `โทรหา ${cur.phone}`}
+                style={{ display: 'flex', alignItems: 'center', gap: 7, height: 36, padding: '0 14px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: '12.5px', fontWeight: 700, cursor: cur.piiMasked ? 'default' : 'pointer' }}
+              >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z"></path></svg>
                 {cur.phone}
               </a>
-              <a href="#" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 36, padding: '0 14px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: '12.5px', fontWeight: 700 }}>
+              <a
+                href={cur.piiMasked || !cur.email || cur.email === '—' ? undefined : `mailto:${cur.email}`}
+                title={cur.piiMasked ? 'กด "ดูข้อมูลติดต่อเต็ม" ก่อนจึงจะส่งอีเมลได้' : `ส่งอีเมลถึง ${cur.email}`}
+                style={{ display: 'flex', alignItems: 'center', gap: 7, height: 36, padding: '0 14px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: '12.5px', fontWeight: 700, cursor: cur.piiMasked ? 'default' : 'pointer' }}
+              >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 6l-10 7L2 6"></path><rect x="2" y="4" width="20" height="16" rx="2"></rect></svg>
                 {cur.email}
               </a>

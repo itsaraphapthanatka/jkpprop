@@ -1,9 +1,11 @@
 'use client';
 
 import * as React from 'react';
-import { apiGet } from '@/lib/apiClient';
+import { apiGet, apiPost, apiPatch, apiDelete, ApiClientError } from '@/lib/apiClient';
+import { PROPERTY_TYPES, propertyType } from '@/lib/propertySchema';
 import { relTime } from '@/lib/leadStore';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 /* ============================================================
    AdminListings.dc.html — ported <main> content (interactive):
@@ -17,12 +19,26 @@ import Link from 'next/link';
    brief requires.
    ============================================================ */
 
-type CreateCtx = { createOpen: boolean; setCreateOpen: (v: boolean) => void };
+/* Export sits in the topbar and the rows sit in the body, so the body hands
+   its handler up through here — the same arrangement the Properties screen uses. */
+type CreateCtx = {
+  createOpen: boolean;
+  setCreateOpen: (v: boolean) => void;
+  exportCsv: () => void;
+  registerExport: (fn: () => void) => void;
+};
 const ListingsCtx = React.createContext<CreateCtx | null>(null);
 
 export function ListingsProvider({ children }: { children: React.ReactNode }) {
   const [createOpen, setCreateOpen] = React.useState(false);
-  return <ListingsCtx.Provider value={{ createOpen, setCreateOpen }}>{children}</ListingsCtx.Provider>;
+  const exportRef = React.useRef<() => void>(() => {});
+  const value = React.useMemo<CreateCtx>(() => ({
+    createOpen,
+    setCreateOpen,
+    exportCsv: () => exportRef.current(),
+    registerExport: (fn: () => void) => { exportRef.current = fn; },
+  }), [createOpen]);
+  return <ListingsCtx.Provider value={value}>{children}</ListingsCtx.Provider>;
 }
 
 function useCreate(): CreateCtx {
@@ -39,6 +55,8 @@ export type Row = {
   id: string;
   title: string;
   code: string;
+  typeKey: string;
+  area: number | null;
   location: string;
   deal: string;
   dealK: DealK;
@@ -48,9 +66,12 @@ export type Row = {
   updated: string;
 };
 
+/* `act` is what the item does; `href` is where it goes. Every item used to
+   carry href="#" — four of the six did nothing at all when clicked. */
+type MenuAct = 'publish' | 'unpublish' | 'feature' | 'duplicate' | 'delete';
 type MenuItem =
   | { divider: true }
-  | { divider: false; label: string; href: string; icon: React.ReactNode; danger?: boolean };
+  | { divider: false; label: string; href?: string; act?: MenuAct; icon: React.ReactNode; danger?: boolean };
 
 const badgeStyle = (bg: string, fg: string): React.CSSProperties => ({
   height: 24, padding: '0 11px', borderRadius: 9999, background: bg, color: fg,
@@ -100,18 +121,11 @@ const menuIcon = (paths: React.ReactNode, color: string) => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths}</svg>
 );
 
-// shared with the Social Status page so both read one list
-export const RAW_DATA: Row[] = [
-  { id: 'l1', title: 'โกดังพร้อมสำนักงาน 2,700 ตร.ม.', code: 'JKP-SPK0042', location: 'สมุทรปราการ', deal: 'เช่า', dealK: 'rent', price: '฿176,000/ด.', status: 'published', featured: true, updated: 'วันนี้ 09:20' },
-  { id: 'l2', title: 'โรงงาน ร.ง.4 บางนา กม.23', code: 'JKP0118', location: 'กรุงเทพฯ', deal: 'ทั้งสอง', dealK: 'both', price: '฿9.7M', status: 'published', featured: true, updated: 'เมื่อวาน' },
-  { id: 'l3', title: 'คลังสินค้าแหลมฉบัง โซน A', code: 'JKP-CBI0007', location: 'ชลบุรี', deal: 'ขาย', dealK: 'sale', price: '฿45M', status: 'review', featured: false, updated: '2 วันก่อน' },
-  { id: 'l4', title: 'ที่ดินอุตสาหกรรม วังน้อย', code: 'JKP-AYA0021', location: 'อยุธยา', deal: 'ขาย', dealK: 'sale', price: '฿120M', status: 'draft', featured: false, updated: '3 วันก่อน' },
-  { id: 'l5', title: 'โรงงานผลิตอาหาร นวนคร', code: 'JKP-PTE0033', location: 'ปทุมธานี', deal: 'เช่า', dealK: 'rent', price: '฿245,000/ด.', status: 'published', featured: false, updated: '4 วันก่อน' },
-  { id: 'l6', title: 'โกดังให้เช่า มหาชัย', code: 'JKP-SKN0015', location: 'สมุทรสาคร', deal: 'เช่า', dealK: 'rent', price: '฿88,000/ด.', status: 'hidden', featured: false, updated: '5 วันก่อน' },
-  { id: 'l7', title: 'โรงงาน + โกดัง ปิ่นทอง', code: 'JKP-CBI0019', location: 'ชลบุรี', deal: 'ทั้งสอง', dealK: 'both', price: '฿15.5M', status: 'published', featured: true, updated: '1 สัปดาห์' },
-  { id: 'l8', title: 'คลังห้องเย็น บางปะกง', code: 'JKP-CCO0004', location: 'ฉะเชิงเทรา', deal: 'เช่า', dealK: 'rent', price: '฿310,000/ด.', status: 'unavailable', featured: false, updated: '1 สัปดาห์' },
-  { id: 'l9', title: 'โกดังโลจิสติกส์ ลาดกระบัง', code: 'JKP0231', location: 'กรุงเทพฯ', deal: 'ขาย', dealK: 'sale', price: '฿78M', status: 'published', featured: false, updated: '2 สัปดาห์' },
-];
+/* Nine invented listings used to live here and were shown whenever the API
+   returned nothing — with the Social Status page importing the same list. The
+   screen now shows what the org actually has, or says it has none. */
+export type ApiListing = Omit<Row, 'updated'> & { updatedAt: number };
+export const fetchListings = () => apiGet<{ items: ApiListing[] }>('/api/listings');
 
 const STATUS_MAP: Record<StatusK, React.CSSProperties> = {
   published: badgeStyle('#E8F3EC', '#0D6C3B'),
@@ -127,37 +141,53 @@ const DEAL_MAP: Record<DealK, React.CSSProperties> = {
   both: dealBadgeStyle('#273c33', '#fff'),
 };
 
+/* Each property type spells its deal field differently ("เช่า / ขาย" on a
+   warehouse, "ขายและปล่อยเช่า" on the generic set) and the stored string is
+   the enum key the rest of the site matches on — so take the wording from the
+   type's own schema rather than writing our own. */
+const dealValue = (typeKey: string, deal: DealK): string => {
+  const opts = propertyType(typeKey).fields.find((f) => f.key === 'deal_type')?.options ?? [];
+  const wantRent = deal !== 'sale';
+  const wantSale = deal !== 'rent';
+  const hit = opts.find((o) => o.includes('เช่า') === wantRent && o.includes('ขาย') === wantSale);
+  return hit ?? (deal === 'rent' ? 'เช่า' : deal === 'sale' ? 'ขาย' : 'เช่า / ขาย');
+};
+
 const rowMenu = (d: Row): MenuItem[] => {
+  const code = encodeURIComponent(d.code);
   const list: MenuItem[] = [
-    { divider: false, label: 'ดูรายละเอียด', href: '/admin/property-view', icon: menuIcon(<><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></>, '#034956') },
-    { divider: false, label: 'แก้ไขประกาศ', href: '/admin/property-edit', icon: menuIcon(<path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" />, '#034956') },
+    // the code was never passed, so both links opened whatever record the page defaulted to
+    { divider: false, label: 'ดูรายละเอียด', href: `/admin/property-view?code=${code}`, icon: menuIcon(<><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></>, '#034956') },
+    { divider: false, label: 'แก้ไขประกาศ', href: `/admin/property-edit?code=${code}`, icon: menuIcon(<path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" />, '#034956') },
   ];
-  if (d.status === 'published') list.push({ divider: false, label: 'ยกเลิกเผยแพร่', href: '#', icon: menuIcon(<path d="M18.4 18.4A9.9 9.9 0 0112 20c-7 0-10-8-10-8a18 18 0 015-6M1 1l22 22M9.9 4.2A9.9 9.9 0 0112 4c7 0 10 8 10 8a18 18 0 01-2.2 3.2" />, '#9A741C') });
-  else list.push({ divider: false, label: 'เผยแพร่', href: '#', icon: menuIcon(<path d="M22 2L11 13M22 2l-7 20-4-9-9-4z" />, '#0D6C3B') });
-  list.push({ divider: false, label: d.featured ? 'เอาออกจากแนะนำ' : 'ตั้งเป็นแนะนำ', href: '#', icon: menuIcon(<path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 19.3 7.2 17l.9-5.4L4.2 7.7l5.4-.8z" />, '#D9A62B') });
-  list.push({ divider: false, label: 'ทำสำเนา', href: '#', icon: menuIcon(<><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></>, '#034956') });
+  if (d.status === 'published') list.push({ divider: false, label: 'ยกเลิกเผยแพร่', act: 'unpublish', icon: menuIcon(<path d="M18.4 18.4A9.9 9.9 0 0112 20c-7 0-10-8-10-8a18 18 0 015-6M1 1l22 22M9.9 4.2A9.9 9.9 0 0112 4c7 0 10 8 10 8a18 18 0 01-2.2 3.2" />, '#9A741C') });
+  else list.push({ divider: false, label: 'เผยแพร่', act: 'publish', icon: menuIcon(<path d="M22 2L11 13M22 2l-7 20-4-9-9-4z" />, '#0D6C3B') });
+  list.push({ divider: false, label: d.featured ? 'เอาออกจากแนะนำ' : 'ตั้งเป็นแนะนำ', act: 'feature', icon: menuIcon(<path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 19.3 7.2 17l.9-5.4L4.2 7.7l5.4-.8z" />, '#D9A62B') });
+  list.push({ divider: false, label: 'ทำสำเนา', act: 'duplicate', icon: menuIcon(<><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></>, '#034956') });
   list.push({ divider: true });
-  list.push({ divider: false, label: 'ลบประกาศ', href: '#', icon: menuIcon(<path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />, '#C0392B'), danger: true });
+  list.push({ divider: false, label: 'ลบประกาศ', act: 'delete', icon: menuIcon(<path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />, '#C0392B'), danger: true });
   return list;
 };
 
-const STATUS_TABS: { key: 'all' | StatusK; label: string; count: string; danger: boolean }[] = [
-  { key: 'all', label: 'ทั้งหมด', count: '2,956', danger: false },
-  { key: 'published', label: 'เผยแพร่', count: '2,410', danger: false },
-  { key: 'review', label: 'รอตรวจ', count: '48', danger: false },
-  { key: 'draft', label: 'ร่าง', count: '372', danger: false },
-  { key: 'hidden', label: 'ซ่อน', count: '96', danger: false },
-  { key: 'unavailable', label: 'ไม่ว่าง', count: '30', danger: true },
+/* The counts read 2,956 · 2,410 · 48 · 372 · 96 · 30 whatever was in the
+   table below them — the org has three properties. They are counted now. */
+const STATUS_TABS: { key: 'all' | StatusK; label: string; danger: boolean }[] = [
+  { key: 'all', label: 'ทั้งหมด', danger: false },
+  { key: 'published', label: 'เผยแพร่', danger: false },
+  { key: 'review', label: 'รอตรวจ', danger: false },
+  { key: 'draft', label: 'ร่าง', danger: false },
+  { key: 'hidden', label: 'ซ่อน', danger: false },
+  { key: 'unavailable', label: 'ไม่ว่าง', danger: true },
 ];
 
 /* ---- filter dropdowns (type / province / deal / featured) ---- */
-type TypeK = 'factory' | 'warehouse' | 'land';
 type FiltersState = { type?: string; province?: string; deal?: string; featured?: string };
-const typeOf = (d: Row): TypeK => (/โกดัง|คลัง/.test(d.title) ? 'warehouse' : /ที่ดิน/.test(d.title) ? 'land' : 'factory');
-const PROVINCE_OPTS: [string, string][] = Array.from(new Set(RAW_DATA.map((d) => d.location))).map((p) => [p, p]);
-const FILTER_DEFS: { key: keyof FiltersState; label: string; options: [string, string][] }[] = [
-  { key: 'type', label: 'ประเภท', options: [['factory', 'โรงงาน'], ['warehouse', 'โกดัง/คลัง'], ['land', 'ที่ดิน']] },
-  { key: 'province', label: 'จังหวัด', options: PROVINCE_OPTS },
+/* the type came from a regex on the title ("โกดัง" in the name meant a
+   warehouse); the record carries its own type and now says so */
+const filterDefs = (rows: Row[]): { key: keyof FiltersState; label: string; options: [string, string][] }[] => [
+  { key: 'type', label: 'ประเภท', options: PROPERTY_TYPES.filter((t) => rows.some((r) => r.typeKey === t.key)).map((t) => [t.key, t.label]) },
+  // only provinces that actually appear — an option that always finds nothing is noise
+  { key: 'province', label: 'จังหวัด', options: Array.from(new Set(rows.map((d) => d.location).filter((p) => p && p !== '—'))).map((p) => [p, p]) },
   { key: 'deal', label: 'ดีล', options: [['rent', 'ให้เช่า'], ['sale', 'ขาย'], ['both', 'ทั้งสอง']] },
   { key: 'featured', label: 'Featured', options: [['yes', 'แนะนำ'], ['no', 'ไม่แนะนำ']] },
 ];
@@ -197,38 +227,19 @@ function FilterDropdown({ def, value, open, onToggle, onSelect }: {
   );
 }
 
-const CREATE_PROPS: { title: string; code: string; area: string; type: string }[] = [
-  { title: 'โกดังพร้อมสำนักงาน 2,700 ตร.ม.', code: 'JKP-SPK0042', area: '2,700', type: 'โกดัง' },
-  { title: 'โรงงาน ร.ง.4 บางนา กม.23', code: 'JKP0118', area: '3,500', type: 'โรงงาน' },
-  { title: 'คลังสินค้าแหลมฉบัง โซน A', code: 'JKP-CBI0007', area: '5,000', type: 'โกดัง' },
-];
-
 const DEAL_OPTS: [DealK, string][] = [['rent', 'ให้เช่า'], ['sale', 'ขาย'], ['both', 'ทั้งสอง']];
 const STATUS_OPTS: [CreateStatusK, string][] = [['draft', 'บันทึกร่าง'], ['published', 'เผยแพร่ทันที']];
 
-const PAGES: { n: string; style: React.CSSProperties }[] = [
-  { n: '1', style: { width: 34, height: 34, borderRadius: 9, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' } },
-  { n: '2', style: { width: 34, height: 34, borderRadius: 9, border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' } },
-  { n: '3', style: { width: 34, height: 34, borderRadius: 9, border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' } },
-  { n: '…', style: { width: 34, height: 34, color: 'var(--muted3)', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' } },
-];
-
-/* ---- topbar right cluster: Export dropdown + create trigger ---- */
+/* ---- topbar right cluster: Export + create trigger ---- */
 export function ListingsActions() {
-  const { setCreateOpen } = useCreate();
-  const [exportOpen, setExportOpen] = React.useState(false);
+  const { setCreateOpen, exportCsv } = useCreate();
   return (
     <div id="lst-actions" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      <div style={{ position: 'relative' }}>
-        <div onClick={() => setExportOpen((v) => !v)} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><path d="M7 10l5 5 5-5M12 15V3" /></svg>Export<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2.4"><path d="M6 9l6 6 6-6" /></svg>
-        </div>
-        {exportOpen && (
-          <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 200, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, boxShadow: '0 20px 44px rgba(0,0,0,.16)', padding: 7, zIndex: 60 }}>
-            <div className="lst-exp-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}><span style={{ width: 26, height: 26, borderRadius: 7, background: '#E8F3EC', color: '#0D6C3B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800 }}>XLS</span>Excel (.xlsx)</div>
-            <div className="lst-exp-item" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}><span style={{ width: 26, height: 26, borderRadius: 7, background: '#EEF4F3', color: '#034956', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800 }}>CSV</span>CSV (Google Sheets)</div>
-          </div>
-        )}
+      {/* The dropdown behind this offered "Excel (.xlsx)" and "CSV (Google
+          Sheets)"; neither had a handler and nothing here can write an .xlsx.
+          One button, one file, and the BOM makes Excel read the Thai. */}
+      <div id="lst-export" onClick={exportCsv} title="ไฟล์ CSV เปิดใน Excel และ Google Sheets ได้" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><path d="M7 10l5 5 5-5M12 15V3" /></svg>Export CSV
       </div>
       <div onClick={() => setCreateOpen(true)} className="admin-primary-btn" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M12 5v14M5 12h14" /></svg>สร้างประกาศ
@@ -239,25 +250,37 @@ export function ListingsActions() {
 
 /* ---- main content ---- */
 export function ListingsAdminBody() {
-  const { createOpen, setCreateOpen } = useCreate();
+  const { createOpen, setCreateOpen, registerExport } = useCreate();
+  const router = useRouter();
   const [sel, setSel] = React.useState<Record<string, boolean>>({});
   const [openMenu, setOpenMenu] = React.useState<string | null>(null);
-  const [cProp, setCProp] = React.useState(0);
+  /* create modal — the picker used to offer three hardcoded properties and
+     the Save button was a link to an empty edit page */
+  const [cCode, setCCode] = React.useState('');
+  const [cQuery, setCQuery] = React.useState('');
   const [cDeal, setCDeal] = React.useState<DealK>('rent');
+  const [cRent, setCRent] = React.useState('');
+  const [cSale, setCSale] = React.useState('');
   const [cStatus, setCStatus] = React.useState<CreateStatusK>('draft');
+  const [cSaving, setCSaving] = React.useState(false);
+  const [cErr, setCErr] = React.useState('');
 
-  // ---- live rows: GET /api/listings (falls back to the porting-era demo set) ----
-  const [rows, setRows] = React.useState<Row[]>(RAW_DATA);
-  React.useEffect(() => {
-    let alive = true;
-    apiGet<{ items: (Omit<Row, 'updated'> & { updatedAt: number })[] }>('/api/listings')
-      .then((r) => {
-        if (!alive || !Array.isArray(r.items) || !r.items.length) return;
-        setRows(r.items.map((it) => ({ ...it, updated: relTime(it.updatedAt) })));
-      })
-      .catch(() => { /* keep demo rows (§2.2) */ });
-    return () => { alive = false; };
+  /* ---- live rows: GET /api/listings. There is no demo fallback any more —
+     an empty org shows an empty table, because a bulk Publish over invented
+     rows would have gone looking for listing codes that do not exist. ---- */
+  const [rows, setRows] = React.useState<Row[] | null>(null);
+  const [loadErr, setLoadErr] = React.useState('');
+  const reload = React.useCallback(async () => {
+    try {
+      const r = await fetchListings();
+      setRows(r.items.map((it) => ({ ...it, updated: relTime(it.updatedAt) })));
+      setLoadErr('');
+    } catch (e) {
+      setRows((prev) => prev ?? []);
+      setLoadErr(e instanceof ApiClientError ? e.message : 'โหลดรายการประกาศไม่สำเร็จ');
+    }
   }, []);
+  React.useEffect(() => { void reload(); }, [reload]);
 
   // ---- filters (status tabs + search + dropdowns) ----
   const [query, setQuery] = React.useState('');
@@ -265,9 +288,10 @@ export function ListingsAdminBody() {
   const [filters, setFilters] = React.useState<FiltersState>({});
   const [openFilter, setOpenFilter] = React.useState<string | null>(null);
 
-  const filtered = rows.filter((d) => {
+  const all = rows ?? [];
+  const filtered = all.filter((d) => {
     if (statusFilter !== 'all' && d.status !== statusFilter) return false;
-    if (filters.type && typeOf(d) !== filters.type) return false;
+    if (filters.type && d.typeKey !== filters.type) return false;
     if (filters.province && d.location !== filters.province) return false;
     if (filters.deal && d.dealK !== filters.deal) return false;
     if (filters.featured && (filters.featured === 'yes') !== d.featured) return false;
@@ -283,19 +307,129 @@ export function ListingsAdminBody() {
   const selCount = Object.values(sel).filter(Boolean).length;
   const allChecked = filtered.length > 0 && filtered.every((d) => sel[d.id]);
   const anyMenuOpen = openMenu !== null;
-
-  const cur = CREATE_PROPS[cProp];
-  const isWh = cur.type === 'โกดัง';
-  const showRent = cDeal === 'rent' || cDeal === 'both';
-  const showSale = cDeal === 'sale' || cDeal === 'both';
-  const dest: string[] = [];
-  if (cDeal === 'rent' || cDeal === 'both') dest.push(isWh ? 'โกดังให้เช่า' : 'โรงงานให้เช่า');
-  if (cDeal === 'sale' || cDeal === 'both') dest.push(isWh ? 'โกดังสำหรับขาย' : 'โรงงานสำหรับขาย');
-  dest.push('อสังหาริมทรัพย์ทั้งหมด');
+  const statusCount = (k: 'all' | StatusK) => (k === 'all' ? all.length : all.filter((d) => d.status === k).length);
 
   const toggleAll = () => {
     if (allChecked) { setSel({}); }
     else { const s: Record<string, boolean> = { ...sel }; filtered.forEach((d) => { s[d.id] = true; }); setSel(s); }
+  };
+
+  /* ---- actions ----------------------------------------------------------
+     Publish goes through PATCH /api/listings/:code, which holds the publish
+     gate (title + at least one photo) and the 'publish' privilege. Rows are
+     sent one at a time so a rejection names the listing it belongs to
+     instead of failing the whole batch anonymously. */
+  const [busy, setBusy] = React.useState('');
+  const setStatus = (code: string, status: 'published' | 'hidden') =>
+    apiPatch(`/api/listings/${encodeURIComponent(code)}`, { status });
+
+  const runBulk = async (label: string, status: 'published' | 'hidden') => {
+    const picked = filtered.filter((d) => sel[d.id]);
+    if (!picked.length || busy) return;
+    setBusy(label);
+    const failed: string[] = [];
+    for (const d of picked) {
+      try { await setStatus(d.code, status); }
+      catch (e) { failed.push(`${d.code} (${e instanceof ApiClientError ? e.message : 'ไม่สำเร็จ'})`); }
+    }
+    setBusy('');
+    setSel({});
+    await reload();
+    if (failed.length) window.alert(`${label}: สำเร็จ ${picked.length - failed.length} · ไม่สำเร็จ ${failed.length}\n${failed.join('\n')}`);
+  };
+
+  const rowAct = async (d: Row, act: MenuAct) => {
+    setOpenMenu(null);
+    try {
+      if (act === 'publish') await setStatus(d.code, 'published');
+      else if (act === 'unpublish') await setStatus(d.code, 'hidden');
+      else if (act === 'feature') {
+        /* "แนะนำ" lives inside the property's values, and PATCH replaces that
+           object wholesale — read it back first or the edit erases the record. */
+        const full = await apiGet<{ values: Record<string, unknown> }>(`/api/properties/${d.id}`);
+        await apiPatch(`/api/properties/${d.id}`, { values: { ...full.values, featured: !d.featured } });
+      } else if (act === 'duplicate') {
+        const full = await apiGet<{ typeKey: string; title: string; values: Record<string, unknown> }>(`/api/properties/${d.id}`);
+        await apiPost('/api/properties', { typeKey: full.typeKey, title: `${full.title} (สำเนา)`.slice(0, 300), values: full.values, status: 'draft' });
+      } else if (act === 'delete') {
+        // v1 has one listing per property, so this really does remove the record
+        if (!window.confirm(`ลบ ${d.code} · ${d.title}?\n\nประกาศนี้ผูกกับทรัพย์โดยตรง การลบจะลบทรัพย์ออกจากระบบด้วย`)) return;
+        await apiDelete(`/api/properties/${d.id}`);
+      }
+      await reload();
+    } catch (e) {
+      window.alert(e instanceof ApiClientError ? e.message : 'ทำรายการไม่สำเร็จ');
+    }
+  };
+
+  /* Export was a dropdown with two dead entries. CSV of what the filters are
+     showing, BOM first so Excel on Windows reads the Thai. */
+  const exportCsv = () => {
+    if (!filtered.length) { window.alert('ไม่มีประกาศให้ export ตามเงื่อนไขที่เลือก'); return; }
+    const cell = (v: unknown) => {
+      const t = v === null || v === undefined ? '' : String(v);
+      return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+    };
+    const head = ['รหัส', 'ชื่อประกาศ', 'ทำเล', 'ดีล', 'ราคา', 'พื้นที่ (ตร.ม.)', 'สถานะ', 'แนะนำ'];
+    const body = filtered.map((d) => [d.code, d.title, d.location, d.deal, d.price, d.area ?? '', STATUS_LABEL[d.status], d.featured ? 'ใช่' : ''].map(cell).join(','));
+    const csv = '\uFEFF' + [head.map(cell).join(','), ...body].join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `listings-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  React.useEffect(() => { registerExport(exportCsv); });
+
+  /* ---- create modal ---- */
+  const createChoices = all.filter((p) => {
+    const q = cQuery.trim().toLowerCase();
+    return !q || [p.title, p.code, p.location].some((f) => f.toLowerCase().includes(q));
+  });
+  const cur = all.find((p) => p.code === cCode) ?? createChoices[0] ?? null;
+  const isWh = cur?.typeKey === 'warehouse';
+  const showRent = cDeal === 'rent' || cDeal === 'both';
+  const showSale = cDeal === 'sale' || cDeal === 'both';
+  const dest: string[] = [];
+  if (showRent) dest.push(isWh ? 'โกดังให้เช่า' : 'โรงงานให้เช่า');
+  if (showSale) dest.push(isWh ? 'โกดังสำหรับขาย' : 'โรงงานสำหรับขาย');
+  dest.push('อสังหาริมทรัพย์ทั้งหมด');
+
+  const saveListing = async () => {
+    if (cSaving) return;
+    if (!cur) { setCErr('เลือกทรัพย์ก่อน'); return; }
+    const money = (s: string) => {
+      const n = Number(s.replace(/[,\s฿]/g, ''));
+      return Number.isFinite(n) && n > 0 ? n : null;
+    };
+    const rent = money(cRent);
+    const sale = money(cSale);
+    if (showRent && cRent.trim() && rent === null) { setCErr('ราคาเช่าต้องเป็นตัวเลข'); return; }
+    if (showSale && cSale.trim() && sale === null) { setCErr('ราคาขายต้องเป็นตัวเลข'); return; }
+
+    setCSaving(true);
+    setCErr('');
+    try {
+      const full = await apiGet<{ values: Record<string, unknown> }>(`/api/properties/${cur.id}`);
+      const values: Record<string, unknown> = {
+        ...full.values,
+        deal_type: dealValue(cur.typeKey, cDeal),
+        ...(showRent && rent !== null ? { price_rent: rent } : {}),
+        ...(showSale && sale !== null ? { price_sale: sale } : {}),
+      };
+      await apiPatch(`/api/properties/${cur.id}`, { values });
+      /* Publishing goes through the listings route so the same gate applies
+         here as everywhere else — a photoless record is refused, with the
+         deal and price already saved. */
+      if (cStatus === 'published') await setStatus(cur.code, 'published');
+      setCreateOpen(false);
+      router.push(`/admin/property-edit?code=${encodeURIComponent(cur.code)}`);
+    } catch (e) {
+      setCErr(e instanceof ApiClientError ? e.message : 'บันทึกไม่สำเร็จ');
+    } finally {
+      setCSaving(false);
+    }
   };
 
   return (
@@ -317,19 +451,25 @@ export function ListingsAdminBody() {
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>1. เลือกทรัพย์ *</label>
               <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, height: 44, padding: '0 14px', borderRadius: 11, background: 'var(--bg)', border: '1px solid var(--border)' }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
-                <input placeholder="ค้นด้วยรหัส JKP หรือชื่อทรัพย์" style={{ border: 0, outline: 'none', background: 'transparent', fontSize: 13, color: 'var(--text)', flex: 1, minWidth: 0 }} />
+                <input value={cQuery} onChange={(e) => setCQuery(e.target.value)} placeholder="ค้นด้วยรหัส JKP หรือชื่อทรัพย์" style={{ border: 0, outline: 'none', background: 'transparent', fontSize: 13, color: 'var(--text)', flex: 1, minWidth: 0 }} />
               </div>
-              <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {CREATE_PROPS.map((p, i) => {
-                  const pon = cProp === i;
+              <div id="lst-create-props" style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 240, overflowY: 'auto' }} className="a-scroll">
+                {createChoices.length === 0 && (
+                  <div style={{ padding: '18px 12px', textAlign: 'center', fontSize: '12.5px', color: 'var(--muted3)', lineHeight: 1.7 }}>
+                    {all.length === 0 ? <>ยังไม่มีทรัพย์ในระบบ — <Link href="/admin/properties" style={{ color: '#0D6C3B', fontWeight: 700 }}>เพิ่มทรัพย์ก่อน</Link></> : 'ไม่พบทรัพย์ที่ตรงกับคำค้น'}
+                  </div>
+                )}
+                {createChoices.map((p) => {
+                  const pon = cCode === p.code;
                   return (
-                    <div key={p.code} onClick={() => setCProp(i)} style={propOptStyle(pon)}>
+                    <div key={p.code} onClick={() => setCCode(p.code)} style={propOptStyle(pon)}>
                       <div style={{ width: 40, height: 40, borderRadius: 9, background: 'var(--tint)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3 21V8l9-5 9 5v13" /><path d="M3 21h18" /><path d="M7 21v-8h10v8" /></svg>
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.title}</div>
-                        <code style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: '#0D6C3B', fontWeight: 700 }}>{p.code}</code> <span style={{ fontSize: 11, color: 'var(--muted3)' }}>· {p.area} ตร.ม.</span>
+                        <code style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: '#0D6C3B', fontWeight: 700 }}>{p.code}</code>
+                        {p.area !== null && <span style={{ fontSize: 11, color: 'var(--muted3)' }}> · {p.area.toLocaleString('th-TH')} ตร.ม.</span>}
                       </div>
                       {pon && (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" strokeWidth="2.6"><path d="M20 6L9 17l-5-5" /></svg>)}
                     </div>
@@ -346,13 +486,13 @@ export function ListingsAdminBody() {
                 {showRent && (
                   <div>
                     <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>ราคาเช่า (บาท/เดือน)</label>
-                    <input placeholder="0" style={{ marginTop: 6, width: '100%', height: 44, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: '13.5px', background: 'var(--surface)', outline: 'none' }} />
+                    <input id="lc-rent" value={cRent} onChange={(e) => setCRent(e.target.value)} inputMode="numeric" placeholder="0" style={{ marginTop: 6, width: '100%', height: 44, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: '13.5px', background: 'var(--surface)', outline: 'none' }} />
                   </div>
                 )}
                 {showSale && (
                   <div>
                     <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>ราคาขาย (บาท)</label>
-                    <input placeholder="0" style={{ marginTop: 6, width: '100%', height: 44, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: '13.5px', background: 'var(--surface)', outline: 'none' }} />
+                    <input id="lc-sale" value={cSale} onChange={(e) => setCSale(e.target.value)} inputMode="numeric" placeholder="0" style={{ marginTop: 6, width: '100%', height: 44, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: '13.5px', background: 'var(--surface)', outline: 'none' }} />
                   </div>
                 )}
               </div>
@@ -374,9 +514,14 @@ export function ListingsAdminBody() {
                 </div>
               </div>
             </div>
-            <div id="lc-footer" style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+            <div id="lc-footer" style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              {cErr && <span role="alert" id="lc-error" style={{ marginRight: 'auto', fontSize: '12.5px', color: '#C0392B', fontWeight: 600 }}>{cErr}</span>}
               <div onClick={() => setCreateOpen(false)} style={{ height: 44, padding: '0 22px', borderRadius: 9999, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', cursor: 'pointer', whiteSpace: 'nowrap' }}>ยกเลิก</div>
-              <Link href="/admin/property-edit" style={{ height: 44, padding: '0 26px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontSize: '13.5px', fontWeight: 700, whiteSpace: 'nowrap' }}>สร้างและแก้ไขต่อ<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg></Link>
+              {/* was a plain link to /admin/property-edit with no record — it
+                  opened a blank editor and nothing had been created */}
+              <div id="lc-save" onClick={() => void saveListing()} style={{ height: 44, padding: '0 26px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontSize: '13.5px', fontWeight: 700, whiteSpace: 'nowrap', cursor: cSaving ? 'default' : 'pointer', opacity: cSaving ? .7 : 1 }}>
+                {cSaving ? 'กำลังบันทึก…' : 'บันทึกและแก้ไขต่อ'}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+              </div>
             </div>
           </div>
         </div>
@@ -392,7 +537,7 @@ export function ListingsAdminBody() {
         {STATUS_TABS.map((t) => {
           const active = statusFilter === t.key;
           return (
-            <div key={t.key} onClick={() => setStatusFilter(t.key)} style={tabStyle(active)}>{t.label}<span style={tabCountStyle(active, t.danger)}>{t.count}</span></div>
+            <div key={t.key} onClick={() => setStatusFilter(t.key)} style={tabStyle(active)}>{t.label}<span style={tabCountStyle(active, t.danger)}>{statusCount(t.key)}</span></div>
           );
         })}
       </div>
@@ -404,7 +549,7 @@ export function ListingsAdminBody() {
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ค้นหา listing code หรือชื่อ" style={{ border: 0, outline: 'none', background: 'transparent', fontSize: 13, color: 'var(--text)', flex: 1, minWidth: 0 }} />
           {query && (<div onClick={() => setQuery('')} title="ล้าง" style={{ cursor: 'pointer', color: 'var(--muted3)', display: 'flex', flexShrink: 0 }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M18 6L6 18M6 6l12 12" /></svg></div>)}
         </div>
-        {FILTER_DEFS.map((f) => (
+        {filterDefs(all).map((f) => (
           <FilterDropdown
             key={f.key}
             def={f}
@@ -426,9 +571,10 @@ export function ListingsAdminBody() {
         <div style={{ background: '#04140C', borderRadius: 14, padding: '12px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', rowGap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#fff', fontSize: 13, fontWeight: 600 }}><span style={{ height: 24, minWidth: 24, padding: '0 8px', borderRadius: 9999, background: '#2DFB91', color: '#04140C', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{String(selCount)}</span>เลือกแล้ว</div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {busy && <span style={{ display: 'flex', alignItems: 'center', color: '#8FE6B6', fontSize: '12.5px', fontWeight: 700 }}>กำลัง{busy}…</span>}
             <div onClick={() => setSel({})} style={{ height: 36, padding: '0 16px', borderRadius: 9999, border: '1px solid rgba(255,255,255,.24)', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>ยกเลิก</div>
-            <div style={{ height: 36, padding: '0 16px', borderRadius: 9999, background: 'rgba(255,255,255,.12)', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>Unpublish</div>
-            <div style={{ height: 36, padding: '0 16px', borderRadius: 9999, background: '#2DFB91', color: '#04140C', fontSize: '12.5px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#04140C" strokeWidth="2.4"><path d="M20 6L9 17l-5-5" /></svg>Publish ทั้งหมด</div>
+            <div id="lst-bulk-unpublish" onClick={() => void runBulk('ยกเลิกเผยแพร่', 'hidden')} style={{ height: 36, padding: '0 16px', borderRadius: 9999, background: 'rgba(255,255,255,.12)', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, cursor: busy ? 'default' : 'pointer', opacity: busy ? .6 : 1 }}>Unpublish</div>
+            <div id="lst-bulk-publish" onClick={() => void runBulk('เผยแพร่', 'published')} style={{ height: 36, padding: '0 16px', borderRadius: 9999, background: '#2DFB91', color: '#04140C', fontSize: '12.5px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, cursor: busy ? 'default' : 'pointer', opacity: busy ? .6 : 1 }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#04140C" strokeWidth="2.4"><path d="M20 6L9 17l-5-5" /></svg>Publish ทั้งหมด</div>
           </div>
         </div>
       )}
@@ -485,10 +631,18 @@ export function ListingsAdminBody() {
                         <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', top: 44, right: 14, zIndex: 30, width: 210, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, boxShadow: '0 20px 44px rgba(0,0,0,.18)', padding: 7, textAlign: 'left' }}>
                           {rowMenu(d).map((mItem, mi2) => {
                             if (mItem.divider) return <div key={'div' + mi2} style={{ height: 1, background: 'var(--border)', margin: '6px 4px' }} />;
+                            const style = mItem.danger ? { ...miBase, color: '#C0392B' } : miBase;
+                            if (mItem.href) {
+                              return (
+                                <a key={mItem.label} href={mItem.href} style={style}>
+                                  <span style={{ display: 'flex', width: 16, height: 16, flexShrink: 0 }}>{mItem.icon}</span>{mItem.label}
+                                </a>
+                              );
+                            }
                             return (
-                              <a key={mItem.label} href={mItem.href} style={mItem.danger ? { ...miBase, color: '#C0392B' } : miBase}>
+                              <div key={mItem.label} onClick={() => void rowAct(d, mItem.act!)} style={style}>
                                 <span style={{ display: 'flex', width: 16, height: 16, flexShrink: 0 }}>{mItem.icon}</span>{mItem.label}
-                              </a>
+                              </div>
                             );
                           })}
                         </div>
@@ -499,20 +653,23 @@ export function ListingsAdminBody() {
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} style={{ padding: '44px 16px', textAlign: 'center', color: 'var(--muted2)', fontSize: 13 }}>
-                    ไม่พบประกาศที่ตรงกับตัวกรอง — <span onClick={clearFilters} style={{ color: '#0D6C3B', fontWeight: 700, cursor: 'pointer' }}>ล้างตัวกรอง</span>
+                  <td colSpan={8} style={{ padding: '44px 16px', textAlign: 'center', color: 'var(--muted2)', fontSize: 13, lineHeight: 1.8 }}>
+                    {rows === null ? 'กำลังโหลด…'
+                      : loadErr ? <span style={{ color: '#C0392B' }}>{loadErr}</span>
+                        : all.length === 0 ? <>ยังไม่มีประกาศในระบบ — <Link href="/admin/properties" style={{ color: '#0D6C3B', fontWeight: 700 }}>เพิ่มทรัพย์ที่หน้า Properties</Link> แล้วกลับมาตั้งดีลและราคา</>
+                          : <>ไม่พบประกาศที่ตรงกับตัวกรอง — <span onClick={clearFilters} style={{ color: '#0D6C3B', fontWeight: 700, cursor: 'pointer' }}>ล้างตัวกรอง</span></>}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+        {/* "แสดง N จาก 2,956 ประกาศ · 20 ต่อหน้า" with pages 1 · 2 · 3 · …
+            sat under a table that had every row it was ever going to get. */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderTop: '1px solid var(--border)', flexWrap: 'wrap', rowGap: 10 }}>
-          <div style={{ fontSize: '12.5px', color: 'var(--muted)' }}>แสดง {filtered.length} จาก 2,956 ประกาศ · <span style={{ color: 'var(--muted3)' }}>20 ต่อหน้า</span></div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <div style={{ width: 34, height: 34, borderRadius: 9, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted3)' }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M15 6l-6 6 6 6" /></svg></div>
-            {PAGES.map((p) => (<div key={p.n} style={p.style}>{p.n}</div>))}
-            <div style={{ width: 34, height: 34, borderRadius: 9, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)' }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M9 6l6 6-6 6" /></svg></div>
+          <div style={{ fontSize: '12.5px', color: 'var(--muted)' }}>
+            แสดง {filtered.length} จาก {all.length} ประกาศ
+            {filtered.length !== all.length && <span style={{ color: 'var(--muted3)' }}> · กรองอยู่</span>}
           </div>
         </div>
       </div>

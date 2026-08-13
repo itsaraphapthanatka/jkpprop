@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { RAW_DATA } from './ListingsAdminBody';
+import { fetchListings, type ApiListing } from './ListingsAdminBody';
 import { buildSummary } from '@/lib/summaryTemplate';
 import {
   loadSocial, saveSocial, recordOf, postOf, doneCount, channelKey, todayISO,
@@ -17,8 +17,8 @@ const th: React.CSSProperties = { padding: '12px 16px', textAlign: 'left', fontS
 const inputStyle: React.CSSProperties = { width: '100%', height: 40, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', fontFamily: 'inherit', fontSize: '13px', background: 'var(--surface)', color: 'var(--text)', outline: 'none' };
 const label: React.CSSProperties = { display: 'block', marginBottom: 5, fontSize: 11, fontWeight: 700, color: 'var(--muted)' };
 
-/* the mock listing rows carry only a few of the template's fields */
-const valuesFor = (r: typeof RAW_DATA[number]) => ({
+/* the listing row carries only a few of the template's fields */
+const valuesFor = (r: ApiListing) => ({
   deal_type: r.deal,
   province: r.location,
   price_rent: r.dealK !== 'sale' ? r.price.replace(/^฿/, '').replace(/\/ด\.$/, '') : '',
@@ -49,6 +49,10 @@ export function SocialStatusBody() {
   // text back to something identical doesn't silently re-link it.
   const [useAuto, setUseAuto] = React.useState(true);
 
+  /* The rows were the nine demo listings the Listings page used to carry, so
+     every tick was being filed against a listing code the org does not own. */
+  const [listings, setListings] = React.useState<ApiListing[] | null>(null);
+
   // client-only read (keeps SSR and first client render identical), then the
   // server copy — localStorage stays as an offline cache
   React.useEffect(() => {
@@ -57,6 +61,9 @@ export function SocialStatusBody() {
     apiGet<SocialStore>('/api/social')
       .then((s) => { if (s && Array.isArray(s.channels)) { setStore(s); saveSocial(s); } })
       .catch(() => { /* keep cache (§2.2) */ });
+    fetchListings()
+      .then((r) => setListings(r.items))
+      .catch(() => setListings([]));
   }, []);
 
   // optimistic local write + PUT for the touched listing (§2.3)
@@ -72,12 +79,12 @@ export function SocialStatusBody() {
   const channels = store.channels;
 
   const generated = (code: string) => {
-    const row = RAW_DATA.find((r) => r.code === code);
+    const row = (listings ?? []).find((r) => r.code === code);
     if (!row) return '';
     return buildSummary({ typeLabel: row.title, code: row.code, values: valuesFor(row) }).text;
   };
 
-  const rows = RAW_DATA.filter((r) => {
+  const rows = (listings ?? []).filter((r) => {
     const hit = !q.trim() || (r.title + r.code + r.location).toLowerCase().includes(q.trim().toLowerCase());
     if (!hit) return false;
     if (only === 'all' || !ready) return true;
@@ -148,7 +155,7 @@ export function SocialStatusBody() {
   };
 
   const openRec = openCode ? draft : null;
-  const openRow_ = openCode ? RAW_DATA.find((r) => r.code === openCode) : null;
+  const openRow_ = openCode ? (listings ?? []).find((r) => r.code === openCode) : null;
   const stop = (e: React.MouseEvent) => e.stopPropagation();
 
   return (
@@ -222,13 +229,15 @@ export function SocialStatusBody() {
                 );
               })}
               {rows.length === 0 && (
-                <tr><td colSpan={4} style={{ padding: '28px 16px', textAlign: 'center', fontSize: 13, color: 'var(--muted3)' }}>ไม่พบรายการที่ตรงกับเงื่อนไข</td></tr>
+                <tr><td colSpan={4} style={{ padding: '28px 16px', textAlign: 'center', fontSize: 13, color: 'var(--muted3)' }}>
+                  {listings === null ? 'กำลังโหลด…' : listings.length === 0 ? 'ยังไม่มีประกาศในระบบ' : 'ไม่พบรายการที่ตรงกับเงื่อนไข'}
+                </td></tr>
               )}
             </tbody>
           </table>
         </div>
         <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border)', fontSize: '12.5px', color: 'var(--muted)' }}>
-          แสดง {rows.length} จาก {RAW_DATA.length} ประกาศ · ติ๊กในตารางได้เลย หรือกด “ดูหมายเหตุ” เพื่อใส่วันที่และลิงก์
+          แสดง {rows.length} จาก {(listings ?? []).length} ประกาศ · ติ๊กในตารางได้เลย หรือกด “ดูหมายเหตุ” เพื่อใส่วันที่และลิงก์
         </div>
       </div>
 
