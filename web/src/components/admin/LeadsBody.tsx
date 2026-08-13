@@ -145,6 +145,7 @@ export function LeadsBody() {
   const [detail, setDetail] = React.useState<LeadDetail | null>(null);
   const [saveErr, setSaveErr] = React.useState('');
   const [noteText, setNoteText] = React.useState('');
+  const [taskDue, setTaskDue] = React.useState('');
   const [filters, setFilters] = React.useState<Record<string, string>>({ status: 'ทั้งหมด', agent: 'ทั้งหมด', source: 'ทั้งหมด', date: 'ทุกช่วง' });
 
   // add-lead
@@ -199,30 +200,74 @@ export function LeadsBody() {
   /* Real tasks for this lead. `baseTasks` was three fixed rows whose tick box
      called a setState that changed nothing — pure decoration. */
   const serverTasks = detail?.tasks ?? [];
-  const fmtDue = (ms: number | null) => (ms
-    ? new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short' }).format(new Date(ms))
-    : 'ยังไม่กำหนด');
 
-  const tasks = serverTasks.map((t) => ({
-    id: t.id,
-    title: t.title,
-    due: fmtDue(t.due),
-    done: t.done,
-    color: t.done ? '#0D6C3B' : '#D9A62B',
-    box: {
-      width: 16, height: 16, borderRadius: 5, flexShrink: 0, marginTop: 1, cursor: 'pointer',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      border: '1.5px solid ' + (t.done ? '#0D6C3B' : 'var(--border)'),
-      background: t.done ? '#0D6C3B' : 'transparent',
-    } as React.CSSProperties,
-    toggle: () => {
-      if (!cur.apiId) return;
-      setSaveErr('');
-      apiPatch(`/api/leads/${cur.apiId}/tasks`, { taskId: t.id, done: !t.done })
-        .then(loadDetail)
-        .catch((e) => setSaveErr(e instanceof ApiClientError ? e.message : 'ติ๊กงานไม่สำเร็จ'));
-    },
-  }));
+  /* How near the deadline is, from the deadline — not from a colour typed next
+     to each row. The prototype's three tasks carried a fixed red / amber /
+     green that only *looked* like urgency; they were the same three rows on
+     every lead. */
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const DAY = 86_400_000;
+
+  type Urgency = 'overdue' | 'soon' | 'later' | 'none' | 'done';
+  const urgencyOf = (due: number | null, done: boolean): Urgency => {
+    if (done) return 'done';
+    if (due === null) return 'none';
+    const days = Math.round((startOfDay(new Date(due)) - startOfDay(new Date())) / DAY);
+    if (days < 0) return 'overdue';
+    if (days <= 1) return 'soon';
+    return 'later';
+  };
+
+  const URGENCY_COLOR: Record<Urgency, string> = {
+    overdue: '#C0392B',
+    soon: '#D9A62B',
+    later: '#0D6C3B',
+    none: 'var(--border)',
+    done: '#0D6C3B',
+  };
+
+  /* The date in words, so the colour never has to be decoded on its own —
+     colour alone is not something every reader can use. */
+  const dueLabel = (due: number | null, u: Urgency) => {
+    if (due === null) return 'ไม่ได้กำหนดวัน';
+    const days = Math.round((startOfDay(new Date(due)) - startOfDay(new Date())) / DAY);
+    const date = new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short' }).format(new Date(due));
+    if (u === 'done') return `กำหนด ${date}`;
+    if (days < 0) return `เลยกำหนด ${-days} วัน · ${date}`;
+    if (days === 0) return `ครบกำหนดวันนี้ · ${date}`;
+    if (days === 1) return `พรุ่งนี้ · ${date}`;
+    return `อีก ${days} วัน · ${date}`;
+  };
+
+  const tasks = serverTasks.map((t) => {
+    const u = urgencyOf(t.due, t.done);
+    const color = URGENCY_COLOR[u];
+    return {
+      id: t.id,
+      title: t.title,
+      due: dueLabel(t.due, u),
+      dueColor: u === 'overdue' ? '#C0392B' : 'var(--muted3)',
+      done: t.done,
+      box: {
+        width: 16, height: 16, borderRadius: 5, flexShrink: 0, marginTop: 1, cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        border: '1.5px solid ' + color,
+        background: t.done ? '#0D6C3B' : 'transparent',
+      } as React.CSSProperties,
+      /* the same fact in text, for anyone who cannot use the colour */
+      boxTitle: t.done ? 'ทำเสร็จแล้ว — กดเพื่อเอาเครื่องหมายออก'
+        : u === 'overdue' ? 'เลยกำหนดแล้ว — กดเมื่อทำเสร็จ'
+          : u === 'soon' ? 'ใกล้ครบกำหนด — กดเมื่อทำเสร็จ'
+            : 'กดเมื่อทำเสร็จ',
+      toggle: () => {
+        if (!cur.apiId) return;
+        setSaveErr('');
+        apiPatch(`/api/leads/${cur.apiId}/tasks`, { taskId: t.id, done: !t.done })
+          .then(loadDetail)
+          .catch((e) => setSaveErr(e instanceof ApiClientError ? e.message : 'ติ๊กงานไม่สำเร็จ'));
+      },
+    };
+  });
 
   /* The timeline is the notes actually on this lead, newest first, with the
      lead's own creation at the bottom. It used to be the same four invented
@@ -342,8 +387,9 @@ export function LeadsBody() {
     if (!v) return;
     if (!cur.apiId) { setSaveErr('lead นี้ยังไม่ได้บันทึกลงระบบ'); return; }
     setSaveErr('');
-    apiPost(`/api/leads/${cur.apiId}/tasks`, { title: v })
-      .then(() => { setTaskText(''); setTaskAdding(false); loadDetail(); })
+    // the API always accepted `due`; the form simply never offered it
+    apiPost(`/api/leads/${cur.apiId}/tasks`, { title: v, due: taskDue || undefined })
+      .then(() => { setTaskText(''); setTaskDue(''); setTaskAdding(false); loadDetail(); })
       .catch((e) => setSaveErr(e instanceof ApiClientError ? e.message : 'เพิ่มงานไม่สำเร็จ'));
   };
 
@@ -641,9 +687,22 @@ export function LeadsBody() {
                 </span>
               </div>
               {taskAdding && (
-                <div style={{ display: 'flex', gap: 8, marginBottom: 9 }}>
-                  <input id="lead-task-input" value={taskText} onChange={(e) => setTaskText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') saveTask(); }} placeholder="งานใหม่…" style={{ flex: 1, minWidth: 0, height: 38, padding: '0 12px', borderRadius: 10, border: '1px solid #0D6C3B', fontFamily: 'inherit', fontSize: '12.5px', background: 'var(--surface)', outline: 'none' }} />
-                  <div id="lead-task-save" onClick={saveTask} style={{ height: 38, padding: '0 14px', borderRadius: 10, background: '#0D6C3B', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>เพิ่ม</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 9 }}>
+                  <input id="lead-task-input" value={taskText} onChange={(e) => setTaskText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') saveTask(); }} placeholder="งานใหม่…" style={{ minWidth: 0, height: 38, padding: '0 12px', borderRadius: 10, border: '1px solid #0D6C3B', fontFamily: 'inherit', fontSize: '12.5px', background: 'var(--surface)', outline: 'none' }} />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {/* the deadline is what drives the colour, so it is asked for here */}
+                    <input
+                      id="lead-task-due"
+                      type="date"
+                      value={taskDue}
+                      onChange={(e) => setTaskDue(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') saveTask(); }}
+                      aria-label="กำหนดวันที่ต้องทำเสร็จ"
+                      style={{ flex: 1, minWidth: 0, height: 38, padding: '0 10px', borderRadius: 10, border: '1px solid var(--border)', fontFamily: 'inherit', fontSize: '12.5px', color: taskDue ? 'var(--text)' : 'var(--muted3)', background: 'var(--surface)', outline: 'none' }}
+                    />
+                    <div id="lead-task-save" onClick={saveTask} style={{ height: 38, padding: '0 16px', borderRadius: 10, background: '#0D6C3B', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', cursor: 'pointer', flexShrink: 0 }}>เพิ่ม</div>
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--muted3)' }}>ไม่ใส่วันก็ได้ — แต่ใส่แล้วระบบจะเตือนเมื่อใกล้ครบกำหนด</div>
                 </div>
               )}
               {saveErr && (
@@ -653,14 +712,25 @@ export function LeadsBody() {
                 {tasks.length === 0 && (
                   <div style={{ padding: '14px 10px', textAlign: 'center', fontSize: '12px', color: 'var(--muted3)' }}>ยังไม่มีงานติดตาม</div>
                 )}
+                {/* the colour needed explaining, which is the tell that it was
+                    decoration — it means something now, and says so */}
+                {tasks.some((t) => !t.done) && (
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 10.5, color: 'var(--muted3)', paddingBottom: 2 }}>
+                    {[['#C0392B', 'เลยกำหนด'], ['#D9A62B', 'ใกล้ครบ'], ['#0D6C3B', 'ยังมีเวลา']].map(([c, label]) => (
+                      <span key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ width: 9, height: 9, borderRadius: 3, border: '1.5px solid ' + c }} />{label}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 {tasks.map((t, i) => (
                   <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: 10, borderRadius: 11, background: 'var(--bg)' }}>
-                    <div onClick={t.toggle} style={t.box}>
+                    <div onClick={t.toggle} title={t.boxTitle} role="checkbox" aria-checked={t.done} aria-label={`${t.title} — ${t.due}`} style={t.box}>
                       {t.done && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4"><path d="M20 6L9 17l-5-5"></path></svg>}
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: '12.5px', fontWeight: 600, color: t.done ? 'var(--muted3)' : 'var(--text)', ...(t.done ? { textDecoration: 'line-through' } : {}) }}>{t.title}</div>
-                      <div style={{ marginTop: 2, fontSize: 11, color: 'var(--muted3)' }}>{t.due}</div>
+                      <div style={{ marginTop: 2, fontSize: 11, fontWeight: t.dueColor === '#C0392B' ? 700 : 400, color: t.done ? 'var(--muted3)' : t.dueColor }}>{t.due}</div>
                     </div>
                   </div>
                 ))}

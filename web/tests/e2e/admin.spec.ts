@@ -1184,3 +1184,90 @@ test.describe('lead notes and follow-up tasks', () => {
     }
   });
 });
+
+test.describe('follow-up task deadlines', () => {
+  /* The three tick boxes were red / amber / green because those colours were
+     typed next to three hardcoded tasks — they looked like urgency and meant
+     nothing, and there was no way to give a task a date at all. The colour is
+     computed from the deadline now, and the deadline is spelled out in words
+     next to it so the colour is never the only signal. */
+  let cookie = '';
+  let leadId = '';
+
+  test.beforeEach(async ({ page, request }) => {
+    await signIn(page, OWNER);
+    cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    const leads = await (await request.get('/api/leads', { headers: { cookie } })).json();
+    leadId = leads.items?.[0]?.id ?? '';
+    expect(leadId).toBeTruthy();
+  });
+
+  const iso = (offsetDays: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    return d.toISOString().slice(0, 10);
+  };
+
+  test('a deadline entered on the form reaches the record', async ({ page, request }) => {
+    const title = `งานมีกำหนด ${Date.now().toString(36)}`;
+    await page.goto('/admin/leads');
+    await page.getByText('งานติดตาม').first().locator('..').locator('span').last().click();
+    await page.locator('#lead-task-input').fill(title);
+    await page.locator('#lead-task-due').fill(iso(3));
+    await page.locator('#lead-task-save').click();
+
+    await expect.poll(async () => {
+      const d = await (await request.get(`/api/leads/${leadId}`, { headers: { cookie } })).json();
+      return (d.tasks as { title: string; due: number | null }[]).find((t) => t.title === title)?.due ?? null;
+    }, { message: 'the deadline never reached the server' }).not.toBeNull();
+
+    await page.reload();
+    await expect(page.getByText(title)).toBeVisible();
+  });
+
+  test('the wording follows the deadline, not a fixed colour', async ({ page, request }) => {
+    const cases: [number, RegExp][] = [
+      [-2, /เลยกำหนด/],
+      [0, /ครบกำหนดวันนี้/],
+      [1, /พรุ่งนี้/],
+      [5, /อีก 5 วัน/],
+    ];
+    const made: string[] = [];
+    for (const [days] of cases) {
+      const title = `deadline ${days} ${Date.now().toString(36)}`;
+      made.push(title);
+      const res = await request.post(`/api/leads/${leadId}/tasks`, {
+        headers: { cookie }, data: { title, due: iso(days) },
+      });
+      expect(res.ok(), await res.text()).toBeTruthy();
+    }
+
+    await page.goto('/admin/leads');
+    for (let i = 0; i < cases.length; i++) {
+      const row = page.getByText(made[i]).locator('..');
+      await expect(row, `${made[i]} is missing`).toBeVisible();
+      await expect(row, `wrong wording for ${cases[i][0]} days`).toContainText(cases[i][1]);
+    }
+
+    // clean up
+    const d = await (await request.get(`/api/leads/${leadId}`, { headers: { cookie } })).json();
+    for (const t of d.tasks as { id: string; title: string }[]) {
+      if (made.includes(t.title)) {
+        await request.delete(`/api/leads/${leadId}/tasks?taskId=${t.id}`, { headers: { cookie } });
+      }
+    }
+  });
+
+  test('a task with no deadline says so rather than inventing one', async ({ page, request }) => {
+    const title = `งานไม่มีกำหนด ${Date.now().toString(36)}`;
+    const made = await request.post(`/api/leads/${leadId}/tasks`, { headers: { cookie }, data: { title } });
+    expect(made.ok()).toBeTruthy();
+
+    await page.goto('/admin/leads');
+    await expect(page.getByText(title).locator('..')).toContainText('ไม่ได้กำหนดวัน');
+
+    const d = await (await request.get(`/api/leads/${leadId}`, { headers: { cookie } })).json();
+    const t = (d.tasks as { id: string; title: string }[]).find((x) => x.title === title);
+    if (t) await request.delete(`/api/leads/${leadId}/tasks?taskId=${t.id}`, { headers: { cookie } });
+  });
+});
