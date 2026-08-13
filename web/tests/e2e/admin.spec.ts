@@ -1300,3 +1300,123 @@ test.describe('follow-up task deadlines', () => {
     if (t) await request.delete(`/api/leads/${leadId}/tasks?taskId=${t.id}`, { headers: { cookie } });
   });
 });
+
+test.describe('the visit plan shows the visit it will close', () => {
+  /* Two invented appointments with invented landlords and invented outcomes, a
+     four-stop route and a fixed date of 22 ก.ค. 2026 — while "ปิด plan" closed
+     whichever real visit was newest. You could read one plan and close another.
+     There was also no way to record the outcome of a stop, despite the API
+     accepting one. */
+  let cookie = '';
+  const made: string[] = [];
+
+  test.beforeEach(async ({ page }) => {
+    await signIn(page, OWNER);
+    cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  });
+
+  test.afterAll(async () => {
+    if (!db) {
+      const { PrismaClient } = await import('@prisma/client');
+      db = new PrismaClient();
+    }
+    for (const id of made) await db.visit.deleteMany({ where: { id } });
+  });
+
+  const makeVisit = async (request: import('@playwright/test').APIRequestContext) => {
+    const props = await (await request.get('/api/properties', { headers: { cookie } })).json();
+    const codes = (props.items as { publicCode: string; status: string }[])
+      .filter((p) => p.status === 'active').slice(0, 2).map((p) => p.publicCode);
+    test.skip(codes.length === 0, 'no active property to visit');
+    const res = await request.post('/api/visits', {
+      headers: { cookie },
+      data: { date: new Date().toISOString(), codes, note: 'e2e' },
+    });
+    expect(res.status(), await res.text()).toBe(201);
+    const { id } = await res.json();
+    made.push(id);
+    return { id, codes };
+  };
+
+  test('the stops on screen are the stops on the plan', async ({ page, request }) => {
+    const { id, codes } = await makeVisit(request);
+    await page.goto(`/admin/visits/${id}`);
+    for (const code of codes) {
+      await expect(page.locator(`[data-stop="${code}"]`), `${code} is missing`).toBeVisible();
+    }
+    // the invented ones are gone
+    for (const ghost of ['คุณประเสริฐ (เจ้าของ SPK)', 'บ. ปิ่นทอง แลนด์', '22 ก.ค. 2026']) {
+      await expect(page.getByText(ghost), `${ghost} is demo data`).toHaveCount(0);
+    }
+  });
+
+  test('an outcome recorded on a stop is saved', async ({ page, request }) => {
+    const { id, codes } = await makeVisit(request);
+    await page.goto(`/admin/visits/${id}`);
+    await page.locator(`[data-outcome="${codes[0]}:สนใจมาก"]`).click();
+
+    await expect.poll(async () => {
+      const d = await (await request.get('/api/visits', { headers: { cookie } })).json();
+      const v = (d.items as { id: string; stops: { code: string; result: string | null }[] }[]).find((x) => x.id === id);
+      return v?.stops.find((s) => s.code === codes[0])?.result ?? null;
+    }, { message: 'the outcome never reached the server' }).toBe('สนใจมาก');
+
+    await page.reload();
+    await expect(page.locator('[data-tally="สนใจมาก"]')).toContainText('1');
+  });
+});
+
+test.describe('the deal screen shows the deal, not a worked example', () => {
+  /* Four negotiation rounds, a ฿385,000 agreed price, a ฿13.86M contract value
+     and three PDFs were all constants — and the real offers were appended after
+     the invented ones, so the timeline mixed fiction with the record. */
+  let cookie = '';
+  const made: string[] = [];
+
+  test.beforeEach(async ({ page }) => {
+    await signIn(page, OWNER);
+    cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  });
+
+  test.afterAll(async () => {
+    if (!db) {
+      const { PrismaClient } = await import('@prisma/client');
+      db = new PrismaClient();
+    }
+    for (const id of made) await db.deal.deleteMany({ where: { id } });
+  });
+
+  test('a new deal has an empty timeline, not four invented rounds', async ({ page, request }) => {
+    const res = await request.post('/api/deals', {
+      headers: { cookie }, data: { title: `e2e deal ${Date.now().toString(36)}`, amount: 123456 },
+    });
+    expect(res.status()).toBe(201);
+    const { id } = await res.json();
+    made.push(id);
+
+    await page.goto(`/admin/deals/${id}`);
+    await expect(page.getByText('ยังไม่มีการเสนอราคา')).toBeVisible();
+    for (const ghost of ['฿350,000/ด.', '฿405,000/ด.', '฿13.86M', 'สัญญาเช่า (ฉบับร่าง).pdf']) {
+      await expect(page.getByText(ghost), `${ghost} is demo data`).toHaveCount(0);
+    }
+    // the real amount is shown
+    await expect(page.getByText('฿123,456').first()).toBeVisible();
+  });
+
+  test('an offer that is added shows up in the timeline', async ({ page, request }) => {
+    const res = await request.post('/api/deals', {
+      headers: { cookie }, data: { title: `e2e offer ${Date.now().toString(36)}`, amount: 100000 },
+    });
+    const { id } = await res.json();
+    made.push(id);
+
+    await request.post(`/api/deals/${id}/offers`, {
+      headers: { cookie }, data: { side: 'ฝั่งลูกค้า', amount: '฿99,000/ด.', terms: 'ขอลดราคา' },
+    });
+
+    await page.goto(`/admin/deals/${id}`);
+    await expect(page.getByText('฿99,000/ด.')).toBeVisible();
+    await expect(page.getByText('ขอลดราคา')).toBeVisible();
+    await expect(page.getByText('ยังไม่มีการเสนอราคา')).toHaveCount(0);
+  });
+});

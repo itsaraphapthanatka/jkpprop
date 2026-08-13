@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { apiGet, apiPost, apiPatch, ApiClientError } from '@/lib/apiClient';
 
 /* ============================================================
@@ -26,12 +27,17 @@ interface DealCtx {
   openUnlock: () => void;
   /** the record being edited (null while loading or when none exists yet) */
   dealId: string | null;
+  /** the record itself — the property card and the figures came from constants */
+  deal: ApiDeal | null;
   offers: ApiOffer[];
   addOffer: (o: { side: string; amount: string; terms: string }) => Promise<boolean>;
 }
 
 export type ApiOffer = { id: string; side: string; amount: string; terms: string; createdAt: number };
-type ApiDeal = { id: string; title: string; amount: number; status: string; locked: boolean; note: string | null };
+type ApiDeal = {
+  id: string; title: string; amount: number; status: string; locked: boolean; note: string | null;
+  propertyCode: string; propertyTitle: string; customer: string;
+};
 
 const DealContext = createContext<DealCtx | null>(null);
 
@@ -45,6 +51,7 @@ export function DealProvider({ children, dealId: fixedId }: { children: React.Re
   const [closed, setClosed] = useState(false);
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
   const [dealId, setDealId] = useState<string | null>(null);
+  const [deal, setDeal] = useState<ApiDeal | null>(null);
   const [offers, setOffers] = useState<ApiOffer[]>([]);
 
   /* /admin/deals/<id> pins a record; /admin/deals falls back to the newest */
@@ -55,11 +62,12 @@ export function DealProvider({ children, dealId: fixedId }: { children: React.Re
         const d = fixedId ? r.items?.find((x) => x.id === fixedId) : r.items?.[0];
         if (!alive || !d) return;
         setDealId(d.id);
+        setDeal(d);
         setClosed(d.locked || d.status !== 'negotiating');
         const o = await apiGet<{ items: ApiOffer[] }>(`/api/deals/${d.id}/offers`).catch(() => null);
         if (alive && o) setOffers(o.items ?? []);
       })
-      .catch(() => { /* no deals yet — the page stays on its demo content */ });
+      .catch(() => { /* no deals yet — the screen says so */ });
     return () => { alive = false; };
   }, [fixedId]);
 
@@ -67,6 +75,7 @@ export function DealProvider({ children, dealId: fixedId }: { children: React.Re
     closed,
     closeDialogOpen,
     dealId,
+    deal,
     offers,
     openClose: () => setCloseDialogOpen(true),
     closeDialog: () => setCloseDialogOpen(false),
@@ -173,25 +182,16 @@ interface ExtraOffer {
 }
 
 const PLUS = '<path d="M12 5v14M5 12h14"></path>';
-const CHECK = '<path d="M20 6L9 17l-5-5"></path>';
 const oi = (p: string, c: string) => '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="' + c + '" stroke-width="2">' + p + '</svg>';
 const sideC = (bg: string, fg: string): React.CSSProperties => ({ height: 22, padding: '0 11px', borderRadius: 9999, background: bg, color: fg, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center' });
-const dstat = (bg: string, fg: string): React.CSSProperties => ({ height: 22, padding: '0 10px', borderRadius: 9999, background: bg, color: fg, fontSize: '10.5px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', flexShrink: 0 });
-
-const DOCS = [
-  { name: 'สัญญาเช่า (ฉบับร่าง).pdf', meta: 'PDF · 2.4 MB · อัปโหลด 17 ก.ค.', iconBg: '#EEF4F3', iconColor: '#034956', status: 'รอเซ็น', statusStyle: dstat('#FBF3E1', '#9A741C') },
-  { name: 'หนังสือรับรองบริษัท.pdf', meta: 'PDF · 1.1 MB · อัปโหลด 16 ก.ค.', iconBg: '#E8F3EC', iconColor: '#0D6C3B', status: 'ครบ', statusStyle: dstat('#E8F3EC', '#0D6C3B') },
-  { name: 'แผนผังพื้นที่เช่า.pdf', meta: 'PDF · 3.8 MB · อัปโหลด 15 ก.ค.', iconBg: '#E8F3EC', iconColor: '#0D6C3B', status: 'ครบ', statusStyle: dstat('#E8F3EC', '#0D6C3B') },
-];
 
 export default function DealBody() {
-  const { closed, closeDialogOpen, closeDialog, confirmClose, dealId, offers: apiOffers, addOffer } = useDeal();
+  const { closed, closeDialogOpen, closeDialog, confirmClose, dealId, deal, offers: apiOffers, addOffer } = useDeal();
   const [addOfferOpen, setAddOfferOpen] = useState(false);
   const [offerSide, setOfferSide] = useState('ฝั่งลูกค้า');
   const [offerAmount, setOfferAmount] = useState('');
   const [offerTerms, setOfferTerms] = useState('');
   const [extraOffers, setExtraOffers] = useState<ExtraOffer[]>([]);
-  const [openProp, setOpenProp] = useState<Record<string, boolean>>({});
   const [closeOutcome, setCloseOutcome] = useState('สำเร็จ');
   const [closeNote, setCloseNote] = useState('');
 
@@ -199,23 +199,13 @@ export default function DealBody() {
     ? [doneStage('Open', '1'), doneStage('Offer', '2'), doneStage('Counter', '3'), doneStage('Documentation', '4'), doneStage('Contract', '5'), doneStage('Closed won', '6')]
     : [doneStage('Open', '1'), doneStage('Offer', '2'), doneStage('Counter', '3'), currStage('Documentation', '4'), pendStage('Contract', '5'), pendStage('Closed', '6', true)];
 
-  const base: Offer[] = [
-    { side: 'ฝั่งลูกค้า', sideStyle: sideC('#EEF4F3', '#034956'), amount: '฿350,000/ด.', terms: 'เสนอเช่า 3 ปี ขอ fit-out ฟรี 2 เดือน', time: '15 ก.ค. 10:20', dotBg: '#EEF4F3', icon: oi(PLUS, '#034956'), line: true },
-    { side: 'ฝั่งเจ้าของ', sideStyle: sideC('#FBF3E1', '#9A741C'), amount: '฿405,000/ด.', terms: 'ยืนราคาตั้ง ให้ fit-out ฟรี 1 เดือน', time: '16 ก.ค. 14:05', dotBg: '#FBF3E1', icon: oi(PLUS, '#9A741C'), line: true },
-    { side: 'ฝั่งลูกค้า', sideStyle: sideC('#EEF4F3', '#034956'), amount: '฿375,000/ด.', terms: 'ขอกลางทาง + ประกัน 2 เดือน', time: '17 ก.ค. 09:30', dotBg: '#EEF4F3', icon: oi(PLUS, '#034956'), line: true },
-    { side: 'ตกลง', sideStyle: sideC('#E8F3EC', '#0D6C3B'), amount: '฿385,000/ด.', terms: 'ตกลงราคาสุดท้าย fit-out 1.5 เดือน ประกัน 2 เดือน', time: '17 ก.ค. 16:40', dotBg: '#E8F3EC', icon: oi(CHECK, '#0D6C3B'), line: false },
-  ];
-  // once a real deal is loaded its offers ARE the timeline; the ported rows
-  // only stand in for the empty demo state
-  const extra: Offer[] = (dealId
-    ? apiOffers.map((o) => ({ side: o.side, amount: o.amount, terms: o.terms || '—' }))
-    : extraOffers
-  ).map((o) => {
+  /* The four rounds that used to sit here were invented, and real offers were
+     appended after them — one timeline mixing a fiction with the record. */
+  const extra: Offer[] = apiOffers.map((o) => ({ side: o.side, amount: o.amount, terms: o.terms || '—' })).map((o) => {
     const own = o.side === 'ฝั่งเจ้าของ';
     return { side: o.side, sideStyle: sideC(own ? '#FBF3E1' : '#EEF4F3', own ? '#9A741C' : '#034956'), amount: o.amount, terms: o.terms, time: 'เมื่อสักครู่', dotBg: own ? '#FBF3E1' : '#EEF4F3', icon: oi(PLUS, own ? '#9A741C' : '#034956'), line: false };
   });
-  if (extra.length) base[base.length - 1] = { ...base[base.length - 1], line: true };
-  const offers: Offer[] = (dealId ? [] : base).concat(extra.map((e, i) => ({ ...e, line: i < extra.length - 1 })));
+  const offers: Offer[] = extra.map((e, i) => ({ ...e, line: i < extra.length - 1 }));
 
   const sideOpts = (['ฝั่งลูกค้า', 'ฝั่งเจ้าของ'] as const).map((label) => {
     const sel = offerSide === label;
@@ -244,16 +234,18 @@ export default function DealBody() {
   const summaryMuted = closed ? '#B9C2BD' : 'var(--muted)';
   const summaryVal = closed ? '#fff' : 'var(--text)';
 
+  /* ฿385,000 and a ฿13.86M contract value were written into the file — they
+     showed above every deal, including one worth nothing. */
+  const baht = (n: number) => '฿' + n.toLocaleString('en-US');
   const dealSummary = [
-    { k: 'ประเภท', v: 'เช่า' },
-    { k: 'ราคาที่ตกลง', v: '฿385,000 / เดือน' },
-    { k: 'มูลค่าสัญญา 3 ปี', v: '฿13.86M' },
-    { k: 'วันเซ็นสัญญา', v: closed ? '18 ก.ค. 2026' : 'รอเซ็น' },
-    { k: 'สถานะ', v: closed ? 'ปิดดีลแล้ว (won)' : 'contract review' },
+    { k: 'ดีล', v: deal?.title || '—' },
+    { k: 'ลูกค้า', v: deal?.customer || '—' },
+    { k: 'มูลค่า', v: deal?.amount ? baht(deal.amount) : 'ยังไม่ระบุ' },
+    { k: 'สถานะ', v: deal ? (deal.status === 'won' ? 'ปิดดีลแล้ว (won)' : deal.status === 'lost' ? 'ไม่สำเร็จ (lost)' : 'กำลังเจรจา') : '—' },
+    { k: 'การเงิน', v: deal?.locked ? 'ล็อกแล้ว' : 'ยังแก้ได้' },
   ];
 
-  const propCode = 'JKP-SPK0042';
-  const propOpen = !!openProp[propCode];
+  const propCode = deal?.propertyCode || '';
 
   return (
     <>
@@ -284,22 +276,28 @@ export default function DealBody() {
         {/* LEFT: offers + docs */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* context (accordion header — คลิกเพื่อกาง/ซ่อนรายละเอียดด้านใน) */}
-          <div onClick={() => setOpenProp((p) => ({ ...p, [propCode]: !p[propCode] }))} style={{ background: 'var(--surface)', border: '1px solid ' + (propOpen ? '#0D6C3B' : 'var(--border)'), borderRadius: 16, padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', cursor: 'pointer', transition: 'border-color .15s' }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--tint)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M3 21V8l9-5 9 5v13" /><path d="M3 21h18" /><path d="M7 21v-8h10v8" /></svg>
             </div>
             <div style={{ flex: 1, minWidth: 180 }}>
-              <div style={{ fontSize: '14.5px', fontWeight: 800, color: 'var(--text)' }}>โกดังพร้อมสำนักงาน 2,700 ตร.ม.</div>
-              <code style={{ fontSize: 12, color: '#0D6C3B', fontWeight: 700 }}>JKP-SPK0042</code> <span style={{ fontSize: 12, color: 'var(--muted)' }}>· บ. ไทยโลจิสติกส์</span>
+              <div style={{ fontSize: '14.5px', fontWeight: 800, color: 'var(--text)' }}>{deal?.propertyTitle || deal?.title || 'ยังไม่ได้ผูกกับทรัพย์'}</div>
+              {propCode
+                ? <><code style={{ fontSize: 12, color: '#0D6C3B', fontWeight: 700 }}>{propCode}</code> <span style={{ fontSize: 12, color: 'var(--muted)' }}>· {deal?.customer || '—'}</span></>
+                : <span style={{ fontSize: 12, color: 'var(--muted)' }}>{deal?.customer || '—'}</span>}
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '11.5px', color: 'var(--muted2)' }}>ตกลงที่</div>
-              <div style={{ fontSize: 20, fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: '#034956' }}>฿385,000<span style={{ fontSize: 12, color: 'var(--muted)' }}>/ด.</span></div>
+              <div style={{ fontSize: '11.5px', color: 'var(--muted2)' }}>มูลค่า</div>
+              <div style={{ fontSize: 20, fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: '#034956' }}>{deal?.amount ? baht(deal.amount) : '—'}</div>
             </div>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2.4" style={{ flexShrink: 0, transform: propOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}><path d="M6 9l6 6 6-6" /></svg>
+            {propCode && (
+              <Link href={`/admin/properties?q=${encodeURIComponent(propCode)}`} style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--accent)', flexShrink: 0 }}>เปิดทรัพย์ →</Link>
+            )}
           </div>
 
-          {propOpen && (
+          {/* The negotiation history and the documents used to sit behind the
+              property card's accordion, collapsed by default — so opening a
+              deal showed a one-line card and nothing else. They are the page. */}
           <>
           {/* offers timeline */}
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 22 }}>
@@ -324,6 +322,11 @@ export default function DealBody() {
               </div>
             )}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {offers.length === 0 && (
+                <div style={{ padding: '22px 10px', textAlign: 'center', fontSize: '12.5px', color: 'var(--muted3)', lineHeight: 1.7 }}>
+                  {dealId ? 'ยังไม่มีการเสนอราคา — กด "เพิ่มข้อเสนอ" เพื่อบันทึกรอบแรก' : 'ยังไม่มีดีล'}
+                </div>
+              )}
               {offers.map((o, i) => (
                 <div key={i} style={{ display: 'flex', gap: 14, paddingBottom: 16 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -343,31 +346,20 @@ export default function DealBody() {
             </div>
           </div>
 
-          {/* documents */}
+          {/* Documents.
+              Three PDFs with sizes and upload dates used to be listed here,
+              next to an "อัปโหลด" button with no handler. There is no document
+              storage behind this screen — no model, no route, nowhere for a
+              file to go — so the panel says that instead of implying a filing
+              cabinet that does not exist. */}
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 22 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>เอกสาร Deal</div>
-              <div style={{ height: 34, padding: '0 14px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><path d="M17 8l-5-5-5 5M12 3v12" /></svg>อัปโหลด
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {DOCS.map((d) => (
-                <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12, background: 'var(--bg)' }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 9, background: d.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: d.iconColor }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><path d="M14 2v6h6" /></svg>
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{d.name}</div>
-                    <div style={{ fontSize: '11.5px', color: 'var(--muted3)' }}>{d.meta}</div>
-                  </div>
-                  <span style={d.statusStyle}>{d.status}</span>
-                </div>
-              ))}
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', marginBottom: 8 }}>เอกสาร Deal</div>
+            <div style={{ padding: '18px 14px', borderRadius: 12, background: 'var(--bg)', border: '1px dashed var(--border)', fontSize: '12.5px', color: 'var(--muted)', lineHeight: 1.7 }}>
+              ยังไม่ได้ทำระบบเก็บเอกสารของดีล — ตอนนี้แนบไฟล์ที่นี่ไม่ได้<br />
+              ระหว่างนี้อัปโหลดไว้ที่ <Link href="/admin/media" style={{ color: 'var(--accent)', fontWeight: 700 }}>คลังสื่อ</Link> แล้วใส่ลิงก์ในโน้ตของ lead ไปก่อนได้
             </div>
           </div>
           </>
-          )}
         </div>
 
         {/* RIGHT: deal summary + commission */}

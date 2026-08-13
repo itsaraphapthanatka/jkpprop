@@ -8,9 +8,25 @@ import { advanceLead } from '@/lib/server/leadPipeline';
 export const GET = handler(async () => {
   const user = await requireUser();
   const rows = await db.deal.findMany({ where: { orgId: user.orgId }, orderBy: { updatedAt: 'desc' }, take: 200 });
+
+  /* which property and which customer — the screen showed a fixed
+     "โกดังพร้อมสำนักงาน 2,700 ตร.ม. · JKP-SPK0042 · บ. ไทยโลจิสติกส์" card
+     above whatever deal was open */
+  const propIds = [...new Set(rows.map((d) => d.propertyId).filter(Boolean) as string[])];
+  const leadIds = [...new Set(rows.map((d) => d.leadId).filter(Boolean) as string[])];
+  const [props, leads] = await Promise.all([
+    propIds.length ? db.property.findMany({ where: { id: { in: propIds } }, select: { id: true, publicCode: true, title: true } }) : [],
+    leadIds.length ? db.lead.findMany({ where: { id: { in: leadIds } }, select: { id: true, name: true, company: true } }) : [],
+  ]);
+  const propById = new Map(props.map((p) => [p.id, p]));
+  const leadById = new Map(leads.map((l) => [l.id, l]));
+
   return ok({
     items: rows.map((d) => ({
       id: d.id, title: d.title, leadId: d.leadId, propertyId: d.propertyId,
+      propertyCode: d.propertyId ? propById.get(d.propertyId)?.publicCode ?? '' : '',
+      propertyTitle: d.propertyId ? propById.get(d.propertyId)?.title ?? '' : '',
+      customer: d.leadId ? (leadById.get(d.leadId)?.company || leadById.get(d.leadId)?.name || '') : '',
       amount: d.amount, status: d.status, locked: d.locked,
       closedAt: d.closedAt?.getTime() ?? null, note: d.note, updatedAt: d.updatedAt.getTime(),
     })),

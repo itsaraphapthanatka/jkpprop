@@ -6,6 +6,7 @@ import { requireUser, requireRole } from '@/lib/server/auth';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
 import { advanceLead } from '@/lib/server/leadPipeline';
+import { displayLocation } from '@/lib/server/propertyDto';
 
 export const GET = handler(async () => {
   const user = await requireUser();
@@ -17,7 +18,7 @@ export const GET = handler(async () => {
   });
   const propIds = [...new Set(rows.flatMap((v) => v.stops.map((s) => s.propertyId)))];
   const props = propIds.length
-    ? await db.property.findMany({ where: { id: { in: propIds } }, select: { id: true, publicCode: true, title: true } })
+    ? await db.property.findMany({ where: { id: { in: propIds } }, select: { id: true, publicCode: true, title: true, values: true } })
     : [];
   const byId = new Map(props.map((p) => [p.id, p]));
   return ok({
@@ -27,7 +28,15 @@ export const GET = handler(async () => {
       date: v.date.getTime(),
       status: v.status,
       note: v.note,
-      stops: v.stops.map((s) => ({ code: byId.get(s.propertyId)?.publicCode ?? '', title: byId.get(s.propertyId)?.title ?? '', result: s.result })),
+      /* the stop's own id: without it the screen could show outcomes but had
+         no way to save one, so it invented the whole list instead */
+      stops: v.stops.map((s) => ({
+        id: s.id,
+        code: byId.get(s.propertyId)?.publicCode ?? '',
+        title: byId.get(s.propertyId)?.title ?? '',
+        location: displayLocation((byId.get(s.propertyId)?.values ?? {}) as Record<string, unknown>),
+        result: s.result,
+      })),
     })),
   });
 });
