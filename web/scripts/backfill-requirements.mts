@@ -14,18 +14,44 @@ import { PrismaClient } from '@prisma/client';
 import { nextRequirementCode, requirementFromForm, type ReqItem } from '../src/lib/server/requirements.ts';
 
 const commit = process.argv.includes('--commit');
+/* Requirements created before the intake parser was fixed have blanks where
+   the form did send a size or a budget. This re-reads Lead.req into them —
+   only into fields that are still empty, so anything Ops typed by hand wins. */
+const reparse = process.argv.includes('--reparse');
 const db = new PrismaClient();
 
 const leads = await db.lead.findMany({
-  include: { requirements: { select: { id: true } } },
+  include: { requirements: true },
   orderBy: { createdAt: 'asc' },
 });
 
 let made = 0;
 let skipped = 0;
 
+let refilled = 0;
+
 for (const lead of leads) {
-  if (lead.requirements.length) { skipped++; continue; }
+  if (lead.requirements.length) {
+    if (!reparse) { skipped++; continue; }
+
+    const parsed = requirementFromForm((lead.req ?? []) as ReqItem[], lead);
+    for (const r of lead.requirements) {
+      const gaps: Record<string, unknown> = {};
+      if (r.areaMin === null && parsed.areaMin !== null) { gaps.areaMin = parsed.areaMin; gaps.areaMax = parsed.areaMax; }
+      if (r.budgetMin === null && parsed.budgetMin !== null) { gaps.budgetMin = parsed.budgetMin; gaps.budgetMax = parsed.budgetMax; }
+      if (!r.usage && parsed.usage) gaps.usage = parsed.usage;
+      if (!r.needsRor4 && parsed.needsRor4) gaps.needsRor4 = true;
+      if (!r.moveIn && parsed.moveIn) gaps.moveIn = parsed.moveIn;
+      const locs = Array.isArray(r.locations) ? r.locations : [];
+      if (!locs.length && (parsed.locations as unknown[])?.length) gaps.locations = parsed.locations;
+
+      if (!Object.keys(gaps).length) { skipped++; continue; }
+      console.log(`~ ${r.code.padEnd(9)} เติม ${Object.keys(gaps).join(', ')}`);
+      refilled++;
+      if (commit) await db.requirement.update({ where: { id: r.id }, data: gaps });
+    }
+    continue;
+  }
 
   /* One parser, shared with the live intake — this script used to have its
      own copy, and for a while it was the more complete of the two. */
@@ -56,7 +82,8 @@ for (const lead of leads) {
 }
 
 console.log(
-  `\nlead ทั้งหมด ${leads.length} · มี requirement อยู่แล้ว ${skipped} · ` +
+  `\nlead ทั้งหมด ${leads.length} · ไม่ต้องแตะ ${skipped} · ` +
+  (reparse ? `เติมช่องที่ว่าง ${refilled} · ` : '') +
   (made
     ? `สร้างใหม่ ${made}${commit ? ' — เขียนแล้ว' : ' — ยังไม่เขียนอะไร (ใส่ --commit เพื่อเขียนจริง)'}`
     : 'ไม่มีอะไรต้องสร้าง'),

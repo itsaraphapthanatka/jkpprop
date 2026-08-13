@@ -46,10 +46,16 @@ export async function nextRequirementCode(orgId: string): Promise<string> {
   return `REQ-${counter.next - 1}`;
 }
 
+/* The columns are INT4. A number that does not fit is a misread, not a
+   requirement — storing it is impossible and crashing the write helps nobody,
+   so it is dropped the same way unparseable text is. */
+const INT4_MAX = 2_147_483_647;
+
 const num = (v: unknown): number | null => {
   if (v === null || v === undefined || v === '') return null;
   const n = Math.round(Number(v));
-  return Number.isFinite(n) && n >= 0 ? n : null;
+  if (!Number.isFinite(n) || n < 0 || n > INT4_MAX) return null;
+  return n;
 };
 
 /** the writable fields, normalised — shared by create and update */
@@ -151,7 +157,11 @@ export function parseRange(raw: string): [number | null, number | null] {
   const nums = (raw.match(/[\d,]+(?:\.\d+)?/g) ?? [])
     .map((n) => Number(n.replace(/,/g, '')))
     .filter((n) => Number.isFinite(n) && n > 0)
-    .map((n) => (millions ? Math.round(n * 1_000_000) : n));
+    /* One string can hold both scales — "5–8 ล้าน หรือ 150,000/เดือน". Only
+       the small numbers are the ones counted in millions; a figure already in
+       the hundreds of thousands is written out in full. Multiplying the whole
+       string turned 150,000 into 150 billion, which Postgres rejected. */
+    .map((n) => (millions && n < 1000 ? Math.round(n * 1_000_000) : n));
   if (!nums.length) return [null, null];
   if (nums.length === 1) return [nums[0], null];
   return [Math.min(...nums), Math.max(...nums)];

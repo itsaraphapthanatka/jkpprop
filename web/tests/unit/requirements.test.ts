@@ -43,6 +43,16 @@ describe('requirement input', () => {
     }
   });
 
+
+  test('a number too big for the column is dropped, not stored', () => {
+    // INT4 tops out near 2.1 billion — anything past it is a misread
+    const r = requirementInput({ budgetMin: 150_000_000_000, areaMin: 3_000_000_000 });
+    assert.equal(r.budgetMin, null);
+    assert.equal(r.areaMin, null);
+    // the legitimate upper end still stores
+    assert.equal(requirementInput({ budgetMin: 2_000_000_000 }).budgetMin, 2_000_000_000);
+  });
+
   test('free text is bounded so one paste cannot fill the column', () => {
     const r = requirementInput({ note: 'ก'.repeat(5000), pollution: 'ข'.repeat(900) });
     assert.equal(r.note.length, 2000);
@@ -147,6 +157,18 @@ describe('parseRange', () => {
     assert.deepEqual(parseRange('฿5 ล้าน'), [5_000_000, null]);
     assert.deepEqual(parseRange(''), [null, null]);
     assert.deepEqual(parseRange('ไม่ระบุ'), [null, null]);
+  });
+
+
+  /* Found by Postgres, not by me: "เช่น 5–8 ล้าน หรือ 150,000/เดือน" holds two
+     scales at once. Multiplying the whole string made 150,000 into 150
+     billion, which does not fit the column and killed the write. */
+  test('one string holding both millions and a plain figure', () => {
+    const [lo, hi] = parseRange('เช่น 5–8 ล้าน หรือ 150,000/เดือน');
+    // 5 and 8 are millions; 150,000 is already written out and stays put
+    assert.equal(hi, 8_000_000);
+    assert.equal(lo, 150_000);
+    assert.ok(hi < 2_147_483_647, 'the value has to fit an INT4 column');
   });
 
   test('the smaller number is always first', () => {
