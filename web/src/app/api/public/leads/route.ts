@@ -5,7 +5,7 @@ import { ok, handler, ApiError, rateLimit, clientIp } from '@/lib/server/api';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
 import type { Prisma } from '@prisma/client';
-import { nextRequirementCode, requirementInput } from '@/lib/server/requirements';
+import { nextRequirementCode, requirementFromForm } from '@/lib/server/requirements';
 
 type ReqItem = { k: string; v: string };
 
@@ -54,14 +54,6 @@ export const POST = handler(async (req: Request) => {
      alongside so the submission arrives in the queue with a code, a status and
      somewhere to record the availability checks. `req` is kept as the verbatim
      record of what was submitted. */
-  const pick = (...keys: string[]) => {
-    for (const k of keys) {
-      const hit = reqItems.find((r) => r.k.includes(k));
-      if (hit) return hit.v;
-    }
-    return '';
-  };
-
   let requirementCode = '';
   try {
     requirementCode = await nextRequirementCode(org.id);
@@ -70,13 +62,10 @@ export const POST = handler(async (req: Request) => {
         orgId: org.id,
         code: requirementCode,
         leadId: lead.id,
-        ...requirementInput({
-          dealIntent: lead.dealIntent,
-          typeKey: lead.typeKey,
-          usage: pick('ประเภทการใช้งาน', 'การใช้งาน'),
-          note: lead.message,
-          locations: pick('ทำเล', 'พื้นที่', 'จังหวัด').split(/[,·]/),
-        }),
+        /* the same parser the backfill script uses — this path used to copy
+           over only the usage and the locations and silently drop the size,
+           the budget, the licence answer and the move-in date */
+        ...requirementFromForm(reqItems, lead),
       },
     });
   } catch {

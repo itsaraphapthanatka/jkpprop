@@ -114,3 +114,81 @@ export function requirementDto(r: RequirementRow) {
     updatedAt: r.updatedAt.getTime(),
   };
 }
+
+/* ------------------------------------------------------------------
+   Reading a requirement out of what the public form submitted.
+
+   The form sends `Lead.req` — a list of {label, value} pairs whose labels
+   change with the property type ("ประเภทการใช้งาน" for a warehouse,
+   "ประเภทห้อง" for a condo), and whose values are free text a person typed
+   ("2,000–3,500 ตร.ม.", "5–8 ล้าน").
+
+   This lived in two places and only one of them was complete: the backfill
+   script parsed sizes and budgets, while the live intake — the path that
+   actually matters — copied over the usage and the locations and dropped
+   everything else. One function now, used by both.
+
+   None of this is a substitute for the edit form: free text will always beat
+   a parser sometimes, and the answer to that is letting Ops correct it.
+   ------------------------------------------------------------------ */
+
+export type ReqItem = { k: string; v: string };
+
+/** first value whose label contains any of these words */
+export const pickItem = (items: ReqItem[], ...keys: string[]): string => {
+  for (const key of keys) {
+    const hit = items.find((r) => typeof r?.k === 'string' && r.k.includes(key));
+    if (hit) return String(hit.v ?? '').trim();
+  }
+  return '';
+};
+
+/** "2,000–3,500 ตร.ม." → [2000, 3500] · "5–8 ล้าน" → [5000000, 8000000] */
+export function parseRange(raw: string): [number | null, number | null] {
+  if (!raw) return [null, null];
+  // only the words that really mean millions — a bare "m" matches far too much
+  const millions = /ล้าน|ล\.บ\.|ลบ\./.test(raw);
+  const nums = (raw.match(/[\d,]+(?:\.\d+)?/g) ?? [])
+    .map((n) => Number(n.replace(/,/g, '')))
+    .filter((n) => Number.isFinite(n) && n > 0)
+    .map((n) => (millions ? Math.round(n * 1_000_000) : n));
+  if (!nums.length) return [null, null];
+  if (nums.length === 1) return [nums[0], null];
+  return [Math.min(...nums), Math.max(...nums)];
+}
+
+/* "ไม่มี" contains "มี" and "ไม่ต้องการ" contains "ต้องการ", so a plain
+   substring test reads every no as a yes. The negative is checked first. */
+const NO = /ไม่|none|^no$/i;
+const YES = /ใช่|ต้องการ|ต้องมี|จำเป็น|มี|yes|required/i;
+const saysYes = (raw: string) => !!raw && !NO.test(raw) && YES.test(raw);
+
+/** the writable fields, read out of one form submission */
+export function requirementFromForm(
+  items: ReqItem[],
+  lead: { dealIntent?: string; typeKey?: string; message?: string },
+) {
+  const list = Array.isArray(items) ? items.filter((r) => r && typeof r.k === 'string') : [];
+
+  const [areaMin, areaMax] = parseRange(pickItem(list, 'ขนาด', 'พื้นที่ใช้สอย', 'ตร.ม.', 'ตารางเมตร'));
+  const [budgetMin, budgetMax] = parseRange(pickItem(list, 'งบ', 'ราคา', 'ค่าเช่า'));
+
+  /* 'พื้นที่' is deliberately absent here: it reads as floor area at least as
+     often as it reads as district, and guessing wrong puts "3,000" in the
+     list of provinces. */
+  const locationsRaw = pickItem(list, 'ทำเล', 'ย่าน', 'จังหวัด', 'โซน', 'ที่ตั้ง');
+  const ror4 = pickItem(list, 'ร.ง.4', 'รง.4', 'ใบอนุญาตโรงงาน');
+  const moveIn = pickItem(list, 'ย้ายเข้า', 'เข้าใช้', 'พร้อมใช้');
+
+  return requirementInput({
+    dealIntent: lead.dealIntent ?? '',
+    typeKey: lead.typeKey ?? '',
+    usage: pickItem(list, 'ประเภทการใช้งาน', 'การใช้งาน', 'ประเภทห้อง', 'ประเภท'),
+    areaMin, areaMax, budgetMin, budgetMax,
+    needsRor4: saysYes(ror4),
+    nearPort: /ท่าเรือ|สนามบิน|port|airport/i.test(locationsRaw + ' ' + pickItem(list, 'ใกล้', 'ระยะ')),
+    moveIn,
+    note: lead.message ?? '',
+    locations: locationsRaw.split(/[,·/]|และ/),
+  });
+}

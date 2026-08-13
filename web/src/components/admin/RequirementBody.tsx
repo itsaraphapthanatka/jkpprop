@@ -117,6 +117,13 @@ export function RequirementBody({ id }: { id: string }) {
   const [cancelReason, setCancelReason] = React.useState('');
   const [cancelErr, setCancelErr] = React.useState('');
 
+  /* Reading a size and a budget out of free text will get it wrong sometimes,
+     and until now there was nothing Ops could do about it — the PATCH existed
+     but no screen called it. */
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [form, setForm] = React.useState<Record<string, string | boolean>>({});
+  const [editErr, setEditErr] = React.useState('');
+
   const [checkOpen, setCheckOpen] = React.useState(false);
   const [checkCode, setCheckCode] = React.useState('');
   const [checkResult, setCheckResult] = React.useState('available');
@@ -151,6 +158,40 @@ export function RequirementBody({ id }: { id: string }) {
     } finally {
       setBusy(false);
     }
+  };
+
+  const openEdit = () => {
+    if (!data) return;
+    setEditErr('');
+    setForm({
+      dealIntent: data.dealIntent,
+      usage: data.usage,
+      areaMin: data.areaMin?.toString() ?? '',
+      areaMax: data.areaMax?.toString() ?? '',
+      budgetMin: data.budgetMin?.toString() ?? '',
+      budgetMax: data.budgetMax?.toString() ?? '',
+      moveIn: data.moveIn ? new Date(data.moveIn).toISOString().slice(0, 10) : '',
+      needsRor4: data.needsRor4,
+      nearPort: data.nearPort,
+      pollution: data.pollution,
+      note: data.note,
+      locations: data.locations.map((l) => l.name).join(', '),
+    });
+    setEditOpen(true);
+  };
+
+  const saveEdit = async () => {
+    setEditErr('');
+    const okDone = await act({
+      dealIntent: form.dealIntent, usage: form.usage,
+      areaMin: form.areaMin, areaMax: form.areaMax,
+      budgetMin: form.budgetMin, budgetMax: form.budgetMax,
+      moveIn: form.moveIn, needsRor4: form.needsRor4, nearPort: form.nearPort,
+      pollution: form.pollution, note: form.note,
+      locations: String(form.locations || '').split(','),
+    }, 'บันทึกความต้องการแล้ว');
+    if (okDone) setEditOpen(false);
+    else setEditErr('บันทึกไม่สำเร็จ');
   };
 
   const confirmCancel = async () => {
@@ -343,9 +384,14 @@ export function RequirementBody({ id }: { id: string }) {
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 22 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 10, flexWrap: 'wrap' }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>ความต้องการของลูกค้า</div>
-              <Link href={`/admin/leads?id=${data.leadId}`} style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--accent)' }}>
-                {data.company || data.leadName || 'ดู lead'} →
-              </Link>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {!cancelled && (
+                  <span id="req-edit" onClick={openEdit} style={{ fontSize: '12.5px', fontWeight: 700, color: '#0D6C3B', cursor: 'pointer' }}>แก้ไข</span>
+                )}
+                <Link href={`/admin/leads?id=${data.leadId}`} style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--accent)' }}>
+                  {data.company || data.leadName || 'ดู lead'} →
+                </Link>
+              </div>
             </div>
             <div id="req-fields" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               {fields.map((f) => (
@@ -477,6 +523,115 @@ export function RequirementBody({ id }: { id: string }) {
           )}
         </div>
       </div>
+
+      {/* EDIT — the form only ever guessed these from free text */}
+      {editOpen && (
+        <div onClick={() => setEditOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 860, background: 'rgba(2,14,8,.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 560, maxHeight: '88vh', overflowY: 'auto', background: 'var(--surface)', borderRadius: 20, boxShadow: '0 40px 80px rgba(0,0,0,.4)', padding: '26px 28px' }}>
+            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)' }}>แก้ความต้องการ {data.code}</div>
+            <p style={{ margin: '6px 0 16px', fontSize: '12.5px', color: 'var(--muted)', lineHeight: 1.6 }}>
+              ระบบอ่านตัวเลขจากข้อความที่ลูกค้าพิมพ์ ซึ่งบางทีอ่านไม่ออก — เติมหรือแก้ตรงนี้ได้เลย
+            </p>
+
+            {([
+              ['dealIntent', 'ต้องการ', 'เช่า / ขาย'],
+              ['usage', 'ประเภทการใช้งาน', 'คลังสินค้า/โลจิสติกส์'],
+            ] as [string, string, string][]).map(([k, label, ph]) => (
+              <div key={k} style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>{label}</label>
+                <input
+                  id={`req-f-${k}`}
+                  value={String(form[k] ?? '')}
+                  onChange={(e) => setForm((f) => ({ ...f, [k]: e.target.value }))}
+                  placeholder={ph}
+                  style={{ marginTop: 6, width: '100%', height: 42, padding: '0 12px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none' }}
+                />
+              </div>
+            ))}
+
+            {([
+              ['ขนาด (ตร.ม.)', 'areaMin', 'areaMax', 'จาก', 'ถึง'],
+              [String(form.dealIntent ?? '').includes('ขาย') ? 'งบซื้อ (฿)' : 'งบเช่า (฿/เดือน)', 'budgetMin', 'budgetMax', 'ต่ำสุด', 'สูงสุด'],
+            ] as [string, string, string, string, string][]).map(([label, a, b, pa, pb]) => (
+              <div key={a} style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>{label}</label>
+                <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
+                  {[[a, pa], [b, pb]].map(([k, ph]) => (
+                    <input
+                      key={k}
+                      id={`req-f-${k}`}
+                      value={String(form[k] ?? '')}
+                      onChange={(e) => setForm((f) => ({ ...f, [k]: e.target.value.replace(/[^\d]/g, '') }))}
+                      inputMode="numeric"
+                      placeholder={ph}
+                      style={{ flex: 1, minWidth: 0, height: 42, padding: '0 12px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, fontVariantNumeric: 'tabular-nums', background: 'var(--bg)', outline: 'none' }}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>ย้ายเข้า</label>
+              <input
+                id="req-f-moveIn"
+                type="date"
+                value={String(form.moveIn ?? '')}
+                onChange={(e) => setForm((f) => ({ ...f, moveIn: e.target.value }))}
+                style={{ marginTop: 6, width: '100%', height: 42, padding: '0 12px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {([['needsRor4', 'ต้องมี ร.ง.4'], ['nearPort', 'ต้องใกล้ท่าเรือ / สนามบิน']] as [string, string][]).map(([k, label]) => {
+                const on = form[k] === true;
+                return (
+                  <div key={k} id={`req-f-${k}`} onClick={() => setForm((f) => ({ ...f, [k]: !on }))} style={{ height: 38, padding: '0 14px', borderRadius: 9999, display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', fontSize: '12.5px', fontWeight: on ? 700 : 600, background: on ? '#E8F3EC' : 'var(--bg)', color: on ? '#0D6C3B' : 'var(--muted)', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)') }}>
+                    <span style={{ width: 14, height: 14, borderRadius: 4, border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? '#0D6C3B' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {on && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.6"><path d="M20 6L9 17l-5-5" /></svg>}
+                    </span>
+                    {label}
+                  </div>
+                );
+              })}
+            </div>
+
+            {([
+              ['pollution', 'มลภาวะ (ประเภทกิจการ)', 'เช่น มีกลิ่น / เสียงดัง — เว้นว่างถ้าไม่มีปัญหา'],
+              ['locations', 'พื้นที่ที่ต้องการ (คั่นด้วย ,)', 'สมุทรปราการ, ชลบุรี'],
+            ] as [string, string, string][]).map(([k, label, ph]) => (
+              <div key={k} style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>{label}</label>
+                <input
+                  id={`req-f-${k}`}
+                  value={String(form[k] ?? '')}
+                  onChange={(e) => setForm((f) => ({ ...f, [k]: e.target.value }))}
+                  placeholder={ph}
+                  style={{ marginTop: 6, width: '100%', height: 42, padding: '0 12px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none' }}
+                />
+              </div>
+            ))}
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>บันทึกเพิ่มเติม</label>
+              <textarea
+                id="req-f-note"
+                value={String(form.note ?? '')}
+                onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
+                rows={3}
+                style={{ marginTop: 6, width: '100%', padding: '10px 12px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
+              />
+            </div>
+
+            {editErr && <div id="req-edit-error" style={{ marginBottom: 10, padding: '9px 12px', borderRadius: 10, background: '#FDECEC', color: '#A32A2A', fontSize: '12.5px', fontWeight: 600 }}>{editErr}</div>}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <div onClick={() => setEditOpen(false)} style={{ height: 42, padding: '0 20px', borderRadius: 9999, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 700, color: 'var(--text)', cursor: 'pointer' }}>ยกเลิก</div>
+              <div id="req-edit-save" onClick={() => void saveEdit()} style={{ height: 42, padding: '0 24px', borderRadius: 9999, background: busy ? '#6E8C7C' : '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 700, cursor: busy ? 'default' : 'pointer' }}>{busy ? 'กำลังบันทึก…' : 'บันทึก'}</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* CANCEL — FR-CRM-07 needs both the item and the reason */}
       {cancelOpen && (

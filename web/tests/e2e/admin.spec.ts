@@ -1001,6 +1001,35 @@ test.describe('Flow B — requirement to shortlist', () => {
     ).toBeGreaterThanOrEqual(ORDER.indexOf(beforeStatus));
   });
 
+
+  test('what the parser could not read can be typed in by hand', async ({ page, request }) => {
+    // a submission the parser cannot fully read — free text, no numbers
+    // start with nothing filled in, the way an unreadable submission arrives
+    const r = await create(request, { areaMin: null, areaMax: null, budgetMin: null, budgetMax: null, usage: '', needsRor4: false });
+    await page.goto(`/admin/requirements/${r.id}`);
+    await expect(page.locator('#cms-title-input, h1')).toBeVisible();
+
+    await page.locator('#req-edit').click();
+    await page.locator('#req-f-usage').fill('คลังสินค้า/โลจิสติกส์');
+    await page.locator('#req-f-areaMin').fill('2000');
+    await page.locator('#req-f-areaMax').fill('3500');
+    await page.locator('#req-f-budgetMin').fill('150000');
+    await page.locator('#req-f-budgetMax').fill('250000');
+    await page.locator('#req-f-needsRor4').click();
+    await page.locator('#req-f-locations').fill('สมุทรปราการ, ชลบุรี');
+    await page.locator('#req-edit-save').click();
+
+    await expect.poll(async () => {
+      const d = await (await request.get(`/api/requirements/${r.id}`, { headers: { cookie } })).json();
+      return { area: d.areaMin, budget: d.budgetMax, ror4: d.needsRor4, locs: (d.locations ?? []).length, usage: d.usage };
+    }, { message: 'the edit never reached the server' }).toEqual({
+      area: 2000, budget: 250000, ror4: true, locs: 2, usage: 'คลังสินค้า/โลจิสติกส์',
+    });
+
+    await page.reload();
+    await expect(page.locator('#req-fields').getByText('2,000 – 3,500 ตร.ม.')).toBeVisible();
+  });
+
   test('the queue screen lists requirements and opens one', async ({ page }) => {
     await page.goto('/admin/requirements');
     const rows = page.locator('a.req-row');
