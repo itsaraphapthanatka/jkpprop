@@ -27,11 +27,6 @@ interface Cmp {
   area: string; land: string; floor: string; height: string; power: string;
   rent: string; rentSqm: string; sale: string; deposit: string; advance: string; term: string;
 }
-const CMP: Cmp[] = [
-  { rank: '1', shortTitle: 'JKP-SPK0042', img: 'https://images.unsplash.com/photo-1553413077-190dd305871c?w=500&q=80', area: '2,700 ตร.ม.', land: '4 ไร่', floor: '3 ตัน/ตร.ม.', height: '9 เมตร', power: '3 Phase 50/150A', rent: '฿176,000/ด.', rentSqm: '฿150/ตร.ม.', sale: 'ให้เช่าเท่านั้น', deposit: '3 เดือน', advance: '1 เดือน', term: '3 ปี' },
-  { rank: '2', shortTitle: 'JKP-SKN0015', img: 'https://images.unsplash.com/photo-1565793298595-6a879b1d9492?w=500&q=80', area: '1,800 ตร.ม.', land: '2.5 ไร่', floor: '2 ตัน/ตร.ม.', height: '8 เมตร', power: '3 Phase 50/100A', rent: '฿88,000/ด.', rentSqm: '฿49/ตร.ม.', sale: '฿62M', deposit: '3 เดือน', advance: '1 เดือน', term: '3 ปี' },
-];
-const ITEM_IDS = ['i1', 'i2'];
 
 interface RowDef { label: string; field: keyof Cmp; hi?: boolean; accent?: boolean }
 const ROWS: RowDef[] = [
@@ -53,10 +48,6 @@ const REQ_CHIPS = ['เช่าโกดัง', '2,000–3,500 ตร.ม.', '
 interface Item {
   rank: string; img: string; title: string; code: string; loc: string; price: string; unit: string; specs: string[];
 }
-const ITEMS: Item[] = [
-  { rank: '1', img: 'https://images.unsplash.com/photo-1553413077-190dd305871c?w=700&q=80', title: 'โกดังพร้อมสำนักงาน 2,700 ตร.ม.', code: 'JKP-SPK0042', loc: 'บางพลี, สมุทรปราการ', price: '฿176,000', unit: '/เดือน · ฿150/ตร.ม.', specs: ['2,700 ตร.ม.', 'สูง 9 ม.', 'ร.ง.4 ได้', '3 Phase'] },
-  { rank: '2', img: 'https://images.unsplash.com/photo-1565793298595-6a879b1d9492?w=700&q=80', title: 'โกดังให้เช่า มหาชัย 1,800 ตร.ม.', code: 'JKP-SKN0015', loc: 'เมือง, สมุทรสาคร', price: '฿88,000', unit: '/เดือน · ฿49/ตร.ม.', specs: ['1,800 ตร.ม.', 'สูง 8 ม.', 'บนถนนหลัก', 'ใกล้ท่าเรือ'] },
-];
 
 const fbIcon = (paths: React.ReactNode, color: string, size = 15) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.9">{paths}</svg>
@@ -67,12 +58,19 @@ type ApiItem = {
   code: string; title: string; typeLabel: string; location: string;
   area: number | null; priceRent: number | null; priceSale: number | null;
   dealType: string; photo: string | null;
+  itemId: string; feedback: string | null; feedbackNote: string | null;
 };
+
+/* the customer's answer, as the API stores it */
+const FB_TO_API: Record<string, string> = { interested: 'interested', maybe: 'maybe', no: 'not_interested' };
+const API_TO_FB: Record<string, string> = { interested: 'interested', maybe: 'maybe', not_interested: 'no' };
 
 const money = (n: number) => `฿${n.toLocaleString('th-TH')}`;
 const FALLBACK_IMG = 'https://images.unsplash.com/photo-1553413077-190dd305871c?w=700&q=80';
 
-export function ClientShortlistBody() {
+type Contact = { name: string; phone: string; tel: string; email: string };
+
+export function ClientShortlistBody({ contact }: { contact?: Contact }) {
   const [view, setView] = useState<'cards' | 'compare'>('cards');
   const [fb, setFb] = useState<Record<string, FbKey>>({});
 
@@ -80,14 +78,30 @@ export function ClientShortlistBody() {
   const [apiItems, setApiItems] = useState<Item[] | null>(null);
   const [apiCmp, setApiCmp] = useState<Cmp[] | null>(null);
   const [notFound, setNotFound] = useState(false);
+  /* the shortlist's own name and date — the header said
+     "บริษัท ไทยโลจิสติกส์ กรุ๊ป จำกัด · ส่งเมื่อ 18 ก.ค. 2026" to everyone */
+  const [meta, setMeta] = useState<{ name: string; createdAt: number } | null>(null);
+  /* itemId per row, so an answer can be sent back */
+  const [rowIds, setRowIds] = useState<string[]>([]);
+  const [token, setToken] = useState('');
+  const [saving, setSaving] = useState('');
+  const [saveErr, setSaveErr] = useState('');
   useEffect(() => {
-    const token = new URLSearchParams(window.location.search).get('token');
-    if (!token) return;
-    fetch(`/api/public/shortlists/${encodeURIComponent(token)}`)
+    const t = new URLSearchParams(window.location.search).get('token');
+    /* No token means this page was opened directly. It used to answer with a
+       worked example — a fictional company and two invented properties — which
+       is the last thing a customer-facing link should do. */
+    if (!t) { setNotFound(true); return; }
+    setToken(t);
+    fetch(`/api/public/shortlists/${encodeURIComponent(t)}`)
       .then(async (r) => {
         if (!r.ok) { setNotFound(true); return; }
-        const d = (await r.json()) as { items: ApiItem[] };
+        const raw = (await r.json()) as { data?: { items: ApiItem[]; name: string; createdAt: number } } & { items?: ApiItem[]; name?: string; createdAt?: number };
+        const d = raw.data ?? (raw as { items: ApiItem[]; name: string; createdAt: number });
         const items = Array.isArray(d.items) ? d.items : [];
+        setMeta({ name: d.name ?? '', createdAt: d.createdAt ?? 0 });
+        setRowIds(items.map((it) => it.itemId));
+        setFb(Object.fromEntries(items.filter((it) => it.feedback).map((it) => [it.itemId, API_TO_FB[it.feedback!] as FbKey])));
         setApiItems(items.map((it, i) => ({
           rank: String(i + 1),
           img: it.photo || FALLBACK_IMG,
@@ -110,12 +124,29 @@ export function ClientShortlistBody() {
           deposit: '—', advance: '—', term: '—',
         })));
       })
-      .catch(() => { /* keep demo view (§2.2) */ });
+      .catch(() => setNotFound(true));
   }, []);
 
-  const itemsData = apiItems ?? ITEMS;
-  const cmpData = apiCmp ?? CMP;
-  const itemIds = apiItems ? apiItems.map((i) => i.code) : ITEM_IDS;
+  const itemsData = apiItems ?? [];
+  const cmpData = apiCmp ?? [];
+  const itemIds = rowIds;
+
+  /* the answer goes back to the team instead of colouring a button locally */
+  const sendFeedback = (i: number, key: FbKey) => {
+    const itemId = rowIds[i];
+    if (!itemId || !token) return;
+    setFb((f) => ({ ...f, [itemId]: key }));
+    setSaving(itemId);
+    setSaveErr('');
+    fetch(`/api/public/shortlists/${encodeURIComponent(token)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ itemId, feedback: FB_TO_API[key] ?? key }),
+    })
+      .then((r) => { if (!r.ok) throw new Error(); })
+      .catch(() => setSaveErr('ส่งความเห็นไม่สำเร็จ — ลองใหม่อีกครั้ง'))
+      .finally(() => setSaving(''));
+  };
 
   const tab = (on: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 15px', borderRadius: 9999, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', background: on ? 'var(--pine)' : 'transparent', color: on ? '#fff' : 'var(--muted)' });
 
@@ -155,7 +186,7 @@ export function ClientShortlistBody() {
               <div style={{ width: 72, height: 72, borderRadius: 16, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden', padding: 8, color: 'var(--muted3)', fontSize: 11, fontWeight: 700, textAlign: 'center' }}>โลโก้ลูกค้า</div>
               <div>
                 <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '.06em', color: '#8FE6B6', textTransform: 'uppercase' }}>คัดทรัพย์สำหรับ</div>
-                <div style={{ marginTop: 4, fontSize: 22, fontWeight: 800, color: '#fff' }}>บริษัท ไทยโลจิสติกส์ กรุ๊ป จำกัด</div>
+                <div style={{ marginTop: 4, fontSize: 22, fontWeight: 800, color: '#fff' }}>{meta?.name || 'ทรัพย์ที่คัดให้คุณ'}</div>
                 <div style={{ marginTop: 4, fontSize: '12.5px', color: '#C3FED5', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8FE6B6" strokeWidth="2" style={{ flexShrink: 0, marginTop: 2 }}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z" /><circle cx="12" cy="10" r="3" /></svg>
                   99/1 ถ.บางนา-ตราด กม.19 ต.บางโฉลง อ.บางพลี จ.สมุทรปราการ
@@ -165,7 +196,9 @@ export function ClientShortlistBody() {
             <div style={{ textAlign: 'right', flexShrink: 0 }}>
               <div style={{ fontSize: '11.5px', color: '#8FE6B6' }}>Shortlist</div>
               <code style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 15, fontWeight: 700, color: '#fff' }}>SL-208</code>
-              <div style={{ marginTop: 6, fontSize: '11.5px', color: '#C3FED5' }}>ส่งเมื่อ 18 ก.ค. 2026</div>
+              <div style={{ marginTop: 6, fontSize: '11.5px', color: '#C3FED5' }}>
+                {meta?.createdAt ? `ส่งเมื่อ ${new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(meta.createdAt))}` : ''}
+              </div>
             </div>
           </div>
         </div>
@@ -253,7 +286,7 @@ export function ClientShortlistBody() {
                     const cycle = () => {
                       const order: FbKey[] = ['interested', 'undecided', 'not'];
                       const idx = order.indexOf(cur);
-                      setFb((f) => ({ ...f, [itemIds[i]]: order[(idx + 1) % 3] }));
+                      sendFeedback(i, order[(idx + 1) % 3]);
                     };
                     return (
                       <td key={c.shortTitle} style={{ padding: '12px 14px' }}>
@@ -307,11 +340,12 @@ export function ClientShortlistBody() {
                   </div>
                   <div style={{ marginTop: 'auto', paddingTop: 18 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted2)', marginBottom: 8 }}>ความเห็นของคุณ</div>
+                    {saveErr && <div style={{ marginBottom: 8, fontSize: 11, color: '#A32A2A', fontWeight: 600 }}>{saveErr}</div>}
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       {FB_DEFS.map((d) => {
                         const active = fb[itemIds[i]] === d.key;
                         return (
-                          <div key={d.key} onClick={() => setFb((f) => ({ ...f, [ITEM_IDS[i]]: d.key }))} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 38, padding: '0 16px', borderRadius: 9999, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', transition: 'all .15s', border: '1.5px solid ' + (active ? d.on : 'var(--border)'), background: active ? d.onBg : 'transparent', color: active ? d.on : 'var(--text)' }}>
+                          <div key={d.key} onClick={() => sendFeedback(i, d.key)} style={{ opacity: saving === rowIds[i] ? .6 : 1, display: 'flex', alignItems: 'center', gap: 7, height: 38, padding: '0 16px', borderRadius: 9999, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', transition: 'all .15s', border: '1.5px solid ' + (active ? d.on : 'var(--border)'), background: active ? d.onBg : 'transparent', color: active ? d.on : 'var(--text)' }}>
                             {fbIcon(d.paths, active ? d.on : 'var(--muted2)')}
                             {d.label}
                           </div>
@@ -330,15 +364,21 @@ export function ClientShortlistBody() {
       <section style={{ maxWidth: '1080px', margin: '0 auto', padding: '24px 24px 60px' }}>
         <div style={{ background: '#0A0E0C', borderRadius: 20, padding: '28px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{ width: 52, height: 52, borderRadius: 9999, background: 'var(--pine)', color: 'var(--neon)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800, flexShrink: 0 }}>อ</div>
+            <div style={{ width: 52, height: 52, borderRadius: 9999, background: 'var(--pine)', color: 'var(--neon)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800, flexShrink: 0 }}>JKP</div>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>อารยา สุขสวัสดิ์ · ที่ปรึกษาของคุณ</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{contact?.name || 'JKP Property'}</div>
               <div style={{ fontSize: '12.5px', color: '#B9C2BD' }}>สอบถามเพิ่มเติมหรือจัดนัดเข้าชมได้เลย</div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <a href="tel:+66818000000" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 46, padding: '0 22px', borderRadius: 9999, background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.24)', color: '#fff', fontSize: '13.5px', fontWeight: 700 }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z" /></svg>โทร</a>
-            <a href="#" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 46, padding: '0 24px', borderRadius: 9999, background: 'var(--neon)', color: 'var(--ink)', fontSize: '13.5px', fontWeight: 800 }}>จัดนัดเข้าชม<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg></a>
+            {contact?.tel && (
+            <a href={contact.tel} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 46, padding: '0 22px', borderRadius: 9999, background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.24)', color: '#fff', fontSize: '13.5px', fontWeight: 700 }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z" /></svg>โทร {contact.phone}</a>
+            )}
+            {/* was href="#" — it went nowhere. Marking a property as
+                "สนใจ" above is what actually reaches the team now. */}
+            {contact?.email && (
+              <a href={`mailto:${contact.email}?subject=${encodeURIComponent('ขอนัดเข้าชมทรัพย์')}`} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 46, padding: '0 24px', borderRadius: 9999, background: 'var(--neon)', color: 'var(--ink)', fontSize: '13.5px', fontWeight: 800 }}>อีเมลหาทีมงาน<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg></a>
+            )}
           </div>
         </div>
         <div style={{ marginTop: 16, textAlign: 'center', fontSize: '11.5px', color: 'var(--muted3)' }}>ราคาและสถานะว่างอาจเปลี่ยนแปลง — ทีมงานจะยืนยันอีกครั้งก่อนนัดเข้าชม · Powered by JKP Property</div>

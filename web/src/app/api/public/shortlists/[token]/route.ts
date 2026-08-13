@@ -40,8 +40,45 @@ export const GET = handler(async (req: Request, ctx: { params: Promise<{ token: 
       dealType: String(values.deal_type ?? ''),
       photo: photos[0] ?? null,
       note: it.note ?? null,
+      itemId: it.id,
+      feedback: it.feedback ?? null,
+      feedbackNote: it.feedbackNote ?? null,
     }];
   });
 
   return ok({ name: s.name, createdAt: s.createdAt.getTime(), items });
+});
+
+/* POST /api/public/shortlists/:token — 🔵 PUBLIC: the customer's opinion on one
+   property. The client page asked for it and had nowhere to send it, so the
+   answer had to be collected again by phone.
+
+   Only the item's own feedback can be written, and only through a token that
+   already grants sight of that shortlist — nothing else on the record is
+   reachable from here. */
+const FEEDBACK = new Set(['interested', 'maybe', 'not_interested']);
+
+export const POST = handler(async (req: Request, ctx: { params: Promise<{ token: string }> }) => {
+  rateLimit(`shortlist-feedback:${clientIp(req)}`, 30, 60_000);
+  const { token } = await ctx.params;
+
+  const s = await db.shortlist.findUnique({ where: { token }, include: { items: true } });
+  if (!s || s.status === 'closed') throw new ApiError('NOT_FOUND', 'ไม่พบรายการนี้ หรือลิงก์หมดอายุแล้ว', 404);
+
+  const body = (await req.json().catch(() => null)) as { itemId?: string; feedback?: string; note?: string } | null;
+  const itemId = String(body?.itemId || '');
+  const feedback = String(body?.feedback || '');
+  if (!s.items.some((i) => i.id === itemId)) throw new ApiError('NOT_FOUND', 'ไม่พบทรัพย์รายการนี้', 404);
+  if (!FEEDBACK.has(feedback)) throw new ApiError('VALIDATION', 'กรุณาเลือกความเห็น', 400);
+
+  await db.shortlistItem.update({
+    where: { id: itemId },
+    data: {
+      feedback,
+      feedbackNote: String(body?.note || '').trim().slice(0, 500) || null,
+      feedbackAt: new Date(),
+    },
+  });
+
+  return ok({ ok: true });
 });

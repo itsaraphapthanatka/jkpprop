@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { apiGet, apiPatch, ApiClientError } from '@/lib/apiClient';
+import { apiGet, apiPatch, apiPost, ApiClientError } from '@/lib/apiClient';
 import Link from 'next/link';
 
 /* Ported verbatim from AdminVisit.dc.html <main> (+ the stateful topbar
@@ -48,6 +48,7 @@ const fmtDate = (ms: number) =>
 /* GET /api/visits item */
 type ApiVisit = {
   id: string; date: number; status: string; note: string | null; gateConfirmed?: boolean;
+  leadId: string | null;
   stops: Stop[];
 };
 
@@ -146,6 +147,40 @@ export function VisitBody() {
   };
 
   const tally = OUTCOMES.map((o) => ({ ...o, n: stops.filter((s) => s.result === o.key).length }));
+
+  /* Flow D starts here. POST /api/deals existed and nothing called it, so the
+     trail stopped after the viewing — opening the negotiation meant inserting
+     a row by hand. */
+  const [dealOpen, setDealOpen] = React.useState(false);
+  const [dealCode, setDealCode] = React.useState('');
+  const [dealAmount, setDealAmount] = React.useState('');
+  const [dealErr, setDealErr] = React.useState('');
+  const [opening, setOpening] = React.useState(false);
+
+  const openDealDialog = () => {
+    setDealErr('');
+    setDealAmount('');
+    // the one the customer liked most is the obvious candidate
+    setDealCode(stops.find((s) => s.result === 'สนใจมาก')?.code ?? stops[0]?.code ?? '');
+    setDealOpen(true);
+  };
+
+  const createDeal = () => {
+    if (!dealCode) { setDealErr('เลือกทรัพย์ที่จะเปิดดีล'); return; }
+    if (opening) return;
+    setOpening(true);
+    setDealErr('');
+    const stop = stops.find((s) => s.code === dealCode);
+    apiPost<{ id: string }>('/api/deals', {
+      title: `${stop?.title || dealCode} — ${visit ? fmtDate(visit.date) : ''}`.trim(),
+      propertyCode: dealCode,
+      leadId: visit?.leadId ?? undefined,
+      amount: Number(dealAmount.replace(/[^\d]/g, '')) || 0,
+    })
+      .then((d) => { window.location.href = `/admin/deals/${d.id}`; })
+      .catch((e) => setDealErr(e instanceof ApiClientError ? e.message : 'เปิดดีลไม่สำเร็จ'))
+      .finally(() => setOpening(false));
+  };
   const route = mapsUrl(stops);
 
   return (
@@ -303,10 +338,69 @@ export function VisitBody() {
                 <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--muted3)' }}>{stops.filter((s2) => !s2.result).length}</span>
               </div>
             </div>
-            <Link href="/admin/deals" style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, height: 42, borderRadius: 11, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700 }}>ไปเจรจา (Deal)<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg></Link>
+            {/* was a plain link to /admin/deals that created nothing */}
+            {stops.length > 0 ? (
+              <div id="visit-open-deal" onClick={openDealDialog} style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, height: 42, borderRadius: 11, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                เปิดดีล (เจรจา)<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+              </div>
+            ) : (
+              <Link href="/admin/deals" style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, height: 42, borderRadius: 11, background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--muted)', fontSize: 13, fontWeight: 700 }}>ดูดีลทั้งหมด</Link>
+            )}
           </div>
         </div>
       </div>
+
+      {/* OPEN A DEAL (Flow D) */}
+      {dealOpen && (
+        <div onClick={() => setDealOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 860, background: 'rgba(2,14,8,.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 460, background: 'var(--surface)', borderRadius: 20, boxShadow: '0 40px 80px rgba(0,0,0,.4)', padding: '26px 28px' }}>
+            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)' }}>เปิดดีล</div>
+            <p style={{ margin: '6px 0 16px', fontSize: '12.5px', color: 'var(--muted)', lineHeight: 1.6 }}>
+              ทรัพย์ที่ลูกค้าให้ผลว่า &ldquo;สนใจมาก&rdquo; ถูกเลือกไว้ให้แล้ว
+            </p>
+
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>ทรัพย์</label>
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {stops.map((st) => {
+                const on = dealCode === st.code;
+                return (
+                  <div
+                    key={st.id}
+                    data-deal-pick={st.code}
+                    onClick={() => setDealCode(st.code)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 11, cursor: 'pointer', background: on ? 'rgba(13,108,59,.06)' : 'var(--bg)', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)') }}
+                  >
+                    <span style={{ width: 14, height: 14, borderRadius: 9999, flexShrink: 0, border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? '#0D6C3B' : 'transparent' }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text)' }}>{st.title}</div>
+                      <code style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: '#0D6C3B', fontWeight: 700 }}>{st.code}</code>
+                    </div>
+                    {st.result && <span style={outcomeStyle(st.result)}>{st.result}</span>}
+                  </div>
+                );
+              })}
+            </div>
+
+            <label style={{ marginTop: 16, display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>มูลค่าตั้งต้น (฿) — ใส่ทีหลังก็ได้</label>
+            <input
+              id="visit-deal-amount"
+              value={dealAmount}
+              onChange={(e) => setDealAmount(e.target.value.replace(/[^\d]/g, ''))}
+              inputMode="numeric"
+              placeholder="0"
+              style={{ marginTop: 6, width: '100%', height: 44, padding: '0 12px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, fontVariantNumeric: 'tabular-nums', background: 'var(--bg)', outline: 'none' }}
+            />
+
+            {dealErr && <div id="visit-deal-error" style={{ marginTop: 12, padding: '9px 12px', borderRadius: 10, background: '#FDECEC', color: '#A32A2A', fontSize: '12.5px', fontWeight: 600 }}>{dealErr}</div>}
+
+            <div style={{ marginTop: 18, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <div onClick={() => setDealOpen(false)} style={{ height: 42, padding: '0 20px', borderRadius: 9999, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 700, color: 'var(--text)', cursor: 'pointer' }}>ยกเลิก</div>
+              <div id="visit-deal-save" onClick={createDeal} style={{ height: 42, padding: '0 24px', borderRadius: 9999, background: opening ? '#6E8C7C' : '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 700, cursor: opening ? 'default' : 'pointer' }}>{opening ? 'กำลังเปิด…' : 'เปิดดีล'}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </>
   );
 }

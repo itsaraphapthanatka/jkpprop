@@ -34,7 +34,7 @@ async function loadScoped(id: string, orgId: string) {
 
 const money = (n: number) => `฿${n.toLocaleString('th-TH')}`;
 
-async function itemsDto(items: { id: string; propertyId: string; note: string | null; sort: number }[]) {
+async function itemsDto(items: { id: string; propertyId: string; note: string | null; sort: number; feedback?: string | null; feedbackNote?: string | null }[]) {
   const props = await db.property.findMany({ where: { id: { in: items.map((i) => i.propertyId) } } });
   const byId = new Map(props.map((p) => [p.id, p]));
   return items.flatMap((it) => {
@@ -51,6 +51,10 @@ async function itemsDto(items: { id: string; propertyId: string; note: string | 
       size: area !== null ? `${area.toLocaleString('th-TH')} ตร.ม.` : '—',
       price: Number.isFinite(rent) ? `${money(rent)}/ด.` : Number.isFinite(sale) ? money(sale) : '—',
       note: it.note ?? '',
+      /* what the customer answered from the tokenized link — the team used to
+         have to ring and ask again for something already given */
+      feedback: it.feedback ?? null,
+      feedbackNote: it.feedbackNote ?? null,
       owner: String(values.lessor_name ?? '—'),
       phone: String(values.lessor_phone ?? '—'),
       // live availability — 'active' means still on the market

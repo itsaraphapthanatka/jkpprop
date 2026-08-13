@@ -3,7 +3,8 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { AdminShell } from '@/components/admin/AdminShell';
-import { apiGet, ApiClientError } from '@/lib/apiClient';
+import { useRouter } from 'next/navigation';
+import { apiGet, apiPost, ApiClientError } from '@/lib/apiClient';
 
 /* The Requirements queue.
  *
@@ -58,12 +59,47 @@ const listCss = `
 .req-row:hover{background:var(--tint);}
 `;
 
+type LeadOption = { id: string; name: string; company: string | null };
+
 export function RequirementsListBody() {
+  const router = useRouter();
   const [rows, setRows] = React.useState<Row[] | null>(null);
   const [counts, setCounts] = React.useState<Record<string, number>>({});
   const [status, setStatus] = React.useState('');
   const [q, setQ] = React.useState('');
   const [err, setErr] = React.useState('');
+
+  /* Requirements arriving by phone had nowhere to go: POST /api/requirements
+     worked from the first release and no button called it, so the only way in
+     was the public form. */
+  const [newOpen, setNewOpen] = React.useState(false);
+  const [leads, setLeads] = React.useState<LeadOption[]>([]);
+  const [leadQ, setLeadQ] = React.useState('');
+  const [leadId, setLeadId] = React.useState('');
+  const [dealIntent, setDealIntent] = React.useState('เช่า');
+  const [newErr, setNewErr] = React.useState('');
+  const [creating, setCreating] = React.useState(false);
+
+  const openNew = () => {
+    setNewErr('');
+    setLeadId('');
+    setLeadQ('');
+    setNewOpen(true);
+    apiGet<{ items: LeadOption[] }>('/api/leads')
+      .then((r) => setLeads(r.items ?? []))
+      .catch(() => setLeads([]));
+  };
+
+  const createRequirement = () => {
+    if (!leadId) { setNewErr('เลือกลูกค้าก่อน'); return; }
+    if (creating) return;
+    setCreating(true);
+    setNewErr('');
+    apiPost<{ id: string }>('/api/requirements', { leadId, dealIntent })
+      .then((r) => router.push(`/admin/requirements/${r.id}`))
+      .catch((e) => setNewErr(e instanceof ApiClientError ? e.message : 'สร้างไม่สำเร็จ'))
+      .finally(() => setCreating(false));
+  };
 
   const load = React.useCallback((s: string, query: string) => {
     const qs = new URLSearchParams();
@@ -100,7 +136,10 @@ export function RequirementsListBody() {
             </div>
           );
         })}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: 38, padding: '0 12px', borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border)', marginLeft: 'auto', minWidth: 220 }}>
+        <div id="req-new-btn" onClick={openNew} style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 7, height: 38, padding: '0 15px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M12 5v14M5 12h14" /></svg>เพิ่ม requirement
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: 38, padding: '0 12px', borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border)', minWidth: 220 }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted3)" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
           <input
             id="req-search"
@@ -171,6 +210,64 @@ export function RequirementsListBody() {
           );
         })}
       </div>
+
+      {/* NEW REQUIREMENT — for an enquiry that arrived by phone */}
+      {newOpen && (
+        <div onClick={() => setNewOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 860, background: 'rgba(2,14,8,.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, maxHeight: '86vh', display: 'flex', flexDirection: 'column', background: 'var(--surface)', borderRadius: 20, boxShadow: '0 40px 80px rgba(0,0,0,.4)', padding: '26px 28px' }}>
+            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)' }}>เพิ่ม requirement</div>
+            <p style={{ margin: '6px 0 16px', fontSize: '12.5px', color: 'var(--muted)', lineHeight: 1.6 }}>
+              เลือกลูกค้าที่มีอยู่แล้ว — สร้างเสร็จค่อยกรอกงบ ขนาด ทำเล ในหน้าถัดไป
+            </p>
+
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>ต้องการ</label>
+            <div style={{ marginTop: 6, marginBottom: 14, display: 'flex', gap: 8 }}>
+              {['เช่า', 'ขาย'].map((v) => {
+                const on = dealIntent === v;
+                return (
+                  <div key={v} data-intent={v} onClick={() => setDealIntent(v)} style={{ flex: 1, height: 40, borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: on ? 800 : 600, cursor: 'pointer', background: on ? '#E8F3EC' : 'var(--bg)', color: on ? '#0D6C3B' : 'var(--muted)', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)') }}>{v}</div>
+                );
+              })}
+            </div>
+
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>ลูกค้า</label>
+            <input
+              id="req-new-leadq"
+              value={leadQ}
+              onChange={(e) => setLeadQ(e.target.value)}
+              placeholder="ค้นหาชื่อ / บริษัท"
+              style={{ marginTop: 6, width: '100%', height: 42, padding: '0 12px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none' }}
+            />
+            <div className="a-scroll" style={{ marginTop: 8, flex: 1, minHeight: 120, maxHeight: 240, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {leads.length === 0 && (
+                <div style={{ padding: '18px 10px', textAlign: 'center', fontSize: '12.5px', color: 'var(--muted3)' }}>ยังไม่มีลูกค้าในระบบ — เพิ่มที่หน้า Leads ก่อน</div>
+              )}
+              {leads
+                .filter((l) => {
+                  const t = leadQ.trim().toLowerCase();
+                  return !t || l.name.toLowerCase().includes(t) || (l.company ?? '').toLowerCase().includes(t);
+                })
+                .slice(0, 40)
+                .map((l) => {
+                  const on = leadId === l.id;
+                  return (
+                    <div key={l.id} data-lead={l.id} onClick={() => setLeadId(l.id)} style={{ padding: '9px 12px', borderRadius: 10, cursor: 'pointer', background: on ? 'rgba(13,108,59,.06)' : 'var(--bg)', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)') }}>
+                      <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text)' }}>{l.company || l.name}</div>
+                      {l.company && <div style={{ fontSize: 11, color: 'var(--muted3)' }}>{l.name}</div>}
+                    </div>
+                  );
+                })}
+            </div>
+
+            {newErr && <div id="req-new-error" style={{ marginTop: 12, padding: '9px 12px', borderRadius: 10, background: '#FDECEC', color: '#A32A2A', fontSize: '12.5px', fontWeight: 600 }}>{newErr}</div>}
+
+            <div style={{ marginTop: 18, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <div onClick={() => setNewOpen(false)} style={{ height: 42, padding: '0 20px', borderRadius: 9999, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 700, color: 'var(--text)', cursor: 'pointer' }}>ยกเลิก</div>
+              <div id="req-new-save" onClick={createRequirement} style={{ height: 42, padding: '0 24px', borderRadius: 9999, background: creating ? '#6E8C7C' : '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 700, cursor: creating ? 'default' : 'pointer' }}>{creating ? 'กำลังสร้าง…' : 'สร้าง'}</div>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminShell>
   );
 }

@@ -218,6 +218,13 @@ export const openapi = {
         parameters: [pathParam('token', 'token ในลิงก์ที่ส่งให้ลูกค้า')],
         responses: { 200: okRes('รายการที่แชร์'), 404: errRes('ไม่พบ หรือลิงก์หมดอายุ'), 429: errRes('เรียกถี่เกินไป') },
       },
+      post: {
+        tags: ['Public'], summary: 'ลูกค้าให้ความเห็นต่อทรัพย์หนึ่งรายการ', ...PUBLIC,
+        description: 'หน้า client เคยมีปุ่มให้กดแต่ไม่มีที่ส่ง ทีมจึงต้องโทรถามซ้ำในสิ่งที่ลูกค้าตอบไปแล้ว · เขียนได้เฉพาะ feedback ของรายการที่อยู่ใน shortlist ของ token นั้น',
+        parameters: [pathParam('token', 'token ของ shortlist')],
+        requestBody: body(obj({ itemId: STR, feedback: { ...STR, enum: ['interested', 'maybe', 'not_interested'] }, note: STR }, ['itemId', 'feedback'])),
+        responses: { 200: okRes('บันทึกแล้ว'), 400: errRes('ความเห็นไม่ถูกต้อง'), 404: errRes('ไม่พบรายการ'), 429: errRes('เรียกถี่เกินไป') },
+      },
     },
 
     /* ---------------- Properties & listings ---------------- */

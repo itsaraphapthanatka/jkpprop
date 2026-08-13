@@ -1420,3 +1420,122 @@ test.describe('the deal screen shows the deal, not a worked example', () => {
     await expect(page.getByText('ยังไม่มีการเสนอราคา')).toHaveCount(0);
   });
 });
+
+test.describe('the chain from requirement to deal, clicked end to end', () => {
+  /* Every stage worked on its own; the joins between them did not exist.
+     POST /api/requirements, /api/visits and /api/deals had all shipped and
+     nothing on any screen called them, so the flow could only be walked by
+     hand in the database. */
+  let cookie = '';
+  const madeReq: string[] = [];
+  const madeVisit: string[] = [];
+  const madeDeal: string[] = [];
+
+  test.beforeEach(async ({ page }) => {
+    await signIn(page, OWNER);
+    cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  });
+
+  test.afterAll(async () => {
+    if (!db) {
+      const { PrismaClient } = await import('@prisma/client');
+      db = new PrismaClient();
+    }
+    for (const id of madeDeal) await db.deal.deleteMany({ where: { id } });
+    for (const id of madeVisit) await db.visit.deleteMany({ where: { id } });
+    for (const id of madeReq) await db.requirement.deleteMany({ where: { id } });
+  });
+
+  test('a requirement can be raised from the queue screen', async ({ page, request }) => {
+    await page.goto('/admin/requirements');
+    await page.locator('#req-new-btn').click();
+    await expect(page.getByText('เพิ่ม requirement').last()).toBeVisible();
+
+    const leads = await (await request.get('/api/leads', { headers: { cookie } })).json();
+    const lead = leads.items?.[0];
+    test.skip(!lead, 'no lead to attach to');
+
+    await page.locator(`[data-lead="${lead.id}"]`).click();
+    await page.locator('#req-new-save').click();
+    await expect(page).toHaveURL(/\/admin\/requirements\/[a-z0-9]+/);
+
+    const id = page.url().split('/').pop()!;
+    madeReq.push(id);
+    await expect(page.locator('h1')).toContainText(/REQ-\d+/);
+  });
+
+  test('a viewing is booked from the shortlist and a deal opened from the viewing', async ({ page, request }) => {
+    // a shortlist with a property, sent to the customer
+    const props = await (await request.get('/api/properties', { headers: { cookie } })).json();
+    const code = (props.items as { publicCode: string; status: string }[]).find((p) => p.status === 'active')?.publicCode;
+    test.skip(!code, 'no active property');
+
+    const sl = await (await request.post('/api/shortlists', {
+      headers: { cookie }, data: { name: `e2e-chain-${Date.now().toString(36)}`, codes: [code] },
+    })).json();
+    await request.patch(`/api/shortlists/${sl.id}`, { headers: { cookie }, data: { status: 'sent' } });
+
+    // book the viewing from the shortlist screen
+    await page.goto(`/admin/shortlists/${sl.id}`);
+    await page.locator('#sl-book-visit').click();
+    const when = new Date();
+    when.setDate(when.getDate() + 2);
+    await page.locator('#sl-visit-date').fill(when.toISOString().slice(0, 10));
+    await page.locator('#sl-visit-save').click();
+
+    await expect(page).toHaveURL(/\/admin\/visits\/[a-z0-9]+/, { timeout: 15000 });
+    const visitId = page.url().split('/').pop()!;
+    madeVisit.push(visitId);
+    await expect(page.locator(`[data-stop="${code}"]`)).toBeVisible();
+
+    // record an outcome, then open the deal from the viewing
+    await page.locator(`[data-outcome="${code}:สนใจมาก"]`).click();
+    await expect.poll(async () => {
+      const d = await (await request.get('/api/visits', { headers: { cookie } })).json();
+      return (d.items as { id: string; stops: { result: string | null }[] }[])
+        .find((v) => v.id === visitId)?.stops[0]?.result ?? null;
+    }).toBe('สนใจมาก');
+
+    await page.locator('#visit-open-deal').click();
+    await page.locator('#visit-deal-amount').fill('250000');
+    await page.locator('#visit-deal-save').click();
+
+    await expect(page).toHaveURL(/\/admin\/deals\/[a-z0-9]+/, { timeout: 15000 });
+    madeDeal.push(page.url().split('/').pop()!);
+    await expect(page.getByText('฿250,000').first()).toBeVisible();
+
+    await request.delete(`/api/shortlists/${sl.id}`, { headers: { cookie } }).catch(() => null);
+  });
+
+  test("the customer's answer reaches the team", async ({ page, request }) => {
+    const props = await (await request.get('/api/properties', { headers: { cookie } })).json();
+    const code = (props.items as { publicCode: string; status: string }[]).find((p) => p.status === 'active')?.publicCode;
+    test.skip(!code, 'no active property');
+
+    const sl = await (await request.post('/api/shortlists', {
+      headers: { cookie }, data: { name: `e2e-fb-${Date.now().toString(36)}`, codes: [code] },
+    })).json();
+
+    // the customer opens the tokenized link and says yes
+    const pub = await (await request.get(`/api/public/shortlists/${sl.token}`)).json();
+    const item = (pub.data ?? pub).items[0];
+    const said = await request.post(`/api/public/shortlists/${sl.token}`, {
+      data: { itemId: item.itemId, feedback: 'interested' },
+    });
+    expect(said.ok(), await said.text()).toBeTruthy();
+
+    // and the team sees it on the admin screen
+    await page.goto(`/admin/shortlists/${sl.id}`);
+    await expect(page.locator(`[data-feedback="${code}"]`)).toContainText('ลูกค้าสนใจ');
+
+    await request.delete(`/api/shortlists/${sl.id}`, { headers: { cookie } }).catch(() => null);
+  });
+
+  test('the client link refuses to invent a shortlist when opened without a token', async ({ page }) => {
+    await page.goto('/client-shortlist');
+    await expect(page.getByText('ไม่พบรายการนี้')).toBeVisible();
+    // the worked example is gone
+    await expect(page.getByText('บริษัท ไทยโลจิสติกส์ กรุ๊ป จำกัด')).toHaveCount(0);
+    await expect(page.getByText('อารยา สุขสวัสดิ์')).toHaveCount(0);
+  });
+});

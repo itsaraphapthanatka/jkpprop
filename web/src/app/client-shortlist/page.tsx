@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { ClientShortlistBody } from '@/components/site/ClientShortlistBody';
+import { loadCompany, telHref } from '@/lib/server/company';
+import { DEFAULT_LOCALE } from '@/i18n/config';
 
 export const metadata: Metadata = { title: 'รายการทรัพย์ที่คัดให้ | JKP Property', robots: { index: false } };
 
@@ -20,11 +22,23 @@ const csCss = `
 }
 `;
 
-export default function ClientShortlistPage() {
+export default async function ClientShortlistPage() {
+  /* The contact card named a consultant who does not exist and dialled a made-up
+     number. The company's real details already live in one place. */
+  const company = await loadCompany(DEFAULT_LOCALE).catch(() => null);
+  const phone = company?.phones?.[0]?.number ?? '';
+
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: csCss }} />
-      <ClientShortlistBody />
+      <ClientShortlistBody
+        contact={{
+          name: company?.legalName ?? 'JKP Property',
+          phone,
+          tel: phone ? telHref(phone) : '',
+          email: company?.salesEmail ?? '',
+        }}
+      />
     </>
   );
 }

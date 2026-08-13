@@ -288,6 +288,14 @@ model ShortlistItem {
   propertyId  String
   note        String?
   sort        Int       @default(0)
+
+  // What the customer said from the tokenized link (Flow B → C). The client
+  // page asked for an opinion per property and had nowhere to put it, so the
+  // team had to ring round for the answer they had already been given.
+  // interested | maybe | not_interested
+  feedback     String?
+  feedbackNote String?
+  feedbackAt   DateTime?
 }
 
 model Visit {
