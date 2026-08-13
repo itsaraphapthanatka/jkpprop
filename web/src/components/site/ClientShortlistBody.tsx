@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getDictionary } from '@/i18n/dictionaries';
-import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/config';
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/config';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -85,12 +85,9 @@ const LANGS: { key: Locale; label: string }[] = [
   { key: 'zh', label: '中文' },
 ];
 
-export function ClientShortlistBody({ contact }: { contact?: Contact }) {
-  const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
-  useEffect(() => {
-    const q = new URLSearchParams(window.location.search).get('lang');
-    if (isLocale(q ?? '')) setLocale(q as Locale);
-  }, []);
+export function ClientShortlistBody({ contact, initialLocale }: { contact?: Contact; initialLocale?: Locale }) {
+  // resolved on the server from ?lang=; the switcher below changes it after
+  const [locale, setLocale] = useState<Locale>(initialLocale ?? DEFAULT_LOCALE);
   const d = getDictionary(locale).clientShortlist;
   const fbLabel = (k: FbKey) => (k === 'interested' ? d.interested : k === 'undecided' ? d.undecided : d.notInterested);
   const rowLabel = (field: string) => (d.rows as Record<string, string>)[field] ?? field;

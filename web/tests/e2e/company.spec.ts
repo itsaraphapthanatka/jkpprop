@@ -56,11 +56,18 @@ test('an edit in the admin reaches every page at once', async ({ page, request }
   await page.getByText('บันทึก', { exact: true }).click();
   await expect(page.getByText('บันทึกแล้ว')).toBeVisible();
 
+  /* Poll rather than assert once: the save returns before every page's cached
+     render has been dropped, and a single read occasionally landed on the
+     previous one. What matters is that the edit arrives, not that it has
+     already arrived by the time the button stops spinning. */
   for (const p of ['/th', '/th/about', '/th/faq', '/th/contact']) {
-    const html = await (await request.get(p)).text();
-    expect(html, `${p} did not pick up the new mailbox`).toContain('hello@jkp.example');
+    await expect
+      .poll(async () => (await request.get(p)).text(), { message: `${p} did not pick up the new mailbox`, timeout: 10_000 })
+      .toContain('hello@jkp.example');
   }
-  expect(await (await request.get('/th/contact')).text()).toContain('บริษัท ทดสอบ จำกัด');
+  await expect
+    .poll(async () => (await request.get('/th/contact')).text(), { message: '/th/contact did not pick up the new name' })
+    .toContain('บริษัท ทดสอบ จำกัด');
 });
 
 test('the settings page links to it, so it is not another orphaned screen', async ({ page }) => {

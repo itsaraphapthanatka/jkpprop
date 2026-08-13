@@ -1565,6 +1565,11 @@ test.describe('the chain from requirement to deal, clicked end to end', () => {
       headers: { cookie }, data: { name: `e2e-lang-${Date.now().toString(36)}`, codes: [code] },
     })).json();
 
+    /* the language must be right in the HTML the server sends, not applied
+       after JS runs — otherwise the customer watches it flip */
+    const html = await (await request.get(`/client-shortlist?token=${sl.token}&lang=en`)).text();
+    expect(html, 'the server rendered Thai for an English link').toContain('Properties that match what you asked for');
+
     await page.goto(`/client-shortlist?token=${sl.token}&lang=en`);
     await expect(page.getByText('Properties that match what you asked for')).toBeVisible();
     await expect(page.getByText('ทรัพย์ที่ตรงกับความต้องการของคุณ')).toHaveCount(0);
