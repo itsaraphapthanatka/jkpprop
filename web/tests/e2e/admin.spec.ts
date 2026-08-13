@@ -2024,13 +2024,24 @@ test.describe('the client shortlist page reads in the customer\'s language', () 
 
   test.afterEach(async () => { for (const fn of cleanup) await fn().catch(() => null); });
 
+  const dropShortlists = async (where: { id?: string; requirementId?: string }) => {
+    const { PrismaClient } = await import('@prisma/client');
+    const p = new PrismaClient();
+    const rows = await p.shortlist.findMany({ where, select: { id: true } });
+    await p.shortlistItem.deleteMany({ where: { shortlistId: { in: rows.map((r) => r.id) } } });
+    await p.shortlist.deleteMany({ where });
+    await p.$disconnect();
+  };
+
   const plainShortlist = async (request: import('@playwright/test').APIRequestContext) => {
     const props = await (await request.get('/api/properties', { headers: { cookie } })).json();
     const code = (props.items as { publicCode: string; status: string }[]).find((p) => p.status === 'active')?.publicCode;
     const sl = await (await request.post('/api/shortlists', {
       headers: { cookie }, data: { name: `e2e-i18n-${Date.now().toString(36)}`, codes: code ? [code] : [] },
     })).json();
-    cleanup.push(() => request.delete(`/api/shortlists/${sl.id}`, { headers: { cookie } }));
+    /* there is no DELETE on /api/shortlists/:id — the cleanup other tests do
+       through the API answers 405 and leaves the row behind */
+    cleanup.push(() => dropShortlists({ id: sl.id }));
     return sl as { id: string; token: string };
   };
 
@@ -2082,9 +2093,10 @@ test.describe('the client shortlist page reads in the customer\'s language', () 
       data: { leadId, dealIntent: 'เช่า', typeKey: 'warehouse', areaMin: 1200, areaMax: 4800, budgetMin: 111000, needsRor4: true },
     })).json();
     cleanup.push(async () => {
+      await dropShortlists({ requirementId: r.id });
       const { PrismaClient } = await import('@prisma/client');
       const p = new PrismaClient();
-      await p.shortlist.deleteMany({ where: { requirementId: r.id } });
+      await p.availabilityCheck.deleteMany({ where: { requirementId: r.id } });
       await p.requirement.deleteMany({ where: { id: r.id } });
       await p.$disconnect();
     });
