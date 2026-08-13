@@ -1659,3 +1659,68 @@ test.describe('the chain from requirement to deal, clicked end to end', () => {
     await expect(page.getByText('อารยา สุขสวัสดิ์')).toHaveCount(0);
   });
 });
+
+test.describe('the properties screen', () => {
+  /* Export was href="#", "ทำสำเนา" was href="#", and the pager offered pages
+     1 · 2 · 3 · … above a list of three items on one page. The row menu did
+     pass ?code=, but /admin/property-view ignored it and rendered a fixed
+     warehouse — so "ดูรายละเอียด" opened the same imaginary record from every
+     row. */
+  let cookie = '';
+
+  test.beforeEach(async ({ page }) => {
+    await signIn(page, OWNER);
+    cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  });
+
+  test('ดูรายละเอียด opens the row it was clicked from', async ({ page, request }) => {
+    const props = await (await request.get('/api/properties', { headers: { cookie } })).json();
+    const rows = props.items as { publicCode: string; title: string }[];
+    test.skip(rows.length < 2, 'need two properties to tell them apart');
+
+    for (const r of rows.slice(0, 2)) {
+      await page.goto(`/admin/property-view?code=${encodeURIComponent(r.publicCode)}`);
+      await expect(page.locator('h1'), `${r.publicCode} did not open`).toContainText(r.publicCode);
+    }
+
+    // the imaginary one is gone
+    await expect(page.getByText('4 ไร่')).toHaveCount(0);
+  });
+
+  test('an unknown or missing code says so instead of showing a stand-in', async ({ page }) => {
+    await page.goto('/admin/property-view?code=JKP-NOPE9999');
+    await expect(page.getByText('ไม่พบทรัพย์รหัส JKP-NOPE9999')).toBeVisible();
+
+    await page.goto('/admin/property-view');
+    await expect(page.getByText('ไม่ได้ระบุว่าจะดูทรัพย์ไหน')).toBeVisible();
+  });
+
+  test('the pager no longer offers pages that do not exist', async ({ page, request }) => {
+    const props = await (await request.get('/api/properties', { headers: { cookie } })).json();
+    const n = (props.items as unknown[]).length;
+    await page.goto('/admin/properties');
+    await expect(page.getByText(`แสดง ${n} จาก`)).toBeVisible();
+    // a single page of results must not be dressed up as three
+    await expect(page.getByText('…', { exact: true })).toHaveCount(0);
+  });
+
+  test('Export downloads the rows that are on screen', async ({ page }) => {
+    await page.goto('/admin/properties');
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.locator('#prop-export').click(),
+    ]);
+    expect(download.suggestedFilename()).toMatch(/^properties-\d{4}-\d{2}-\d{2}\.csv$/);
+
+    const stream = await download.createReadStream();
+    const csv = await new Promise<string>((resolve) => {
+      let out = '';
+      stream.on('data', (c) => { out += c; });
+      stream.on('end', () => resolve(out));
+    });
+    // a BOM so Excel on Windows reads Thai, and a real header row
+    expect(csv.charCodeAt(0)).toBe(0xfeff);
+    expect(csv).toContain('รหัส');
+    expect(csv).toContain('JKP');
+  });
+});

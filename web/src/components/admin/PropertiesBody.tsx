@@ -18,12 +18,27 @@ import Link from 'next/link';
    page.tsx can keep rendering <AdminShell> as the brief requires.
    ============================================================ */
 
-type NewCtx = { newOpen: boolean; setNewOpen: (v: boolean) => void };
+/* The Export button lives in the topbar and the rows live in the body, so the
+   handler is registered here for the button to call — otherwise Export would
+   have to guess what the filters are currently showing. */
+type NewCtx = {
+  newOpen: boolean;
+  setNewOpen: (v: boolean) => void;
+  exportCsv: () => void;
+  registerExport: (fn: () => void) => void;
+};
 const PropertiesCtx = React.createContext<NewCtx | null>(null);
 
 export function PropertiesProvider({ children }: { children: React.ReactNode }) {
   const [newOpen, setNewOpen] = React.useState(false);
-  return <PropertiesCtx.Provider value={{ newOpen, setNewOpen }}>{children}</PropertiesCtx.Provider>;
+  const exportRef = React.useRef<() => void>(() => {});
+  const value = React.useMemo<NewCtx>(() => ({
+    newOpen,
+    setNewOpen,
+    exportCsv: () => exportRef.current(),
+    registerExport: (fn: () => void) => { exportRef.current = fn; },
+  }), [newOpen]);
+  return <PropertiesCtx.Provider value={value}>{children}</PropertiesCtx.Provider>;
 }
 
 function useNew(): NewCtx {
@@ -63,6 +78,8 @@ type MenuItem =
   | { divider: true }
   | { divider: false; label: string; href: string; icon: string; danger: boolean };
 const ROW_MENU: MenuItem[] = [
+  /* `href` is a base; the row's code is appended when the menu renders.
+     Without it every row opened the same record. */
   { divider: false, label: 'ดูรายละเอียด', href: '/admin/property-view', icon: menuIcon('<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle>', '#034956'), danger: false },
   { divider: false, label: 'แก้ไขทรัพย์', href: '/admin/property-edit', icon: menuIcon('<path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"></path>', '#034956'), danger: false },
   { divider: false, label: 'จัดการประกาศ', href: '/admin/listings', icon: menuIcon('<rect x="3" y="4" width="18" height="4" rx="1"></rect><rect x="3" y="10" width="18" height="4" rx="1"></rect><rect x="3" y="16" width="18" height="4" rx="1"></rect>', '#034956'), danger: false },
@@ -97,10 +114,10 @@ const COMPLETE_PCT = '45%';
 
 /* ---- topbar right cluster (design's <header> right side) ---- */
 export function PropertiesActions() {
-  const { setNewOpen } = useNew();
+  const { setNewOpen, exportCsv } = useNew();
   return (
     <div id="prop-actions" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      <a href="#" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700 }}>
+      <a id="prop-export" href="#" onClick={(e) => { e.preventDefault(); exportCsv(); }} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700 }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><path d="M7 10l5 5 5-5M12 15V3" /></svg>Export
       </a>
       <a
@@ -135,7 +152,7 @@ const iconFor = (typeKey: string) =>
 
 /* ---- main content ---- */
 export function PropertiesBody() {
-  const { newOpen, setNewOpen } = useNew();
+  const { newOpen, setNewOpen, registerExport } = useNew();
   const [tab, setTab] = React.useState('main');
   const [selType, setSelType] = React.useState('house');
   const [types, setTypes] = React.useState(PROPERTY_TYPES);
@@ -189,6 +206,50 @@ export function PropertiesBody() {
       setSaveError(e instanceof ApiClientError ? e.message : 'บันทึกไม่สำเร็จ กรุณาลองใหม่');
     } finally {
       setSaving(false);
+    }
+  };
+
+  /* Export was href="#". A CSV of exactly what the filters are showing is
+     what the button always looked like it did. BOM first so Excel on Windows
+     opens Thai without turning it into mojibake. */
+  const exportCsv = () => {
+    const rows = items ?? [];
+    if (!rows.length) { window.alert('ไม่มีทรัพย์ให้ export ตามเงื่อนไขที่เลือก'); return; }
+    const cell = (v: unknown) => {
+      const t = v === null || v === undefined ? '' : String(v);
+      return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+    };
+    const head = ['รหัส', 'ชื่อทรัพย์', 'ประเภท', 'ทำเล', 'พื้นที่ (ตร.ม.)', 'สถานะ', 'อัปเดตล่าสุด'];
+    const body = rows.map((r) => [
+      r.publicCode, r.title, r.typeLabel, r.location,
+      r.area ?? '', r.status, new Date(r.updatedAt).toISOString().slice(0, 10),
+    ].map(cell).join(','));
+    const csv = '\uFEFF' + [head.map(cell).join(','), ...body].join('\n');
+
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `properties-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  React.useEffect(() => { registerExport(exportCsv); });
+
+  /* "ทำสำเนา" was href="#". A copy starts as a draft with its own code — the
+     server issues that, and it is deliberately never inherited. */
+  const duplicate = async (p: ApiProperty) => {
+    try {
+      const full = await apiGet<{ typeKey: string; title: string; values: Record<string, unknown> }>(`/api/properties/${p.id}`);
+      await apiPost('/api/properties', {
+        typeKey: full.typeKey,
+        title: `${full.title} (สำเนา)`.slice(0, 300),
+        values: full.values,
+        status: 'draft',
+      });
+      await reload(filterVals, q);
+    } catch (e) {
+      window.alert(e instanceof ApiClientError ? e.message : 'ทำสำเนาไม่สำเร็จ');
     }
   };
 
@@ -325,6 +386,14 @@ export function PropertiesBody() {
                                 </a>
                               );
                             }
+                            if (mi.label === 'ทำสำเนา') {
+                              return (
+                                <a key={mIdx} href="#" onClick={(e) => { e.preventDefault(); setOpenMenu(null); void duplicate(r); }} style={menuItemStyle(false)}>
+                                  <span style={{ display: 'flex', width: 16, height: 16, flexShrink: 0 }} dangerouslySetInnerHTML={{ __html: mi.icon }} />
+                                  {mi.label}
+                                </a>
+                              );
+                            }
                             const href = mi.href === '#' ? '#' : `${mi.href}?code=${encodeURIComponent(r.publicCode)}`;
                             return (
                               <a key={mIdx} href={href} style={menuItemStyle(false)}>
@@ -349,14 +418,15 @@ export function PropertiesBody() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderTop: '1px solid var(--border)', flexWrap: 'wrap', rowGap: 10 }}>
           <div style={{ fontSize: '12.5px', color: 'var(--muted)' }}>แสดง {items?.length ?? 0} จาก {summary?.total ?? 0} ทรัพย์</div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <div style={{ width: 34, height: 34, borderRadius: 9, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted3)' }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M15 6l-6 6 6 6" /></svg></div>
-            <div style={{ width: 34, height: 34, borderRadius: 9, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>1</div>
-            <div style={{ width: 34, height: 34, borderRadius: 9, border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>2</div>
-            <div style={{ width: 34, height: 34, borderRadius: 9, border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>3</div>
-            <div style={{ width: 34, height: 34, color: 'var(--muted3)', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>…</div>
-            <div style={{ width: 34, height: 34, borderRadius: 9, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)' }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M9 6l6 6-6 6" /></svg></div>
-          </div>
+          {/* The buttons here read 1 · 2 · 3 · … whatever the data was — three
+              pages offered above a list of three items on a single page. The
+              API returns everything it has, so there is nothing to page
+              through; the count is stated instead of faked. */}
+          {(summary?.total ?? 0) > (items?.length ?? 0) && (
+            <div style={{ fontSize: '12.5px', color: 'var(--muted3)' }}>
+              แสดงได้สูงสุด {items?.length ?? 0} รายการต่อครั้ง — ใช้ตัวกรองด้านบนเพื่อแคบผลลัพธ์
+            </div>
+          )}
         </div>
       </div>
 
