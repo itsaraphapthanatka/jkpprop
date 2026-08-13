@@ -16,7 +16,7 @@ export const GET = handler(async (req: Request, ctx: { params: Promise<{ token: 
 
   const s = await db.shortlist.findUnique({
     where: { token },
-    include: { items: { orderBy: { sort: 'asc' } } },
+    include: { items: { orderBy: { sort: 'asc' } }, requirement: true },
   });
   if (!s || s.status === 'closed') throw new ApiError('NOT_FOUND', 'ไม่พบรายการนี้ หรือลิงก์หมดอายุแล้ว', 404);
 
@@ -46,7 +46,25 @@ export const GET = handler(async (req: Request, ctx: { params: Promise<{ token: 
     }];
   });
 
-  return ok({ name: s.name, createdAt: s.createdAt.getTime(), items });
+  /* What the customer asked for, as the fields it was recorded in rather than
+     a sentence — the page renders them in the reader's own language. The chips
+     used to be five hardcoded Thai strings, so every customer was shown the
+     same made-up brief no matter what they had actually asked for. */
+  const r = s.requirement;
+  const locations = Array.isArray(r?.locations) ? (r.locations as { name?: string }[]) : [];
+  const criteria = r
+    ? {
+      dealIntent: r.dealIntent || null,
+      typeKey: r.typeKey || null,
+      areaMin: r.areaMin, areaMax: r.areaMax,
+      budgetMin: r.budgetMin, budgetMax: r.budgetMax,
+      needsRor4: r.needsRor4,
+      nearPort: r.nearPort,
+      locations: locations.map((l) => String(l?.name ?? '')).filter(Boolean).slice(0, 4),
+    }
+    : null;
+
+  return ok({ name: s.name, createdAt: s.createdAt.getTime(), criteria, items });
 });
 
 /* POST /api/public/shortlists/:token — 🔵 PUBLIC: the customer's opinion on one

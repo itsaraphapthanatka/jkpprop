@@ -2006,3 +2006,107 @@ test.describe('the lead contact chips', () => {
     }
   });
 });
+
+test.describe('the client shortlist page reads in the customer\'s language', () => {
+  /* The chrome was already translated, but everything around it was not: the
+     "criteria" strip was five hardcoded Thai chips (the same invented brief for
+     every customer), the office address was a Thai constant, the shortlist code
+     read SL-208 on every link, and the units, prices, dates and type labels were
+     formatted in Thai whatever ?lang= said. */
+  let cookie = '';
+  let cleanup: (() => Promise<unknown>)[] = [];
+
+  test.beforeEach(async ({ page }) => {
+    await signIn(page, OWNER);
+    cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    cleanup = [];
+  });
+
+  test.afterEach(async () => { for (const fn of cleanup) await fn().catch(() => null); });
+
+  const plainShortlist = async (request: import('@playwright/test').APIRequestContext) => {
+    const props = await (await request.get('/api/properties', { headers: { cookie } })).json();
+    const code = (props.items as { publicCode: string; status: string }[]).find((p) => p.status === 'active')?.publicCode;
+    const sl = await (await request.post('/api/shortlists', {
+      headers: { cookie }, data: { name: `e2e-i18n-${Date.now().toString(36)}`, codes: code ? [code] : [] },
+    })).json();
+    cleanup.push(() => request.delete(`/api/shortlists/${sl.id}`, { headers: { cookie } }));
+    return sl as { id: string; token: string };
+  };
+
+  test('the invented brief, address and shortlist code are gone', async ({ page, request }) => {
+    const sl = await plainShortlist(request);
+    await page.goto(`/client-shortlist?token=${sl.token}`);
+    await expect(page.getByText('Shortlist').first()).toBeVisible();
+
+    for (const ghost of ['เช่าโกดัง', '2,000–3,500 ตร.ม.', '฿150K–250K/ด.', 'SL-208', '99/1 ถ.บางนา-ตราด กม.19']) {
+      await expect(page.getByText(ghost), `"${ghost}" is still on the page`).toHaveCount(0);
+    }
+    // no requirement behind this shortlist → no criteria strip at all
+    await expect(page.locator('#cs-criteria')).toHaveCount(0);
+  });
+
+  test('units, prices and type labels follow ?lang=, in the cards and the table', async ({ page, request }) => {
+    const sl = await plainShortlist(request);
+    const payload = (await (await request.get(`/api/public/shortlists/${sl.token}`)).json());
+    const first = ((payload.data ?? payload).items ?? [])[0] as { area: number | null; priceRent: number | null } | undefined;
+    test.skip(!first, 'no property on the shortlist');
+
+    await page.goto(`/client-shortlist?token=${sl.token}&lang=en`);
+    const cards = page.locator('#cs-item');
+    await expect(cards.first()).toBeVisible();
+    // the type label is a Thai enum key in the record — it must not reach the reader as one
+    await expect(cards.first().getByText('โกดัง')).toHaveCount(0);
+    await expect(cards.first().getByText('ตร.ม.')).toHaveCount(0);
+    if (first!.area !== null) await expect(cards.first().getByText('sqm')).toBeVisible();
+    if (first!.priceRent !== null) await expect(cards.first().getByText('/ month')).toBeVisible();
+
+    // the compare table is built from the same rows and must follow too
+    await page.getByText('Comparison').click();
+    await expect(page.getByText('Floor area')).toBeVisible();
+    await expect(page.getByText('พื้นที่ทรัพย์')).toHaveCount(0);
+
+    // switching language re-formats what is already on screen
+    await page.locator('[data-lang="zh"]').click();
+    await expect(page.getByText('建筑面积')).toBeVisible();
+    await expect(page).toHaveURL(/lang=zh/);      // and the link keeps the choice
+  });
+
+  test('the criteria strip is the customer\'s own requirement, translated', async ({ page, request }) => {
+    const leads = await (await request.get('/api/leads', { headers: { cookie } })).json();
+    const leadId = leads.items?.[0]?.id;
+    test.skip(!leadId, 'no lead');
+
+    const r = await (await request.post('/api/requirements', {
+      headers: { cookie },
+      data: { leadId, dealIntent: 'เช่า', typeKey: 'warehouse', areaMin: 1200, areaMax: 4800, budgetMin: 111000, needsRor4: true },
+    })).json();
+    cleanup.push(async () => {
+      const { PrismaClient } = await import('@prisma/client');
+      const p = new PrismaClient();
+      await p.shortlist.deleteMany({ where: { requirementId: r.id } });
+      await p.requirement.deleteMany({ where: { id: r.id } });
+      await p.$disconnect();
+    });
+
+    const props = await (await request.get('/api/properties', { headers: { cookie } })).json();
+    const active = (props.items as { publicCode: string; status: string }[]).find((p) => p.status === 'active');
+    test.skip(!active, 'no active property');
+    await request.patch(`/api/requirements/${r.id}`, { headers: { cookie }, data: { action: 'confirm' } });
+    await request.post(`/api/requirements/${r.id}/checks`, { headers: { cookie }, data: { code: active!.publicCode, result: 'available' } });
+    const built = await (await request.post(`/api/requirements/${r.id}/shortlist`, { headers: { cookie }, data: {} })).json();
+    const token = String(built.url).split('token=')[1];
+
+    await page.goto(`/client-shortlist?token=${token}&lang=en`);
+    const strip = page.locator('#cs-criteria');
+    await expect(strip).toBeVisible();
+    // the numbers are this customer's, and the words are English
+    await expect(strip).toContainText('1,200 – 4,800 sqm');
+    await expect(strip).toContainText('Ror. 4 licence needed');
+    await expect(strip).toContainText('Warehouse');
+    await expect(strip.getByText('ต้องการ ร.ง.4')).toHaveCount(0);
+
+    await page.goto(`/client-shortlist?token=${token}`);
+    await expect(page.locator('#cs-criteria')).toContainText('ต้องการ ร.ง.4');
+  });
+});

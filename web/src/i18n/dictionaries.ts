@@ -117,6 +117,8 @@ export type Dictionary = {
     detail: string; photo: string; opinion: string;
     askMore: string; call: string; emailUs: string;
     notFound: string; notFoundBody: string; footer: string;
+    sentOn: string; defaultName: string; rentOnly: string; giveOpinion: string; emailSubject: string;
+    needsRor4: string; nearPort: string;
     rows: { area: string; land: string; floor: string; height: string; power: string; rent: string; rentSqm: string; sale: string; deposit: string; advance: string; term: string };
   };
   faq: {
@@ -315,6 +317,9 @@ const th: Dictionary = {
     askMore: 'สอบถามเพิ่มเติมหรือจัดนัดเข้าชมได้เลย', call: 'โทร', emailUs: 'อีเมลหาทีมงาน',
     notFound: 'ไม่พบรายการนี้ หรือลิงก์หมดอายุแล้ว', notFoundBody: 'กรุณาติดต่อทีมงาน JKP Property เพื่อขอลิงก์ใหม่',
     footer: 'ราคาและสถานะว่างอาจเปลี่ยนแปลง — ทีมงานจะยืนยันอีกครั้งก่อนนัดเข้าชม · Powered by JKP Property',
+    sentOn: 'ส่งเมื่อ', defaultName: 'ทรัพย์ที่คัดให้คุณ', rentOnly: 'ให้เช่าเท่านั้น', giveOpinion: 'ให้ความเห็น',
+    emailSubject: 'ขอนัดเข้าชมทรัพย์',
+    needsRor4: 'ต้องการ ร.ง.4', nearPort: 'ใกล้ท่าเรือ',
     rows: { area: 'พื้นที่ทรัพย์', land: 'ขนาดที่ดิน', floor: 'รับน้ำหนักพื้น', height: 'ความสูง', power: 'ระบบไฟฟ้า', rent: 'ค่าเช่า/เดือน', rentSqm: 'ค่าเช่า/ตร.ม.', sale: 'ราคาขาย', deposit: 'เงินประกัน', advance: 'ชำระล่วงหน้า', term: 'ระยะสัญญา' },
   },
   faq: {
@@ -514,6 +519,9 @@ const en: Dictionary = {
     askMore: 'Ask us anything, or book a viewing', call: 'Call', emailUs: 'Email the team',
     notFound: 'This shortlist was not found, or the link has expired', notFoundBody: 'Please contact JKP Property for a new link',
     footer: 'Prices and availability can change — we confirm both again before a viewing · Powered by JKP Property',
+    sentOn: 'Sent', defaultName: 'Your shortlist', rentOnly: 'For rent only', giveOpinion: 'Tell us',
+    emailSubject: 'Request a viewing',
+    needsRor4: 'Ror. 4 licence needed', nearPort: 'Near a port',
     rows: { area: 'Floor area', land: 'Land size', floor: 'Floor loading', height: 'Clear height', power: 'Power supply', rent: 'Rent / month', rentSqm: 'Rent / sqm', sale: 'Sale price', deposit: 'Deposit', advance: 'Advance payment', term: 'Lease term' },
   },
   faq: {
@@ -713,6 +721,9 @@ const zh: Dictionary = {
     askMore: '如需咨询或安排看房，请随时联系', call: '致电', emailUs: '邮件联系团队',
     notFound: '未找到此清单，或链接已失效', notFoundBody: '请联系 JKP Property 索取新链接',
     footer: '价格与可租售状态可能变动 — 看房前我们会再次确认 · Powered by JKP Property',
+    sentOn: '发送于', defaultName: '为您甄选的物业', rentOnly: '仅出租', giveOpinion: '给出意见',
+    emailSubject: '预约看房',
+    needsRor4: '需要 ร.ง.4 工厂许可证', nearPort: '靠近港口',
     rows: { area: '建筑面积', land: '土地面积', floor: '楼板承重', height: '净高', power: '供电', rent: '月租金', rentSqm: '每平方米租金', sale: '售价', deposit: '押金', advance: '预付款', term: '租期' },
   },
   faq: {

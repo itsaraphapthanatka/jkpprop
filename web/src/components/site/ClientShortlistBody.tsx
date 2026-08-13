@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { getDictionary } from '@/i18n/dictionaries';
+import { enumLabel } from '@/i18n/enums';
+import { propertyType } from '@/lib/propertySchema';
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/config';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -15,12 +18,12 @@ import Image from 'next/image';
    ============================================================ */
 
 type FbKey = 'interested' | 'undecided' | 'not';
-interface FbDef { key: FbKey; label: string; on: string; onBg: string; paths: React.ReactNode }
+interface FbDef { key: FbKey; on: string; onBg: string; paths: React.ReactNode }
 
 const FB_DEFS: FbDef[] = [
-  { key: 'interested', label: '', on: 'var(--deep)', onBg: '#E8F3EC', paths: (<><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.3a2 2 0 002-1.7l1.4-9a2 2 0 00-2-2.3z" /><path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3" /></>) },
-  { key: 'undecided', label: '', on: '#9A741C', onBg: '#FBF3E1', paths: (<><circle cx="12" cy="12" r="10" /><path d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3M12 17h.01" /></>) },
-  { key: 'not', label: '', on: '#C0392B', onBg: '#F9E4E1', paths: (<><path d="M10 15V19a3 3 0 003 3l4-9V2H5.7a2 2 0 00-2 1.7l-1.4 9a2 2 0 002 2.3z" /><path d="M17 2h3a2 2 0 012 2v7a2 2 0 01-2 2h-3" /></>) },
+  { key: 'interested', on: 'var(--deep)', onBg: '#E8F3EC', paths: (<><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.3a2 2 0 002-1.7l1.4-9a2 2 0 00-2-2.3z" /><path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3" /></>) },
+  { key: 'undecided', on: '#9A741C', onBg: '#FBF3E1', paths: (<><circle cx="12" cy="12" r="10" /><path d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3M12 17h.01" /></>) },
+  { key: 'not', on: '#C0392B', onBg: '#F9E4E1', paths: (<><path d="M10 15V19a3 3 0 003 3l4-9V2H5.7a2 2 0 00-2 1.7l-1.4 9a2 2 0 002 2.3z" /><path d="M17 2h3a2 2 0 012 2v7a2 2 0 01-2 2h-3" /></>) },
 ];
 const DEFAULT_PATHS = (<><circle cx="12" cy="12" r="10" /><path d="M8 12h8" /></>);
 
@@ -30,22 +33,23 @@ interface Cmp {
   rent: string; rentSqm: string; sale: string; deposit: string; advance: string; term: string;
 }
 
-interface RowDef { label: string; field: keyof Cmp; hi?: boolean; accent?: boolean }
+/* the label of every row comes from the dictionary — these are only the
+   fields, in the order the table shows them */
+interface RowDef { field: keyof Cmp; hi?: boolean; accent?: boolean }
 const ROWS: RowDef[] = [
-  { label: 'พื้นที่ทรัพย์', field: 'area' },
-  { label: 'ขนาดที่ดิน', field: 'land' },
-  { label: 'รับน้ำหนักพื้น', field: 'floor' },
-  { label: 'ความสูง', field: 'height' },
-  { label: 'ระบบไฟฟ้า', field: 'power' },
-  { label: 'ค่าเช่า/เดือน', field: 'rent', hi: true },
-  { label: 'ค่าเช่า/ตร.ม.', field: 'rentSqm' },
-  { label: 'ราคาขาย', field: 'sale' },
-  { label: 'เงินประกัน', field: 'deposit', accent: true },
-  { label: 'ชำระล่วงหน้า', field: 'advance', accent: true },
-  { label: 'สัญญาเช่า', field: 'term', accent: true },
+  { field: 'area' }, { field: 'land' }, { field: 'floor' }, { field: 'height' }, { field: 'power' },
+  { field: 'rent', hi: true }, { field: 'rentSqm' }, { field: 'sale' },
+  { field: 'deposit', accent: true }, { field: 'advance', accent: true }, { field: 'term', accent: true },
 ];
 
-const REQ_CHIPS = ['เช่าโกดัง', '2,000–3,500 ตร.ม.', '฿150K–250K/ด.', 'ต้องการ ร.ง.4', 'สมุทรปราการ/ชลบุรี'];
+/* What the customer asked for, as the API records it. These chips were five
+   fixed Thai strings — the same invented brief shown to every customer. */
+type Criteria = {
+  dealIntent: string | null; typeKey: string | null;
+  areaMin: number | null; areaMax: number | null;
+  budgetMin: number | null; budgetMax: number | null;
+  needsRor4: boolean; nearPort: boolean; locations: string[];
+};
 
 interface Item {
   rank: string; img: string; title: string; code: string; loc: string; price: string; unit: string; specs: string[];
@@ -71,10 +75,13 @@ type ApiItem = {
 const FB_TO_API: Record<FbKey, string> = { interested: 'interested', undecided: 'maybe', not: 'not_interested' };
 const API_TO_FB: Record<string, FbKey> = { interested: 'interested', maybe: 'undecided', not_interested: 'not' };
 
-const money = (n: number) => `฿${n.toLocaleString('th-TH')}`;
+/* Thai digits group the same way as English ones, but the date does not — and
+   nor does anything read out of an enum. */
+const numFmt = (locale: Locale) => (locale === 'th' ? 'th-TH' : locale === 'zh' ? 'zh-CN' : 'en-GB');
+const money = (n: number, locale: Locale) => `฿${n.toLocaleString(numFmt(locale))}`;
 const FALLBACK_IMG = 'https://images.unsplash.com/photo-1553413077-190dd305871c?w=700&q=80';
 
-type Contact = { name: string; phone: string; tel: string; email: string };
+type Contact = { name: string; phone: string; tel: string; email: string; address?: string };
 
 /* The page has no [locale] segment — the team appends ?lang=en to the link for
    a customer who does not read Thai, and the switcher lets the customer change
@@ -85,19 +92,26 @@ const LANGS: { key: Locale; label: string }[] = [
   { key: 'zh', label: '中文' },
 ];
 
+/* the GET /api/public/shortlists/:token payload */
+type ApiPayload = { items: ApiItem[]; name: string; createdAt: number; criteria: Criteria | null };
+
 export function ClientShortlistBody({ contact, initialLocale }: { contact?: Contact; initialLocale?: Locale }) {
   // resolved on the server from ?lang=; the switcher below changes it after
   const [locale, setLocale] = useState<Locale>(initialLocale ?? DEFAULT_LOCALE);
-  const d = getDictionary(locale).clientShortlist;
+  const router = useRouter();
+  const dc = getDictionary(locale);
+  const d = dc.clientShortlist;
   const fbLabel = (k: FbKey) => (k === 'interested' ? d.interested : k === 'undecided' ? d.undecided : d.notInterested);
   const rowLabel = (field: string) => (d.rows as Record<string, string>)[field] ?? field;
 
   const [view, setView] = useState<'cards' | 'compare'>('cards');
   const [fb, setFb] = useState<Record<string, FbKey>>({});
 
-  /* token link → real shortlist from the public API; no token → demo data */
-  const [apiItems, setApiItems] = useState<Item[] | null>(null);
-  const [apiCmp, setApiCmp] = useState<Cmp[] | null>(null);
+  /* Rows are kept as the API sent them and formatted at render: prices, units
+     and type labels all change with the language, and formatting them once at
+     fetch time froze the page in whatever language it loaded in. */
+  const [rawItems, setRawItems] = useState<ApiItem[] | null>(null);
+  const [criteria, setCriteria] = useState<Criteria | null>(null);
   const [notFound, setNotFound] = useState(false);
   /* the shortlist's own name and date — the header said
      "บริษัท ไทยโลจิสติกส์ กรุ๊ป จำกัด · ส่งเมื่อ 18 ก.ค. 2026" to everyone */
@@ -117,40 +131,61 @@ export function ClientShortlistBody({ contact, initialLocale }: { contact?: Cont
     fetch(`/api/public/shortlists/${encodeURIComponent(t)}`)
       .then(async (r) => {
         if (!r.ok) { setNotFound(true); return; }
-        const raw = (await r.json()) as { data?: { items: ApiItem[]; name: string; createdAt: number } } & { items?: ApiItem[]; name?: string; createdAt?: number };
-        const d = raw.data ?? (raw as { items: ApiItem[]; name: string; createdAt: number });
-        const items = Array.isArray(d.items) ? d.items : [];
-        setMeta({ name: d.name ?? '', createdAt: d.createdAt ?? 0 });
+        const raw = (await r.json()) as { data?: ApiPayload } & Partial<ApiPayload>;
+        const payload = raw.data ?? (raw as ApiPayload);
+        const items = Array.isArray(payload.items) ? payload.items : [];
+        setMeta({ name: payload.name ?? '', createdAt: payload.createdAt ?? 0 });
+        setCriteria(payload.criteria ?? null);
         setRowIds(items.map((it) => it.itemId));
         setFb(Object.fromEntries(items.filter((it) => it.feedback && API_TO_FB[it.feedback]).map((it) => [it.itemId, API_TO_FB[it.feedback!]])));
-        setApiItems(items.map((it, i) => ({
-          rank: String(i + 1),
-          img: it.photo || FALLBACK_IMG,
-          title: it.title,
-          code: it.code,
-          loc: it.location || '—',
-          price: it.priceRent !== null ? money(it.priceRent) : it.priceSale !== null ? money(it.priceSale) : 'ติดต่อสอบถาม',
-          unit: it.priceRent !== null ? '/เดือน' : '',
-          specs: [it.typeLabel, it.area !== null ? `${it.area.toLocaleString('th-TH')} ตร.ม.` : '', it.dealType].filter(Boolean),
-        })));
-        setApiCmp(items.map((it, i) => ({
-          rank: String(i + 1),
-          shortTitle: it.code,
-          img: it.photo || FALLBACK_IMG,
-          area: it.area !== null ? `${it.area.toLocaleString('th-TH')} ตร.ม.` : '—',
-          land: '—', floor: '—', height: '—', power: '—',
-          rent: it.priceRent !== null ? `${money(it.priceRent)}/ด.` : '—',
-          rentSqm: it.priceRent !== null && it.area ? `฿${Math.round(it.priceRent / it.area)}/ตร.ม.` : '—',
-          sale: it.priceSale !== null ? money(it.priceSale) : it.priceRent !== null ? 'ให้เช่าเท่านั้น' : '—',
-          deposit: '—', advance: '—', term: '—',
-        })));
+        setRawItems(items);
       })
       .catch(() => setNotFound(true));
   }, []);
 
-  const itemsData = apiItems ?? [];
-  const cmpData = apiCmp ?? [];
+  const nf = numFmt(locale);
+  const sqm = (n: number) => `${n.toLocaleString(nf)} ${dc.common.sqm}`;
+  const itemsData: Item[] = (rawItems ?? []).map((it, i) => ({
+    rank: String(i + 1),
+    img: it.photo || FALLBACK_IMG,
+    title: it.title,
+    code: it.code,
+    loc: it.location || '—',
+    price: it.priceRent !== null ? money(it.priceRent, locale) : it.priceSale !== null ? money(it.priceSale, locale) : dc.common.priceOnRequest,
+    unit: it.priceRent !== null ? dc.common.perMonth : '',
+    // both of these are Thai enum keys in the record — translated on the way out
+    specs: [enumLabel(it.typeLabel, locale), it.area !== null ? sqm(it.area) : '', enumLabel(it.dealType, locale)].filter(Boolean),
+  }));
+  const cmpData: Cmp[] = (rawItems ?? []).map((it, i) => ({
+    rank: String(i + 1),
+    shortTitle: it.code,
+    img: it.photo || FALLBACK_IMG,
+    area: it.area !== null ? sqm(it.area) : '—',
+    land: '—', floor: '—', height: '—', power: '—',
+    rent: it.priceRent !== null ? `${money(it.priceRent, locale)}${dc.common.perMonth}` : '—',
+    rentSqm: it.priceRent !== null && it.area ? `฿${Math.round(it.priceRent / it.area).toLocaleString(nf)} / ${dc.common.sqm}` : '—',
+    sale: it.priceSale !== null ? money(it.priceSale, locale) : it.priceRent !== null ? d.rentOnly : '—',
+    deposit: '—', advance: '—', term: '—',
+  }));
   const itemIds = rowIds;
+
+  /* the brief, in the reader's language — nothing is shown if the shortlist
+     was not built from a recorded requirement */
+  const chips: string[] = [];
+  if (criteria) {
+    const deal = criteria.dealIntent ? enumLabel(criteria.dealIntent, locale) : '';
+    const type = criteria.typeKey ? enumLabel(propertyType(criteria.typeKey).label, locale) : '';
+    if (deal || type) chips.push([deal, type].filter(Boolean).join(' · '));
+    const range = (lo: number | null, hi: number | null, fmt: (n: number) => string) =>
+      lo !== null && hi !== null && lo !== hi ? `${fmt(lo)} – ${fmt(hi)}` : lo !== null ? fmt(lo) : hi !== null ? fmt(hi) : '';
+    const area = range(criteria.areaMin, criteria.areaMax, (n) => n.toLocaleString(nf));
+    if (area) chips.push(`${area} ${dc.common.sqm}`);
+    const budget = range(criteria.budgetMin, criteria.budgetMax, (n) => money(n, locale));
+    if (budget) chips.push(criteria.dealIntent?.includes('เช่า') ? `${budget}${dc.common.perMonth}` : budget);
+    if (criteria.needsRor4) chips.push(d.needsRor4);
+    if (criteria.nearPort) chips.push(d.nearPort);
+    if (criteria.locations.length) chips.push(criteria.locations.map((l) => enumLabel(l, locale)).join(' / '));
+  }
 
   /* the answer goes back to the team instead of colouring a button locally */
   const sendFeedback = (i: number, key: FbKey) => {
@@ -201,7 +236,14 @@ export function ClientShortlistBody({ contact, initialLocale }: { contact?: Cont
                   <div
                     key={l.key}
                     data-lang={l.key}
-                    onClick={() => setLocale(l.key)}
+                    /* the URL carries the choice too, so a reload — and the
+                       server-rendered address and contact card — follow it */
+                    onClick={() => {
+                      setLocale(l.key);
+                      const q = new URLSearchParams(window.location.search);
+                      q.set('lang', l.key);
+                      router.replace(`?${q}`, { scroll: false });
+                    }}
                     style={{ height: 26, padding: '0 10px', borderRadius: 9999, display: 'flex', alignItems: 'center', fontSize: 11, fontWeight: on ? 800 : 600, cursor: 'pointer', background: on ? 'rgba(255,255,255,.16)' : 'transparent', color: on ? '#fff' : '#9FD9BA', border: '1px solid ' + (on ? 'rgba(255,255,255,.3)' : 'transparent') }}
                   >{l.label}</div>
                 );
@@ -220,18 +262,23 @@ export function ClientShortlistBody({ contact, initialLocale }: { contact?: Cont
               <div style={{ width: 72, height: 72, borderRadius: 16, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden', padding: 8, color: 'var(--muted3)', fontSize: 11, fontWeight: 700, textAlign: 'center' }}>{d.clientLogo}</div>
               <div>
                 <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '.06em', color: '#8FE6B6', textTransform: 'uppercase' }}>{d.forCustomer}</div>
-                <div style={{ marginTop: 4, fontSize: 22, fontWeight: 800, color: '#fff' }}>{meta?.name || 'ทรัพย์ที่คัดให้คุณ'}</div>
-                <div style={{ marginTop: 4, fontSize: '12.5px', color: '#C3FED5', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8FE6B6" strokeWidth="2" style={{ flexShrink: 0, marginTop: 2 }}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z" /><circle cx="12" cy="10" r="3" /></svg>
-                  99/1 ถ.บางนา-ตราด กม.19 ต.บางโฉลง อ.บางพลี จ.สมุทรปราการ
-                </div>
+                <div style={{ marginTop: 4, fontSize: 22, fontWeight: 800, color: '#fff' }}>{meta?.name || d.defaultName}</div>
+                {/* the office address was typed in here as a Thai constant —
+                    it is the company's own record, in the reader's language */}
+                {contact?.address && (
+                  <div style={{ marginTop: 4, fontSize: '12.5px', color: '#C3FED5', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8FE6B6" strokeWidth="2" style={{ flexShrink: 0, marginTop: 2 }}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                    {contact.address}
+                  </div>
+                )}
               </div>
             </div>
+            {/* "SL-208" sat here on every shortlist ever sent; a shortlist has
+                no code to show, so the date it was sent stands alone */}
             <div style={{ textAlign: 'right', flexShrink: 0 }}>
               <div style={{ fontSize: '11.5px', color: '#8FE6B6' }}>Shortlist</div>
-              <code style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 15, fontWeight: 700, color: '#fff' }}>SL-208</code>
-              <div style={{ marginTop: 6, fontSize: '11.5px', color: '#C3FED5' }}>
-                {meta?.createdAt ? `ส่งเมื่อ ${new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(meta.createdAt))}` : ''}
+              <div style={{ marginTop: 2, fontSize: '13.5px', fontWeight: 700, color: '#fff' }}>
+                {meta?.createdAt ? `${d.sentOn} ${new Intl.DateTimeFormat(nf, { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(meta.createdAt))}` : ''}
               </div>
             </div>
           </div>
@@ -248,15 +295,17 @@ export function ClientShortlistBody({ contact, initialLocale }: { contact?: Cont
         <p style={{ margin: 0, fontSize: 14, color: 'var(--muted)', maxWidth: 640 }}>{d.sub}</p>
       </section>
 
-      {/* REQUIREMENT SUMMARY */}
-      <section style={{ maxWidth: '1080px', margin: '0 auto', padding: '18px 24px 0' }}>
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '16px 20px', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted2)' }}>{d.criteria}</span>
-          {REQ_CHIPS.map((c) => (
-            <span key={c} style={{ height: 28, padding: '0 12px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>{c}</span>
-          ))}
-        </div>
-      </section>
+      {/* REQUIREMENT SUMMARY — only when there is a real requirement behind it */}
+      {chips.length > 0 && (
+        <section style={{ maxWidth: '1080px', margin: '0 auto', padding: '18px 24px 0' }}>
+          <div id="cs-criteria" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '16px 20px', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted2)' }}>{d.criteria}</span>
+            {chips.map((c) => (
+              <span key={c} style={{ height: 28, padding: '0 12px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>{c}</span>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* VIEW TOGGLE */}
       <section style={{ maxWidth: '1080px', margin: '0 auto', padding: '18px 24px 0', display: 'flex', justifyContent: 'flex-end' }}>
@@ -295,11 +344,11 @@ export function ClientShortlistBody({ contact, initialLocale }: { contact?: Cont
                   <td style={{ padding: '14px 18px', fontSize: '12.5px', fontWeight: 700, color: 'var(--text)', background: 'var(--bg)', position: 'sticky', left: 0 }}>{d.photo}</td>
                   {cmpData.map((c) => (
                     <td key={c.shortTitle} style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)' }}>
-                      <Link href="/property" style={{ display: 'block', height: 96, borderRadius: 11, overflow: 'hidden', background: 'var(--tint)' }}>
+                      <Link href={`/${locale}/property/${encodeURIComponent(c.shortTitle)}`} style={{ display: 'block', height: 96, borderRadius: 11, overflow: 'hidden', background: 'var(--tint)' }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={c.img} alt={c.shortTitle} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                       </Link>
-                      <Link href="/property" style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, height: 30, borderRadius: 8, background: 'var(--tint)', color: 'var(--accent)', fontSize: '11.5px', fontWeight: 700 }}>{d.viewDetail}<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"><path d="M5 12h14M13 6l6 6-6 6" /></svg></Link>
+                      <Link href={`/${locale}/property/${encodeURIComponent(c.shortTitle)}`} style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, height: 30, borderRadius: 8, background: 'var(--tint)', color: 'var(--accent)', fontSize: '11.5px', fontWeight: 700 }}>{d.viewDetail}<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"><path d="M5 12h14M13 6l6 6-6 6" /></svg></Link>
                     </td>
                   ))}
                 </tr>
@@ -326,7 +375,7 @@ export function ClientShortlistBody({ contact, initialLocale }: { contact?: Cont
                       <td key={c.shortTitle} style={{ padding: '12px 14px' }}>
                         <div onClick={cycle} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 34, padding: '0 13px', borderRadius: 9999, fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', border: '1.5px solid ' + (active ? def!.on : 'var(--border)'), background: active ? def!.onBg : 'transparent', color: active ? def!.on : 'var(--text)' }}>
                           {fbIcon(def ? def.paths : DEFAULT_PATHS, active ? def!.on : 'var(--muted2)', 14)}
-                          {def ? def.label : 'ให้ความเห็น'}
+                          {def ? fbLabel(def.key) : d.giveOpinion}
                         </div>
                       </td>
                     );
@@ -370,7 +419,7 @@ export function ClientShortlistBody({ contact, initialLocale }: { contact?: Cont
                     {it.specs.map((sp) => (
                       <span key={sp} style={{ height: 28, padding: '0 12px', borderRadius: 9, background: 'var(--bg)', border: '1px solid var(--border)', fontSize: 12, fontWeight: 600, color: 'var(--text)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>{sp}</span>
                     ))}
-                    <Link href="/property" style={{ height: 28, padding: '0 12px', borderRadius: 9, background: 'var(--tint)', color: 'var(--accent)', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}>{d.viewDetail}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"><path d="M5 12h14M13 6l6 6-6 6" /></svg></Link>
+                    <Link href={`/${locale}/property/${encodeURIComponent(it.code)}`} style={{ height: 28, padding: '0 12px', borderRadius: 9, background: 'var(--tint)', color: 'var(--accent)', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}>{d.viewDetail}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"><path d="M5 12h14M13 6l6 6-6 6" /></svg></Link>
                   </div>
                   <div style={{ marginTop: 'auto', paddingTop: 18 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted2)', marginBottom: 8 }}>{d.yourOpinion}</div>
@@ -411,7 +460,7 @@ export function ClientShortlistBody({ contact, initialLocale }: { contact?: Cont
             {/* was href="#" — it went nowhere. Marking a property as
                 "สนใจ" above is what actually reaches the team now. */}
             {contact?.email && (
-              <a href={`mailto:${contact.email}?subject=${encodeURIComponent('ขอนัดเข้าชมทรัพย์')}`} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 46, padding: '0 24px', borderRadius: 9999, background: 'var(--neon)', color: 'var(--ink)', fontSize: '13.5px', fontWeight: 800 }}>{d.emailUs}<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg></a>
+              <a href={`mailto:${contact.email}?subject=${encodeURIComponent(d.emailSubject)}`} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 46, padding: '0 24px', borderRadius: 9999, background: 'var(--neon)', color: 'var(--ink)', fontSize: '13.5px', fontWeight: 800 }}>{d.emailUs}<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg></a>
             )}
           </div>
         </div>

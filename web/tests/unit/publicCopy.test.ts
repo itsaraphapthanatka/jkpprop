@@ -20,11 +20,10 @@ const ROOT = new URL('../../src/', import.meta.url).pathname;
 /** directories whose components render on /th /en /zh */
 const PUBLIC_DIRS = ['components/site', 'components/home', 'components/property', 'components/listing', 'app/[locale]'];
 
-/* ClientShortlistBody is the one page still built entirely from the prototype's
-   demo content — a fictional company, two invented listings, a made-up
-   consultant. Translating it would mean translating fake data, so it is left
-   whole until it reads from the database. Tracked, not forgotten. */
-const KNOWN_UNTRANSLATED = ['components/site/ClientShortlistBody.tsx'];
+/* Nothing is exempt any more. ClientShortlistBody was, while it was built out
+   of the prototype's demo content — there was no point translating a fictional
+   company and two invented listings. It reads from the database now. */
+const KNOWN_UNTRANSLATED: string[] = [];
 
 /* Thai letters only — the block also holds ฿ (U+0E3F), which is the correct
    currency symbol on the English and Chinese pages too. */
