@@ -349,8 +349,29 @@ model Deal {
   updatedAt  DateTime  @updatedAt
 
   offers DealOffer[]
+  docs   DealDocument[]
 
   @@index([orgId, status])
+}
+
+// Files attached to a deal (§ Flow D). The screen listed three PDFs with
+// sizes and upload dates next to an upload button with no handler; there was
+// no table, no route and nowhere for a file to go. Stored through the same
+// driver as the media library, so local disk and S3 both work unchanged.
+model DealDocument {
+  id         String   @id @default(cuid())
+  orgId      String
+  dealId     String
+  deal       Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  filename   String
+  mime       String
+  size       Int
+  // รอเซ็น | ครบ — what the team is waiting on, not a file property
+  status     String   @default("รอเซ็น")
+  uploaderId String?
+  createdAt  DateTime @default(now())
+
+  @@index([dealId])
 }
 
 // Lease book (§7.1) — real end dates, not day offsets

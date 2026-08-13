@@ -433,6 +433,39 @@ export const openapi = {
     },
 
     /* ---------------- Leases & notifications ---------------- */
+    '/api/deals/{id}/docs': {
+      get: {
+        tags: ['Pipeline'], summary: 'เอกสารของดีล',
+        parameters: [pathParam('id', 'id ของดีล')],
+        responses: { 200: okRes('รายการเอกสาร', items({ type: 'object' })), ...WITH_404 },
+      },
+      post: {
+        tags: ['Pipeline'], summary: 'แนบเอกสาร (multipart)',
+        description: 'PDF หรือรูปภาพ ไม่เกิน 10MB · ดีลที่ปิดแล้วต้องปลดล็อกก่อน · เก็บผ่าน driver เดียวกับคลังสื่อ',
+        parameters: [pathParam('id', 'id ของดีล')],
+        requestBody: { required: true, content: { 'multipart/form-data': { schema: obj({ file: { type: 'string', format: 'binary' }, status: STR }, ['file']) } } },
+        responses: { 201: okRes('แนบแล้ว'), ...WITH_404 },
+      },
+    },
+    '/api/deals/{id}/docs/{docId}': {
+      get: {
+        tags: ['Pipeline'], summary: 'ดาวน์โหลดเอกสาร',
+        description: 'ต้องเข้าสู่ระบบ — เอกสารดีลไม่เปิดสาธารณะ',
+        parameters: [pathParam('id', 'id ของดีล'), pathParam('docId', 'id ของเอกสาร')],
+        responses: { 200: { description: 'ไฟล์' }, ...WITH_404 },
+      },
+      patch: {
+        tags: ['Pipeline'], summary: 'เปลี่ยนสถานะเอกสาร (รอเซ็น / ครบ)',
+        parameters: [pathParam('id', 'id ของดีล'), pathParam('docId', 'id ของเอกสาร')],
+        requestBody: body(obj({ status: { ...STR, enum: ['รอเซ็น', 'ครบ'] } }, ['status'])),
+        responses: { 200: okRes('อัปเดตแล้ว'), ...WITH_404 },
+      },
+      delete: {
+        tags: ['Pipeline'], summary: 'ลบเอกสาร', description: 'owner + manager · ลบทั้งแถวและไฟล์',
+        parameters: [pathParam('id', 'id ของดีล'), pathParam('docId', 'id ของเอกสาร')],
+        responses: { 200: okRes('ลบแล้ว'), ...WITH_404 },
+      },
+    },
     '/api/leases': {
       get: {
         tags: ['Leases'], summary: 'สัญญาเช่า',

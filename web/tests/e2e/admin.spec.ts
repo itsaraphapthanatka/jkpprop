@@ -1386,6 +1386,76 @@ test.describe('the deal screen shows the deal, not a worked example', () => {
     for (const id of made) await db.deal.deleteMany({ where: { id } });
   });
 
+
+  test('a document can be attached to a deal, downloaded and removed', async ({ page, request }) => {
+    const res = await request.post('/api/deals', {
+      headers: { cookie }, data: { title: `e2e docs ${Date.now().toString(36)}`, amount: 1000 },
+    });
+    const { id } = await res.json();
+    made.push(id);
+
+    await page.goto(`/admin/deals/${id}`);
+    await expect(page.getByText('ยังไม่มีเอกสาร')).toBeVisible();
+
+    // a minimal but genuinely valid PDF
+    const pdf = Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n');
+    await page.locator('#deal-doc-upload').click();
+    await page.locator('input[type="file"]').setInputFiles({ name: 'สัญญาเช่า.pdf', mimeType: 'application/pdf', buffer: pdf });
+
+    const row = page.locator('[data-doc]').first();
+    await expect(row).toBeVisible();
+    await expect(row).toContainText('สัญญาเช่า.pdf');
+    await expect(row).toContainText('รอเซ็น');
+
+    // it survives a reload, and the file really comes back
+    await page.reload();
+    await expect(page.locator('[data-doc]').first()).toContainText('สัญญาเช่า.pdf');
+
+    const list = await (await request.get(`/api/deals/${id}/docs`, { headers: { cookie } })).json();
+    const doc = list.items[0];
+    const dl = await request.get(doc.url, { headers: { cookie } });
+    expect(dl.ok(), 'the stored file could not be read back').toBeTruthy();
+    expect((await dl.body()).subarray(0, 4).toString()).toBe('%PDF');
+    /* HTTP headers are latin-1 and Thai filenames are the norm here — putting
+       one in raw threw and killed the download. */
+    expect(dl.headers()['content-disposition'], 'the Thai filename is not carried').toContain("filename*=UTF-8''");
+
+    // status toggles, then it deletes
+    await page.locator(`[data-doc-status="${doc.id}"]`).click();
+    await expect.poll(async () => {
+      const r = await (await request.get(`/api/deals/${id}/docs`, { headers: { cookie } })).json();
+      return r.items[0]?.status;
+    }).toBe('ครบ');
+
+    await page.locator(`[data-doc-remove="${doc.id}"]`).click();
+    await expect.poll(async () => {
+      const r = await (await request.get(`/api/deals/${id}/docs`, { headers: { cookie } })).json();
+      return (r.items as unknown[]).length;
+    }).toBe(0);
+  });
+
+  test('an executable is refused, and a closed deal will not take new paperwork', async ({ request }) => {
+    const res = await request.post('/api/deals', {
+      headers: { cookie }, data: { title: `e2e docs guard ${Date.now().toString(36)}`, amount: 1000 },
+    });
+    const { id } = await res.json();
+    made.push(id);
+
+    const bad = await request.post(`/api/deals/${id}/docs`, {
+      headers: { cookie },
+      multipart: { file: { name: 'run.sh', mimeType: 'application/x-sh', buffer: Buffer.from('rm -rf /') } },
+    });
+    expect(bad.status(), 'a deal folder is not a place to park scripts').toBe(400);
+
+    // close the deal, then try again
+    await request.patch(`/api/deals/${id}`, { headers: { cookie }, data: { status: 'won' } });
+    const afterClose = await request.post(`/api/deals/${id}/docs`, {
+      headers: { cookie },
+      multipart: { file: { name: 'late.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n%%EOF\n') } },
+    });
+    expect(afterClose.status(), 'a closed deal should need unlocking first').toBe(400);
+  });
+
   test('a new deal has an empty timeline, not four invented rounds', async ({ page, request }) => {
     const res = await request.post('/api/deals', {
       headers: { cookie }, data: { title: `e2e deal ${Date.now().toString(36)}`, amount: 123456 },

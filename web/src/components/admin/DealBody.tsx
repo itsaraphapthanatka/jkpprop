@@ -1,9 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { apiGet, apiPost, apiPatch, ApiClientError } from '@/lib/apiClient';
+import { apiFetch, apiGet, apiPost, apiPatch, apiDelete, ApiClientError } from '@/lib/apiClient';
 
 /* ============================================================
    Ported from AdminDeal.dc.html — Flow D "Negotiation → Deal".
@@ -30,10 +30,19 @@ interface DealCtx {
   /** the record itself — the property card and the figures came from constants */
   deal: ApiDeal | null;
   offers: ApiOffer[];
+  /* attaching a file had no route and no table — the panel listed three
+     invented PDFs beside an upload button with no handler */
+  docs: ApiDoc[];
+  uploadDoc: (file: File) => Promise<string>;
+  setDocStatus: (docId: string, status: string) => void;
+  removeDoc: (docId: string) => void;
+  uploading: boolean;
   addOffer: (o: { side: string; amount: string; terms: string }) => Promise<boolean>;
 }
 
 export type ApiOffer = { id: string; side: string; amount: string; terms: string; createdAt: number };
+type ApiDoc = { id: string; filename: string; mime: string; size: number; status: string; createdAt: number; url: string };
+
 type ApiDeal = {
   id: string; title: string; amount: number; status: string; locked: boolean; note: string | null;
   propertyCode: string; propertyTitle: string; customer: string;
@@ -49,10 +58,12 @@ function useDeal(): DealCtx {
 
 export function DealProvider({ children, dealId: fixedId }: { children: React.ReactNode; dealId?: string }) {
   const [closed, setClosed] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
   const [dealId, setDealId] = useState<string | null>(null);
   const [deal, setDeal] = useState<ApiDeal | null>(null);
   const [offers, setOffers] = useState<ApiOffer[]>([]);
+  const [docs, setDocs] = useState<ApiDoc[]>([]);
 
   /* /admin/deals/<id> pins a record; /admin/deals falls back to the newest */
   useEffect(() => {
@@ -66,6 +77,8 @@ export function DealProvider({ children, dealId: fixedId }: { children: React.Re
         setClosed(d.locked || d.status !== 'negotiating');
         const o = await apiGet<{ items: ApiOffer[] }>(`/api/deals/${d.id}/offers`).catch(() => null);
         if (alive && o) setOffers(o.items ?? []);
+        const dc = await apiGet<{ items: ApiDoc[] }>(`/api/deals/${d.id}/docs`).catch(() => null);
+        if (alive && dc) setDocs(dc.items ?? []);
       })
       .catch(() => { /* no deals yet — the screen says so */ });
     return () => { alive = false; };
@@ -77,6 +90,38 @@ export function DealProvider({ children, dealId: fixedId }: { children: React.Re
     dealId,
     deal,
     offers,
+    docs,
+    uploading,
+    uploadDoc: async (file: File) => {
+      if (!dealId) return 'ยังไม่มีดีล';
+      setUploading(true);
+      try {
+        const form = new FormData();
+        form.append('file', file);
+        // apiPost JSON-stringifies its body; a multipart upload goes through
+        // apiFetch, which leaves the browser's boundary alone
+        const made = await apiFetch<ApiDoc>(`/api/deals/${dealId}/docs`, { method: 'POST', body: form });
+        setDocs((prev) => [made, ...prev]);
+        return '';
+      } catch (e) {
+        return e instanceof ApiClientError ? e.message : 'อัปโหลดไม่สำเร็จ';
+      } finally {
+        setUploading(false);
+      }
+    },
+    setDocStatus: (docId: string, status: string) => {
+      if (!dealId) return;
+      setDocs((prev) => prev.map((d) => (d.id === docId ? { ...d, status } : d)));
+      apiPatch(`/api/deals/${dealId}/docs/${docId}`, { status })
+        .catch((e) => window.alert(e instanceof ApiClientError ? e.message : 'เปลี่ยนสถานะไม่สำเร็จ'));
+    },
+    removeDoc: (docId: string) => {
+      if (!dealId) return;
+      const before = docs;
+      setDocs((prev) => prev.filter((d) => d.id !== docId));
+      apiDelete(`/api/deals/${dealId}/docs/${docId}`)
+        .catch((e) => { setDocs(before); window.alert(e instanceof ApiClientError ? e.message : 'ลบไม่สำเร็จ'); });
+    },
     openClose: () => setCloseDialogOpen(true),
     closeDialog: () => setCloseDialogOpen(false),
     confirmClose: (outcome, note) => {
@@ -186,7 +231,9 @@ const oi = (p: string, c: string) => '<svg width="15" height="15" viewBox="0 0 2
 const sideC = (bg: string, fg: string): React.CSSProperties => ({ height: 22, padding: '0 11px', borderRadius: 9999, background: bg, color: fg, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center' });
 
 export default function DealBody() {
-  const { closed, closeDialogOpen, closeDialog, confirmClose, dealId, deal, offers: apiOffers, addOffer } = useDeal();
+  const { closed, closeDialogOpen, closeDialog, confirmClose, dealId, deal, offers: apiOffers, addOffer, docs, uploadDoc, setDocStatus, removeDoc, uploading } = useDeal();
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [docErr, setDocErr] = useState('');
   const [addOfferOpen, setAddOfferOpen] = useState(false);
   const [offerSide, setOfferSide] = useState('ฝั่งลูกค้า');
   const [offerAmount, setOfferAmount] = useState('');
@@ -346,17 +393,65 @@ export default function DealBody() {
             </div>
           </div>
 
-          {/* Documents.
-              Three PDFs with sizes and upload dates used to be listed here,
-              next to an "อัปโหลด" button with no handler. There is no document
-              storage behind this screen — no model, no route, nowhere for a
-              file to go — so the panel says that instead of implying a filing
-              cabinet that does not exist. */}
+          {/* Documents. Three PDFs with sizes and upload dates used to be
+              listed here beside an upload button with no handler, and there
+              was nowhere for a file to go. */}
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 22 }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', marginBottom: 8 }}>เอกสาร Deal</div>
-            <div style={{ padding: '18px 14px', borderRadius: 12, background: 'var(--bg)', border: '1px dashed var(--border)', fontSize: '12.5px', color: 'var(--muted)', lineHeight: 1.7 }}>
-              ยังไม่ได้ทำระบบเก็บเอกสารของดีล — ตอนนี้แนบไฟล์ที่นี่ไม่ได้<br />
-              ระหว่างนี้อัปโหลดไว้ที่ <Link href="/admin/media" style={{ color: 'var(--accent)', fontWeight: 700 }}>คลังสื่อ</Link> แล้วใส่ลิงก์ในโน้ตของ lead ไปก่อนได้
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>เอกสาร Deal</div>
+              <div
+                id="deal-doc-upload"
+                onClick={() => { if (!uploading && dealId) fileRef.current?.click(); }}
+                style={{ height: 34, padding: '0 14px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, cursor: uploading || !dealId ? 'default' : 'pointer', opacity: uploading || !dealId ? .6 : 1 }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><path d="M17 8l-5-5-5 5M12 3v12" /></svg>
+                {uploading ? 'กำลังอัปโหลด…' : 'อัปโหลด'}
+              </div>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="application/pdf,image/jpeg,image/png,image/webp"
+                style={{ display: 'none' }}
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = '';
+                  if (!f) return;
+                  setDocErr(await uploadDoc(f));
+                }}
+              />
+            </div>
+
+            {docErr && <div id="deal-doc-error" style={{ marginBottom: 10, padding: '9px 12px', borderRadius: 10, background: '#FDECEC', color: '#A32A2A', fontSize: '12.5px', fontWeight: 600 }}>{docErr}</div>}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {docs.length === 0 && (
+                <div style={{ padding: '20px 12px', textAlign: 'center', fontSize: '12.5px', color: 'var(--muted3)', lineHeight: 1.7 }}>
+                  ยังไม่มีเอกสาร — แนบสัญญา หนังสือรับรอง หรือแผนผังพื้นที่ได้ที่นี่<br />
+                  รองรับ PDF และรูปภาพ สูงสุด 10MB ต่อไฟล์
+                </div>
+              )}
+              {docs.map((doc) => (
+                <div key={doc.id} data-doc={doc.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12, background: 'var(--bg)' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 9, background: doc.status === 'ครบ' ? '#E8F3EC' : '#FBF3E1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: doc.status === 'ครบ' ? '#0D6C3B' : '#9A741C' }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><path d="M14 2v6h6" /></svg>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <a href={doc.url} target="_blank" rel="noreferrer" style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', overflowWrap: 'anywhere' }}>{doc.filename}</a>
+                    <div style={{ fontSize: '11.5px', color: 'var(--muted3)' }}>
+                      {doc.mime === 'application/pdf' ? 'PDF' : 'รูปภาพ'} · {(doc.size / 1024 / 1024).toFixed(1)} MB · {new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short' }).format(new Date(doc.createdAt))}
+                    </div>
+                  </div>
+                  <span
+                    data-doc-status={doc.id}
+                    onClick={() => setDocStatus(doc.id, doc.status === 'ครบ' ? 'รอเซ็น' : 'ครบ')}
+                    title="กดเพื่อสลับสถานะ"
+                    style={{ height: 22, padding: '0 10px', borderRadius: 9999, background: doc.status === 'ครบ' ? '#E8F3EC' : '#FBF3E1', color: doc.status === 'ครบ' ? '#0D6C3B' : '#9A741C', fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', cursor: 'pointer', flexShrink: 0 }}
+                  >{doc.status}</span>
+                  <span data-doc-remove={doc.id} onClick={() => removeDoc(doc.id)} title="ลบเอกสาร" style={{ color: 'var(--muted2)', cursor: 'pointer', display: 'flex', flexShrink: 0 }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg>
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
           </>
