@@ -466,6 +466,13 @@ export const openapi = {
         responses: { 200: okRes('ลบแล้ว'), ...WITH_404 },
       },
     },
+    '/api/search': {
+      get: {
+        tags: ['Admin'], summary: 'ค้นหารวม (ทรัพย์ / lead / requirement / deal) — ช่องค้นหาบนแถบบน',
+        parameters: [queryParam('q', 'คำค้น อย่างน้อย 2 ตัวอักษร')],
+        responses: { 200: okRes('ผลการค้นหา', items({ type: 'object' })), ...AUTH_ERRORS },
+      },
+    },
     '/api/leases': {
       get: {
         tags: ['Leases'], summary: 'สัญญาเช่า',

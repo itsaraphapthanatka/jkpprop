@@ -2526,3 +2526,68 @@ test.describe('the lease-expiry bell', () => {
     await db2.$disconnect();
   });
 });
+
+test.describe('the topbar search', () => {
+  /* The box has carried a ⌘K hint since the port and was an unbound input:
+     no state, no request, no key listener. Typing a property code did nothing. */
+  let cookie = '';
+
+  test.beforeEach(async ({ page }) => {
+    await signIn(page, OWNER);
+    cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  });
+
+  test('a property code finds the property and opens it', async ({ page, request }) => {
+    const props = await (await request.get('/api/properties', { headers: { cookie } })).json();
+    const p = (props.items as { publicCode: string; title: string }[])[0];
+    test.skip(!p, 'no property');
+
+    await page.goto('/admin');
+    await page.locator('#admin-search').fill(p.publicCode);
+    const results = page.locator('#admin-search-results');
+    await expect(results).toBeVisible();
+    await expect(results.locator('[data-hit="property"]').first()).toContainText(p.publicCode);
+
+    await results.locator('[data-hit="property"]').first().click();
+    await expect(page).toHaveURL(new RegExp(`code=${p.publicCode}`));
+    await expect(page.locator('h1')).toContainText(p.publicCode);
+  });
+
+  test('⌘K puts the cursor in the box', async ({ page }) => {
+    await page.goto('/admin');
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+k' : 'Control+k');
+    await expect(page.locator('#admin-search')).toBeFocused();
+  });
+
+  test('the keyboard alone can pick a result', async ({ page, request }) => {
+    const props = await (await request.get('/api/properties', { headers: { cookie } })).json();
+    const p = (props.items as { publicCode: string }[])[0];
+    test.skip(!p, 'no property');
+
+    await page.goto('/admin');
+    await page.locator('#admin-search').fill(p.publicCode);
+    // wait for the results themselves, not the "กำลังค้นหา…" panel
+    await expect(page.locator('#admin-search-results [data-hit]').first()).toBeVisible();
+    await page.locator('#admin-search').press('Enter');
+    await expect(page).toHaveURL(new RegExp(`code=${p.publicCode}`));
+  });
+
+  test('a lead is findable by company name, and nothing invented comes back', async ({ page, request }) => {
+    const leads = await (await request.get('/api/leads', { headers: { cookie } })).json();
+    const lead = (leads.items as { name: string; company: string }[]).find((l) => (l.company || l.name).length > 2);
+    test.skip(!lead, 'no lead');
+    const term = (lead!.company || lead!.name).slice(0, 4);
+
+    const res = await (await request.get(`/api/search?q=${encodeURIComponent(term)}`, { headers: { cookie } })).json();
+    expect((res.items as { kind: string }[]).some((h) => h.kind === 'lead')).toBeTruthy();
+
+    await page.goto('/admin');
+    await page.locator('#admin-search').fill('ไม่มีทางเจอคำนี้ในระบบ');
+    await expect(page.locator('#admin-search-results')).toContainText('ไม่พบ');
+  });
+
+  test('one character is not a search', async ({ request }) => {
+    const res = await (await request.get('/api/search?q=J', { headers: { cookie } })).json();
+    expect(res.items).toEqual([]);
+  });
+});
