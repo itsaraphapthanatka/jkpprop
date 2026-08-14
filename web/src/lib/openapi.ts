@@ -472,6 +472,22 @@ export const openapi = {
         parameters: [queryParam('status', 'active (ค่าเริ่มต้น) หรือ all')],
         responses: { 200: okRes('รายการสัญญา', items({ type: 'object' })), ...AUTH_ERRORS },
       },
+      post: {
+        tags: ['Leases'], summary: 'บันทึกสัญญาใหม่ (owner/manager/ops) — รหัสทรัพย์ต้องมีอยู่จริง',
+        responses: { 201: okRes('สัญญาที่สร้าง', { type: 'object' }), ...AUTH_ERRORS },
+      },
+    },
+    '/api/leases/{id}': {
+      patch: {
+        tags: ['Leases'], summary: 'แก้ไข / ต่อสัญญา / ปิดสัญญา',
+        parameters: [pathParam('id', 'id ของสัญญา')],
+        responses: { 200: okRes('สัญญาหลังแก้ไข', { type: 'object' }), ...AUTH_ERRORS },
+      },
+      delete: {
+        tags: ['Leases'], summary: 'ลบสัญญา (owner/manager)',
+        parameters: [pathParam('id', 'id ของสัญญา')],
+        responses: { 200: okRes('ลบแล้ว', { type: 'object' }), ...AUTH_ERRORS },
+      },
     },
     '/api/notify-config': {
       get: {

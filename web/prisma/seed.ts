@@ -94,25 +94,12 @@ async function main() {
     });
   }
 
-  // leases: same book as the old leaseStore mock, with real end dates
   const day = 86400000;
-  const leases: [string, string, string, number, number][] = [
-    ['JKP-SPK0042', 'โกดังพร้อมสำนักงาน 2,700 ตร.ม.', 'บ. ไทยโลจิสติกส์', -6, 405000],
-    ['JKP0118', 'โรงงาน ร.ง.4 บางนา 3,500 ตร.ม.', 'Sunrise Foods Ltd.', 12, 520000],
-    ['JKP-CBI0007', 'คลังสินค้าแหลมฉบัง 5,000 ตร.ม.', 'Global Ware Inc.', 26, 750000],
-    ['JKP-AYA0021', 'โกดังให้เช่า วังน้อย 1,300 ตร.ม.', 'Metro Pack Co.', 48, 195000],
-    ['JKP-SPK0119', 'โกดังบางพลี 2,100 ตร.ม.', 'บ. เอเชีย โกลด์', 74, 315000],
-    ['JKP-RYG0033', 'โรงงานระยอง 4,200 ตร.ม.', 'Nippon Steel TH', 96, 630000],
-    ['JKP-CBI0044', 'คลังสินค้าศรีราชา 3,000 ตร.ม.', 'บ. ทรานส์ ไทย', 210, 450000],
-  ];
-  const haveLeases = await db.lease.count({ where: { orgId } });
-  if (!haveLeases) {
-    for (const [code, title, tenant, endsInDays, rent] of leases) {
-      await db.lease.create({
-        data: { orgId, code, title, tenant, endDate: new Date(Date.now() + endsInDays * day), rent },
-      });
-    }
-  }
+
+  /* No lease book is seeded. It used to plant seven contracts copied from the
+     old UI mock — four of them against property codes no org owns — and the
+     expiry bell then warned about tenants who do not exist. Leases arrive from
+     a closed rental deal or from Settings › การแจ้งเตือน. */
 
   // --- CMS content ---------------------------------------------------------
   const cms: [string, string, string, string, string][] = [

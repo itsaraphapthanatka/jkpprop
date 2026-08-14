@@ -2416,3 +2416,113 @@ test.describe('attaching a photo that is already in the library', () => {
     await expect(page.locator('#media-picker-attach')).toBeDisabled();
   });
 });
+
+test.describe('the lease-expiry bell', () => {
+  /* The bell was reading a book only the installer could write: seven seeded
+     contracts, four of them against property codes no org owns, and the client
+     fell back to an in-code copy of the same mock whenever the table was
+     empty. There was no create route and no screen — it could never say
+     anything true about the business. */
+  let cookie = '';
+  const made: string[] = [];
+
+  test.beforeEach(async ({ page }) => {
+    await signIn(page, OWNER);
+    cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  });
+
+  test.afterEach(async ({ request }) => {
+    for (const id of made.splice(0)) await request.delete(`/api/leases/${id}`, { headers: { cookie } }).catch(() => null);
+  });
+
+  test('a lease can only name a property the org actually has', async ({ request }) => {
+    const bad = await request.post('/api/leases', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { code: 'JKP-AYA0021', tenant: 'Metro Pack Co.', endDate: '2027-01-31', rent: 195000 },
+    });
+    expect(bad.status(), 'a lease against an unknown code is exactly what the seeded book was').toBe(404);
+    expect(JSON.stringify(await bad.json())).toContain('JKP-AYA0021');
+  });
+
+  test('a lease entered by hand reaches the bell and can be closed again', async ({ page, request }) => {
+    const props = await (await request.get('/api/properties', { headers: { cookie } })).json();
+    const code = (props.items as { publicCode: string }[])[0]?.publicCode;
+    test.skip(!code, 'no property');
+
+    // ends in about three weeks — inside the 1-month window the org has on
+    const soon = new Date(Date.now() + 21 * 86400000).toISOString().slice(0, 10);
+    const lease = await (await request.post('/api/leases', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { code, tenant: 'ผู้เช่าทดสอบ', endDate: soon, rent: 123000 },
+    })).json();
+    made.push(lease.id);
+
+    await page.goto('/admin/notifications');
+    await expect(page.locator('#ns-leases')).toContainText('ผู้เช่าทดสอบ');
+    await expect(page.locator('#ns-preview-list')).toContainText('ผู้เช่าทดสอบ');
+
+    // closing it stops the countdown
+    page.once('dialog', (d) => void d.accept());
+    await page.locator(`[data-lease="${lease.id}"]`).getByText('ปิดสัญญา').click();
+    await expect.poll(async () => {
+      const r = await (await request.get('/api/leases?status=active', { headers: { cookie } })).json();
+      return (r.items as { id: string }[]).some((l) => l.id === lease.id);
+    }).toBeFalsy();
+  });
+
+  test('the seeded demo contracts are gone, and an empty book shows as empty', async ({ page, request }) => {
+    const all = await (await request.get('/api/leases?status=all', { headers: { cookie } })).json();
+    const codes = (all.items as { code: string; tenant: string }[]);
+    for (const ghost of ['JKP-AYA0021', 'JKP-SPK0119', 'JKP-RYG0033', 'JKP-CBI0044']) {
+      expect(codes.some((l) => l.code === ghost), `${ghost} is a demo contract`).toBeFalsy();
+    }
+    for (const ghost of ['บ. ไทยโลจิสติกส์', 'Metro Pack Co.', 'Nippon Steel TH']) {
+      expect(codes.some((l) => l.tenant === ghost), `${ghost} is an invented tenant`).toBeFalsy();
+    }
+
+    await page.goto('/admin/notifications');
+    // whatever the table holds, the page must not invent contracts of its own
+    await expect(page.getByText('Metro Pack Co.')).toHaveCount(0);
+    await expect(page.getByText('Nippon Steel TH')).toHaveCount(0);
+  });
+
+  test('closing a rental deal writes the lease, without typing it twice', async ({ request }) => {
+    const props = await (await request.get('/api/properties', { headers: { cookie } })).json();
+    const prop = (props.items as { id: string; publicCode: string }[])[0];
+    test.skip(!prop, 'no property');
+    const leads = await (await request.get('/api/leads', { headers: { cookie } })).json();
+    const leadId = leads.items?.[0]?.id;
+
+    const deal = await (await request.post('/api/deals', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { leadId, propertyCode: prop.publicCode, title: 'ดีลทดสอบสัญญา', amount: 400000 },
+    })).json();
+
+    const end = new Date(Date.now() + 300 * 86400000).toISOString().slice(0, 10);
+    const closed = await (await request.patch(`/api/deals/${deal.id}`, {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { status: 'won', leaseEndDate: end, leaseTenant: 'ผู้เช่าจากดีล' },
+    })).json();
+    expect(closed.lease, 'closing a won rental should open the lease').toBeTruthy();
+    made.push(closed.lease.id);
+    expect(closed.lease.endDate).toBe(end);
+
+    const book = await (await request.get('/api/leases?status=all', { headers: { cookie } })).json();
+    const row = (book.items as { id: string; code: string; tenant: string }[]).find((l) => l.id === closed.lease.id)!;
+    expect(row.code).toBe(prop.publicCode);
+    expect(row.tenant).toBe('ผู้เช่าจากดีล');
+
+    // closing the same deal again must not open a second contract
+    await request.patch(`/api/deals/${deal.id}`, { headers: { cookie, 'Content-Type': 'application/json' }, data: { unlock: true, reason: 'ทดสอบ' } });
+    const again = await (await request.patch(`/api/deals/${deal.id}`, {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { status: 'won', leaseEndDate: end, leaseTenant: 'ผู้เช่าจากดีล' },
+    })).json();
+    expect(again.lease.id).toBe(closed.lease.id);
+
+    const { PrismaClient } = await import('@prisma/client');
+    const db2 = new PrismaClient();
+    await db2.deal.deleteMany({ where: { id: deal.id } });
+    await db2.$disconnect();
+  });
+});

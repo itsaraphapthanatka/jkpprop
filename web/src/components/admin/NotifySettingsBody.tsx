@@ -2,8 +2,8 @@
 
 import * as React from 'react';
 import { AdminShell, AdminBreadcrumb } from '@/components/admin/AdminShell';
-import { buildAlerts, loadNotifyConfig, saveNotifyConfig, fetchLeaseData, DEFAULT_NOTIFY, MILESTONE_MONTHS, LEASES, type Lease, type LeaseAlert, type NotifyConfig } from '@/lib/leaseStore';
-import { apiPut, ApiClientError } from '@/lib/apiClient';
+import { buildAlerts, loadNotifyConfig, saveNotifyConfig, fetchLeaseData, DEFAULT_NOTIFY, MILESTONE_MONTHS, type Lease, type LeaseAlert, type NotifyConfig } from '@/lib/leaseStore';
+import { apiGet, apiPut, apiPost, apiPatch, apiDelete, ApiClientError } from '@/lib/apiClient';
 
 /* Settings → การแจ้งเตือน: choose how far ahead of a lease's end date the
    system should raise a bell notification (1 / 2 / 3 เดือน), with a live
@@ -16,6 +16,10 @@ const nsCss = `
 @media (max-width:480px){ #ns-save{flex:1 1 100% !important;justify-content:center;} }
 .ns-save:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(13,108,59,.35);}
 `;
+
+const leaseBtn: React.CSSProperties = { height: 32, padding: '0 12px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 };
+const nsLabel: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 5, fontSize: 11, fontWeight: 700, color: 'var(--muted)' };
+const nsInput: React.CSSProperties = { height: 38, padding: '0 11px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '12.5px', fontFamily: 'inherit', outline: 'none', fontWeight: 600 };
 
 const card: React.CSSProperties = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 20 };
 const switchStyle = (on: boolean): React.CSSProperties => ({ width: 40, height: 23, borderRadius: 9999, position: 'relative', transition: 'background .2s', background: on ? '#0D6C3B' : 'var(--border)', flexShrink: 0, border: 0, padding: 0, cursor: 'pointer' });
@@ -35,7 +39,7 @@ export function NotifySettingsBody() {
   const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const [ready, setReady] = React.useState(false);
 
-  const [leases, setLeases] = React.useState<Lease[]>(LEASES);
+  const [leases, setLeases] = React.useState<Lease[]>([]);
   React.useEffect(() => {
     const c = loadNotifyConfig();
     setCfg(c);
@@ -45,6 +49,75 @@ export function NotifySettingsBody() {
   }, []);
   // live preview follows the edits, before they are saved
   React.useEffect(() => { if (ready) setAlerts(buildAlerts(cfg, leases)); }, [cfg, ready, leases]);
+
+  /* The lease book itself. It could only be written by the installer's seed —
+     no create route, no screen — so the bell had nothing true to say and no
+     way to be told anything. */
+  const blank = { id: '', code: '', tenant: '', startDate: '', endDate: '', rent: '' };
+  const [form, setForm] = React.useState<typeof blank | null>(null);
+  const [codes, setCodes] = React.useState<{ publicCode: string; title: string }[]>([]);
+  const [leaseSaving, setLeaseSaving] = React.useState(false);
+  const [formErr, setFormErr] = React.useState('');
+  const setF = (k: keyof typeof blank, v: string) => setForm((f) => (f ? { ...f, [k]: v } : f));
+
+  const reloadLeases = React.useCallback(async () => {
+    const { leases: ls, cfg: remote } = await fetchLeaseData();
+    setLeases(ls);
+    setCfg(remote);
+  }, []);
+
+  React.useEffect(() => {
+    apiGet<{ items: { publicCode: string; title: string }[] }>('/api/properties')
+      .then((r) => setCodes(r.items ?? []))
+      .catch(() => setCodes([]));
+  }, []);
+
+  const openNew = () => { setFormErr(''); setForm({ ...blank }); };
+  const openEdit = (l: Lease) => {
+    setFormErr('');
+    setForm({
+      id: l.id, code: l.code, tenant: l.tenant,
+      startDate: l.startDate ?? '',
+      endDate: l.endDate ?? '',
+      rent: String(l.rent ?? ''),
+    });
+  };
+
+  const saveLease = async () => {
+    if (!form || leaseSaving) return;
+    setLeaseSaving(true);
+    setFormErr('');
+    try {
+      const payload = { code: form.code, tenant: form.tenant, startDate: form.startDate || null, endDate: form.endDate, rent: Number(form.rent || 0) };
+      if (form.id) await apiPatch(`/api/leases/${form.id}`, payload);
+      else await apiPost('/api/leases', payload);
+      setForm(null);
+      await reloadLeases();
+      flash(form.id ? 'แก้ไขสัญญาแล้ว' : 'บันทึกสัญญาแล้ว');
+    } catch (e) {
+      setFormErr(e instanceof ApiClientError ? e.message : 'บันทึกไม่สำเร็จ');
+    } finally {
+      setLeaseSaving(false);
+    }
+  };
+
+  const closeLease = async (l: Lease) => {
+    if (!window.confirm(`ปิดสัญญา ${l.code} · ${l.tenant}?\nจะไม่แจ้งเตือนสัญญานี้อีก`)) return;
+    try {
+      await apiPatch(`/api/leases/${l.id}`, { status: 'closed' });
+      await reloadLeases();
+      flash('ปิดสัญญาแล้ว');
+    } catch (e) { window.alert(e instanceof ApiClientError ? e.message : 'ปิดสัญญาไม่สำเร็จ'); }
+  };
+
+  const removeLease = async (l: Lease) => {
+    if (!window.confirm(`ลบสัญญา ${l.code} · ${l.tenant} ออกจากระบบ?`)) return;
+    try {
+      await apiDelete(`/api/leases/${l.id}`);
+      await reloadLeases();
+      flash('ลบสัญญาแล้ว');
+    } catch (e) { window.alert(e instanceof ApiClientError ? e.message : 'ลบไม่สำเร็จ'); }
+  };
 
   const flash = (m: string) => { setToast(m); if (timer.current) clearTimeout(timer.current); timer.current = setTimeout(() => setToast(''), 2400); };
 
@@ -144,6 +217,69 @@ export function NotifySettingsBody() {
               </div>
               <button type="button" id="ns-expired" role="switch" aria-checked={cfg.includeExpired} aria-label="แจ้งเตือนสัญญาที่เลยกำหนดแล้ว" onClick={() => cfg.enabled && setExpired(!cfg.includeExpired)} style={switchStyle(cfg.includeExpired)}><span style={knob(cfg.includeExpired)} /></button>
             </div>
+          </div>
+
+          {/* ---- the lease book ---- */}
+          <div id="ns-leases" style={{ ...card, padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text)' }}>สัญญาเช่าที่ยังใช้งาน</div>
+                <div style={{ fontSize: '11.5px', color: 'var(--muted2)' }}>กระดิ่งเตือนจากรายการนี้ — ไม่มีสัญญาก็ไม่มีอะไรให้เตือน</div>
+              </div>
+              <button type="button" id="ns-lease-add" onClick={openNew} style={{ height: 34, padding: '0 14px', borderRadius: 9999, border: 0, background: '#0D6C3B', color: '#fff', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6"><path d="M12 5v14M5 12h14" /></svg>เพิ่มสัญญา
+              </button>
+            </div>
+
+            {leases.length === 0 && !form && (
+              <div style={{ padding: '24px 16px', textAlign: 'center', fontSize: '12.5px', color: 'var(--muted2)', lineHeight: 1.8 }}>
+                ยังไม่มีสัญญาเช่าในระบบ<br />
+                <span style={{ color: 'var(--muted3)' }}>ปิดดีลเช่าแล้วระบบจะบันทึกให้เอง หรือกด &ldquo;เพิ่มสัญญา&rdquo; เพื่อใส่สัญญาที่มีอยู่แล้ว</span>
+              </div>
+            )}
+
+            {leases.map((l) => (
+              <div key={l.id} data-lease={l.id} style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: 180 }}>
+                  <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text)' }}>{l.title || l.code}</div>
+                  <div style={{ marginTop: 2, fontSize: 11, color: 'var(--muted)' }}>
+                    <code style={{ color: '#0D6C3B', fontWeight: 700 }}>{l.code}</code> · {l.tenant} · ฿{l.rent.toLocaleString('th-TH')}/ด. ·{' '}
+                    {l.endsInDays < 0 ? `เกินกำหนด ${Math.abs(l.endsInDays)} วัน` : `เหลือ ${l.endsInDays} วัน`}
+                  </div>
+                </div>
+                <button type="button" onClick={() => openEdit(l)} style={leaseBtn} title="แก้ไขสัญญา">แก้ไข</button>
+                <button type="button" onClick={() => void closeLease(l)} style={leaseBtn} title="ปิดสัญญา — เลิกแจ้งเตือน">ปิดสัญญา</button>
+                <button type="button" onClick={() => void removeLease(l)} style={{ ...leaseBtn, color: '#C0392B', borderColor: '#E8C4BC' }} title="ลบสัญญา">ลบ</button>
+              </div>
+            ))}
+
+            {form && (
+              <div id="ns-lease-form" style={{ padding: '14px 16px', borderTop: '1px solid var(--border)', background: 'var(--bg)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10 }}>
+                <label style={nsLabel}>ทรัพย์ *
+                  <select data-lease-code value={form.code} onChange={(e) => setF('code', e.target.value)} style={nsInput}>
+                    <option value="">เลือกทรัพย์</option>
+                    {codes.map((c) => <option key={c.publicCode} value={c.publicCode}>{c.publicCode} · {c.title}</option>)}
+                  </select>
+                </label>
+                <label style={nsLabel}>ผู้เช่า *
+                  <input data-lease-tenant value={form.tenant} onChange={(e) => setF('tenant', e.target.value)} placeholder="ชื่อบริษัทผู้เช่า" style={nsInput} />
+                </label>
+                <label style={nsLabel}>เริ่มสัญญา
+                  <input type="date" value={form.startDate} onChange={(e) => setF('startDate', e.target.value)} style={nsInput} />
+                </label>
+                <label style={nsLabel}>สิ้นสุดสัญญา *
+                  <input data-lease-end type="date" value={form.endDate} onChange={(e) => setF('endDate', e.target.value)} style={nsInput} />
+                </label>
+                <label style={nsLabel}>ค่าเช่า (บาท/เดือน)
+                  <input data-lease-rent value={form.rent} onChange={(e) => setF('rent', e.target.value)} inputMode="numeric" placeholder="0" style={nsInput} />
+                </label>
+                <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  {formErr && <span role="alert" style={{ fontSize: '11.5px', color: '#C0392B', fontWeight: 600, marginRight: 'auto' }}>{formErr}</span>}
+                  <button type="button" onClick={() => setForm(null)} style={{ ...leaseBtn, marginLeft: formErr ? 0 : 'auto' }}>ยกเลิก</button>
+                  <button type="button" id="ns-lease-save" onClick={() => void saveLease()} style={{ height: 34, padding: '0 16px', borderRadius: 9999, border: 0, background: '#0D6C3B', color: '#fff', fontSize: '12.5px', fontWeight: 700, cursor: leaseSaving ? 'default' : 'pointer', opacity: leaseSaving ? .7 : 1, fontFamily: 'inherit' }}>{leaseSaving ? 'กำลังบันทึก…' : 'บันทึกสัญญา'}</button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div style={{ background: '#F0ECF9', border: '1px solid #DCCFEC', borderRadius: 16, padding: '16px 18px', display: 'flex', alignItems: 'flex-start', gap: 11 }}>

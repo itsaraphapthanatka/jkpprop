@@ -7,6 +7,7 @@ import { requireUser, hasPriv } from '@/lib/server/auth';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
 import { advanceLead } from '@/lib/server/leadPipeline';
+import { leaseFromDeal } from '@/lib/server/leases';
 import type { Prisma } from '@prisma/client';
 
 export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: string }> }) => {
@@ -16,7 +17,7 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
   if (!deal) throw new ApiError('NOT_FOUND', 'ไม่พบดีลนี้', 404);
 
   const body = (await req.json().catch(() => null)) as
-    | { status?: string; amount?: number; note?: string; unlock?: boolean; reason?: string }
+    | { status?: string; amount?: number; note?: string; unlock?: boolean; reason?: string; leaseEndDate?: string; leaseTenant?: string }
     | null;
   if (!body) throw new ApiError('VALIDATION', 'ข้อมูลไม่ถูกต้อง', 400);
 
@@ -56,9 +57,19 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
   if (updated.status === 'won' || updated.status === 'lost') {
     await advanceLead(updated.leadId, updated.status, { user, orgId: user.orgId, reason: `deal ${id} ${updated.status}` });
   }
+
+  /* A won rental is a lease from that day on, and the expiry bell only knows
+     what the lease book says — so the deal writes it rather than leaving the
+     team to key the same tenant and property in twice. `leaseEndDate` comes
+     from the close dialog; without one there is nothing to count down to and
+     no lease is written. */
+  let lease: { id: string; endDate: string } | null = null;
+  if (updated.status === 'won' && typeof body.leaseEndDate === 'string' && body.leaseEndDate.trim()) {
+    lease = await leaseFromDeal(updated, String(body.leaseEndDate), String(body.leaseTenant ?? ''), user);
+  }
   await audit({
     user, orgId: user.orgId, action: 'deal.update', entity: 'deal', entityId: id,
     before: { status: deal.status, amount: deal.amount }, after: { status: updated.status, amount: updated.amount },
   });
-  return ok({ id, status: updated.status, locked: updated.locked });
+  return ok({ id, status: updated.status, locked: updated.locked, lease });
 });

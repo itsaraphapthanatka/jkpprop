@@ -23,7 +23,7 @@ interface DealCtx {
   openClose: () => void;
   closeDialog: () => void;
   /** outcome + note are sent to the server, which locks the financials */
-  confirmClose: (outcome: string, note: string) => void;
+  confirmClose: (outcome: string, note: string, leaseEndDate?: string) => void;
   openUnlock: () => void;
   /** the record being edited (null while loading or when none exists yet) */
   dealId: string | null;
@@ -124,11 +124,13 @@ export function DealProvider({ children, dealId: fixedId }: { children: React.Re
     },
     openClose: () => setCloseDialogOpen(true),
     closeDialog: () => setCloseDialogOpen(false),
-    confirmClose: (outcome, note) => {
+    confirmClose: (outcome, note, leaseEndDate) => {
       setCloseDialogOpen(false);
       setClosed(true); // optimistic; the server locks the financials
       if (!dealId) return;
-      apiPatch(`/api/deals/${dealId}`, { status: outcome === 'ไม่สำเร็จ' ? 'lost' : 'won', note })
+      /* a won rental with an end date opens the lease, so the expiry bell has
+         something true to count down to without anyone typing it again */
+      apiPatch(`/api/deals/${dealId}`, { status: outcome === 'ไม่สำเร็จ' ? 'lost' : 'won', note, leaseEndDate })
         .catch((e) => {
           setClosed(false);
           window.alert(e instanceof ApiClientError ? e.message : 'ปิดดีลไม่สำเร็จ');
@@ -241,6 +243,7 @@ export default function DealBody() {
   const [extraOffers, setExtraOffers] = useState<ExtraOffer[]>([]);
   const [closeOutcome, setCloseOutcome] = useState('สำเร็จ');
   const [closeNote, setCloseNote] = useState('');
+  const [leaseEnd, setLeaseEnd] = useState('');
 
   const stages: Stage[] = closed
     ? [doneStage('Open', '1'), doneStage('Offer', '2'), doneStage('Counter', '3'), doneStage('Documentation', '4'), doneStage('Contract', '5'), doneStage('Closed won', '6')]
@@ -509,12 +512,21 @@ export default function DealBody() {
                 <option value="สำเร็จ">สำเร็จ</option>
                 <option value="ไม่สำเร็จ">ไม่สำเร็จ</option>
               </select>
+              {closeOutcome !== 'ไม่สำเร็จ' && (
+                <>
+                  <label htmlFor="deal-lease-end" style={{ display: 'block', margin: '14px 0 6px', fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>วันสิ้นสุดสัญญาเช่า</label>
+                  <input id="deal-lease-end" type="date" value={leaseEnd} onChange={(e) => setLeaseEnd(e.target.value)} style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 11, border: '1px solid var(--border)', fontFamily: 'inherit', fontSize: '13.5px', background: 'var(--surface)', color: 'var(--text)', outline: 'none' }} />
+                  <div style={{ marginTop: 5, fontSize: 11, color: 'var(--muted3)', lineHeight: 1.5 }}>
+                    ใส่แล้วระบบจะบันทึกเป็นสัญญาเช่าให้ และเตือนล่วงหน้าก่อนหมดตามที่ตั้งไว้ · เว้นว่างได้ถ้าเป็นดีลขาย
+                  </div>
+                </>
+              )}
               <label style={{ display: 'block', margin: '14px 0 6px', fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>หมายเหตุ</label>
               <textarea value={closeNote} onChange={(e) => setCloseNote(e.target.value)} placeholder="หมายเหตุ (ถ้ามี)…" style={{ width: '100%', height: 76, padding: '10px 12px', borderRadius: 11, border: '1px solid var(--border)', fontFamily: 'inherit', fontSize: 13, background: 'var(--surface)', color: 'var(--text)', outline: 'none', resize: 'none' }} />
             </div>
             <div style={{ marginTop: 18, display: 'flex', gap: 12 }}>
               <div onClick={closeDialog} style={{ flex: 1, height: 46, borderRadius: 9999, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', cursor: 'pointer' }}>ยกเลิก</div>
-              <div onClick={() => confirmClose(closeOutcome, closeNote)} style={{ flex: 1, height: 46, borderRadius: 9999, background: '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>ยืนยันปิดดีล</div>
+              <div id="deal-close-confirm" onClick={() => confirmClose(closeOutcome, closeNote, leaseEnd)} style={{ flex: 1, height: 46, borderRadius: 9999, background: '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>ยืนยันปิดดีล</div>
             </div>
           </div>
         </div>

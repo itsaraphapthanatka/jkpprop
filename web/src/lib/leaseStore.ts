@@ -1,9 +1,11 @@
 /* ============================================================
    Lease-expiry notifications.
 
-   - LEASES is the mock book of active leases (no backend yet). End dates are
-     expressed as an offset in days from "today" so the demo always shows a
-     realistic spread instead of going stale.
+   - Leases come from /api/leases — the real book. There used to be a mock
+     book here as well, shown whenever the table was empty, so the bell warned
+     about tenants who did not exist ("บ. ไทยโลจิสติกส์ · เกินกำหนด 11 วัน")
+     against property codes this org never owned. An empty book now shows as
+     empty, which is the honest answer.
    - NotifyConfig is what the admin sets in Settings → การแจ้งเตือน
      (แจ้งเตือนก่อนหมดสัญญา 1 / 2 / 3 เดือน), persisted to localStorage.
    - buildAlerts() turns leases + config into the list rendered in the topbar
@@ -17,19 +19,14 @@ export type Lease = {
   title: string;
   tenant: string;
   endsInDays: number; // negative = already past the end date
+  /** the dates themselves, so the manage form can edit what is stored */
+  startDate?: string | null;
+  endDate?: string;
   rent: number; // บาท / เดือน
   href: string;
 };
 
-export const LEASES: Lease[] = [
-  { id: 'ls-1', code: 'JKP-SPK0042', title: 'โกดังพร้อมสำนักงาน 2,700 ตร.ม.', tenant: 'บ. ไทยโลจิสติกส์', endsInDays: -6, rent: 405000, href: '/admin/deals' },
-  { id: 'ls-2', code: 'JKP0118', title: 'โรงงาน ร.ง.4 บางนา 3,500 ตร.ม.', tenant: 'Sunrise Foods Ltd.', endsInDays: 12, rent: 520000, href: '/admin/deals' },
-  { id: 'ls-3', code: 'JKP-CBI0007', title: 'คลังสินค้าแหลมฉบัง 5,000 ตร.ม.', tenant: 'Global Ware Inc.', endsInDays: 26, rent: 750000, href: '/admin/deals' },
-  { id: 'ls-4', code: 'JKP-AYA0021', title: 'โกดังให้เช่า วังน้อย 1,300 ตร.ม.', tenant: 'Metro Pack Co.', endsInDays: 48, rent: 195000, href: '/admin/deals' },
-  { id: 'ls-5', code: 'JKP-SPK0119', title: 'โกดังบางพลี 2,100 ตร.ม.', tenant: 'บ. เอเชีย โกลด์', endsInDays: 74, rent: 315000, href: '/admin/deals' },
-  { id: 'ls-6', code: 'JKP-RYG0033', title: 'โรงงานระยอง 4,200 ตร.ม.', tenant: 'Nippon Steel TH', endsInDays: 96, rent: 630000, href: '/admin/deals' },
-  { id: 'ls-7', code: 'JKP-CBI0044', title: 'คลังสินค้าศรีราชา 3,000 ตร.ม.', tenant: 'บ. ทรานส์ ไทย', endsInDays: 210, rent: 450000, href: '/admin/deals' },
-];
+
 
 /** Milestones the admin can switch on, in months before the end date. */
 export const MILESTONE_MONTHS = [1, 2, 3] as const;
@@ -96,7 +93,7 @@ export function endDateLabel(endsInDays: number, now = Date.now()): string {
  * Alerts for the bell: one per lease, using the tightest milestone it has
  * crossed. Sorted most urgent first. Returns [] when notifications are off.
  */
-export function buildAlerts(cfg: NotifyConfig, leases: Lease[] = LEASES, now = Date.now()): LeaseAlert[] {
+export function buildAlerts(cfg: NotifyConfig, leases: Lease[] = [], now = Date.now()): LeaseAlert[] {
   if (!cfg.enabled) return [];
   const read = new Set(cfg.readIds);
   const months = [...cfg.months].sort((a, b) => a - b); // tightest first
@@ -142,6 +139,8 @@ export async function fetchLeaseData(): Promise<{ leases: Lease[]; cfg: NotifyCo
     const leases: Lease[] = (Array.isArray(leaseRes.items) ? leaseRes.items : []).map((l) => ({
       id: l.id, code: l.code, title: l.title, tenant: l.tenant,
       endsInDays: typeof l.endsInDays === 'number' ? l.endsInDays : 0,
+      startDate: l.startDate ?? null,
+      endDate: l.endDate,
       rent: l.rent, href: l.href || '/admin/deals',
     }));
     const cfg: NotifyConfig = {
@@ -151,9 +150,9 @@ export async function fetchLeaseData(): Promise<{ leases: Lease[]; cfg: NotifyCo
       readIds: Array.isArray(cfgRes.readIds) ? cfgRes.readIds : [],
     };
     saveNotifyConfig(cfg); // refresh the local cache
-    return { leases: leases.length ? leases : LEASES, cfg };
+    return { leases, cfg };
   } catch {
-    // offline / not signed in → cached config + demo book
-    return { leases: LEASES, cfg: loadNotifyConfig() };
+    // offline / not signed in → cached config, and no invented contracts
+    return { leases: [], cfg: loadNotifyConfig() };
   }
 }
