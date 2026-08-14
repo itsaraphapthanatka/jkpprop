@@ -12,6 +12,7 @@ import { enumLabel } from '@/i18n/enums';
 import { isLocale, DEFAULT_LOCALE, type Locale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { buildSpecs } from '@/lib/server/propertySpecs';
+import { loadFieldOverride, stripDisabled } from '@/lib/server/fieldOverride';
 import { loadPublicListings } from '@/lib/server/publicListings';
 import { loadCompany } from '@/lib/server/company';
 import { listCmsPages } from '@/lib/server/cmsPages';
@@ -34,7 +35,10 @@ async function load(code: string) {
   if (!p) return null;
   const values = stripInternal(p.typeKey, (p.values ?? {}) as Record<string, unknown>, null);
   for (const k of PRIVATE_KEYS) delete values[k];
-  return { p, values };
+  /* what this org's Field Builder says about the type — a field switched off
+     there must not reach the page, whatever is stored on the record */
+  const schema = await loadFieldOverride(p.orgId, p.typeKey);
+  return { p, values: stripDisabled(values, schema.disabled), schema };
 }
 
 /* The search-result snippet, which is the whole point of rendering this on the
@@ -88,7 +92,7 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
     priceRent: typeof values.price_rent === 'number' ? values.price_rent : null,
     priceSale: typeof values.price_sale === 'number' ? values.price_sale : (typeof values.price === 'number' ? values.price : null),
     updatedAt: fmtDate(p.updatedAt, locale),
-    specs: buildSpecs(values, locale),
+    specs: buildSpecs(values, locale, found.schema),
     zoning: zoningRaw ? enumLabel(zoningRaw, locale) : null,
     photos,
     related,

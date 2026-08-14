@@ -7,6 +7,7 @@ import { ok, handler, ApiError } from '@/lib/server/api';
 import { db } from '@/lib/server/db';
 import { stripInternal, displayArea, displayLocation } from '@/lib/server/propertyDto';
 import { propertyType } from '@/lib/propertySchema';
+import { loadFieldOverride } from '@/lib/server/fieldOverride';
 import { localDescription, localTitle } from '@/lib/server/propertyI18n';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/config';
 
@@ -20,6 +21,10 @@ export const GET = handler(async (req: Request, ctx: { params: Promise<{ code: s
   const values = stripInternal(p.typeKey, (p.values ?? {}) as Record<string, unknown>, null);
   for (const k of PRIVATE_KEYS) delete values[k];
 
+  /* a field switched off in the Field Builder is off everywhere, including
+     the JSON — otherwise "hidden" only means "not drawn" */
+  const schema = await loadFieldOverride(p.orgId, p.typeKey);
+  for (const k of schema.disabled) delete values[k];
   const photos = Array.isArray(values.photos) ? (values.photos as string[]) : [];
   /* the caller says which language it is rendering in; without one the record
      answers in its own, which is Thai */

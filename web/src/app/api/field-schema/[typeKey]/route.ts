@@ -24,6 +24,8 @@ function sanitizeExtra(raw: unknown): FieldDef[] {
   ).map((f) => ({
     key: f.key,
     label: f.label.slice(0, 200),
+    ...(typeof f.labelEn === 'string' ? { labelEn: f.labelEn.slice(0, 200) } : {}),
+    ...(typeof f.labelZh === 'string' ? { labelZh: f.labelZh.slice(0, 200) } : {}),
     kind: f.kind,
     ...(Array.isArray(f.options) ? { options: f.options.map(String).slice(0, 50) } : {}),
     ...(typeof f.unit === 'string' ? { unit: f.unit.slice(0, 40) } : {}),

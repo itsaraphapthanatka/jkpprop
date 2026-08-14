@@ -13,6 +13,7 @@
  */
 import { enumLabel } from '@/i18n/enums';
 import type { Locale } from '@/i18n/config';
+import type { FieldDef } from '@/lib/propertySchema';
 
 type Vals = Record<string, unknown>;
 
@@ -108,10 +109,11 @@ const TABLE_ORDER = [
 /* the four tiles above the table — first four of these that have a value */
 const QUICK_ORDER = ['usable_area', 'clear_height', 'floor_loading', 'power_system', 'land_area', 'doors'];
 
-function rowsFor(keys: string[], values: Vals, locale: Locale): SpecRow[] {
+function rowsFor(keys: string[], values: Vals, locale: Locale, off: Set<string>): SpecRow[] {
   const seen = new Set<string>();
   const out: SpecRow[] = [];
   for (const key of keys) {
+    if (off.has(key)) continue; // switched off in the Field Builder
     const label = LABELS[key]?.[locale];
     if (!label || seen.has(label)) continue; // district/amphoe are the same row
     const value = format(key, values[key], locale);
@@ -122,7 +124,29 @@ function rowsFor(keys: string[], values: Vals, locale: Locale): SpecRow[] {
   return out;
 }
 
-export function buildSpecs(values: Vals, locale: Locale) {
+/* A field the team added in the Field Builder. Its label comes from the
+   override — in the reader's language when they filled that in, otherwise the
+   Thai one, which beats hiding the row. */
+function customRows(extra: FieldDef[], values: Vals, locale: Locale, off: Set<string>): SpecRow[] {
+  const out: SpecRow[] = [];
+  for (const f of extra) {
+    if (off.has(f.key)) continue;
+    const value = format(f.key, values[f.key], locale);
+    if (value === null) continue;
+    const label = (locale === 'en' ? f.labelEn : locale === 'zh' ? f.labelZh : '') || f.label;
+    out.push({ key: f.key, label: f.unit ? `${label} (${f.unit})` : label, value });
+  }
+  return out;
+}
+
+/** What the Field Builder says about this property's type, if anything. */
+export type SpecSchema = { disabled?: string[]; extra?: FieldDef[] };
+
+export function buildSpecs(values: Vals, locale: Locale, schema: SpecSchema = {}) {
+  /* Turning a field off used to hide it from the admin form only: the public
+     page kept printing whatever was already stored, so a field switched off
+     on purpose stayed on the website. */
+  const off = new Set(schema.disabled ?? []);
   const features = Array.isArray(values.features)
     ? (values.features as unknown[]).map((f) => enumLabel(String(f), locale)).filter(Boolean)
     : [];
@@ -134,8 +158,11 @@ export function buildSpecs(values: Vals, locale: Locale) {
       : [];
 
   return {
-    quick: rowsFor(QUICK_ORDER, values, locale).slice(0, 4),
-    rows: rowsFor(TABLE_ORDER, values, locale),
+    quick: rowsFor(QUICK_ORDER, values, locale, off).slice(0, 4),
+    /* custom fields come after the built-in ones, in the order the Field
+       Builder lists them — the table's own order is a reading order for
+       tenants (place, size, power, price) and stays as it is */
+    rows: [...rowsFor(TABLE_ORDER, values, locale, off), ...customRows(schema.extra ?? [], values, locale, off)],
     features,
     nearby,
   };

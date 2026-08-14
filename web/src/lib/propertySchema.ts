@@ -33,6 +33,11 @@ export type ShowWhen = { field: string; in: string[] };
 export type FieldDef = {
   key: string;
   label: string;
+  /* A field the team added itself is shown on the public page too, so it needs
+     the other two languages — the built-in fields get theirs from
+     lib/server/propertySpecs. Empty falls back to the Thai label. */
+  labelEn?: string;
+  labelZh?: string;
   kind: FieldKind;
   options?: string[]; // select / multiselect / dealtype
   unit?: string; // number / price suffix

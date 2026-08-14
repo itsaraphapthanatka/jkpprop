@@ -6,6 +6,7 @@ import { db } from '@/lib/server/db';
 import { currentUser } from '@/lib/server/auth';
 import { stripInternal, displayArea, displayLocation } from '@/lib/server/propertyDto';
 import { buildSpecs } from '@/lib/server/propertySpecs';
+import { loadFieldOverride } from '@/lib/server/fieldOverride';
 import { propertyType } from '@/lib/propertySchema';
 import { DEFAULT_LOCALE } from '@/i18n/config';
 
@@ -78,7 +79,8 @@ export default async function AdminPropertyViewPage({
   const values = stripInternal(property.typeKey, (property.values ?? {}) as Record<string, unknown>, user);
   const area = displayArea(values);
   const location = displayLocation(values);
-  const specs = buildSpecs(values, DEFAULT_LOCALE);
+  const schema = await loadFieldOverride(property.orgId, property.typeKey);
+  const specs = buildSpecs(values, DEFAULT_LOCALE, schema);
   const chip = STATUS_CHIP[property.status] ?? { bg: 'var(--bg)', fg: 'var(--muted2)', label: property.status };
 
   const rent = Number(values.price_rent ?? NaN);

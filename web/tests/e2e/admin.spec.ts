@@ -2234,3 +2234,93 @@ test.describe('a property reads in the visitor\'s language', () => {
     await p.$disconnect();
   });
 });
+
+test.describe('the Field Builder reaches the public page', () => {
+  /* Two halves of the same defect: the detail page built its table from a
+     fixed list of keys, so a field the team added never appeared on the site,
+     and a field they switched off kept being printed from whatever was stored.
+     A custom field also had no name — nothing on the page could rename it. */
+  let cookie = '';
+  let propId = '';
+
+  test.beforeEach(async ({ page }) => {
+    await signIn(page, OWNER);
+    cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  });
+
+  test.afterEach(async ({ request }) => {
+    if (propId) await request.delete(`/api/properties/${propId}`, { headers: { cookie } }).catch(() => null);
+    await request.put('/api/field-schema/warehouse', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { disabled: [], order: [], extra: [] },
+    }).catch(() => null);
+  });
+
+  test('a field added and named in the builder shows up on the property page', async ({ page, request }) => {
+    await page.goto('/admin/field-builder');
+    // the schema is per type — switch the page to warehouse first
+    await page.locator('#fb-actions').getByText(/^ฟิลด์ของ:/).click();
+    await page.getByText('ฟิลด์ของ โกดัง / คลังสินค้า').click();
+    await expect(page.locator('#fb-actions')).toContainText('โกดัง / คลังสินค้า');
+
+    await page.locator('.fb-type').filter({ hasText: 'ตัวเลข' }).first().click();   // add a number field
+    const editor = page.locator('[data-editor]').first();
+    await expect(editor, 'a new field must open its editor — it had no name before').toBeVisible();
+
+    await editor.locator('[data-edit-label]').fill('ค่าไฟเฉลี่ย/เดือน');
+    await editor.locator('[data-edit-en]').fill('Average electricity / month');
+    await editor.locator('[data-edit-zh]').fill('每月平均电费');
+    await page.locator('#fb-save').click();
+    await expect(page.getByText(/บันทึกฟิลด์ของ/)).toBeVisible();
+
+    // the server issues the key; read it back and store a value against it
+    const schema = await (await request.get('/api/field-schema', { headers: { cookie } })).json();
+    const key = (schema.warehouse.extra as { key: string }[]).at(-1)!.key;
+    expect(key).toMatch(/^custom_warehouse_number_\d+$/);
+
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: {
+        typeKey: 'warehouse', title: 'ทดสอบฟิลด์ที่เพิ่มเอง', status: 'active',
+        values: { province: 'ระยอง', deal_type: 'เช่า', price_rent: 1000, [key]: 4200, photos: ['/api/media/demo/raw'] },
+      },
+    })).json();
+    propId = made.id;
+
+    for (const [locale, label] of [['th', 'ค่าไฟเฉลี่ย/เดือน'], ['en', 'Average electricity / month'], ['zh', '每月平均电费']] as const) {
+      const html = await (await request.get(`/${locale}/property/${made.publicCode}`)).text();
+      expect(html, `the custom field is missing on /${locale}`).toContain(label);
+      expect(html).toContain('4,200');
+    }
+  });
+
+  test('a field switched off leaves the website, not just the admin form', async ({ page, request }) => {
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: {
+        typeKey: 'warehouse', title: 'ทดสอบปิดฟิลด์', status: 'active',
+        values: { province: 'ระยอง', deal_type: 'เช่า', price_rent: 1000, parking: '20 คัน', photos: ['/api/media/demo/raw'] },
+      },
+    })).json();
+    propId = made.id;
+
+    // it is on the page to begin with
+    expect(await (await request.get(`/th/property/${made.publicCode}`)).text()).toContain('20 คัน');
+
+    await request.put('/api/field-schema/warehouse', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { disabled: ['parking'], order: [], extra: [] },
+    });
+
+    const html = await (await request.get(`/th/property/${made.publicCode}`)).text();
+    expect(html, 'a field switched off must not stay on the website').not.toContain('20 คัน');
+    expect(html).toContain(made.publicCode);   // the rest of the page is intact
+
+    // and it is gone from the JSON too — hidden has to mean hidden
+    const api = await (await request.get(`/api/public/properties/${made.publicCode}`)).json();
+    expect('parking' in api.values).toBeFalsy();
+
+    await page.goto(`/admin/property-view?code=${made.publicCode}`);
+    await expect(page.getByText('20 คัน')).toHaveCount(0);
+  });
+});

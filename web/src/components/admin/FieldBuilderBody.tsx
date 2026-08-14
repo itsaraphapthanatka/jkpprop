@@ -10,6 +10,9 @@ import { apiPut, ApiClientError } from '@/lib/apiClient';
    (enable/disable, reorder, add). Saves to localStorage; the create-property
    modal and the property-edit form read the same schema. */
 
+const fbFieldLabel: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 5, fontSize: 11, fontWeight: 700, color: 'var(--muted)' };
+const fbInput: React.CSSProperties = { height: 38, padding: '0 11px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '12.5px', fontFamily: 'inherit', outline: 'none', fontWeight: 600 };
+
 const KIND_LABEL: Record<FieldKind, string> = {
   dealtype: 'ประเภทประกาศ', text: 'ข้อความ', textarea: 'ข้อความยาว', number: 'ตัวเลข', price: 'ราคา', date: 'วันที่',
   select: 'ตัวเลือก (dropdown)', multiselect: 'เลือกหลายค่า', boolean: 'ใช่/ไม่',
@@ -90,10 +93,21 @@ export function FieldBuilderBody() {
     setDirty(true);
   };
 
+  /* Editing a custom field — name, the other two languages, unit and options.
+     Built-in fields are not editable here; their labels live in the schema. */
+  const [editing, setEditing] = React.useState<string | null>(null);
+  const patchField = (key: string, patch: Partial<FieldDef>) => {
+    setOverride((o) => ({ ...o, extra: o.extra.map((f) => (f.key === key ? { ...f, ...patch } : f)) }));
+    setDirty(true);
+  };
+
   const addField = (kind: FieldKind) => {
     const nf: FieldDef = { key: `custom_${scope}_${kind}_${seq.current++}`, label: `ฟิลด์ใหม่ (${KIND_LABEL[kind]})`, kind, options: kind === 'select' || kind === 'multiselect' ? ['ตัวเลือก 1', 'ตัวเลือก 2'] : undefined };
     setOverride((o) => ({ ...o, extra: [...o.extra, nf], order: [...(o.order.length ? o.order : fields.map((f) => f.key)), nf.key] }));
     setDirty(true);
+    // there was no way to rename a field anywhere on this page: every custom
+    // field kept the name the button gave it. Open the editor on the new one.
+    setEditing(nf.key);
   };
   const removeField = (key: string) => {
     setOverride((o) => ({ disabled: o.disabled.filter((k) => k !== key), order: o.order.filter((k) => k !== key), extra: o.extra.filter((f) => f.key !== key) }));
@@ -237,12 +251,45 @@ export function FieldBuilderBody() {
                       <span style={{ fontSize: 9, color: 'var(--muted3)' }}>{f.enabled ? 'เปิดใช้' : 'ปิดอยู่'}</span>
                     </div>
                     {custom && (
+                      <div data-edit={f.key} onClick={() => setEditing((c) => (c === f.key ? null : f.key))} title="แก้ไขชื่อและรายละเอียดฟิลด์" style={{ width: 30, height: 30, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: editing === f.key ? '#0D6C3B' : 'var(--muted2)', background: editing === f.key ? 'rgba(13,108,59,.08)' : 'transparent', cursor: 'pointer' }}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" /></svg>
+                      </div>
+                    )}
+                    {custom && (
                       <div onClick={() => removeField(f.key)} title="ลบฟิลด์ที่เพิ่มเอง" style={{ width: 30, height: 30, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#C0392B', cursor: 'pointer' }}>
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" /></svg>
                       </div>
                     )}
                   </div>
                 </div>
+
+                {custom && editing === f.key && (
+                  <div data-editor={f.key} style={{ marginTop: 12, paddingTop: 12, borderTop: '1px dashed var(--border)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 10 }}>
+                    <label style={fbFieldLabel}>ชื่อฟิลด์ (ไทย)
+                      <input data-edit-label={f.key} value={f.label} onChange={(e) => patchField(f.key, { label: e.target.value })} placeholder="เช่น ค่าไฟเฉลี่ย/เดือน" style={fbInput} />
+                    </label>
+                    {/* the field shows on /en and /zh too, so it needs a name there */}
+                    <label style={fbFieldLabel}>ชื่อฟิลด์ (EN)
+                      <input data-edit-en={f.key} value={f.labelEn ?? ''} onChange={(e) => patchField(f.key, { labelEn: e.target.value })} placeholder="Average electricity / month" style={fbInput} />
+                    </label>
+                    <label style={fbFieldLabel}>ชื่อฟิลด์ (中文)
+                      <input data-edit-zh={f.key} value={f.labelZh ?? ''} onChange={(e) => patchField(f.key, { labelZh: e.target.value })} placeholder="每月平均电费" style={fbInput} />
+                    </label>
+                    {(f.kind === 'number' || f.kind === 'price') && (
+                      <label style={fbFieldLabel}>หน่วย
+                        <input value={f.unit ?? ''} onChange={(e) => patchField(f.key, { unit: e.target.value })} placeholder="บาท / ตร.ม. / คัน" style={fbInput} />
+                      </label>
+                    )}
+                    {(f.kind === 'select' || f.kind === 'multiselect') && (
+                      <label style={{ ...fbFieldLabel, gridColumn: '1 / -1' }}>ตัวเลือก (คั่นด้วยจุลภาค)
+                        <input value={(f.options ?? []).join(', ')} onChange={(e) => patchField(f.key, { options: e.target.value.split(',').map((o) => o.trim()).filter(Boolean) })} placeholder="ตัวเลือก 1, ตัวเลือก 2" style={fbInput} />
+                      </label>
+                    )}
+                    <div style={{ gridColumn: '1 / -1', fontSize: '11.5px', color: 'var(--muted3)' }}>
+                      ฟิลด์นี้จะขึ้นในฟอร์มกรอกทรัพย์ และขึ้นบนหน้ารายละเอียดของเว็บเมื่อทรัพย์นั้นกรอกค่าไว้ · ถ้าไม่ใส่ชื่อ EN/中文 จะใช้ชื่อไทยแทน
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
