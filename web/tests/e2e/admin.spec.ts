@@ -2350,3 +2350,69 @@ test.describe('the Field Builder reaches the public page', () => {
     await expect(page.getByText('20 คัน')).toHaveCount(0);
   });
 });
+
+test.describe('attaching a photo that is already in the library', () => {
+  /* The media fields on the property form read "ลากไฟล์มาวาง หรือเลือกจากคลัง"
+     and had neither: no drop handler and no way to reach คลังสื่อ. A photo
+     already uploaded had to be uploaded again to be attached. */
+  let cookie = '';
+  let propId = '';
+
+  test.beforeEach(async ({ page }) => {
+    await signIn(page, OWNER);
+    cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  });
+
+  test.afterEach(async ({ request }) => {
+    if (propId) await request.delete(`/api/properties/${propId}`, { headers: { cookie } }).catch(() => null);
+  });
+
+  test('the picker attaches a library file to the property, and saving keeps it', async ({ page, request }) => {
+    const library = await (await request.get('/api/media', { headers: { cookie } })).json();
+    const first = (library.items as { src: string; name: string }[])[0];
+    test.skip(!first, 'the media library is empty');
+
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { typeKey: 'warehouse', title: 'ทดสอบเลือกรูปจากคลัง', values: { province: 'ระยอง' } },
+    })).json();
+    propId = made.id;
+
+    await page.goto(`/admin/property-edit?code=${made.publicCode}`);
+    await page.locator('[data-pick="photos"]').click();
+
+    const picker = page.locator('#media-picker');
+    await expect(picker).toBeVisible();
+    await picker.locator(`[data-media="${first.src}"]`).click();
+    await picker.locator('#media-picker-attach').click();
+    await expect(picker).toHaveCount(0);
+    await expect(page.getByText('แนบแล้ว 1 ไฟล์')).toBeVisible();
+
+    await page.getByText('บันทึก', { exact: true }).click();
+    await expect(page.getByText('บันทึกแล้ว')).toBeVisible();
+
+    // the record has the library's own file, not a second copy of it
+    const back = await (await request.get(`/api/properties/${made.id}`, { headers: { cookie } })).json();
+    expect(back.values.photos).toEqual([first.src]);
+  });
+
+  test('a file already attached cannot be attached twice', async ({ page, request }) => {
+    const library = await (await request.get('/api/media', { headers: { cookie } })).json();
+    const first = (library.items as { src: string }[])[0];
+    test.skip(!first, 'the media library is empty');
+
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { typeKey: 'warehouse', title: 'ทดสอบรูปซ้ำ', values: { province: 'ระยอง', photos: [first.src] } },
+    })).json();
+    propId = made.id;
+
+    await page.goto(`/admin/property-edit?code=${made.publicCode}`);
+    await page.locator('[data-pick="photos"]').click();
+    const tile = page.locator('#media-picker').locator(`[data-media="${first.src}"]`);
+    await expect(tile).toContainText('แนบแล้ว');
+    await tile.click();
+    // it stays unselectable, so the attach button has nothing to add
+    await expect(page.locator('#media-picker-attach')).toBeDisabled();
+  });
+});

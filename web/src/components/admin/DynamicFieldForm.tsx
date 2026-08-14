@@ -6,6 +6,7 @@ import { useSchemaSync } from '@/lib/schemaSync';
 import { buildSummary } from '@/lib/summaryTemplate';
 import { MapPicker } from './MapPicker';
 import { apiFetch, ApiClientError } from '@/lib/apiClient';
+import { MediaLibraryPicker } from './MediaLibraryPicker';
 
 /* Renders the enabled fields for a property type (from the Field Builder
    schema in localStorage). Used by both the create-property modal and the
@@ -37,6 +38,8 @@ function MediaField({ f, lbl, value, onChange }: {
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState('');
+  const [over, setOver] = React.useState(false);
+  const [picking, setPicking] = React.useState(false);
 
   const upload = async (files: FileList) => {
     setBusy(true);
@@ -60,7 +63,14 @@ function MediaField({ f, lbl, value, onChange }: {
     <div>
       {lbl(f)}
       <input ref={inputRef} type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,application/pdf" style={{ display: 'none' }} onChange={(e) => { if (e.target.files?.length) void upload(e.target.files); e.target.value = ''; }} />
-      <div style={{ border: '1.5px dashed var(--border)', borderRadius: 12, padding: '16px 14px', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg)' }}>
+      {/* the box said "ลากไฟล์มาวาง" and had no drop handler either */}
+      <div
+        data-drop={f.key}
+        onDragOver={(e) => { e.preventDefault(); setOver(true); }}
+        onDragLeave={() => setOver(false)}
+        onDrop={(e) => { e.preventDefault(); setOver(false); if (e.dataTransfer.files?.length) void upload(e.dataTransfer.files); }}
+        style={{ border: '1.5px dashed ' + (over ? '#0D6C3B' : 'var(--border)'), borderRadius: 12, padding: '16px 14px', display: 'flex', alignItems: 'center', gap: 12, background: over ? 'rgba(13,108,59,.05)' : 'var(--bg)', transition: 'border-color .15s,background .15s' }}
+      >
         <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--tint)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><path d="M17 8l-5-5-5 5M12 3v12" /></svg>
         </div>
@@ -68,8 +78,20 @@ function MediaField({ f, lbl, value, onChange }: {
           <div style={{ fontSize: '12.5px', fontWeight: 700, color: err ? '#C0392B' : 'var(--text)' }}>{err || (value.length ? `แนบแล้ว ${value.length} ไฟล์` : 'ลากไฟล์มาวาง หรือเลือกจากคลัง')}</div>
           {f.note && <div style={{ fontSize: 11, color: f.required ? '#C0392B' : 'var(--muted3)' }}>{f.note}</div>}
         </div>
+        {/* the promised way in: files already in คลังสื่อ, attached without
+            uploading a second copy */}
+        <button type="button" data-pick={f.key} onClick={() => setPicking(true)} style={{ height: 34, padding: '0 13px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0, fontFamily: 'inherit' }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></svg>เลือกจากคลัง
+        </button>
         <button type="button" onClick={() => inputRef.current?.click()} disabled={busy} style={{ height: 34, padding: '0 14px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.7 : 1, flexShrink: 0, border: 0, fontFamily: 'inherit' }}>{busy ? 'กำลังอัปโหลด…' : 'อัปโหลด'}</button>
       </div>
+      {picking && (
+        <MediaLibraryPicker
+          attached={value}
+          onAttach={(srcs) => onChange([...(value || []), ...srcs.filter((s) => !value.includes(s))])}
+          onClose={() => setPicking(false)}
+        />
+      )}
       {value.length > 0 && (
         <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {value.map((src, i) => (
