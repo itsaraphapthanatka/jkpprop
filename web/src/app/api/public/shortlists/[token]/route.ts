@@ -7,12 +7,18 @@ import { ok, handler, ApiError, rateLimit, clientIp } from '@/lib/server/api';
 import { db } from '@/lib/server/db';
 import { stripInternal, displayArea, displayLocation } from '@/lib/server/propertyDto';
 import { propertyType } from '@/lib/propertySchema';
+import { localDescription, localTitle } from '@/lib/server/propertyI18n';
+import { DEFAULT_LOCALE, isLocale } from '@/i18n/config';
 
 const PRIVATE_KEYS = ['location_map', 'lessor_name', 'lessor_phone', 'lessor_company', 'lessor_status'];
 
 export const GET = handler(async (req: Request, ctx: { params: Promise<{ token: string }> }) => {
   rateLimit(`shortlist:${clientIp(req)}`, 30, 60_000);
   const { token } = await ctx.params;
+  /* the customer's page passes the language it is reading in, so the titles
+     arrive translated rather than always Thai */
+  const rawLocale = new URL(req.url).searchParams.get('lang') ?? '';
+  const locale = isLocale(rawLocale) ? rawLocale : DEFAULT_LOCALE;
 
   const s = await db.shortlist.findUnique({
     where: { token },
@@ -31,8 +37,9 @@ export const GET = handler(async (req: Request, ctx: { params: Promise<{ token: 
     const photos = Array.isArray(values.photos) ? (values.photos as string[]) : [];
     return [{
       code: p.publicCode,
-      title: p.title,
+      title: localTitle(p, locale),
       typeLabel: propertyType(p.typeKey).label,
+      description: localDescription(p, locale),
       location: displayLocation(values),
       area: displayArea(values),
       priceRent: typeof values.price_rent === 'number' ? values.price_rent : null,

@@ -2122,3 +2122,115 @@ test.describe('the client shortlist page reads in the customer\'s language', () 
     await expect(page.locator('#cs-criteria')).toContainText('ต้องการ ร.ง.4');
   });
 });
+
+test.describe('a property reads in the visitor\'s language', () => {
+  /* The "การแปลภาษา" tab existed on both the create drawer and the edit page,
+     pre-filled with a translation of one particular Bangna warehouse and badged
+     "ครบ" — on every property. Nothing it held was saved anywhere, and the
+     public site had no per-record translation to read. */
+  let cookie = '';
+  let id = '';
+  let code = '';
+
+  test.beforeEach(async ({ page, request }) => {
+    await signIn(page, OWNER);
+    cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: {
+        typeKey: 'warehouse',
+        title: 'โกดังทดสอบการแปล 1,000 ตร.ม.',
+        status: 'active',
+        values: { province: 'ระยอง', price_rent: 90000, deal_type: 'เช่า', photos: ['/api/media/demo/raw'] },
+      },
+    })).json();
+    id = made.id;
+    code = made.publicCode;
+  });
+
+  test.afterEach(async ({ request }) => {
+    if (id) await request.delete(`/api/properties/${id}`, { headers: { cookie } }).catch(() => null);
+  });
+
+  test('what is typed in the translation tab is what the visitor reads', async ({ page, request }) => {
+    await page.goto(`/admin/property-edit?code=${code}`);
+    await page.getByText('การแปลภาษา').click();
+
+    // the invented translation is gone — the fields start empty on a new record
+    await expect(page.locator('[data-trans="en:title"]')).toHaveValue('');
+    await expect(page.locator('[data-trans="zh:title"]')).toHaveValue('');
+    await expect(page.getByText('ยังไม่แปล').first()).toBeVisible();
+
+    await page.locator('[data-trans="en:title"]').fill('Test warehouse, 1,000 sqm');
+    await page.locator('[data-trans="en:description"]').fill('A warehouse used by the end-to-end test.');
+    await page.locator('[data-trans="zh:title"]').fill('测试仓库 1,000 平方米');
+    await page.getByText('บันทึก', { exact: true }).click();
+    await expect(page.getByText('บันทึกแล้ว')).toBeVisible();
+
+    // it survives a reload of the editor
+    await page.reload();
+    await page.getByText('การแปลภาษา').click();
+    await expect(page.locator('[data-trans="en:title"]')).toHaveValue('Test warehouse, 1,000 sqm');
+
+    /* and it reaches the public page — in the server HTML, which is the copy
+       a search engine indexes */
+    const en = await (await request.get(`/en/property/${code}`)).text();
+    expect(en).toContain('Test warehouse, 1,000 sqm');
+    expect(en).toContain('A warehouse used by the end-to-end test.');
+    const zh = await (await request.get(`/zh/property/${code}`)).text();
+    expect(zh).toContain('测试仓库 1,000 平方米');
+
+    // Thai keeps the record's own title
+    const th = await (await request.get(`/th/property/${code}`)).text();
+    expect(th).toContain('โกดังทดสอบการแปล 1,000 ตร.ม.');
+  });
+
+  test('an untranslated property falls back to Thai instead of rendering blank', async ({ request }) => {
+    const cards = await (await request.get('/api/public/listings?locale=en&limit=60')).json();
+    const mine = (cards.items as { code: string; title: string }[]).find((c) => c.code === code);
+    expect(mine, 'the property should be published and listed').toBeTruthy();
+    expect(mine!.title).toBe('โกดังทดสอบการแปล 1,000 ตร.ม.');
+  });
+
+  test('the "แปลไม่ครบ" card and column count the real thing', async ({ page, request }) => {
+    const before = (await (await request.get('/api/properties', { headers: { cookie } })).json()).summary.transIncomplete;
+    expect(before, 'a property with no translation must be counted').toBeGreaterThan(0);
+
+    await page.goto('/admin/properties');
+    await page.getByPlaceholder('ค้นหาด้วยรหัส').fill(code);
+    const row = page.locator('tr.prop-row');
+    await expect(row).toHaveCount(1);
+    await expect(row.getByTitle('ยังไม่แปล EN')).toBeVisible();
+
+    await request.patch(`/api/properties/${id}`, {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { i18n: { en: { title: 'Test warehouse', description: '' }, zh: { title: '测试仓库', description: '' } } },
+    });
+    const after = (await (await request.get('/api/properties', { headers: { cookie } })).json()).summary.transIncomplete;
+    expect(after).toBe(before - 1);
+  });
+
+  test('the customer\'s shortlist link shows the translated title too', async ({ request }) => {
+    await request.patch(`/api/properties/${id}`, {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { i18n: { en: { title: 'Shortlisted warehouse', description: 'Sent to the customer in English.' } } },
+    });
+    const sl = await (await request.post('/api/shortlists', {
+      headers: { cookie, 'Content-Type': 'application/json' }, data: { name: `e2e-i18n-sl-${Date.now().toString(36)}`, codes: [code] },
+    })).json();
+
+    const en = (await (await request.get(`/api/public/shortlists/${sl.token}?lang=en`)).json());
+    const item = (en.data ?? en).items[0];
+    expect(item.title).toBe('Shortlisted warehouse');
+    expect(item.description).toBe('Sent to the customer in English.');
+
+    const th = (await (await request.get(`/api/public/shortlists/${sl.token}`)).json());
+    expect((th.data ?? th).items[0].title).toBe('โกดังทดสอบการแปล 1,000 ตร.ม.');
+
+    const { PrismaClient } = await import('@prisma/client');
+    const p = new PrismaClient();
+    await p.shortlistItem.deleteMany({ where: { shortlistId: sl.id } });
+    await p.shortlist.deleteMany({ where: { id: sl.id } });
+    await p.$disconnect();
+  });
+});

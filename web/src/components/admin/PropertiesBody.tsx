@@ -94,9 +94,9 @@ const TAB_DEFS: { key: string; label: string; done: boolean }[] = [
   { key: 'trans', label: 'การแปลภาษา', done: false },
 ];
 
-const TRANS_LANGS = [
-  { name: 'English', code: 'EN', flag: FLAG_TH, badge: 'ยังไม่แปล', title: '', titlePh: 'Warehouse with office, Bangna', descPh: 'Describe the property in English…' },
-  { name: '中文', code: 'ZH', flag: FLAG_ZH, badge: 'ยังไม่แปล', title: '', titlePh: '带办公室的仓库，邦纳', descPh: '用中文描述该物业…' },
+const TRANS_LANGS: { key: 'en' | 'zh'; name: string; code: string; flag: string; titlePh: string; descPh: string }[] = [
+  { key: 'en', name: 'English', code: 'EN', flag: FLAG_TH, titlePh: 'Warehouse with office, Bangna', descPh: 'Describe the property in English…' },
+  { key: 'zh', name: '中文', code: 'ZH', flag: FLAG_ZH, titlePh: '带办公室的仓库，邦纳', descPh: '用中文描述该物业…' },
 ];
 
 /* ---- style helpers ---- */
@@ -170,6 +170,7 @@ type ApiProperty = {
   title: string;
   status: string;
   values: Record<string, unknown>;
+  i18n?: Record<string, { title?: string }>;
   location: string;
   area: number | null;
   updatedAt: number;
@@ -247,6 +248,12 @@ export function PropertiesBody() {
 
   /* create-form state (values stream from DynamicFieldForm) */
   const [newTitle, setNewTitle] = React.useState('');
+  /* the translation tab's fields were unbound — anything typed there was lost
+     the moment the drawer closed */
+  const [newI18n, setNewI18n] = React.useState<Record<string, { title: string; description: string }>>({});
+  const trOf = (k: 'en' | 'zh') => newI18n[k] ?? { title: '', description: '' };
+  const setTr = (k: 'en' | 'zh', patch: Partial<{ title: string; description: string }>) =>
+    setNewI18n((prev) => ({ ...prev, [k]: { ...(prev[k] ?? { title: '', description: '' }), ...patch } }));
   const newVals = React.useRef<Record<string, unknown>>({});
   const [saving, setSaving] = React.useState(false);
   const [saveError, setSaveError] = React.useState('');
@@ -255,9 +262,10 @@ export function PropertiesBody() {
     setSaving(true);
     setSaveError('');
     try {
-      await apiPost('/api/properties', { typeKey: selType, title: newTitle, values: newVals.current, status: 'draft' });
+      await apiPost('/api/properties', { typeKey: selType, title: newTitle, values: newVals.current, status: 'draft', i18n: newI18n });
       setNewOpen(false);
       setNewTitle('');
+      setNewI18n({});
       newVals.current = {};
       await reload(filterVals, q);
     } catch (e) {
@@ -485,7 +493,18 @@ export function PropertiesBody() {
                         {r.status === 'active' ? 'เผยแพร่' : r.status === 'draft' ? 'ร่าง' : r.status === 'hidden' ? 'ซ่อน' : 'เก็บถาวร'}
                       </span>
                     </td>
-                    <td style={{ padding: '14px 16px', textAlign: 'center' }}><span style={{ fontSize: '11.5px', fontWeight: 700, color: '#9B968D' }}>—</span></td>
+                    {/* the column showed "—" on every row; the record knows which
+                        languages it has a title in */}
+                    <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                      <span style={{ display: 'inline-flex', gap: 4 }}>
+                        {(['en', 'zh'] as const).map((lg) => {
+                          const done = !!r.i18n?.[lg]?.title?.trim();
+                          return (
+                            <span key={lg} title={done ? `แปล ${lg.toUpperCase()} แล้ว` : `ยังไม่แปล ${lg.toUpperCase()}`} style={{ height: 20, padding: '0 7px', borderRadius: 9999, fontSize: '10.5px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', background: done ? 'rgba(13,108,59,.1)' : 'var(--bg2,#F3F0EC)', color: done ? '#0D6C3B' : '#9B968D' }}>{lg.toUpperCase()}</span>
+                          );
+                        })}
+                      </span>
+                    </td>
                     <td style={{ padding: '14px 16px', fontSize: 12, color: 'var(--muted3)' }}>{relTime(r.updatedAt)}</td>
                     <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                       <div
@@ -654,11 +673,11 @@ export function PropertiesBody() {
                           <span dangerouslySetInnerHTML={{ __html: l.flag }} style={{ width: 22, height: 22, borderRadius: 5, overflow: 'hidden', display: 'flex' }} />
                           <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>{l.name}</span>
                         </div>
-                        <span style={badgeYet}>{l.badge}</span>
+                        <span style={trOf(l.key).title.trim() ? { ...badgeYet, background: '#E8F3EC', color: '#0D6C3B' } : badgeYet}>{trOf(l.key).title.trim() ? 'แปลแล้ว' : 'ยังไม่แปล'}</span>
                       </div>
                       <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        <div><label style={fieldLabel}>ชื่อทรัพย์ ({l.code})</label><input defaultValue={l.title} placeholder={l.titlePh} style={{ marginTop: 6, width: '100%', height: 42, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border)', fontSize: 13, background: 'var(--surface)', outline: 'none' }} /></div>
-                        <div><label style={fieldLabel}>คำอธิบาย ({l.code})</label><textarea placeholder={l.descPh} style={{ marginTop: 6, width: '100%', height: 64, padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', fontSize: 13, background: 'var(--surface)', outline: 'none', resize: 'none', fontFamily: 'inherit' }} /></div>
+                        <div><label style={fieldLabel}>ชื่อทรัพย์ ({l.code})</label><input data-trans={`${l.key}:title`} value={trOf(l.key).title} onChange={(e) => setTr(l.key, { title: e.target.value })} placeholder={l.titlePh} style={{ marginTop: 6, width: '100%', height: 42, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border)', fontSize: 13, background: 'var(--surface)', outline: 'none' }} /></div>
+                        <div><label style={fieldLabel}>คำอธิบาย ({l.code})</label><textarea data-trans={`${l.key}:description`} value={trOf(l.key).description} onChange={(e) => setTr(l.key, { description: e.target.value })} placeholder={l.descPh} style={{ marginTop: 6, width: '100%', height: 64, padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', fontSize: 13, background: 'var(--surface)', outline: 'none', resize: 'none', fontFamily: 'inherit' }} /></div>
                       </div>
                     </div>
                   ))}

@@ -4,6 +4,7 @@
 import type { Property, User } from '@prisma/client';
 import { PROPERTY_TYPES, propertyType } from '@/lib/propertySchema';
 import { hasPriv } from './auth';
+import { parseI18n } from './propertyI18n';
 
 type Vals = Record<string, unknown>;
 
@@ -49,6 +50,8 @@ export function propertyDto(p: Property, user: User | null) {
     typeKey: p.typeKey,
     typeLabel: propertyType(p.typeKey).label,
     title: p.title,
+    // the EN/ZH title and description, so the editor can load what is stored
+    i18n: parseI18n(p.i18n),
     status: p.status,
     values,
     location: displayLocation(values),

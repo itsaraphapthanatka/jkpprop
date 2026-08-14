@@ -53,6 +53,7 @@ type Criteria = {
 
 interface Item {
   rank: string; img: string; title: string; code: string; loc: string; price: string; unit: string; specs: string[];
+  description: string;
 }
 
 const fbIcon = (paths: React.ReactNode, color: string, size = 15) => (
@@ -61,7 +62,7 @@ const fbIcon = (paths: React.ReactNode, color: string, size = 15) => (
 
 /* GET /api/public/shortlists/:token item shape */
 type ApiItem = {
-  code: string; title: string; typeLabel: string; location: string;
+  code: string; title: string; typeLabel: string; description?: string; location: string;
   area: number | null; priceRent: number | null; priceSale: number | null;
   dealType: string; photo: string | null;
   itemId: string; feedback: string | null; feedbackNote: string | null;
@@ -128,7 +129,7 @@ export function ClientShortlistBody({ contact, initialLocale }: { contact?: Cont
        is the last thing a customer-facing link should do. */
     if (!t) { setNotFound(true); return; }
     setToken(t);
-    fetch(`/api/public/shortlists/${encodeURIComponent(t)}`)
+    fetch(`/api/public/shortlists/${encodeURIComponent(t)}?lang=${locale}`)
       .then(async (r) => {
         if (!r.ok) { setNotFound(true); return; }
         const raw = (await r.json()) as { data?: ApiPayload } & Partial<ApiPayload>;
@@ -141,7 +142,9 @@ export function ClientShortlistBody({ contact, initialLocale }: { contact?: Cont
         setRawItems(items);
       })
       .catch(() => setNotFound(true));
-  }, []);
+    /* re-reads when the reader switches language: the titles and descriptions
+       are translated on the server, so the old payload is in the old language */
+  }, [locale]);
 
   const nf = numFmt(locale);
   const sqm = (n: number) => `${n.toLocaleString(nf)} ${dc.common.sqm}`;
@@ -149,6 +152,7 @@ export function ClientShortlistBody({ contact, initialLocale }: { contact?: Cont
     rank: String(i + 1),
     img: it.photo || FALLBACK_IMG,
     title: it.title,
+    description: it.description ?? '',
     code: it.code,
     loc: it.location || '—',
     price: it.priceRent !== null ? money(it.priceRent, locale) : it.priceSale !== null ? money(it.priceSale, locale) : dc.common.priceOnRequest,
@@ -415,6 +419,9 @@ export function ClientShortlistBody({ contact, initialLocale }: { contact?: Cont
                       <div style={{ fontSize: '11.5px', color: 'var(--muted3)' }}>{it.unit}</div>
                     </div>
                   </div>
+                  {it.description && (
+                    <p style={{ margin: '10px 0 0', fontSize: '13px', lineHeight: 1.7, color: 'var(--muted)', whiteSpace: 'pre-line' }}>{it.description}</p>
+                  )}
                   <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                     {it.specs.map((sp) => (
                       <span key={sp} style={{ height: 28, padding: '0 12px', borderRadius: 9, background: 'var(--bg)', border: '1px solid var(--border)', fontSize: 12, fontWeight: 600, color: 'var(--text)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>{sp}</span>

@@ -9,6 +9,7 @@ import { requireUser, requireRole, hasPriv } from '@/lib/server/auth';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
 import { propertyDto } from '@/lib/server/propertyDto';
+import { parseI18n } from '@/lib/server/propertyI18n';
 import type { Prisma, User } from '@prisma/client';
 
 const PRICE_KEYS = ['price', 'price_rent', 'price_sale', 'price_per_sqm'];
@@ -43,7 +44,7 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
   const p = await findScoped(id, user);
 
   const body = (await req.json().catch(() => null)) as
-    | { title?: string; status?: string; values?: Record<string, unknown>; publicCode?: string }
+    | { title?: string; status?: string; values?: Record<string, unknown>; publicCode?: string; i18n?: unknown }
     | null;
   if (!body) throw new ApiError('VALIDATION', 'ข้อมูลไม่ถูกต้อง', 400);
   if (body.publicCode && body.publicCode !== p.publicCode) {
@@ -53,6 +54,9 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
   const data: Prisma.PropertyUpdateInput = {};
   if (typeof body.title === 'string' && body.title.trim()) data.title = body.title.trim();
   if (body.status && ['draft', 'active', 'hidden', 'archived'].includes(body.status)) data.status = body.status;
+  // sent whole: the editor holds every language on screen, so a missing one is
+  // a deletion rather than an omission
+  if (body.i18n !== undefined) data.i18n = parseI18n(body.i18n) as Prisma.InputJsonValue;
   if (body.values && typeof body.values === 'object') {
     const prevVals = (p.values ?? {}) as Record<string, unknown>;
     const nextVals = body.values as Record<string, unknown>;
@@ -73,12 +77,12 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
     data.values = nextVals as Prisma.InputJsonValue;
   }
 
-  const before = { title: p.title, status: p.status, values: p.values };
+  const before = { title: p.title, status: p.status, values: p.values, i18n: p.i18n };
   const updated = await db.property.update({ where: { id: p.id }, data });
 
   await audit({
     user, orgId: user.orgId, action: 'property.update', entity: 'property', entityId: p.id,
-    before, after: { title: updated.title, status: updated.status, values: updated.values },
+    before, after: { title: updated.title, status: updated.status, values: updated.values, i18n: updated.i18n },
   });
 
   return ok(propertyDto(updated, user));

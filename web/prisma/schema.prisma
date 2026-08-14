@@ -120,6 +120,9 @@ model Property {
   publicCode String   @unique // JKP0118 / JKP-SPK0042 — immutable after create
   typeKey    String // house|condo|land|factory|warehouse|showroom
   title      String   @default("")
+  // per-language title/description: { en: { title, description }, zh: {…} }
+  // Thai lives in `title` above — it is the record's own language, not a copy
+  i18n       Json     @default("{}")
   status     String   @default("draft") // draft|active|hidden|archived
   // all form values keyed by FieldDef.key (§4) — schema tells the meaning
   values     Json     @default("{}")

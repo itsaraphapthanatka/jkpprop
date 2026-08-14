@@ -132,7 +132,11 @@ function RelatedCard({ r }: { r: RelatedProperty }) {
 /* Everything the public detail page shows, all of it read from the record —
    see lib/server/propertySpecs for how the stored fields become rows. */
 export type PublicProperty = {
-  code: string; title: string; typeLabel: string; location: string;
+  code: string; title: string;
+  /** the team's own description in the reader's language; Thai records have
+      none yet, so the block simply does not appear */
+  description?: string;
+  typeLabel: string; location: string;
   area: number | null; dealType: string; priceRent: number | null; priceSale: number | null;
   updatedAt: string;
   specs: { quick: SpecRow[]; rows: SpecRow[]; features: string[]; nearby: string[] };
@@ -199,6 +203,10 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
                 <div style={{ fontSize: '12.5px', color: 'var(--muted)' }}>{priceUnit}</div>
               </div>
             </div>
+
+            {property.description && (
+              <p style={{ margin: '16px 0 0', fontSize: '14.5px', lineHeight: 1.8, color: 'var(--muted)', whiteSpace: 'pre-line' }}>{property.description}</p>
+            )}
 
             {/* QUICK SPECS */}
             {specs.quick.length > 0 && (

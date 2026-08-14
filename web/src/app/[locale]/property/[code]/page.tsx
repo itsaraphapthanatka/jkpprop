@@ -6,6 +6,7 @@ import { SiteFooter } from '@/components/home/SiteFooter';
 import { Floating } from '@/components/home/Floating';
 import { db } from '@/lib/server/db';
 import { stripInternal, displayArea, displayLocation } from '@/lib/server/propertyDto';
+import { localDescription, localTitle } from '@/lib/server/propertyI18n';
 import { propertyType } from '@/lib/propertySchema';
 import { enumLabel } from '@/i18n/enums';
 import { isLocale, DEFAULT_LOCALE, type Locale } from '@/i18n/config';
@@ -45,10 +46,14 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const found = await load(code).catch(() => null);
   if (!found) return { title: `${d.listing.emptyTitle} · JKP Property` };
   const area = displayArea(found.values);
+  const title = localTitle(found.p, locale);
   return {
-    title: `${found.p.title} · ${found.p.publicCode} · JKP Property`,
-    description: [found.p.title, displayLocation(found.values), area ? `${area.toLocaleString('en-US')} ${d.common.sqm}` : '']
-      .filter(Boolean).join(' · '),
+    title: `${title} · ${found.p.publicCode} · JKP Property`,
+    /* the property's own description in this language when the team wrote one;
+       the derived line only stands in while it has none */
+    description: localDescription(found.p, locale)
+      || [title, displayLocation(found.values), area ? `${area.toLocaleString('en-US')} ${d.common.sqm}` : '']
+        .filter(Boolean).join(' · '),
   };
 }
 
@@ -74,7 +79,8 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
 
   const property = {
     code: p.publicCode,
-    title: p.title,
+    title: localTitle(p, locale),
+    description: localDescription(p, locale),
     typeLabel: enumLabel(propertyType(p.typeKey).label, locale),
     location: displayLocation(values),
     area: displayArea(values),

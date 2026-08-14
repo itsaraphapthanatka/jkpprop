@@ -19,6 +19,7 @@ type ApiProperty = {
   title: string;
   status: string;
   values: Record<string, unknown>;
+  i18n?: Record<string, { title: string; description: string }>;
 };
 
 const editCss = `
@@ -45,9 +46,12 @@ const flagZh = '<svg width="22" height="22" viewBox="0 0 24 24"><rect width="24"
 // the badge renders background:#0D6C3B / color:undefined — reproduced faithfully.
 const bd = (_label: string, bg: string, fg?: string): React.CSSProperties => ({ height: 22, padding: '0 10px', borderRadius: 9999, background: bg, color: fg, fontSize: '10.5px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' });
 
-const transLangs = [
-  { name: 'English', code: 'EN', flag: { __html: flagTh }, badge: 'ครบ', badgeStyle: bd('#E8F3EC', '#0D6C3B'), title: 'Warehouse with office 2,700 sqm, Bangna', desc: 'Warehouse with built-in office in Bangphli, near Burapha Withi expressway.' },
-  { name: '中文', code: 'ZH', flag: { __html: flagZh }, badge: 'ครบ', badgeStyle: bd('#E8F3EC', '#0D6C3B'), title: '带办公室的仓库 2,700平方米，邦纳', desc: '位于挽拍的带办公室仓库，靠近博览高速公路。' },
+/* Both languages arrived pre-filled with a translation of one particular
+   warehouse in Bangna, badged "ครบ", on every property in the system. The
+   fields are the record's own now, and the badge says what is actually there. */
+const transLangs: { key: 'en' | 'zh'; name: string; code: string; flag: { __html: string }; titlePh: string; descPh: string }[] = [
+  { key: 'en', name: 'English', code: 'EN', flag: { __html: flagTh }, titlePh: 'Warehouse with office, Bangna', descPh: 'Describe the property in English…' },
+  { key: 'zh', name: '中文', code: 'ZH', flag: { __html: flagZh }, titlePh: '带办公室的仓库，邦纳', descPh: '用中文描述该物业…' },
 ];
 
 const tabDefs: [TabKey, string, boolean][] = [
@@ -66,6 +70,10 @@ export function PropertyEditBody() {
   /* the record being edited — loaded from ?code= via GET /api/properties/:code */
   const [record, setRecord] = React.useState<ApiProperty | null>(null);
   const [title, setTitle] = React.useState('');
+  const [i18n, setI18n] = React.useState<Record<string, { title: string; description: string }>>({});
+  const tr = (k: 'en' | 'zh') => i18n[k] ?? { title: '', description: '' };
+  const setTr = (k: 'en' | 'zh', patch: Partial<{ title: string; description: string }>) =>
+    setI18n((prev) => ({ ...prev, [k]: { ...(prev[k] ?? { title: '', description: '' }), ...patch } }));
   const valsRef = React.useRef<Record<string, unknown>>({});
   const [saving, setSaving] = React.useState(false);
   const [notice, setNotice] = React.useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
@@ -78,6 +86,7 @@ export function PropertyEditBody() {
         setRecord(p);
         setSelType(p.typeKey);
         setTitle(p.title);
+        setI18n((p.i18n ?? {}) as Record<string, { title: string; description: string }>);
         valsRef.current = p.values;
       })
       .catch((e) => setNotice({ kind: 'err', text: e instanceof ApiClientError ? e.message : 'โหลดข้อมูลทรัพย์ไม่สำเร็จ' }));
@@ -92,7 +101,7 @@ export function PropertyEditBody() {
     setSaving(true);
     setNotice(null);
     try {
-      await apiPatch(`/api/properties/${record.id}`, { title, values: valsRef.current });
+      await apiPatch(`/api/properties/${record.id}`, { title, values: valsRef.current, i18n });
       setNotice({ kind: 'ok', text: 'บันทึกแล้ว' });
     } catch (e) {
       setNotice({ kind: 'err', text: e instanceof ApiClientError ? e.message : 'บันทึกไม่สำเร็จ กรุณาลองใหม่' });
@@ -212,16 +221,31 @@ export function PropertyEditBody() {
                     <span dangerouslySetInnerHTML={l.flag} style={{ width: 22, height: 22, borderRadius: 5, overflow: 'hidden', display: 'flex' }} />
                     <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>{l.name}</span>
                   </div>
-                  <span style={l.badgeStyle}>{l.badge}</span>
+                  {(() => {
+                    const done = !!tr(l.key).title.trim();
+                    return <span style={bd(done ? 'ครบ' : 'ยังไม่แปล', done ? '#E8F3EC' : '#FBF3E1', done ? '#0D6C3B' : '#9A741C')}>{done ? 'แปลแล้ว' : 'ยังไม่แปล'}</span>;
+                  })()}
                 </div>
                 <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div>
                     <label style={labelStyle}>ชื่อทรัพย์ ({l.code})</label>
-                    <input defaultValue={l.title} style={{ marginTop: 6, width: '100%', height: 44, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border)', fontSize: 13, background: 'var(--surface)', outline: 'none' }} />
+                    <input
+                      data-trans={`${l.key}:title`}
+                      value={tr(l.key).title}
+                      onChange={(e) => setTr(l.key, { title: e.target.value })}
+                      placeholder={l.titlePh}
+                      style={{ marginTop: 6, width: '100%', height: 44, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border)', fontSize: 13, background: 'var(--surface)', outline: 'none' }}
+                    />
                   </div>
                   <div>
                     <label style={labelStyle}>คำอธิบาย ({l.code})</label>
-                    <textarea defaultValue={l.desc} style={{ marginTop: 6, width: '100%', height: 64, padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', fontSize: 13, background: 'var(--surface)', outline: 'none', resize: 'none' }} />
+                    <textarea
+                      data-trans={`${l.key}:description`}
+                      value={tr(l.key).description}
+                      onChange={(e) => setTr(l.key, { description: e.target.value })}
+                      placeholder={l.descPh}
+                      style={{ marginTop: 6, width: '100%', height: 96, padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', fontSize: 13, background: 'var(--surface)', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
+                    />
                   </div>
                 </div>
               </div>

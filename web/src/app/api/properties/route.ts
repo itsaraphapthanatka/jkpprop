@@ -8,6 +8,7 @@ import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
 import { nextPublicCode } from '@/lib/server/publicCode';
 import { propertyDto, displayProvince } from '@/lib/server/propertyDto';
+import { missingTitles, parseI18n } from '@/lib/server/propertyI18n';
 import { PROPERTY_TYPES } from '@/lib/propertySchema';
 import type { Prisma } from '@prisma/client';
 
@@ -48,17 +49,23 @@ export const GET = handler(async (req: Request) => {
   if (province && province !== 'ทั้งหมด') {
     items = items.filter((i) => displayProvince(i.values).includes(province));
   }
+  /* the chip offered "แปลไม่ครบ" and the filter had no branch for it, so it
+     silently showed everything */
+  if (status === 'แปลไม่ครบ') {
+    items = items.filter((i) => missingTitles({ title: i.title, i18n: i.i18n }).length > 0);
+  }
 
   // summary strip (4 cards) — computed over the caller's visible set
   const all = await db.property.findMany({
     where: { orgId: user.orgId, ...scopeWhere(user, 'ownerId') },
-    select: { status: true },
+    select: { status: true, title: true, i18n: true },
   });
   const summary = {
     total: all.length,
     published: all.filter((s) => s.status === 'active').length,
     draft: all.filter((s) => s.status === 'draft').length,
-    transIncomplete: 0, // translations arrive with the i18n phase
+    // the card read 0 whatever the data was — nothing had been translated at all
+    transIncomplete: all.filter((p) => missingTitles(p).length > 0).length,
   };
 
   return ok({ items, summary });
@@ -70,7 +77,7 @@ export const POST = handler(async (req: Request) => {
   requireRole(user, 'owner', 'manager', 'ops', 'agent');
 
   const body = (await req.json().catch(() => null)) as
-    | { typeKey?: string; title?: string; values?: Record<string, unknown>; status?: string }
+    | { typeKey?: string; title?: string; values?: Record<string, unknown>; status?: string; i18n?: unknown }
     | null;
   const typeKey = String(body?.typeKey || '');
   const type = PROPERTY_TYPES.find((t) => t.key === typeKey);
@@ -95,6 +102,7 @@ export const POST = handler(async (req: Request) => {
       typeKey,
       title,
       status,
+      i18n: parseI18n(body?.i18n) as Prisma.InputJsonValue,
       values: values as Prisma.InputJsonValue,
       ownerId: user.id,
     },
