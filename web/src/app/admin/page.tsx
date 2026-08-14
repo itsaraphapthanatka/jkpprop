@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import { DashboardTasks } from '@/components/admin/DashboardTasks';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { currentUser } from '@/lib/server/auth';
 import { buildDashboard } from '@/lib/server/dashboard';
@@ -115,24 +116,9 @@ export default async function AdminDashboardPage() {
         {/* RIGHT */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div style={panel}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>งานของฉันวันนี้</div>
-              <span style={{ height: 22, padding: '0 9px', borderRadius: 9999, background: '#FDECC8', color: '#9A741C', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center' }}>{data.tasks.length} งาน</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {data.tasks.map((t, i) => (
-                <div key={i} style={{ display: 'flex', gap: 11, alignItems: 'flex-start', padding: 11, borderRadius: 12, background: 'var(--bg)' }}>
-                  <div style={{ width: 18, height: 18, borderRadius: 6, border: '1.5px solid ' + (t.overdue ? '#C0392B' : '#0D6C3B'), flexShrink: 0, marginTop: 1 }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{t.title}</div>
-                    <div style={{ marginTop: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ height: 18, padding: '0 7px', borderRadius: 6, background: t.overdue ? '#F9E4E1' : '#E8F3EC', color: t.overdue ? '#C0392B' : '#0D6C3B', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center' }}>{t.overdue ? 'เลยกำหนด' : 'ปกติ'}</span>
-                      <span style={{ fontSize: 11, color: 'var(--muted3)' }}>{t.lead}{t.due ? ` · ${new Date(t.due).toLocaleDateString('th-TH')}` : ''}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {/* the tick box was a bordered div — this list is of tasks that are
+                not done, so ticking one off is the only thing to do with it */}
+            <DashboardTasks tasks={data.tasks} />
           </div>
 
           <div style={panel}>

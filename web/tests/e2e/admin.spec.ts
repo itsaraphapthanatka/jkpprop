@@ -2591,3 +2591,63 @@ test.describe('the topbar search', () => {
     expect(res.items).toEqual([]);
   });
 });
+
+test.describe('the dashboard task list', () => {
+  /* The box in front of each task was a bordered <div>: no handler, no state.
+     The list only holds tasks that are NOT done, so ticking one off is the one
+     thing a reader wants from it — and the one thing it could not do. */
+  let cookie = '';
+  let leadId = '';
+  const madeTasks: string[] = [];
+
+  test.beforeEach(async ({ page, request }) => {
+    await signIn(page, OWNER);
+    cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    const leads = await (await request.get('/api/leads', { headers: { cookie } })).json();
+    leadId = leads.items?.[0]?.id ?? '';
+  });
+
+  test.afterEach(async ({ request }) => {
+    for (const id of madeTasks.splice(0)) {
+      await request.delete(`/api/leads/${leadId}/tasks?taskId=${id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+
+  test('ticking a task closes it for good, not just on screen', async ({ page, request }) => {
+    test.skip(!leadId, 'no lead');
+    /* dated in the past so it sorts to the top of the five the card shows —
+       otherwise the test depends on whatever else is open */
+    const title = `งานทดสอบ ${Date.now().toString(36)}`;
+    const task = await (await request.post(`/api/leads/${leadId}/tasks`, {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { title, due: new Date(Date.now() - 86400000).toISOString() },
+    })).json();
+    madeTasks.push(task.id);
+
+    await page.goto('/admin');
+    const row = page.locator(`[data-task="${task.id}"]`);
+    await expect(row).toBeVisible();
+
+    /* click, not check(): a ticked task leaves the list, so the box never
+       ends up in a checked state for Playwright to wait for */
+    await row.locator('input[type=checkbox]').click();
+
+    // the server is what decides: read the task back
+    await expect.poll(async () => {
+      const r = await (await request.get(`/api/leads/${leadId}/tasks`, { headers: { cookie } })).json();
+      return (r.items as { id: string; done: boolean }[]).find((t) => t.id === task.id)?.done;
+    }).toBe(true);
+
+    // and it leaves the list, so the count means something
+    await expect(row).toHaveCount(0);
+    await page.reload();
+    await expect(page.locator(`[data-task="${task.id}"]`)).toHaveCount(0);
+  });
+
+  test('the count matches the rows on screen', async ({ page, request }) => {
+    test.skip(!leadId, 'no lead');
+    await page.goto('/admin');
+    const rows = await page.locator('[data-task]').count();
+    await expect(page.locator('#dash-task-count')).toContainText(`${rows} งาน`);
+  });
+});

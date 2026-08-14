@@ -50,7 +50,7 @@ export async function buildDashboard(user: User) {
       where: { done: false, lead: { orgId, ...leadScope } },
       orderBy: [{ due: 'asc' }, { createdAt: 'desc' }],
       take: 5,
-      include: { lead: { select: { name: true } } },
+      include: { lead: { select: { id: true, name: true } } },
     }),
   ]);
 
@@ -76,6 +76,8 @@ export async function buildDashboard(user: User) {
     }),
     tasks: tasks.map((t) => ({
       id: t.id,
+      // the checkbox writes back through /api/leads/:leadId/tasks
+      leadId: t.lead?.id ?? '',
       title: t.title,
       lead: t.lead?.name ?? '',
       due: t.due ? t.due.getTime() : null,
