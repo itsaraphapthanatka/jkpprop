@@ -4,6 +4,8 @@
 import type { Property, User } from '@prisma/client';
 import { PROPERTY_TYPES, propertyType } from '@/lib/propertySchema';
 import { hasPriv } from './auth';
+import { provinceLabel, districtLabel } from '@/i18n/places';
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/config';
 import { parseI18n } from './propertyI18n';
 
 type Vals = Record<string, unknown>;
@@ -30,13 +32,17 @@ export function displayArea(values: Vals): number | null {
   return num(values.building_area_total) ?? num(values.usable_area) ?? num(values.building_area) ?? num(values.land_area) ?? null;
 }
 
-export function displayLocation(values: Vals): string {
+/* The address is stored in Thai, which is right — it is the address. For a
+   reader who cannot read Thai script it is translated on the way out; the
+   admin keeps the stored form, because that is what the team types and says. */
+export function displayLocation(values: Vals, locale: Locale = DEFAULT_LOCALE): string {
   const loc = (values.location ?? {}) as Vals;
-  const district = values.district ?? loc.amphoe;
-  const province = values.province ?? loc.province;
+  const district = districtLabel(values.district ?? loc.amphoe, locale);
+  const province = provinceLabel(values.province ?? loc.province, locale);
   return [district, province].filter(Boolean).join(', ');
 }
 
+/** the stored (Thai) province — filters and code prefixes match on this */
 export function displayProvince(values: Vals): string {
   const loc = (values.location ?? {}) as Vals;
   return String(values.province ?? loc.province ?? '');

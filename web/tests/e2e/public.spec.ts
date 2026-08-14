@@ -313,3 +313,28 @@ test.describe('property cards read in the visitor\'s language', () => {
     }
   });
 });
+
+test.describe('addresses read in the visitor\'s script', () => {
+  /* The province and district are stored in Thai — correctly, it is the
+     address — but they were printed unchanged on /en and /zh, where a reader
+     cannot even sound them out. */
+  test('a card carries no Thai place name on /en', async ({ request }) => {
+    const res = await request.get('/api/public/listings?locale=en&limit=60');
+    const items = (await res.json()).items as { loc: string; code: string }[];
+    test.skip(!items.length, 'no published property');
+    const THAI = /[ก-ฺเ-๛]/;
+    for (const it of items) {
+      // an unmapped district may still be Thai; the province never should be
+      const province = it.loc.split(',').pop()!.trim();
+      expect(THAI.test(province), `${it.code} still shows a Thai province: ${it.loc}`).toBeFalsy();
+    }
+  });
+
+  test('Thai keeps the address exactly as the team typed it', async ({ request }) => {
+    const th = (await (await request.get('/api/public/listings?locale=th&limit=60')).json()).items as { loc: string }[];
+    const en = (await (await request.get('/api/public/listings?locale=en&limit=60')).json()).items as { loc: string }[];
+    test.skip(!th.length, 'no published property');
+    expect(th[0].loc).not.toBe(en[0].loc);
+    expect(th[0].loc).toMatch(/[ก-ฺเ-๛]/);
+  });
+});

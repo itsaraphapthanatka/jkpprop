@@ -40,7 +40,7 @@ export const GET = handler(async (req: Request, ctx: { params: Promise<{ token: 
       title: localTitle(p, locale),
       typeLabel: propertyType(p.typeKey).label,
       description: localDescription(p, locale),
-      location: displayLocation(values),
+      location: displayLocation(values, locale),
       area: displayArea(values),
       priceRent: typeof values.price_rent === 'number' ? values.price_rent : null,
       priceSale: typeof values.price_sale === 'number' ? values.price_sale : (typeof values.price === 'number' ? values.price : null),

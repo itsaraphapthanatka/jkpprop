@@ -52,7 +52,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     /* the property's own description in this language when the team wrote one;
        the derived line only stands in while it has none */
     description: localDescription(found.p, locale)
-      || [title, displayLocation(found.values), area ? `${area.toLocaleString('en-US')} ${d.common.sqm}` : '']
+      || [title, displayLocation(found.values, locale), area ? `${area.toLocaleString('en-US')} ${d.common.sqm}` : '']
         .filter(Boolean).join(' · '),
   };
 }
@@ -82,7 +82,7 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
     title: localTitle(p, locale),
     description: localDescription(p, locale),
     typeLabel: enumLabel(propertyType(p.typeKey).label, locale),
-    location: displayLocation(values),
+    location: displayLocation(values, locale),
     area: displayArea(values),
     dealType: enumLabel(String(values.deal_type ?? ''), locale),
     priceRent: typeof values.price_rent === 'number' ? values.price_rent : null,

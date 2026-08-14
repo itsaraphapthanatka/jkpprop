@@ -65,3 +65,46 @@ describe('the "แปลไม่ครบ" count', () => {
     assert.deepEqual(missingTitles(rec({ en: { description: 'only a description' } })), ['en', 'zh']);
   });
 });
+
+describe('place names', () => {
+  test('the province is translated, the district romanised', async () => {
+    const { provinceLabel, districtLabel } = await import('../../src/i18n/places.ts');
+    assert.equal(provinceLabel('ชลบุรี', 'en'), 'Chonburi');
+    assert.equal(provinceLabel('ชลบุรี', 'zh'), '春武里');
+    assert.equal(districtLabel('ศรีราชา', 'en'), 'Si Racha');
+    // Chinese takes the same Latin form rather than an invented Chinese name
+    assert.equal(districtLabel('ศรีราชา', 'zh'), 'Si Racha');
+  });
+
+  test('Thai readers keep the address exactly as the team typed it', async () => {
+    const { provinceLabel, districtLabel } = await import('../../src/i18n/places.ts');
+    assert.equal(provinceLabel('ชลบุรี', 'th'), 'ชลบุรี');
+    assert.equal(districtLabel('ศรีราชา', 'th'), 'ศรีราชา');
+  });
+
+  /* A place we have no entry for must come through unchanged — the alternative
+     is a blank where the address should be. */
+  test('an unknown place is left alone, not dropped', async () => {
+    const { provinceLabel, districtLabel } = await import('../../src/i18n/places.ts');
+    assert.equal(districtLabel('อำเภอที่ยังไม่มีในตาราง', 'en'), 'อำเภอที่ยังไม่มีในตาราง');
+    assert.equal(provinceLabel('', 'en'), '');
+    assert.equal(provinceLabel(null, 'en'), '');
+  });
+
+  /* Chinese has established names for perhaps a third of the provinces; the
+     rest fall back to the romanisation, which a Chinese reader can at least
+     match against a map — unlike Thai script. */
+  test('a province with no Chinese name falls back to the romanisation', async () => {
+    const { provinceLabel } = await import('../../src/i18n/places.ts');
+    assert.equal(provinceLabel('บึงกาฬ', 'zh'), 'Bueng Kan');
+    assert.equal(provinceLabel('บึงกาฬ', 'en'), 'Bueng Kan');
+  });
+
+  test('the address on a card reads in the visitor\'s language', async () => {
+    const { displayLocation } = await import('../../src/lib/server/propertyDto.ts');
+    const values = { district: 'บางพลี', province: 'สมุทรปราการ' };
+    assert.equal(displayLocation(values), 'บางพลี, สมุทรปราการ');
+    assert.equal(displayLocation(values, 'en'), 'Bang Phli, Samut Prakan');
+    assert.equal(displayLocation(values, 'zh'), 'Bang Phli, 北榄');
+  });
+});
