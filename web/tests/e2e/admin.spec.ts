@@ -1927,6 +1927,29 @@ test.describe('the listings screen', () => {
     }
   });
 
+  /* Same clipping as the properties table: the menu lived inside a card with
+     `overflow: hidden`, so its lower half — ทำสำเนา and ลบประกาศ — was cut off. */
+  test('the row menu is not clipped by the table card', async ({ page }) => {
+    await page.goto('/admin/listings');
+    const rows = page.locator('.lst-row');
+    await expect(rows.first()).toBeVisible();
+
+    await rows.last().locator('.lst-menu-btn').click();
+    const menu = page.locator('#lst-row-menu');
+    await expect(menu).toBeVisible();
+    await expect(menu.getByText('ลบประกาศ')).toBeInViewport();
+
+    const box = (await menu.boundingBox())!;
+    const vp = page.viewportSize()!;
+    expect(box.y + box.height).toBeLessThanOrEqual(vp.height);
+    expect(box.x + box.width).toBeLessThanOrEqual(vp.width);
+
+    // and it still belongs to the row it was opened from
+    const code = await rows.last().locator('code').innerText();
+    await menu.getByText('ดูรายละเอียด').click();
+    await expect(page.locator('h1')).toContainText(code);
+  });
+
   test('Export writes a CSV of the rows on screen', async ({ page }) => {
     await page.goto('/admin/listings');
     const [download] = await Promise.all([
@@ -2066,10 +2089,13 @@ test.describe('the client shortlist page reads in the customer\'s language', () 
     await page.goto(`/client-shortlist?token=${sl.token}&lang=en`);
     const cards = page.locator('#cs-item');
     await expect(cards.first()).toBeVisible();
-    // the type label is a Thai enum key in the record — it must not reach the reader as one
-    await expect(cards.first().getByText('โกดัง')).toHaveCount(0);
-    await expect(cards.first().getByText('ตร.ม.')).toHaveCount(0);
-    if (first!.area !== null) await expect(cards.first().getByText('sqm')).toBeVisible();
+    /* Only the chips are checked, not the whole card: the property's own title
+       is Thai data until someone translates it, and it often carries "ตร.ม."
+       itself — the chips are the part this page builds. */
+    const specs = cards.first().locator('[data-specs]');
+    await expect(specs.getByText('โกดัง')).toHaveCount(0);   // a Thai enum key must not reach the reader
+    await expect(specs.getByText('ตร.ม.')).toHaveCount(0);
+    if (first!.area !== null) await expect(specs.getByText('sqm')).toBeVisible();
     if (first!.priceRent !== null) await expect(cards.first().getByText('/ month')).toBeVisible();
 
     // the compare table is built from the same rows and must follow too

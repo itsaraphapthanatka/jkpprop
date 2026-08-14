@@ -422,7 +422,7 @@ export function ClientShortlistBody({ contact, initialLocale }: { contact?: Cont
                   {it.description && (
                     <p style={{ margin: '10px 0 0', fontSize: '13px', lineHeight: 1.7, color: 'var(--muted)', whiteSpace: 'pre-line' }}>{it.description}</p>
                   )}
-                  <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div data-specs style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                     {it.specs.map((sp) => (
                       <span key={sp} style={{ height: 28, padding: '0 12px', borderRadius: 9, background: 'var(--bg)', border: '1px solid var(--border)', fontSize: 12, fontWeight: 600, color: 'var(--text)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>{sp}</span>
                     ))}

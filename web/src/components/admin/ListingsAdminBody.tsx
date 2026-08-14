@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { apiGet, apiPost, apiPatch, apiDelete, ApiClientError } from '@/lib/apiClient';
 import { PROPERTY_TYPES, propertyType } from '@/lib/propertySchema';
+import { placeMenu, type MenuBox } from '@/lib/menuPlacement';
 import { relTime } from '@/lib/leadStore';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -254,6 +255,23 @@ export function ListingsAdminBody() {
   const router = useRouter();
   const [sel, setSel] = React.useState<Record<string, boolean>>({});
   const [openMenu, setOpenMenu] = React.useState<string | null>(null);
+  /* the menu is fixed-positioned and rendered outside the table: inside it,
+     the card's `overflow: hidden` cut off everything below "แก้ไขประกาศ" */
+  const [menuBox, setMenuBox] = React.useState<MenuBox | null>(null);
+  const menuBtns = React.useRef<Record<string, HTMLElement | null>>({});
+  React.useEffect(() => {
+    if (!openMenu) return;
+    const follow = () => {
+      const r = menuBtns.current[openMenu]?.getBoundingClientRect();
+      setMenuBox(r ? placeMenu(r, { width: 210, align: 'right', maxHeight: 320 }) : null);
+    };
+    window.addEventListener('scroll', follow, true);
+    window.addEventListener('resize', follow);
+    return () => {
+      window.removeEventListener('scroll', follow, true);
+      window.removeEventListener('resize', follow);
+    };
+  }, [openMenu]);
   /* create modal — the picker used to offer three hardcoded properties and
      the Save button was a link to an empty edit page */
   const [cCode, setCCode] = React.useState('');
@@ -527,8 +545,38 @@ export function ListingsAdminBody() {
         </div>
       )}
 
-      {/* CLICK-CATCHER FOR ROW MENUS */}
-      {anyMenuOpen && (<div onClick={() => setOpenMenu(null)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />)}
+      {/* ROW MENU — outside the table card, which clips anything inside it */}
+      {anyMenuOpen && menuBox && (() => {
+        const d = filtered.find((r) => r.id === openMenu);
+        if (!d) return null;
+        return (
+          <>
+            <div onClick={() => setOpenMenu(null)} style={{ position: 'fixed', inset: 0, zIndex: 890 }} />
+            <div
+              id="lst-row-menu"
+              onClick={(e) => e.stopPropagation()}
+              style={{ position: 'fixed', top: menuBox.top, left: menuBox.left, width: menuBox.width, maxHeight: menuBox.maxHeight, overflowY: 'auto', zIndex: 900, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, boxShadow: '0 20px 44px rgba(0,0,0,.18)', padding: 7, textAlign: 'left' }}
+            >
+              {rowMenu(d).map((mItem, mi2) => {
+                if (mItem.divider) return <div key={'div' + mi2} style={{ height: 1, background: 'var(--border)', margin: '6px 4px' }} />;
+                const style = mItem.danger ? { ...miBase, color: '#C0392B' } : miBase;
+                if (mItem.href) {
+                  return (
+                    <a key={mItem.label} href={mItem.href} style={style}>
+                      <span style={{ display: 'flex', width: 16, height: 16, flexShrink: 0 }}>{mItem.icon}</span>{mItem.label}
+                    </a>
+                  );
+                }
+                return (
+                  <div key={mItem.label} onClick={() => void rowAct(d, mItem.act!)} style={style}>
+                    <span style={{ display: 'flex', width: 16, height: 16, flexShrink: 0 }}>{mItem.icon}</span>{mItem.label}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        );
+      })()}
       {/* CLICK-CATCHER FOR FILTER DROPDOWNS */}
       {openFilter && (<div onClick={() => setOpenFilter(null)} style={{ position: 'fixed', inset: 0, zIndex: 50 }} />)}
 
@@ -623,30 +671,22 @@ export function ListingsAdminBody() {
                         : (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#D4D1CA" strokeWidth="1.7"><path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 19.3 7.2 17l.9-5.4L4.2 7.7l5.4-.8z" /></svg>)}</span>
                     </td>
                     <td style={{ padding: '14px 16px', fontSize: 12, color: 'var(--muted3)' }}>{d.updated}</td>
-                    <td style={{ padding: '14px 16px', textAlign: 'center', position: 'relative' }}>
-                      <div className="lst-menu-btn" onClick={(e) => { e.stopPropagation(); setOpenMenu(mOpen ? null : d.id); }} style={{ width: 30, height: 30, borderRadius: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted2)', cursor: 'pointer', ...(mOpen ? { background: 'var(--border)' } : {}) }}>
+                    <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                      <div
+                        className="lst-menu-btn"
+                        ref={(el) => { menuBtns.current[d.id] = el; }}
+                        aria-label={`เมนูของ ${d.code}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (mOpen) { setOpenMenu(null); return; }
+                          setMenuBox(placeMenu(e.currentTarget.getBoundingClientRect(), { width: 210, align: 'right', maxHeight: 320 }));
+                          setOpenMenu(d.id);
+                          setOpenFilter(null);
+                        }}
+                        style={{ width: 30, height: 30, borderRadius: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted2)', cursor: 'pointer', ...(mOpen ? { background: 'var(--border)' } : {}) }}
+                      >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="5" r="1.4" /><circle cx="12" cy="12" r="1.4" /><circle cx="12" cy="19" r="1.4" /></svg>
                       </div>
-                      {mOpen && (
-                        <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', top: 44, right: 14, zIndex: 30, width: 210, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, boxShadow: '0 20px 44px rgba(0,0,0,.18)', padding: 7, textAlign: 'left' }}>
-                          {rowMenu(d).map((mItem, mi2) => {
-                            if (mItem.divider) return <div key={'div' + mi2} style={{ height: 1, background: 'var(--border)', margin: '6px 4px' }} />;
-                            const style = mItem.danger ? { ...miBase, color: '#C0392B' } : miBase;
-                            if (mItem.href) {
-                              return (
-                                <a key={mItem.label} href={mItem.href} style={style}>
-                                  <span style={{ display: 'flex', width: 16, height: 16, flexShrink: 0 }}>{mItem.icon}</span>{mItem.label}
-                                </a>
-                              );
-                            }
-                            return (
-                              <div key={mItem.label} onClick={() => void rowAct(d, mItem.act!)} style={style}>
-                                <span style={{ display: 'flex', width: 16, height: 16, flexShrink: 0 }}>{mItem.icon}</span>{mItem.label}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
                     </td>
                   </tr>
                 );
