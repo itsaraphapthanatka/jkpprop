@@ -35,9 +35,11 @@ export function middleware(req: NextRequest) {
 
   const first = pathname.split('/')[1] ?? '';
   if (isLocale(first)) {
-    // hand the resolved locale to the root layout for <html lang>
+    // hand the resolved locale to the root layout for <html lang>, and the
+    // path to the locale layout, which turns it into canonical + hreflang
     const res = NextResponse.next();
     res.headers.set('x-locale', first);
+    res.headers.set('x-pathname', pathname);
     return res;
   }
 

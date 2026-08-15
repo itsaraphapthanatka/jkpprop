@@ -38,7 +38,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const properties = published.map((p) => {
-    const path = `/property?code=${encodeURIComponent(p.publicCode)}`;
+    /* the page lives at /property/<code>; the ?code= form only 307s to it, so
+       every property URL we handed Google was a redirect ("Page with redirect
+       — not indexed" in Search Console) */
+    const path = `/property/${encodeURIComponent(p.publicCode)}`;
     return {
       url: `${SITE}/${DEFAULT_LOCALE}${path}`,
       lastModified: p.updatedAt,

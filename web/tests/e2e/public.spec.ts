@@ -338,3 +338,37 @@ test.describe('addresses read in the visitor\'s script', () => {
     expect(th[0].loc).toMatch(/[ก-ฺเ-๛]/);
   });
 });
+
+test.describe('what search engines are given', () => {
+  /* The sitemap advertised /th/property?code=X, which only 307s to the real
+     page — every property URL handed to Google was a redirect. And no page
+     declared a canonical or its language versions, so the three locales
+     competed with each other. */
+  test('the sitemap lists property pages that answer directly, not redirects', async ({ request }) => {
+    const xml = await (await request.get('/sitemap.xml')).text();
+    const urls = [...xml.matchAll(/<loc>(.*?)<\/loc>/g)].map((m) => m[1]);
+    const propertyUrls = urls.filter((u) => u.includes('/property'));
+    test.skip(!propertyUrls.length, 'no published property');
+
+    for (const u of propertyUrls) {
+      expect(u, 'the ?code= form is a redirect').not.toContain('?code=');
+      const res = await request.get(new URL(u).pathname, { maxRedirects: 0 });
+      expect(res.status(), `${u} is not a 200`).toBe(200);
+    }
+  });
+
+  test('every page names itself and its other languages', async ({ request }) => {
+    for (const path of ['/th', '/en', '/th/listing', '/th/contact']) {
+      const html = await (await request.get(path)).text();
+      const canonical = html.match(/<link rel="canonical" href="([^"]+)"/)?.[1];
+      expect(canonical, `${path} has no canonical`).toBeTruthy();
+      expect(canonical!.endsWith(path), `${path} points its canonical at ${canonical}`).toBeTruthy();
+
+      /* Next writes the React attribute name (hrefLang); HTML attributes are
+         case-insensitive, so match that way rather than pinning the casing. */
+      for (const l of ['th', 'en', 'zh']) {
+        expect(html.toLowerCase(), `${path} does not name its ${l} version`).toContain(`hreflang="${l}"`);
+      }
+    }
+  });
+});

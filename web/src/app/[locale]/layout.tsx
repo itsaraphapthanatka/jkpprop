@@ -1,5 +1,9 @@
 import { notFound } from 'next/navigation';
+import { headers } from 'next/headers';
 import { LOCALES, isLocale } from '@/i18n/config';
+
+// read at runtime like the sitemap does, so the domain is not baked into the image
+const SITE = (process.env.SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '');
 import { SyncHtmlLang } from '@/i18n/SyncHtmlLang';
 import { getDictionary } from '@/i18n/dictionaries';
 import { brandThemeCss } from '@/lib/server/brandTheme';
@@ -19,7 +23,24 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const { locale } = await params;
   if (!isLocale(locale)) return {};
   const d = getDictionary(locale);
-  return { title: `JKP Property — ${d.hero.headline1} ${d.hero.headline2}`, description: d.hero.sub };
+
+  /* Canonical + hreflang. Nothing declared either, so the three language
+     versions of a page competed with each other in search, and /th/property?code=X
+     — the URL the sitemap used to advertise — competed with the page it
+     redirects to. The path comes from middleware; without it we can still name
+     the language versions of the home page. */
+  const path = (await headers()).get('x-pathname') ?? '';
+  const rest = path.replace(new RegExp(`^/(?:${LOCALES.join('|')})`), '');
+
+  return {
+    title: `JKP Property — ${d.hero.headline1} ${d.hero.headline2}`,
+    description: d.hero.sub,
+    metadataBase: SITE ? new URL(SITE) : undefined,
+    alternates: {
+      canonical: `${SITE}/${locale}${rest}`,
+      languages: Object.fromEntries(LOCALES.map((l) => [l, `${SITE}/${l}${rest}`])),
+    },
+  };
 }
 
 export function generateStaticParams() {
