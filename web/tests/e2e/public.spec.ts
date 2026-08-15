@@ -513,6 +513,24 @@ test.describe('the search box on the front page', () => {
     await expect(page.locator('body')).toContainText(code);
   });
 
+  /* Both chips started applied — ให้เช่า and โกดัง — so typing the code of a
+     factory that is for sale returned an empty page, filtered out by two
+     conditions nobody chose. */
+  test('a code alone finds the property, whatever type it is', async ({ page, request }) => {
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=60')).json()).items as { code: string; typeKey: string }[];
+    const factory = items.find((i) => i.typeKey === 'factory') ?? items[0];
+    test.skip(!factory, 'nothing published');
+
+    await page.goto('/th');
+    await page.locator('#hero-search-input').fill(factory.code);
+    await page.locator('#hero-search-btn').click();
+
+    // no deal or type in the query: the visitor did not pick either
+    await expect(page).not.toHaveURL(/deal=/);
+    await expect(page).not.toHaveURL(/type=/);
+    await expect(page.locator(`a[href*="/property/${factory.code}"]`).first()).toBeVisible();
+  });
+
   test('Enter searches too, and the chips travel with it', async ({ page }) => {
     await page.goto('/th');
     await page.locator('[data-hero-chip="sale"]').click();

@@ -64,8 +64,12 @@ const checkIcon = (
 export function Hero({ copy }: { copy: SectionCopy }) {
   const { d, locale } = useI18n();
   const pick = (v: string, fallback: string) => v || fallback;
-  const [listingMode, setListingMode] = useState<'rent' | 'sale'>('rent');
-  const [propType, setPropType] = useState<PropType>('warehouse');
+  /* Nothing is chosen until someone chooses it. These both started applied —
+     ให้เช่า and โกดัง — so typing a factory's code into the search box and
+     pressing search returned nothing at all, filtered out by a pair of
+     conditions the visitor never set. */
+  const [listingMode, setListingMode] = useState<'rent' | 'sale' | null>(null);
+  const [propType, setPropType] = useState<PropType | null>(null);
   const [sizeSel, setSizeSel] = useState<string | null>(null);
   const [priceSel, setPriceSel] = useState<string | null>(null);
   const [term, setTerm] = useState('');
@@ -77,8 +81,8 @@ export function Hero({ copy }: { copy: SectionCopy }) {
   const submitSearch = () => {
     const p = new URLSearchParams();
     if (term.trim()) p.set('q', term.trim());
-    p.set('deal', listingMode);
-    p.set('type', propType === 'factory' ? 'โรงงาน' : 'โกดัง / คลังสินค้า');
+    if (listingMode) p.set('deal', listingMode);
+    if (propType) p.set('type', propType === 'factory' ? 'โรงงาน' : 'โกดัง / คลังสินค้า');
     if (sizeSel) p.set('size', sizeSel);
     if (priceSel) p.set('price', priceSel);
     router.push(`/${locale}/listing?${p}`);
@@ -191,17 +195,17 @@ export function Hero({ copy }: { copy: SectionCopy }) {
           </div>
 
           <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
-            <div data-hero-chip="rent" onClick={() => setListingMode('rent')} style={listingMode === 'rent' ? activeChip : idleChip}>
+            <div data-hero-chip="rent" onClick={() => setListingMode((m) => (m === 'rent' ? null : 'rent'))} style={listingMode === 'rent' ? activeChip : idleChip}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18" /><path d="M5 21V9l7-5 7 5v12" /><path d="M9 21v-6h6v6" /></svg>
               {d.nav.forRent}
             </div>
-            <div data-hero-chip="sale" onClick={() => setListingMode('sale')} style={listingMode === 'sale' ? activeChip : idleChip}>
+            <div data-hero-chip="sale" onClick={() => setListingMode((m) => (m === 'sale' ? null : 'sale'))} style={listingMode === 'sale' ? activeChip : idleChip}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M20.6 13.4L13 21a2 2 0 01-2.8 0l-7-7A2 2 0 013 12.6V4h8.6a2 2 0 011.4.6l7.6 7.6a2 2 0 010 2.8z" /><circle cx="7.5" cy="7.5" r="1.2" /></svg>
               {d.nav.forSale}
             </div>
-            <div data-hero-chip="type" onClick={() => openFilter('type')} style={propType === 'factory' ? activeChip : idleChip}>
+            <div data-hero-chip="type" onClick={() => openFilter('type')} style={propType ? activeChip : idleChip}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21V8l9-5 9 5v13" /><path d="M3 21h18" /><path d="M7 21v-8h10v8" /></svg>
-              {enumLabel(propType === 'factory' ? 'โรงงาน' : 'โกดัง', locale)}
+              {propType ? enumLabel(propType === 'factory' ? 'โรงงาน' : 'โกดัง', locale) : enumLabel('ประเภททรัพย์', locale)}
             </div>
             <div data-hero-chip="size" onClick={() => openFilter('size')} style={sizeSel ? activeChip : idleChip}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" /></svg>

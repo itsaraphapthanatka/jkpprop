@@ -157,6 +157,7 @@ const dict: Record<string, Row> = {
 
   /* requirement-form field labels (lib/propertySchema) */
   'ประเภททรัพย์ที่ต้องการ': { en: 'Property type', zh: '房源类型' },
+  'ประเภททรัพย์': { en: 'Property type', zh: '房源类型' },
   'ความต้องการ': { en: 'Looking to', zh: '需求类型' },
   'จังหวัดที่สนใจ': { en: 'Province of interest', zh: '意向府' },
   'งบประมาณ': { en: 'Budget', zh: '预算' },
