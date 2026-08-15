@@ -21,7 +21,11 @@ const FEATURE_ICONS = [
 
 export function WhyUs({ copy, kpi: kpiCopy, stats }: { copy: SectionCopy; kpi: SectionCopy; stats?: PublicStats }) {
   const d = useDict();
-  const [kpi, setKpi] = useState(0);
+  /* Starts at the final value, not at zero: these are counted from the
+     inventory now, so the server-rendered HTML — the copy a crawler and a
+     no-JS visitor read — must already say 3, not 0. The count-up runs from
+     zero only once the strip is actually scrolled into view. */
+  const [kpi, setKpi] = useState(1);
   const [fhover, setFhover] = useState<number | null>(null);
   const kpiRef = useRef<HTMLDivElement>(null);
   const startedRef = useRef(false);
@@ -33,6 +37,7 @@ export function WhyUs({ copy, kpi: kpiCopy, stats }: { copy: SectionCopy; kpi: S
     const startKpi = () => {
       if (startedRef.current) return;
       startedRef.current = true;
+      setKpi(0);
       const dur = 1400;
       const t0 = performance.now();
       const tick = (now: number) => {
