@@ -2651,3 +2651,78 @@ test.describe('the dashboard task list', () => {
     await expect(page.locator('#dash-task-count')).toContainText(`${rows} งาน`);
   });
 });
+
+test.describe('the visit criteria gate (FR-VIS-07)', () => {
+  /* The gate itself was real — stored, audited, and enforced on the server.
+     But refusing to close a plan answered with the AVAILABILITY gate's code
+     and wording, sending the reader off to check whether the properties were
+     still free instead of ringing the customer; and "แก้ criteria" opened the
+     whole queue rather than this customer's own requirement. */
+  let cookie = '';
+
+  test.beforeEach(async ({ page }) => {
+    await signIn(page, OWNER);
+    cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  });
+
+  test('closing a plan before the gate says which gate, in its own words', async ({ request }) => {
+    const props = await (await request.get('/api/properties', { headers: { cookie } })).json();
+    const code = (props.items as { publicCode: string }[])[0]?.publicCode;
+    test.skip(!code, 'no property');
+
+    const visit = await (await request.post('/api/visits', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { date: new Date(Date.now() + 86400000).toISOString(), codes: [code] },
+    })).json();
+
+    const refused = await request.patch(`/api/visits/${visit.id}`, {
+      headers: { cookie, 'Content-Type': 'application/json' }, data: { status: 'done' },
+    });
+    expect(refused.status()).toBe(400);
+    const err = (await refused.json()).error;
+    expect(err.code, 'the availability gate has its own code — this is not it').toBe('GATE_REQUIRED');
+    expect(err.message).toContain('เกณฑ์');
+    expect(err.message, 'this gate is not about whether the property is free').not.toContain('สถานะว่าง');
+
+    // confirming it lets the plan close
+    await request.patch(`/api/visits/${visit.id}`, { headers: { cookie, 'Content-Type': 'application/json' }, data: { gateConfirmed: true } });
+    const done = await request.patch(`/api/visits/${visit.id}`, { headers: { cookie, 'Content-Type': 'application/json' }, data: { status: 'done' } });
+    expect(done.status()).toBe(200);
+
+    const { PrismaClient } = await import('@prisma/client');
+    const db2 = new PrismaClient();
+    await db2.visitStop.deleteMany({ where: { visitId: visit.id } });
+    await db2.visit.deleteMany({ where: { id: visit.id } });
+    await db2.$disconnect();
+  });
+
+  test('"แก้ criteria" opens this customer\'s requirement, not the queue', async ({ page, request }) => {
+    const leads = await (await request.get('/api/leads', { headers: { cookie } })).json();
+    const leadId = leads.items?.[0]?.id;
+    test.skip(!leadId, 'no lead');
+    const props = await (await request.get('/api/properties', { headers: { cookie } })).json();
+    const code = (props.items as { publicCode: string }[])[0]?.publicCode;
+
+    const req = await (await request.post('/api/requirements', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { leadId, dealIntent: 'เช่า', typeKey: 'warehouse', areaMin: 1000 },
+    })).json();
+    const visit = await (await request.post('/api/visits', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { leadId, date: new Date(Date.now() + 86400000).toISOString(), codes: code ? [code] : [] },
+    })).json();
+
+    try {
+      await page.goto(`/admin/visits/${visit.id}`);
+      await expect(page.locator('#visit-edit-criteria')).toHaveAttribute('href', `/admin/requirements/${req.id}`);
+    } finally {
+      const { PrismaClient } = await import('@prisma/client');
+      const db2 = new PrismaClient();
+      await db2.visitStop.deleteMany({ where: { visitId: visit.id } });
+      await db2.visit.deleteMany({ where: { id: visit.id } });
+      await db2.availabilityCheck.deleteMany({ where: { requirementId: req.id } });
+      await db2.requirement.deleteMany({ where: { id: req.id } });
+      await db2.$disconnect();
+    }
+  });
+});

@@ -48,6 +48,8 @@ const fmtDate = (ms: number) =>
 /* GET /api/visits item */
 type ApiVisit = {
   id: string; date: number; status: string; note: string | null; gateConfirmed?: boolean;
+  /** the lead's requirement, so "แก้ criteria" opens that card and not the queue */
+  requirementId?: string | null;
   leadId: string | null;
   stops: Stop[];
 };
@@ -204,7 +206,7 @@ export function VisitBody() {
           )}
           {gatePending && (
             <div id="visit-gate-btns" style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-              <Link href="/admin/requirements" style={{ height: 38, padding: '0 14px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center' }}>แก้ criteria</Link>
+              <Link id="visit-edit-criteria" href={visit?.requirementId ? `/admin/requirements/${visit.requirementId}` : '/admin/requirements'} title={visit?.requirementId ? 'เปิด requirement ของลูกค้ารายนี้' : 'ยังไม่มี requirement ผูกกับแผนนี้ — เปิดคิวทั้งหมด'} style={{ height: 38, padding: '0 14px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center' }}>แก้ criteria</Link>
               <div onClick={confirmGate} style={{ height: 38, padding: '0 16px', borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>ยืนยันไม่เปลี่ยน</div>
             </div>
           )}

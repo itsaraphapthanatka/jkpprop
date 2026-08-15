@@ -21,10 +21,25 @@ export const GET = handler(async () => {
     ? await db.property.findMany({ where: { id: { in: propIds } }, select: { id: true, publicCode: true, title: true, values: true } })
     : [];
   const byId = new Map(props.map((p) => [p.id, p]));
+
+  /* "แก้ criteria" sent everyone to the queue to hunt for the right card. The
+     visit knows its lead, and the lead's requirement is the card they want. */
+  const leadIds = [...new Set(rows.map((v) => v.leadId).filter(Boolean) as string[])];
+  const reqs = leadIds.length
+    ? await db.requirement.findMany({
+      where: { orgId: user.orgId, leadId: { in: leadIds } },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, leadId: true },
+    })
+    : [];
+  const reqByLead = new Map<string, string>();
+  for (const r of reqs) if (!reqByLead.has(r.leadId)) reqByLead.set(r.leadId, r.id);
+
   return ok({
     items: rows.map((v) => ({
       id: v.id,
       leadId: v.leadId,
+      requirementId: v.leadId ? reqByLead.get(v.leadId) ?? null : null,
       date: v.date.getTime(),
       status: v.status,
       note: v.note,

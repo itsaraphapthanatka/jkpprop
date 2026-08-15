@@ -24,9 +24,12 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
   if (typeof body.note === 'string') data.note = body.note.slice(0, 2000);
   if (typeof body.status === 'string') {
     if (!['scheduled', 'done', 'cancelled'].includes(body.status)) throw new ApiError('VALIDATION', 'สถานะไม่ถูกต้อง', 400);
-    // closing the plan requires the gate to have been cleared first
+    /* This gate is FR-VIS-07: the customer confirming their criteria have not
+       changed. It answered with the availability gate's code and wording, so
+       whoever hit it went off to check whether the properties were still free
+       instead of ringing the customer. */
     if (body.status === 'done' && !(body.gateConfirmed ?? visit.gateConfirmed)) {
-      throw new ApiError('AVAILABILITY_REQUIRED', 'ต้องยืนยันสถานะว่างของทรัพย์ก่อนปิดแผนการเข้าชม', 400);
+      throw new ApiError('GATE_REQUIRED', 'ต้องยืนยันเกณฑ์กับลูกค้าก่อน (FR-VIS-07) — กด "ยืนยันไม่เปลี่ยน" ที่หัวแผน หรือกลับไปแก้ requirement ถ้าลูกค้าเปลี่ยนเกณฑ์', 400);
     }
     data.status = body.status;
   }
