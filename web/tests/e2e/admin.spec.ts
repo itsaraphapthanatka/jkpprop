@@ -222,10 +222,11 @@ test.describe('page sections', () => {
     await expect(page.locator('#stats-row')).toContainText('2562');
 
     /* Chinese was never filled in, so it keeps the translated default rather
-       than showing Thai — the opposite of what a naive fallback would do. */
+       than showing Thai — the opposite of what a naive fallback would do.
+       The defaults are the live figures now, so this is one of those. */
     await page.goto('/zh/about');
     await expect(page.locator('#stats-row')).not.toContainText('ปีที่ก่อตั้ง');
-    await expect(page.locator('#stats-row')).toContainText('成立年份');
+    await expect(page.locator('#stats-row')).toContainText('覆盖府数');
   });
 
   test('the award line is blank until someone fills it in, and the publish switch hides a section', async ({ page }) => {
@@ -300,7 +301,7 @@ test.describe('home page sections', () => {
     await signIn(page, OWNER);
 
     await page.goto('/th');
-    await expect(page.getByText('ทรัพย์ในระบบทั่วประเทศ')).toBeVisible();
+    await expect(page.getByText('ทรัพย์ที่เผยแพร่อยู่')).toBeVisible();
 
     /* Open first, then toggle: openHomeSection navigates, so flipping the
        switch before it would be thrown away by the page load. */
@@ -309,7 +310,7 @@ test.describe('home page sections', () => {
     await save(page);
 
     await page.goto('/th');
-    await expect(page.getByText('ทรัพย์ในระบบทั่วประเทศ')).toHaveCount(0);
+    await expect(page.getByText('ทรัพย์ที่เผยแพร่อยู่')).toHaveCount(0);
     // the surrounding "why us" block is untouched
     await expect(page.locator('#page-sheet')).toContainText('รองรับหลายภาษา');
   });

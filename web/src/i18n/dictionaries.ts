@@ -64,7 +64,15 @@ export type Dictionary = {
     company: string; services: string; properties: string; contact: string;
     articles: string; industrialLand: string; terms: string; privacy: string; rights: string; tagline: string;
   };
-  floating: { backToTop: string; cookieSettings: string; pdpa: string; cookieBody: string; accept: string; decline: string };
+  floating: { backToTop: string };
+  consent: {
+    title: string; body: string; noTracking: string;
+    manage: string; rejectOptional: string; acceptAll: string; save: string; back: string;
+    necessary: string; necessaryBody: string; always: string;
+    embeds: string; embedsBody: string; on: string; off: string;
+    cookiePolicy: string; privacyPolicy: string; settings: string;
+    mapBlocked: string; mapBlockedBody: string; mapAllow: string;
+  };
   listing: {
     saved: string;
     totalArea: string; title: string; resultsFound: string; results: string; filters: string; sortBy: string;
@@ -238,10 +246,20 @@ const th: Dictionary = {
     rights: '© 2026 JKP PROPERTY. สงวนลิขสิทธิ์',
     tagline: 'แพลตฟอร์มนายหน้าโรงงานและโกดังอุตสาหกรรม เชื่อมนักลงทุนกับทรัพย์ที่ผ่านการคัดกรองทั่วประเทศไทย',
   },
-  floating: {
-    backToTop: 'กลับขึ้นด้านบน', cookieSettings: 'การตั้งค่าคุกกี้', pdpa: 'PDPA ของประเทศไทย',
-    cookieBody: 'เราใช้คุกกี้เพื่อปรับปรุงประสบการณ์การใช้งานและวิเคราะห์การเข้าชม เมื่อกดยอมรับ ถือว่าคุณยินยอมให้เราใช้คุกกี้ตาม',
-    accept: 'ยอมรับคุกกี้', decline: 'ปฏิเสธทั้งหมด',
+  floating: { backToTop: 'กลับขึ้นด้านบน' },
+  consent: {
+    title: 'คุกกี้และความเป็นส่วนตัว',
+    body: 'เว็บไซต์นี้ไม่มีระบบวิเคราะห์ผู้เข้าชม ไม่มีคุกกี้โฆษณา และไม่มีการติดตามพฤติกรรมข้ามเว็บไซต์ สิ่งเดียวที่ต้องขอความยินยอมคือแผนที่ Google ที่ฝังอยู่ในหน้าติดต่อเรา ซึ่งเป็นบริการของบุคคลภายนอกและจะสร้างคุกกี้ของ Google เอง',
+    noTracking: 'ท่านเลือกปฏิเสธได้โดยไม่กระทบการใช้งานส่วนอื่นของเว็บไซต์',
+    manage: 'จัดการการตั้งค่า', rejectOptional: 'ปฏิเสธที่ไม่จำเป็น', acceptAll: 'ยอมรับทั้งหมด',
+    save: 'บันทึกการตั้งค่า', back: 'ย้อนกลับ',
+    necessary: 'จำเป็นต่อการใช้งาน', necessaryBody: 'เก็บสถานะเข้าสู่ระบบของเจ้าหน้าที่ รายการทรัพย์ที่ท่านกดบันทึกไว้ และตัวเลือกความยินยอมนี้ ทั้งหมดเก็บไว้ในเบราว์เซอร์ของท่านเอง', always: 'เปิดเสมอ',
+    embeds: 'แผนที่จากภายนอก', embedsBody: 'แสดงแผนที่ Google แบบฝังในหน้าติดต่อเรา ถ้าปิดไว้ เราจะไม่โหลดแผนที่เลย และยังกดเปิดใน Google Maps ได้ตามปกติ',
+    on: 'เปิด', off: 'ปิด',
+    cookiePolicy: 'นโยบายคุกกี้', privacyPolicy: 'นโยบายความเป็นส่วนตัว', settings: 'การตั้งค่าคุกกี้',
+    mapBlocked: 'แผนที่ยังไม่ได้โหลด',
+    mapBlockedBody: 'แผนที่นี้เป็นบริการของ Google ซึ่งจะสร้างคุกกี้ของบุคคลภายนอก จะโหลดก็ต่อเมื่อท่านอนุญาต',
+    mapAllow: 'แสดงแผนที่',
   },
   listing: {
     saved: 'บันทึกไว้', totalArea: 'ขนาดพื้นที่รวม', title: 'อสังหาริมทรัพย์ทั้งหมด', resultsFound: 'พบ', results: 'รายการ',
@@ -441,10 +459,20 @@ const en: Dictionary = {
     rights: '© 2026 JKP PROPERTY. All rights reserved.',
     tagline: 'An industrial factory and warehouse brokerage, connecting investors with vetted property across Thailand.',
   },
-  floating: {
-    backToTop: 'Back to top', cookieSettings: 'Cookie settings', pdpa: 'Thailand PDPA',
-    cookieBody: 'We use cookies to improve your experience and to measure how the site is used. By accepting, you consent to our use of cookies under',
-    accept: 'Accept cookies', decline: 'Decline all',
+  floating: { backToTop: 'Back to top' },
+  consent: {
+    title: 'Cookies and privacy',
+    body: 'This site runs no visitor analytics, no advertising cookies and no cross-site tracking. The one thing we have to ask about is the Google map embedded on our contact page: it is a third-party service and it sets Google\u2019s own cookies.',
+    noTracking: 'Declining changes nothing else about how the site works.',
+    manage: 'Manage settings', rejectOptional: 'Reject optional', acceptAll: 'Accept all',
+    save: 'Save settings', back: 'Back',
+    necessary: 'Strictly necessary', necessaryBody: 'Keeps a staff member signed in to the admin area, remembers the properties you hearted, and stores this choice. All of it stays in your own browser.', always: 'Always on',
+    embeds: 'Embedded map', embedsBody: 'Shows the embedded Google map on the contact page. With this off we never load it, and the "open in Google Maps" link still works.',
+    on: 'On', off: 'Off',
+    cookiePolicy: 'Cookie Policy', privacyPolicy: 'Privacy Policy', settings: 'Cookie settings',
+    mapBlocked: 'Map not loaded',
+    mapBlockedBody: 'This map is a Google service and sets third-party cookies. It loads only if you allow it.',
+    mapAllow: 'Show the map',
   },
   listing: {
     saved: 'Saved', totalArea: 'Total area', title: 'All properties', resultsFound: 'Found', results: 'listings',
@@ -644,10 +672,20 @@ const zh: Dictionary = {
     rights: '© 2026 JKP PROPERTY. 版权所有',
     tagline: '工业厂房与仓库经纪平台，为投资者对接全泰国经过筛选的优质房源。',
   },
-  floating: {
-    backToTop: '返回顶部', cookieSettings: 'Cookie 设置', pdpa: '泰国个人数据保护法 (PDPA)',
-    cookieBody: '我们使用 Cookie 改善浏览体验并分析访问情况。点击接受即表示您同意我们依照以下规定使用 Cookie：',
-    accept: '接受 Cookie', decline: '全部拒绝',
+  floating: { backToTop: '返回顶部' },
+  consent: {
+    title: 'Cookie 与隐私',
+    body: '本网站没有访客分析、没有广告 Cookie，也没有跨站追踪。唯一需要征得同意的，是"联系我们"页面内嵌的 Google 地图——它属于第三方服务，会写入 Google 自己的 Cookie。',
+    noTracking: '选择拒绝不会影响网站其他功能的使用。',
+    manage: '管理设置', rejectOptional: '拒绝非必要', acceptAll: '全部接受',
+    save: '保存设置', back: '返回',
+    necessary: '必要功能', necessaryBody: '用于保持管理人员的后台登录状态、记住您收藏的房源，以及保存本次同意选项。以上内容均仅存放在您自己的浏览器中。', always: '始终开启',
+    embeds: '外部地图', embedsBody: '在联系页面显示内嵌的 Google 地图。关闭后我们完全不加载该地图，"在 Google 地图中打开"的链接仍可正常使用。',
+    on: '开启', off: '关闭',
+    cookiePolicy: 'Cookie 政策', privacyPolicy: '隐私政策', settings: 'Cookie 设置',
+    mapBlocked: '地图尚未加载',
+    mapBlockedBody: '该地图为 Google 服务，会写入第三方 Cookie，仅在您允许后才会加载。',
+    mapAllow: '显示地图',
   },
   listing: {
     saved: '已保存', totalArea: '总面积', title: '全部房源', resultsFound: '共找到', results: '个房源',

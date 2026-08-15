@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useDict } from '@/i18n/useDict';
 import type { Company } from '@/lib/server/company';
 import { SocialLinks } from '@/components/site/SocialLinks';
+import { openConsentSettings } from '@/lib/consent';
 
 /* Contact details come from /admin/company. They were literals here —
    `info@thaiindustrialproperty.com` on a domain the company does not own, and
@@ -190,6 +191,14 @@ export function SiteFooter({ company, pages = [] }: { company: Company; pages?: 
               {pages.map((pg) => (
                 <Link key={pg.slug} href={`/p/${pg.slug}`} style={{ color: '#8E8B84' }}>{pg.title}</Link>
               ))}
+              {/* taking consent back has to be as easy as giving it */}
+              <button
+                id="footer-consent"
+                onClick={() => openConsentSettings()}
+                style={{ border: 0, background: 'none', padding: 0, font: 'inherit', color: '#8E8B84', cursor: 'pointer' }}
+              >
+                {d.consent.settings}
+              </button>
             </div>
           </div>
         </div>

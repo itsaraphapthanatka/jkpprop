@@ -129,13 +129,23 @@ async function main() {
     });
   }
 
+  /* One demo row carries a real answer in all three languages. The rest get a
+     placeholder, which is fine for a list — but the FAQ page renders rich text
+     and translates per language, and neither can be seen, or tested, against a
+     body that is just the question repeated. */
+  const RG4 = {
+    th: { title: 'ขอใบ ร.ง.4 ต้องเตรียมอะไรบ้าง', body: '<p>เอกสารหลักที่ต้องเตรียมคือ <strong>สำเนาโฉนด</strong>ที่ดินหรือสัญญาเช่า แบบแปลนอาคาร รายการเครื่องจักร และหนังสือรับรองนิติบุคคล ทีมงานช่วยตรวจความครบถ้วนก่อนยื่นกรมโรงงานอุตสาหกรรมได้</p>', done: true },
+    en: { title: 'What do I need for a Ror. 4 factory licence?', body: '<p>The core documents are the <strong>title deed</strong> or lease, building plans, a machinery list and the company registration certificate. We can check the set is complete before it goes to the Department of Industrial Works.</p>', done: true },
+    zh: { title: '申请 ร.ง.4 工厂许可需要准备什么？', body: '<p>核心文件包括<strong>土地权状</strong>或租约、建筑图纸、机械清单与公司登记证明。递交工业厅之前，我们可协助核对文件是否齐全。</p>', done: true },
+  };
+
   for (const [kind, slug, title, category, status] of cms) {
     await db.cmsPage.upsert({
       where: { orgId_kind_slug: { orgId, kind, slug } },
       update: {},
       create: {
         orgId, kind, slug, title, category, status,
-        content: { th: { title, body: `<p>${title}</p>`, done: true } } as Prisma.InputJsonValue,
+        content: (slug === 'rg4-license' ? RG4 : { th: { title, body: `<p>${title}</p>`, done: true } }) as Prisma.InputJsonValue,
       },
     });
   }

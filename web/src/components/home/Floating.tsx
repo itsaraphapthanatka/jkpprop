@@ -1,13 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from '@/i18n/LocaleLink';
 import { useDict } from '@/i18n/useDict';
 
 export function Floating() {
   const d = useDict();
   const [showTop, setShowTop] = useState(false);
-  const [cookieOpen, setCookieOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -17,33 +15,11 @@ export function Floating() {
     };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
-    try {
-      if (!localStorage.getItem('jkp_cookie')) setCookieOpen(true);
-    } catch {
-      /* localStorage unavailable */
-    }
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   const scrollTop = () => {
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const cookieAccept = () => {
-    try {
-      localStorage.setItem('jkp_cookie', 'accept');
-    } catch {
-      /* ignore */
-    }
-    setCookieOpen(false);
-  };
-  const cookieClose = () => {
-    try {
-      localStorage.setItem('jkp_cookie', 'reject');
-    } catch {
-      /* ignore */
-    }
-    setCookieOpen(false);
   };
 
   const baseTransform = showTop ? 'translateY(0)' : 'translateY(20px)';
@@ -53,7 +29,6 @@ export function Floating() {
       {/* BACK TO TOP (floating, fixed) */}
       <div
         id="back-to-top-btn"
-        className={cookieOpen ? 'fab-raised' : undefined}
         onClick={scrollTop}
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = 'translateY(-3px)';
@@ -91,86 +66,6 @@ export function Floating() {
         </div>
       </div>
 
-      {/* COOKIE / PDPA */}
-      {cookieOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 22,
-            left: 22,
-            zIndex: 400,
-            width: 360,
-            maxWidth: 'calc(100vw - 44px)',
-            background: 'var(--surface)',
-            border: '1px solid var(--border)',
-            borderRadius: 18,
-            boxShadow: '0 20px 50px rgba(var(--ink-rgb),.24)',
-            padding: 22,
-            animation: 'cookieUp .45s cubic-bezier(.2,.7,.3,1) both',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2a10 10 0 108.5 4.7 3 3 0 01-4-4A10 10 0 0012 2z" />
-                  <path d="M8.5 9h0M15 8.5h0M9 15h0M14.5 14.5h0M12 12h0" />
-                </svg>
-              </div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>{d.floating.cookieSettings}</div>
-            </div>
-            <div
-              onClick={cookieClose}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#F1EEE8';
-                e.currentTarget.style.color = 'var(--text)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.color = 'var(--muted3)';
-              }}
-              style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--muted3)', flexShrink: 0 }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </div>
-          </div>
-          <p style={{ margin: '14px 0 0', fontSize: 13, color: 'var(--muted)', lineHeight: 1.65 }}>
-            {d.floating.cookieBody}{' '}
-            {/* the PDPA notice linked to "#" — the one link a cookie banner must have */}
-            <Link href="/p/privacy" style={{ color: 'var(--accent)', fontWeight: 600 }}>{d.floating.pdpa}</Link>
-          </p>
-          <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button
-              onClick={cookieAccept}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#023742';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'var(--accent)';
-              }}
-              style={{ flex: 1, height: 44, border: 0, borderRadius: 10, background: 'var(--accent)', color: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer', transition: 'background .2s' }}
-            >
-              {d.floating.accept}
-            </button>
-            <button
-              onClick={cookieClose}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'var(--accent)';
-                e.currentTarget.style.color = 'var(--accent)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--border)';
-                e.currentTarget.style.color = 'var(--text)';
-              }}
-              style={{ height: 44, padding: '0 18px', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'all .2s' }}
-            >
-              {d.floating.decline}
-            </button>
-          </div>
-        </div>
-      )}
     </>
   );
 }

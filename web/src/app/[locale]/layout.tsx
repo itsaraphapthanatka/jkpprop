@@ -5,6 +5,7 @@ import { LOCALES, isLocale } from '@/i18n/config';
 // read at runtime like the sitemap does, so the domain is not baked into the image
 const SITE = (process.env.SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '');
 import { SyncHtmlLang } from '@/i18n/SyncHtmlLang';
+import { ConsentGate } from '@/components/site/ConsentGate';
 import { getDictionary } from '@/i18n/dictionaries';
 import { brandThemeCss } from '@/lib/server/brandTheme';
 import type { Metadata } from 'next';
@@ -67,6 +68,9 @@ export default async function LocaleLayout({
       {theme && <style dangerouslySetInnerHTML={{ __html: theme }} />}
       <SyncHtmlLang />
       {children}
+      {/* here rather than in the page components: /contact — the only page with
+          a third-party frame on it — never rendered the old banner at all */}
+      <ConsentGate />
     </>
   );
 }

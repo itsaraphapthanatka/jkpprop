@@ -208,25 +208,35 @@ test.describe('FAQ answers from the CMS', () => {
 
 test.describe('the contact map', () => {
   /* It was a stock photograph of a world map — decorative, and no use to
-     anyone trying to find the office. It takes a coordinate from the CMS now. */
-  test('shows a real map for the saved coordinate, in every language', async ({ request }) => {
+     anyone trying to find the office. It takes a coordinate from the CMS now,
+     and since a Google frame reports the reader's address to Google, it is not
+     in the page until the reader agrees to it. */
+  test('the frame is not in the server HTML — nobody has agreed to it yet', async ({ request }) => {
     for (const locale of ['th', 'en', 'zh']) {
       const html = await (await request.get(`/${locale}/contact`)).text();
-      if (html.includes('ยังไม่ได้ตั้งพิกัด') || /No location set yet|尚未设置坐标/.test(html)) {
-        test.skip(true, 'no coordinate set in this database');
-      }
-      expect(html, `${locale} has no map frame`).toMatch(/<iframe[^>]+google\.com\/maps\?q=-?\d/);
+      expect(html, `${locale} loads Google before consent`).not.toMatch(/<iframe[^>]+google\.com\/maps/);
       // a photograph of a map is not a map
       expect(html).not.toContain('photo-1524661135-423995f22d0b');
     }
   });
 
-  test('an unparseable coordinate says so instead of embedding junk', async ({ request }) => {
-    const html = await (await request.get('/th/contact')).text();
-    const src = /<iframe[^>]+src="([^"]+)"/.exec(html)?.[1] ?? '';
-    if (!src) test.skip(true, 'no coordinate set in this database');
+  test('shows a real map for the saved coordinate, in every language', async ({ page }) => {
+    for (const locale of ['th', 'en', 'zh']) {
+      await page.goto(`/${locale}/contact`);
+      if (await page.getByText(/ยังไม่ได้ตั้งพิกัด|No location set yet|尚未设置坐标/).count()) {
+        test.skip(true, 'no coordinate set in this database');
+      }
+      // the suite runs as a visitor who has already agreed (playwright.config.ts)
+      await expect(page.locator('iframe[src*="google.com/maps"]'), `${locale} has no map frame`).toBeVisible();
+    }
+  });
+
+  test('an unparseable coordinate says so instead of embedding junk', async ({ page }) => {
+    await page.goto('/th/contact');
+    const frame = page.locator('iframe[src*="google.com/maps"]');
+    if (!(await frame.count())) test.skip(true, 'no coordinate set in this database');
     // the URL is rebuilt from parsed numbers, so it can only ever look like this
-    expect(src).toMatch(/^https:\/\/www\.google\.com\/maps\?q=-?\d+(\.\d+)?,-?\d+(\.\d+)?&/);
+    expect(await frame.getAttribute('src')).toMatch(/^https:\/\/www\.google\.com\/maps\?q=-?\d+(\.\d+)?,-?\d+(\.\d+)?&/);
   });
 });
 

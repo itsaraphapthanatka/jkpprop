@@ -15,8 +15,18 @@ export default defineConfig({
   // 'github' turns failures into check annotations, which are readable from
   // the run without downloading the log archive
   reporter: process.env.CI ? [['github'], ['list'], ['html', { open: 'never' }]] : [['list']],
+  /* The consent dialog covers the page until it is answered, which is the
+     point of it. Every suite except the consent one starts with the answer
+     already recorded, the same as a returning visitor. */
   use: {
     baseURL: process.env.BASE_URL ?? 'http://localhost:3000',
+    storageState: {
+      cookies: [],
+      origins: [{
+        origin: process.env.BASE_URL ?? 'http://localhost:3000',
+        localStorage: [{ name: 'jkp.consent.v1', value: '{"v":1,"ts":"2026-08-15T00:00:00.000Z","embeds":true}' }],
+      }],
+    },
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     locale: 'th-TH',

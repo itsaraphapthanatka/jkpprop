@@ -3,6 +3,7 @@ import Link from '@/i18n/LocaleLink';
 import Image from 'next/image';
 import { useDict } from '@/i18n/useDict';
 import { SocialLinks } from './SocialLinks';
+import { openConsentSettings } from '@/lib/consent';
 import type { Social } from '@/lib/server/company';
 
 /* ============================================================
@@ -120,12 +121,20 @@ export function ContentFooter({ email, phone, location, socials = [], pages = []
       <div style={{ borderTop: '1px solid rgba(255,255,255,.1)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '26px 24px', display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#8E8B84' }}>
           <div>{d.footer.rights}</div>
-          <div style={{ display: 'flex', gap: 24 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24 }}>
             {/* linked only when the document exists — these were href="#",
                 which is worse than absent for a privacy policy */}
             {pages.map((pg) => (
               <Link key={pg.slug} href={`/p/${pg.slug}`} style={{ color: '#8E8B84' }}>{pg.title}</Link>
             ))}
+            {/* taking consent back has to be as easy as giving it */}
+            <button
+              id="footer-consent"
+              onClick={() => openConsentSettings()}
+              style={{ border: 0, background: 'none', padding: 0, font: 'inherit', color: '#8E8B84', cursor: 'pointer' }}
+            >
+              {d.consent.settings}
+            </button>
           </div>
         </div>
       </div>

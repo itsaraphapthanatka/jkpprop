@@ -7,6 +7,7 @@ import { parseGeoPoint, mapEmbedUrl, mapLinkUrl } from '@/lib/geoPoint';
 import type { SectionCopy } from '@/lib/server/sectionCopy';
 import { telHref, type Company } from '@/lib/server/company';
 import { SocialLinks } from './SocialLinks';
+import { useConsent } from '@/lib/consent';
 
 /* ============================================================
    Ported verbatim from Contact.dc.html — hero, info cards
@@ -35,6 +36,7 @@ export type ContactCopy = { ch: SectionCopy; cm: SectionCopy };
 
 export function ContactBody({ copy, company }: { copy: ContactCopy; company: Company }) {
   const d = useDict();
+  const consent = useConsent();
   const pick = (v: string, fallback: string) => v || fallback;
   const point = parseGeoPoint(copy.cm.map);
   return (
@@ -146,7 +148,30 @@ export function ContactBody({ copy, company }: { copy: ContactCopy; company: Com
                 to anyone trying to find the office. The pin comes from the CMS
                 as a coordinate, and the URL is rebuilt from the parsed numbers
                 so nothing typed there reaches the iframe. */}
-            {point ? (
+            {point && !consent.allows('embeds') ? (
+              /* A frame from Google is a request to Google carrying the
+                 reader's address, whether or not they wanted the map. So the
+                 map is a picture of a button until they say yes — and the
+                 link below still opens Google Maps in a new tab, which is
+                 their own click and their own choice. */
+              <div style={{ height: '100%', minHeight: 280, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, textAlign: 'center', padding: 24, background: 'var(--bg2)' }}>
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--muted3)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1118 0z" /><circle cx="12" cy="10" r="3" />
+                </svg>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{d.consent.mapBlocked}</div>
+                <p style={{ margin: 0, maxWidth: 380, fontSize: 13, lineHeight: 1.7, color: 'var(--muted)' }}>{d.consent.mapBlockedBody}</p>
+                <button
+                  id="map-allow"
+                  onClick={() => consent.save(true)}
+                  style={{ height: 42, padding: '0 20px', border: 0, borderRadius: 10, background: 'var(--accent)', color: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+                >
+                  {d.consent.mapAllow}
+                </button>
+                <a href={mapLinkUrl(point)} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>
+                  {d.contact.openInMaps}
+                </a>
+              </div>
+            ) : point ? (
               <>
                 <iframe
                   src={mapEmbedUrl(point)}
