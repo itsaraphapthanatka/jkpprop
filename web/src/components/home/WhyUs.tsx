@@ -4,11 +4,11 @@ import { useEffect, useRef, useState } from 'react';
 import { useDict } from '@/i18n/useDict';
 import type { SectionCopy } from '@/lib/server/sectionCopy';
 
-const KPI_DEFS: { target: number; suffix: string; label: string; comma: boolean; yearsUnit?: boolean }[] = [
-  { target: 2000, suffix: '+', label: 'ทรัพย์ในระบบทั่วประเทศ', comma: true },
-  { target: 100, suffix: '+', label: 'องค์กรที่ไว้วางใจ', comma: false },
-  { target: 12, suffix: '', label: 'ประสบการณ์ในตลาด', comma: false, yearsUnit: true },
-];
+/* These used to read 2,000+ properties, 100+ organisations and 12 years —
+   figures nobody could point at, printed as fact above a catalogue of three.
+   The defaults are now counted from the published inventory; anything typed
+   into the CMS still wins over them. */
+export type PublicStats = { published: number; provinces: number; lastUpdated: string | null };
 
 const FEATURE_ICONS = [
   <svg key="0" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6" /></svg>,
@@ -19,7 +19,7 @@ const FEATURE_ICONS = [
   <svg key="5" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a4 4 0 00-4 4c0 1.5.8 2.8 2 3.4V11a2 2 0 01-2 2H6a3 3 0 00-3 3v1M12 2a4 4 0 014 4c0 1.5-.8 2.8-2 3.4V11a2 2 0 002 2h2a3 3 0 013 3v1" /><circle cx="4" cy="20" r="2" /><circle cx="20" cy="20" r="2" /><circle cx="12" cy="20" r="2" /></svg>,
 ];
 
-export function WhyUs({ copy, kpi: kpiCopy }: { copy: SectionCopy; kpi: SectionCopy }) {
+export function WhyUs({ copy, kpi: kpiCopy, stats }: { copy: SectionCopy; kpi: SectionCopy; stats?: PublicStats }) {
   const d = useDict();
   const [kpi, setKpi] = useState(0);
   const [fhover, setFhover] = useState<number | null>(null);
@@ -55,15 +55,14 @@ export function WhyUs({ copy, kpi: kpiCopy }: { copy: SectionCopy; kpi: SectionC
      only knows how to walk an integer up from zero, and "2,000+" is not one.
      Anything the team writes is printed verbatim; only the built-in defaults
      animate. */
+  const counted = [stats?.published ?? 0, stats?.provinces ?? 0];
   const kpis = kpiCopy.items.length
     ? kpiCopy.items.map((it) => ({ label: it.desc ?? '', value: it.title ?? '' }))
-    : KPI_DEFS.map((k, i) => {
-      const n = Math.round(k.target * kpi);
-      return {
-        label: d.whyUs.kpis[i],
-        value: (k.comma ? n.toLocaleString('en-US') : String(n)) + k.suffix + (k.yearsUnit ? d.whyUs.years : ''),
-      };
-    });
+    : [
+      // the two counts animate up; a date is not a number to count to
+      ...counted.map((n, i) => ({ label: d.whyUs.kpis[i], value: Math.round(n * kpi).toLocaleString('en-US') })),
+      { label: d.whyUs.kpis[2], value: stats?.lastUpdated ?? '—' },
+    ];
 
   const pick = (v: string, fallback: string) => v || fallback;
   /* "ชื่อรางวัล · ปี" in one field, so the ribbon's two lines stay one thing

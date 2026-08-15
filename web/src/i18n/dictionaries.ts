@@ -88,6 +88,7 @@ export type Dictionary = {
     hero: string; breadcrumb: string;
     storyEyebrow: string; storyHeading: string; storyBody: string; storyCaption: string;
     statFounded: string; statListings: string; statTeamYears: string;
+    statProvinces: string; statUpdated: string;
     pillars: { title: string; desc: string }[];
     teamEyebrow: string; teamHeading: string; teamSub: string; teamBlurb: string;
     awardEyebrow: string; awardHeading: string; awardBody: string; awardCaption: string;
@@ -200,13 +201,13 @@ const th: Dictionary = {
   whyUs: {
     eyebrow: 'ทำไมต้องเลือกเรา', heading: 'เหตุผลที่ลูกค้าเลือกเรา',
     sub: 'เราได้รับความไว้วางใจจากทั้งนักลงทุนต่างชาติและเจ้าของทรัพย์ไทย ด้วยความเชี่ยวชาญ ความโปร่งใส และเทคโนโลยีที่ช่วยให้ทุกดีลเดินหน้าได้จริง',
-    years: ' ปี', satisfaction: 'ความพึงพอใจจากลูกค้ากว่า 100+ ราย',
-    kpis: ['ทรัพย์ในระบบทั่วประเทศ', 'องค์กรที่ไว้วางใจ', 'ประสบการณ์ในตลาด'],
+    years: ' ปี', satisfaction: 'ทีมงานดูแลตั้งแต่คัดทรัพย์จนถึงวันเซ็นสัญญา',
+    kpis: ['ทรัพย์ที่เผยแพร่อยู่', 'จังหวัดที่มีทรัพย์', 'อัปเดตล่าสุด'],
     items: [
       { title: 'จดทะเบียนถูกต้องและได้รับการรับรอง', desc: 'จดทะเบียนกับ DBD สมาชิก TREBA พร้อมประสบการณ์จริงในดีลอุตสาหกรรม' },
       { title: 'รองรับหลายภาษา', desc: 'สื่อสารได้ทั้งจีน อังกฤษ และไทย ลดช่องว่างด้านภาษาและวัฒนธรรม' },
       { title: 'เข้าใจทั้งสองฝั่ง', desc: 'เข้าใจมุมมองทั้งเจ้าของทรัพย์และผู้เช่า เจรจาอย่างเป็นธรรมและได้ประโยชน์ร่วมกัน' },
-      { title: 'ประกาศทรัพย์ใช้งานจริงกว่า 2,000 รายการ', desc: 'ร่วมงานกับดีเวลลอปเปอร์และเจ้าของทรัพย์ชั้นนำ พอร์ตทรัพย์ขนาดใหญ่ที่เชื่อถือได้' },
+      { title: 'ทรัพย์ที่ตรวจสอบแล้วทุกรายการ', desc: 'ร่วมงานกับดีเวลลอปเปอร์และเจ้าของทรัพย์โดยตรง ตรวจเอกสารสิทธิ์และสถานะว่างก่อนลงประกาศ' },
       { title: 'ราคาโปร่งใส', desc: 'ไม่มีการบวกราคาเหนือเจ้าของทรัพย์ สร้างความเชื่อมั่นให้ผู้เช่าและผู้ซื้อ' },
       { title: 'ขับเคลื่อนด้วยเทคโนโลยี', desc: 'ระบบอัตโนมัติและเครื่องมือ AI ช่วยให้บริการได้รวดเร็ว แม่นยำ และตรงโจทย์' },
     ],
@@ -220,7 +221,7 @@ const th: Dictionary = {
       { name: 'มาตรฐานวิชาชีพ', tag: 'ผ่านการอบรมและรับรอง', desc: 'ทีมนายหน้าผ่านการอบรมหลักสูตรอสังหาริมทรัพย์ พร้อมประสบการณ์จริงในดีลอุตสาหกรรม' },
     ],
   },
-  trust: { eyebrow: 'ความสำเร็จของลูกค้า', heading: 'ธุรกิจทั่วประเทศที่ไว้วางใจเรา', happyClients: 'ลูกค้าที่พึงพอใจกว่า 500+ ราย' },
+  trust: { eyebrow: 'ความสำเร็จของลูกค้า', heading: 'ธุรกิจทั่วประเทศที่ไว้วางใจเรา', happyClients: 'ธุรกิจที่เราเคยช่วยหาทำเล' },
   cta: {
     free: 'ปรึกษาฟรี ไม่มีค่าใช้จ่าย', freeShort: 'ปรึกษาฟรี!', eyebrow: 'ปรึกษาฟรี ไม่มีค่าใช้จ่าย',
     headline: 'พร้อมหาโรงงานหรือโกดังที่ใช่ ', headlineAccent: 'ให้เราช่วยคุณ',
@@ -274,9 +275,10 @@ const th: Dictionary = {
     storyBody: 'JKP Property ก่อตั้งขึ้นเพื่อเป็นตัวกลางที่น่าเชื่อถือระหว่างนักลงทุนและเจ้าของทรัพย์อสังหาริมทรัพย์อุตสาหกรรมทั่วประเทศไทย ด้วยความเข้าใจตลาดโรงงานและโกดังอย่างลึกซึ้ง ทีมงานของเราคัดกรองทรัพย์ทุกรายการก่อนเผยแพร่ พร้อมดูแลลูกค้าตั้งแต่ค้นหาจนปิดดีลอย่างโปร่งใสและเป็นธรรม',
     storyCaption: 'JKP Property · Founded by ทีมผู้ก่อตั้ง',
     statFounded: 'ก่อตั้ง', statListings: 'ทรัพย์ในระบบ', statTeamYears: 'ประสบการณ์ทีมงาน',
+    statProvinces: 'จังหวัดที่มีทรัพย์', statUpdated: 'อัปเดตล่าสุด',
     pillars: [
       { title: 'การสื่อสาร', desc: 'สื่อสารได้ทั้งไทย อังกฤษ และจีน ไม่มีช่องว่างด้านภาษา' },
-      { title: 'ความน่าเชื่อถือ', desc: 'ประสบการณ์กว่า 12 ปีในธุรกิจอสังหาริมทรัพย์อุตสาหกรรม' },
+      { title: 'ความน่าเชื่อถือ', desc: 'ทีมงานเฉพาะทางด้านอสังหาริมทรัพย์อุตสาหกรรมและโลจิสติกส์' },
       { title: 'ความรู้ตลาด', desc: 'เข้าใจทำเลและกฎระเบียบของทุกจังหวัดในประเทศไทย' },
     ],
     teamEyebrow: 'ทีมงาน', teamHeading: 'พบกับทีมงานของเรา',
@@ -402,13 +404,13 @@ const en: Dictionary = {
   whyUs: {
     eyebrow: 'Why choose us', heading: 'Why clients choose JKP',
     sub: 'Foreign investors and Thai property owners both rely on us — for the expertise, the transparency, and the technology that keeps a deal moving.',
-    years: ' years', satisfaction: 'Over 100 satisfied clients',
-    kpis: ['Properties listed nationwide', 'Organisations that trust us', 'Years in the market'],
+    years: ' years', satisfaction: 'We stay with you from shortlist to signature',
+    kpis: ['Properties published', 'Provinces covered', 'Last updated'],
     items: [
       { title: 'Licensed and accredited', desc: 'Registered with the DBD and a TREBA member, with real experience in industrial deals.' },
       { title: 'Multilingual service', desc: 'We work in Chinese, English and Thai, closing the language and culture gap.' },
       { title: 'Both sides understood', desc: 'We see it from the owner’s side and the tenant’s, and negotiate fairly for both.' },
-      { title: 'Over 2,000 live listings', desc: 'We work with leading developers and owners, backed by a large, reliable portfolio.' },
+      { title: 'Every listing verified', desc: 'We work directly with developers and owners, and check the title documents and availability before a property goes up.' },
       { title: 'Transparent pricing', desc: 'No mark-up over the owner’s price, so tenants and buyers know where they stand.' },
       { title: 'Technology-driven', desc: 'Automation and AI tools let us respond quickly, accurately and on brief.' },
     ],
@@ -422,7 +424,7 @@ const en: Dictionary = {
       { name: 'Professional standards', tag: 'Trained and certified', desc: 'Our brokers have completed accredited real-estate training and worked real industrial deals.' },
     ],
   },
-  trust: { eyebrow: 'Client results', heading: 'Businesses across Thailand that trust us', happyClients: 'Over 500 satisfied clients' },
+  trust: { eyebrow: 'Client results', heading: 'Businesses across Thailand that trust us', happyClients: 'Businesses we have helped find space' },
   cta: {
     free: 'Free, no obligation', freeShort: 'Free consultation', eyebrow: 'Free, no obligation',
     headline: 'Looking for the right factory or warehouse? ', headlineAccent: 'Let us help.',
@@ -476,9 +478,10 @@ const en: Dictionary = {
     storyBody: 'JKP Property was founded to be a broker that both sides can rely on — investors looking for industrial space, and the owners who hold it. We know the factory and warehouse market in depth, we vet every property before it is published, and we stay with the client from the first search through to signing, openly and fairly.',
     storyCaption: 'JKP Property · Founded by our partners',
     statFounded: 'Founded', statListings: 'Listings', statTeamYears: 'Team experience',
+    statProvinces: 'Provinces covered', statUpdated: 'Last updated',
     pillars: [
       { title: 'Communication', desc: 'We work in Thai, English and Chinese — no language gap.' },
-      { title: 'Track record', desc: 'Over 12 years in industrial property.' },
+      { title: 'Track record', desc: 'A team that works only on industrial and logistics property.' },
       { title: 'Market knowledge', desc: 'We know the locations and the regulations in every province of Thailand.' },
     ],
     teamEyebrow: 'The team', teamHeading: 'Meet the team',
@@ -604,13 +607,13 @@ const zh: Dictionary = {
   whyUs: {
     eyebrow: '为什么选择我们', heading: '客户选择 JKP 的理由',
     sub: '外国投资者与泰国业主都信赖我们——凭借专业能力、透明作风，以及让每笔交易顺利推进的技术支持。',
-    years: ' 年', satisfaction: '超过 100 位客户给予好评',
-    kpis: ['全国在库房源', '信赖我们的企业', '市场从业年限'],
+    years: ' 年', satisfaction: '从筛选房源到签约全程陪同',
+    kpis: ['已发布房源', '覆盖府数', '最近更新'],
     items: [
       { title: '合法注册并具备资质', desc: '已在 DBD 注册并为 TREBA 会员，具备真实的工业地产成交经验。' },
       { title: '多语种服务', desc: '可用中文、英文和泰文沟通，减少语言与文化上的障碍。' },
       { title: '兼顾业主与租户', desc: '同时理解业主与租户的立场，公平谈判，实现双赢。' },
-      { title: '超过 2,000 条在售房源', desc: '与主要开发商及业主合作，房源库规模大且可靠。' },
+      { title: '每一条房源都经过核实', desc: '与开发商及业主直接合作，上架前核对产权文件与可租售状态。' },
       { title: '价格透明', desc: '不在业主报价上加价，让租户与买家心里有数。' },
       { title: '技术驱动', desc: '自动化系统与 AI 工具让我们响应更快、更准、更贴合需求。' },
     ],
@@ -624,7 +627,7 @@ const zh: Dictionary = {
       { name: '专业标准', tag: '受训并获认证', desc: '经纪团队均完成房地产专业培训，并有真实的工业地产成交经验。' },
     ],
   },
-  trust: { eyebrow: '客户成果', heading: '泰国各地信赖我们的企业', happyClients: '超过 500 位客户给予好评' },
+  trust: { eyebrow: '客户成果', heading: '泰国各地信赖我们的企业', happyClients: '我们协助过的企业' },
   cta: {
     free: '免费咨询，无需付费', freeShort: '免费咨询', eyebrow: '免费咨询，无需付费',
     headline: '正在寻找合适的厂房或仓库？', headlineAccent: '让我们来帮您。',
@@ -678,9 +681,10 @@ const zh: Dictionary = {
     storyBody: 'JKP Property 成立的目的，是在寻找工业厂房的投资者与持有物业的业主之间，做一个双方都能信赖的中介。我们深入了解泰国的厂房与仓库市场，每一处房源在发布前都经过核验，并从初次寻找一路陪伴客户到签约，全程公开、公平。',
     storyCaption: 'JKP Property · 由创始团队创立',
     statFounded: '成立年份', statListings: '在库房源', statTeamYears: '团队经验',
+    statProvinces: '覆盖府数', statUpdated: '最近更新',
     pillars: [
       { title: '沟通无碍', desc: '可用泰文、英文与中文沟通，没有语言隔阂。' },
-      { title: '可靠履历', desc: '深耕工业地产超过 12 年。' },
+      { title: '可靠履历', desc: '专注工业与物流地产的团队。' },
       { title: '市场理解', desc: '熟悉泰国各府的区位条件与法规要求。' },
     ],
     teamEyebrow: '团队', teamHeading: '认识我们的团队',

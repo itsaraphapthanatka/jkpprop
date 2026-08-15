@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import Link from '@/i18n/LocaleLink';
 import { useDict } from '@/i18n/useDict';
 import type { SectionCopy } from '@/lib/server/sectionCopy';
+import type { PublicStats } from '@/components/home/WhyUs';
 
 /* ============================================================
    Ported verbatim from About.dc.html — hero, story card + pillars,
@@ -33,7 +34,7 @@ const DEFAULT_TEAM = [
 ];
 const DEFAULT_PRESS = ['BRAND INSIGHT', 'BIZ NEWS', 'MARKET WATCH', 'MGR ONLINE', 'THE STANDARD', 'PROPERTY TODAY'];
 
-export function AboutBody({ copy }: { copy: AboutCopy }) {
+export function AboutBody({ copy, stats: live }: { copy: AboutCopy; stats?: PublicStats }) {
   const d = useDict();
   const pick = (v: string, fallback: string) => v || fallback;
 
@@ -50,10 +51,13 @@ export function AboutBody({ copy }: { copy: AboutCopy }) {
   const pressLogos = copy.pr.itemsAny.length ? copy.pr.itemsAny.map((i) => i.title ?? '') : DEFAULT_PRESS;
   const stats = copy.st.items.length
     ? copy.st.items.map((it) => ({ value: it.title ?? '', label: it.desc ?? '' }))
+    /* was 2019 · 2,000+ · 12 ปี — a founding year, an inventory figure and a
+       length of experience, none of which the system knows. What it does know
+       is what is published right now. */
     : [
-      { value: '2019', label: d.about.statFounded },
-      { value: '2,000+', label: d.about.statListings },
-      { value: `12${d.whyUs.years}`, label: d.about.statTeamYears },
+      { value: String(live?.published ?? 0), label: d.about.statListings },
+      { value: String(live?.provinces ?? 0), label: d.about.statProvinces },
+      { value: live?.lastUpdated ?? '—', label: d.about.statUpdated },
     ];
   const teamRef = useRef<HTMLDivElement | null>(null);
   const scroll = (dx: number) => teamRef.current && teamRef.current.scrollBy({ left: dx, behavior: 'smooth' });

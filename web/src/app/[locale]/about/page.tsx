@@ -7,6 +7,7 @@ import { getDictionary } from '@/i18n/dictionaries';
 import { ContentHeader } from '@/components/site/ContentHeader';
 import { ContentFooter } from '@/components/site/ContentFooter';
 import { AboutBody } from '@/components/site/AboutBody';
+import { siteStats } from '@/lib/server/siteStats';
 import { CONTENT_CSS } from '@/components/site/contentCss';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
@@ -44,6 +45,14 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
   const locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
   const company = await loadCompany(locale);
   const pages = await listCmsPages(locale).catch(() => []);
+  const live = await siteStats();
+  const stats = {
+    published: live.published,
+    provinces: live.provinces,
+    lastUpdated: live.lastUpdated
+      ? new Intl.DateTimeFormat(locale === 'th' ? 'th-TH' : locale === 'zh' ? 'zh-CN' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(live.lastUpdated)
+      : null,
+  };
   const c = await loadPageCopy('about', locale).catch(() => ({}));
   const copy = {
     ah: section(c, 'ah'), st: section(c, 'st'), pl: section(c, 'pl'),
@@ -54,7 +63,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
     <div style={{ width: '100%', background: 'var(--bg)', minHeight: '100vh' }}>
       <style dangerouslySetInnerHTML={{ __html: aboutCss }} />
       <ContentHeader active="about" />
-      <AboutBody copy={copy} />
+      <AboutBody copy={copy} stats={stats} />
       <ContentFooter email={company.generalEmail} phone={company.phones[0]?.number} location={company.shortLocation} socials={company.socials} pages={pages} />
     </div>
   );

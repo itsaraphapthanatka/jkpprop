@@ -1,5 +1,8 @@
 /* Seed — dev bootstrap: org, users, geography, social channels, sample
-   properties + leases whose public_codes match the old UI mocks. */
+   properties, and the two legal documents the public site must carry.
+   No lead, lease or deal is seeded: invented pipeline data on a live install
+   is indistinguishable from the real thing until someone acts on it. */
+import { LEGAL_PAGES } from './legalPages';
 import { PrismaClient, Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { SECTION_CATALOG, PAGE_KEYS } from '../src/lib/sectionCatalog';
@@ -112,6 +115,20 @@ async function main() {
     ['faq', 'rg4-license', 'ขอใบ ร.ง.4 ต้องเตรียมอะไรบ้าง', 'เอกสาร & ใบอนุญาต', 'published'],
     ['certs', 'treba', 'สมาชิก TREBA', 'การรับรอง', 'published'],
   ];
+  /* privacy + terms ship with their text: a site that collects a name, a phone
+     number and an email needs both, and an empty page is the same as none. */
+  for (const pg of LEGAL_PAGES) {
+    await db.cmsPage.upsert({
+      where: { orgId_kind_slug: { orgId, kind: 'pages', slug: pg.slug } },
+      update: {},
+      create: {
+        orgId, kind: 'pages', slug: pg.slug, title: pg.title,
+        category: 'เอกสารทางกฎหมาย', status: 'published',
+        content: pg.content as Prisma.InputJsonValue,
+      },
+    });
+  }
+
   for (const [kind, slug, title, category, status] of cms) {
     await db.cmsPage.upsert({
       where: { orgId_kind_slug: { orgId, kind, slug } },

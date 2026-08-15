@@ -4,6 +4,7 @@ import { Featured } from '@/components/home/Featured';
 import { LocationFinder } from '@/components/home/LocationFinder';
 import { Steps } from '@/components/home/Steps';
 import { WhyUs } from '@/components/home/WhyUs';
+import { siteStats } from '@/lib/server/siteStats';
 import { Certifications } from '@/components/home/Certifications';
 import { TrustGallery } from '@/components/home/TrustGallery';
 import { CtaBand } from '@/components/home/CtaBand';
@@ -55,6 +56,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const company = await loadCompany(locale);
   const pages = await listCmsPages(locale).catch(() => []);
   const featured = await loadPublicListings({ locale, limit: 6 }).catch(() => []);
+  const live = await siteStats();
+  const stats = { published: live.published, provinces: live.provinces, lastUpdated: statDate(live.lastUpdated, locale) };
   const c = await loadPageCopy('home', locale).catch(() => ({}));
 
   const all = await loadPublicListings({ locale, limit: 60 }).catch(() => []);
@@ -86,7 +89,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         {section(c, 'n').enabled && <Featured items={featured} copy={section(c, 'n')} />}
         {section(c, 'l').enabled && <LocationFinder counts={counts} copy={section(c, 'l')} />}
         {section(c, 's').enabled && <Steps copy={section(c, 's')} />}
-        {section(c, 'w').enabled && <WhyUs copy={section(c, 'w')} kpi={section(c, 'wk')} />}
+        {section(c, 'w').enabled && <WhyUs copy={section(c, 'w')} kpi={section(c, 'wk')} stats={stats} />}
         <Certifications copy={section(c, 'ct')} />
         <TrustGallery copy={section(c, 'tg')} />
         {section(c, 'c').enabled && <CtaBand copy={section(c, 'c')} company={company} />}
@@ -100,3 +103,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     </div>
   );
 }
+
+/* the date a visitor can verify against the newest card on the page */
+const statDate = (d: Date | null, locale: string) =>
+  d ? new Intl.DateTimeFormat(locale === 'th' ? 'th-TH' : locale === 'zh' ? 'zh-CN' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(d) : null;

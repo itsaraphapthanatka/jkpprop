@@ -372,3 +372,41 @@ test.describe('what search engines are given', () => {
     }
   });
 });
+
+test.describe('figures the site can stand behind', () => {
+  /* The stats strip and the KPI row shipped with defaults baked in — 2,000+
+     properties, 100+ organisations, 12 years — printed as fact above a
+     catalogue of three. Anything typed into the CMS still wins; these are what
+     stands there until then. */
+  test('the home KPIs and the about stats match the published inventory', async ({ page, request }) => {
+    const listings = (await (await request.get('/api/public/listings?locale=th&limit=60')).json()).items as { province: string }[];
+    const published = listings.length;
+    const provinces = new Set(listings.map((l) => l.province).filter(Boolean)).size;
+    test.skip(!published, 'nothing published');
+
+    for (const path of ['/th', '/th/about']) {
+      const html = await (await request.get(path)).text();
+      for (const ghost of ['2,000+', '100+', '12 ปี']) {
+        expect(html, `${path} still claims ${ghost}`).not.toContain(ghost);
+      }
+    }
+
+    await page.goto('/th/about');
+    const strip = page.locator('body');
+    await expect(strip).toContainText(String(published));
+    await expect(strip).toContainText(String(provinces));
+  });
+
+  test('the legal pages exist, in every language, and are linked', async ({ request }) => {
+    for (const locale of ['th', 'en', 'zh']) {
+      for (const slug of ['privacy', 'terms']) {
+        const res = await request.get(`/${locale}/p/${slug}`);
+        expect(res.status(), `/${locale}/p/${slug}`).toBe(200);
+        const html = await res.text();
+        expect(html.length, `/${locale}/p/${slug} is empty`).toBeGreaterThan(2000);
+      }
+      const home = await (await request.get(`/${locale}`)).text();
+      expect(home, `${locale} home does not link the privacy policy`).toContain('/p/privacy');
+    }
+  });
+});
