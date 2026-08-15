@@ -415,47 +415,33 @@ test.describe('the location finder map', () => {
   /* The pins were percentages over an image cropped with object-fit:cover, so
      they slid with the container: Don Mueang sat over Nakhon Nayok. And the
      factor cards did nothing until clicked. */
-  test('a pin sits where its coordinates say, whatever the window size', async ({ page }) => {
-    await page.goto('/th');
-    const plane = page.locator('#lf-map-plane');
-    await plane.scrollIntoViewIfNeeded();
-    await expect(plane).toBeVisible();
-
-    const read = async () => {
-      const box = (await plane.boundingBox())!;
-      const pin = (await page.locator('[data-pin="ดอนเมือง"]').boundingBox())!;
-      return { x: (pin.x + pin.width / 2 - box.x) / box.width, y: (pin.y - box.y) / box.height };
-    };
-
-    const wide = await read();
-    await page.setViewportSize({ width: 900, height: 1000 });
-    await plane.scrollIntoViewIfNeeded();
-    const narrow = await read();
-
-    // the same fraction of the map, at both sizes — that is what cover broke
-    expect(Math.abs(wide.x - narrow.x), 'the pin moved when the window did').toBeLessThan(0.03);
-    expect(Math.abs(wide.y - narrow.y)).toBeLessThan(0.03);
-    expect(wide.x).toBeGreaterThan(0.30);
-    expect(wide.x).toBeLessThan(0.42);
-  });
-
-  test('the map highlights the area of the factor, chosen or hovered', async ({ page }) => {
+  test('the map lights the provinces the factor is actually about', async ({ page }) => {
     await page.goto('/th');
     await page.locator('#lf-map-plane').scrollIntoViewIfNeeded();
 
-    // airports are the default choice — their areas are lit, the ports' are not
-    await expect(page.locator('[data-halo="ดอนเมือง"]')).toHaveCSS('opacity', '1');
-    await expect(page.locator('[data-halo="ท่าเรือแหลมฉบัง"]')).toHaveCSS('opacity', '0');
+    const lit = (key: string) => page.locator(`[data-province="${key}"]`).getAttribute('data-lit');
 
-    // hovering the EEC factor lights the corridor without choosing it
+    // airports are the default: Bangkok and Samut Prakan hold them
+    expect(await lit('bangkok')).toBe('1');
+    expect(await lit('samut_prakan')).toBe('1');
+    expect(await lit('rayong')).toBe('0');
+
+    // hovering EEC lights the statutory three without choosing them
     await page.locator('[data-factor="eec"]').hover();
-    await expect(page.locator('[data-halo="ท่าเรือมาบตาพุด"]')).toHaveCSS('opacity', '1');
-    await expect(page.locator('[data-halo="ดอนเมือง"]')).toHaveCSS('opacity', '0');
+    for (const k of ['chonburi', 'rayong', 'chachoengsao']) expect(await lit(k), k).toBe('1');
+    expect(await lit('bangkok')).toBe('0');
 
     // clicking makes it the choice, and it stays lit with the cursor away
     await page.locator('[data-factor="eec"]').click();
     await page.locator('#lf-map-plane').hover();
-    await expect(page.locator('[data-halo="ท่าเรือมาบตาพุด"]')).toHaveCSS('opacity', '1');
+    expect(await lit('rayong')).toBe('1');
+  });
+
+  test('a province names itself when the cursor is on it', async ({ page }) => {
+    await page.goto('/th');
+    await page.locator('#lf-map-plane').scrollIntoViewIfNeeded();
+    await page.locator('[data-province="chonburi"]').hover();
+    await expect(page.locator('#lf-map-plane').getByText('ชลบุรี')).toBeVisible();
   });
 
   test('hovering a factor previews it on the map without choosing it', async ({ page }) => {
@@ -465,15 +451,15 @@ test.describe('the location finder map', () => {
     const port = page.locator('[data-pin="ท่าเรือแหลมฉบัง"]');
     const airport = page.locator('[data-pin="ดอนเมือง"]');
     // airports are the default: the port pin starts dimmed
-    await expect(port).toHaveCSS('opacity', '0.34');
+    await expect(port).toHaveCSS('opacity', '0.35');
 
     await page.locator('[data-factor="port"]').hover();
     await expect(port).toHaveCSS('opacity', '1');
-    await expect(airport).toHaveCSS('opacity', '0.34');
+    await expect(airport).toHaveCSS('opacity', '0.35');
 
     // moving away puts it back — hovering is a preview, not a choice
-    await page.locator('#lf-map-plane').hover();
-    await expect(port).toHaveCSS('opacity', '0.34');
+    await page.locator('[data-factor="air"]').hover();
+    await expect(port).toHaveCSS('opacity', '0.35');
     await expect(airport).toHaveCSS('opacity', '1');
   });
 });

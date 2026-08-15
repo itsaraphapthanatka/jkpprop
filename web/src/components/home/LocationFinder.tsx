@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from '@/i18n/LocaleLink';
 import { useI18n } from '@/i18n/useDict';
 import { enumLabel } from '@/i18n/enums';
+import { RegionMap } from './RegionMap';
 import type { SectionCopy } from '@/lib/server/sectionCopy';
 
 type Loc = 'air' | 'port' | 'bkk' | 'eec';
@@ -13,33 +14,12 @@ type PinCat = 'air' | 'port' | 'bkk';
 interface FactorDef { key: Loc; title: string; desc: string; }
 interface PinDef { name: string; cat: PinCat; eec?: boolean; lat: number; lng: number; }
 
-/* What /assets/thailand-map-bg.png actually covers, read off the map by
-   fitting known towns (Ratchaburi, Chanthaburi, Lopburi, Rayong) to their real
-   coordinates. Pins are placed from their own latitude and longitude through
-   these bounds, instead of the eyeballed percentages they used to carry —
-   Don Mueang sat over Nakhon Nayok and Suvarnabhumi further east still. */
-const MAP_BOUNDS = { north: 14.8554, south: 12.3095, west: 99.6061, east: 102.3994 };
-const MAP_RATIO = 2140 / 2016; // the image's own aspect, so nothing is cropped
-
-/* How far around a pin counts as "this area", in kilometres. An airport or a
-   port draws industry from further out than a city centre does, and the EEC is
-   a whole economic corridor rather than a point. */
-const HALO_KM: Record<Loc, number> = { air: 30, port: 30, bkk: 22, eec: 55 };
-
-/* km → a share of the map, through the same bounds the pins use. Latitude is
-   111 km per degree; longitude shrinks by cos(lat) this far north. */
-const haloSize = (km: number, lat: number) => ({
-  w: ((km / (111 * Math.cos((lat * Math.PI) / 180))) / (MAP_BOUNDS.east - MAP_BOUNDS.west)) * 200,
-  h: ((km / 111) / (MAP_BOUNDS.north - MAP_BOUNDS.south)) * 200,
-});
-
-const pinPos = (p: PinDef) => ({
-  x: ((p.lng - MAP_BOUNDS.west) / (MAP_BOUNDS.east - MAP_BOUNDS.west)) * 100,
-  y: ((MAP_BOUNDS.north - p.lat) / (MAP_BOUNDS.north - MAP_BOUNDS.south)) * 100,
-});
 interface ChipDef { key: Loc; label: string; c: string; }
 interface OptionDef { key: string; label: string; href: string; }
-interface Stat { count: string; dist: string; prov: string; title: string; }
+/* `count` used to live here as 640+/820+/1,150+/930+ — the panel reads the
+   real number from the inventory, so nothing rendered them; they were four
+   more invented figures waiting for someone to wire them up by mistake. */
+interface Stat { dist: string; prov: string; title: string; }
 
 const CAT: Record<PinCat, string> = { air: '#2A6FDB', port: '#0E7C86', bkk: '#7A5AF8' };
 
@@ -67,10 +47,10 @@ const chipDefs: ChipDef[] = [
 ];
 
 const STATS: Record<Loc, Stat> = {
-  air: { count: '640+', dist: '8 กม.', prov: 'สมุทรปราการ · กรุงเทพฯ', title: 'ใกล้สนามบิน' },
-  port: { count: '820+', dist: '15 กม.', prov: 'ชลบุรี · ระยอง', title: 'ใกล้ท่าเรือ' },
-  bkk: { count: '1,150+', dist: '12 กม.', prov: 'กรุงเทพฯ · นนทบุรี', title: 'ใกล้กรุงเทพฯ' },
-  eec: { count: '930+', dist: 'ในเขต', prov: 'ชลบุรี · ระยอง · ฉะเชิงเทรา', title: 'EEC' },
+  air: { dist: '8 กม.', prov: 'สมุทรปราการ · กรุงเทพฯ', title: 'ใกล้สนามบิน' },
+  port: { dist: '15 กม.', prov: 'ชลบุรี · ระยอง', title: 'ใกล้ท่าเรือ' },
+  bkk: { dist: '12 กม.', prov: 'กรุงเทพฯ · นนทบุรี', title: 'ใกล้กรุงเทพฯ' },
+  eec: { dist: 'ในเขต', prov: 'ชลบุรี · ระยอง · ฉะเชิงเทรา', title: 'EEC' },
 };
 
 const OPTION_DEFS: Record<Loc, OptionDef[]> = {
@@ -105,30 +85,6 @@ const SUB_DEFS: Record<Loc, string> = {
 const factorCardStyle = (on: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: '14px', background: on ? 'rgba(var(--pine-rgb),.05)' : 'var(--surface)', border: '1.5px solid ' + (on ? 'var(--pine)' : 'var(--border)'), borderRadius: '12px', padding: '14px 16px', cursor: 'pointer', transition: 'all .2s' });
 const iconWrapStyle: React.CSSProperties = { flexShrink: 0, width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#28251D' };
 const checkStyle = (on: boolean): React.CSSProperties => ({ flexShrink: 0, width: '20px', height: '20px', borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? 'var(--pine)' : 'transparent', border: '1.5px solid ' + (on ? 'var(--pine)' : '#D4D1CA'), transition: 'all .2s' });
-
-const pinWrapStyle = (p: PinDef, on: boolean, hover: boolean): React.CSSProperties => {
-  const { x, y } = pinPos(p);
-  return {
-    position: 'absolute', left: x + '%', top: y + '%',
-    // the pin lifts off the map under the cursor
-    transform: `translate(-50%,-50%) scale(${hover ? 1.18 : 1})`,
-    transformOrigin: 'center bottom',
-    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
-    zIndex: hover ? 6 : on ? 5 : 3,
-    opacity: on ? 1 : 0.34,
-    transition: 'opacity .35s, filter .35s, transform .25s cubic-bezier(.2,.8,.3,1)',
-    filter: on ? 'none' : 'grayscale(0.6)',
-    cursor: 'default',
-  };
-};
-const pinDotStyle = (col: string, on: boolean): React.CSSProperties => ({ position: 'absolute', inset: '7px', borderRadius: '9999px', background: on ? col : '#8A867E', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: on ? ('0 6px 16px ' + col + '80') : '0 2px 6px rgba(0,0,0,.25)', transition: 'all .35s' });
-const pinLabelStyle = (on: boolean, hover = false): React.CSSProperties => ({ padding: '2px 9px', borderRadius: '7px', background: 'var(--surface)', boxShadow: hover ? '0 6px 18px rgba(0,0,0,.28)' : '0 2px 8px rgba(0,0,0,.16)', fontSize: '11px', fontWeight: 700, whiteSpace: 'nowrap', color: on ? '#28251D' : '#9B968D', transition: 'color .35s, box-shadow .25s' });
-const pulseRingStyle = (col: string, delay: number): React.CSSProperties => ({
-  position: 'absolute', inset: 0, borderRadius: '9999px',
-  border: '2px solid ' + col, opacity: 0.5,
-  animation: `pinPulse 1.8s ease-out ${delay}s infinite`,
-  pointerEvents: 'none',
-});
 
 const chipStyle = (c: ChipDef, on: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: '7px', height: '32px', padding: '0 13px', borderRadius: '9999px', cursor: 'pointer', fontSize: '12.5px', fontWeight: 700, background: on ? '#fff' : 'rgba(255,255,255,.72)', color: on ? '#28251D' : '#5F5A52', boxShadow: on ? ('0 4px 12px rgba(0,0,0,.16), inset 0 0 0 1.5px ' + c.c) : '0 2px 6px rgba(0,0,0,.08)', backdropFilter: 'blur(4px)', transition: 'all .2s' });
 const chipDotStyle = (c: ChipDef): React.CSSProperties => ({ width: '8px', height: '8px', borderRadius: '9999px', background: c.c, flexShrink: 0 });
@@ -173,7 +129,6 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
 
   // what the map is showing: the hovered factor if there is one, else the choice
   const shown: Loc = hoverFactor ?? loc;
-  const active = (p: PinDef) => (shown === 'eec' ? !!p.eec : p.cat === shown);
   const result = STATS[loc];
   const activeDefs = OPTION_DEFS[loc] || [];
 
@@ -254,78 +209,19 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
             onMouseLeave={() => { setMapHover(false); setHoverPin(null); }}
             style={{ position: 'relative', background: 'var(--tint)', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden', minHeight: '520px', transform: mapHover ? 'translateY(-4px)' : 'none', boxShadow: mapHover ? '0 26px 60px rgba(var(--ink-rgb),.20), inset 0 0 0 1px rgba(255,255,255,.5)' : '0 18px 44px rgba(var(--ink-rgb),.12), inset 0 0 0 1px rgba(255,255,255,.4)', transition: 'transform .3s cubic-bezier(.2,.8,.3,1), box-shadow .3s' }}
           >
-            {/* The map and the pins share one box with the image's own aspect
-                ratio. It used to be object-fit:cover — the image was cropped by
-                however tall the card happened to be, so pins positioned in
-                percentages slid off the places they name. */}
-            <div id="lf-map-plane" style={{ position: 'absolute', inset: 0, margin: 'auto', aspectRatio: String(MAP_RATIO), maxWidth: '100%', maxHeight: '100%' }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/assets/thailand-map-bg.png" alt={d.locations.mapAlt} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', opacity: 0.72 }} />
+            <RegionMap
+              factor={shown}
+              pins={pinDefs.map((pd) => ({ name: enumLabel(pd.name, locale), lat: pd.lat, lng: pd.lng, color: CAT[pd.cat], icon: pinIcon(pd.cat) }))}
+              activePin={hoverPin}
+              onPinHover={setHoverPin}
+              locale={locale}
+              label={d.locations.mapAlt}
+            />
 
             {/* result pill */}
             <div style={{ position: 'absolute', top: '16px', left: '16px', zIndex: 6, display: 'flex', alignItems: 'center', gap: '9px', height: '40px', padding: '0 16px', borderRadius: '9999px', background: 'rgba(255,255,255,.94)', backdropFilter: 'blur(6px)', boxShadow: '0 6px 18px rgba(0,0,0,.14)' }}>
               <span style={{ position: 'relative', display: 'flex', width: '9px', height: '9px' }}><span style={{ position: 'absolute', inset: 0, borderRadius: '9999px', background: 'var(--neon)', animation: 'pinPulse 1.8s ease-out infinite' }} /><span style={{ position: 'relative', width: '9px', height: '9px', borderRadius: '9999px', background: 'var(--accent)' }} /></span>
               <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{counts[shown] ?? 0} {d.locations.properties} · {enumLabel(STATS[shown].title, locale)}</span>
-            </div>
-
-            {/* The area each factor covers. This was a hidden placeholder: the
-                map could light up its pins but never showed the region they
-                stand for, so "ใกล้ท่าเรือ" pointed at three dots and left the
-                reader to guess how far that reached. */}
-            {pinDefs.map((p) => {
-              const on = active(p);
-              const { x, y } = pinPos(p);
-              const { w, h } = haloSize(HALO_KM[shown] ?? 30, p.lat);
-              const col = shown === 'eec' ? '#D9A62B' : CAT[p.cat];
-              return (
-                <div
-                  key={'halo-' + p.name}
-                  data-halo={p.name}
-                  aria-hidden
-                  style={{
-                    position: 'absolute', left: x + '%', top: y + '%',
-                    width: w + '%', height: h + '%',
-                    transform: 'translate(-50%,-50%)',
-                    borderRadius: '9999px',
-                    /* it was there before, at a third of this strength over a
-                       map already dimmed to 55% — technically visible, which
-                       is not the same as visible */
-                    background: `radial-gradient(closest-side, ${col}66, ${col}33 60%, ${col}00 100%)`,
-                    border: '2px dashed ' + col + (on ? 'AA' : '00'),
-                    boxShadow: on ? `0 0 0 1px ${col}22, 0 10px 34px ${col}44` : 'none',
-                    opacity: on ? 1 : 0,
-                    pointerEvents: 'none',
-                    zIndex: 2,
-                    transition: 'opacity .35s, width .35s, height .35s, background .35s, box-shadow .35s',
-                  }}
-                />
-              );
-            })}
-
-            {/* pins */}
-            {pinDefs.map((p, i) => {
-              const on = active(p);
-              const col = CAT[p.cat];
-              const hov = hoverPin === p.name;
-              return (
-                <div
-                  key={p.name + i}
-                  data-pin={p.name}
-                  onMouseEnter={() => setHoverPin(p.name)}
-                  onMouseLeave={() => setHoverPin((c) => (c === p.name ? null : c))}
-                  style={pinWrapStyle(p, on, hov)}
-                >
-                  <div style={{ position: 'relative', width: '36px', height: '36px' }}>
-                    {/* the two rings were ported as display:none — the pin the
-                        reader just chose looked the same as one it did not */}
-                    {on && <span style={pulseRingStyle(col, 0)} />}
-                    {on && <span style={pulseRingStyle(col, 0.9)} />}
-                    <div style={pinDotStyle(col, on)}>{pinIcon(p.cat)}</div>
-                  </div>
-                  <div style={pinLabelStyle(on, hov)}>{enumLabel(p.name, locale)}</div>
-                </div>
-              );
-            })}
             </div>
 
             {/* legend / filter chips */}
