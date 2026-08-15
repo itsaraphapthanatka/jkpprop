@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useI18n } from '@/i18n/useDict';
+import { useRouter } from 'next/navigation';
+import { SIZE_ITEMS, PRICE_ITEMS } from '@/lib/listingFilters';
 import { enumLabel } from '@/i18n/enums';
 import type { SectionCopy } from '@/lib/server/sectionCopy';
 
@@ -22,8 +24,10 @@ const CHIP_BASE: React.CSSProperties = {
 const activeChip: React.CSSProperties = { ...CHIP_BASE, background: 'var(--neon)', border: '1px solid var(--neon)', color: 'var(--ink)', fontWeight: 700 };
 const idleChip: React.CSSProperties = { ...CHIP_BASE, background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.42)', color: '#fff', fontWeight: 600 };
 
-const SIZE_VALS = ['500 ตร.ม.', '1,000 ตร.ม.', '2,000 ตร.ม.', '3,000 ตร.ม.', '5,000 ตร.ม.', '10,000 ตร.ม.+'];
-const PRICE_VALS = ['ต่ำกว่า ฿50,000', '฿50,000–100,000', '฿100,000–200,000', '฿200,000–500,000', 'สูงกว่า ฿500,000'];
+/* the same buckets the listing page filters by — the six sizes and five
+   price bands this file used to offer could not be honoured there */
+const SIZE_VALS = SIZE_ITEMS;
+const PRICE_VALS = PRICE_ITEMS;
 const ZONE_ITEMS = ['เขตปลอดอากร', 'เขตสีม่วง', 'นิคมอุตสาหกรรม'];
 const FEATURE_ITEMS = ['เครนเหนือศีรษะ', 'บนถนนสายหลัก', 'พนักงานรักษาความปลอดภัย', 'พร้อมพื้นที่สำนักงาน', 'พื้นที่ขนถ่ายสินค้าแบบยกพื้น', 'อาคารเดี่ยว'];
 const LOAD_VALS: [string, string][] = [['any', 'ไม่ระบุต่ำสุด'], ['0.5', '0.5 ton per sqm'], ['1', '1 ton per sqm'], ['2', '2 ton per sqm'], ['3', '3 ton per sqm']];
@@ -64,6 +68,21 @@ export function Hero({ copy }: { copy: SectionCopy }) {
   const [propType, setPropType] = useState<PropType>('warehouse');
   const [sizeSel, setSizeSel] = useState<string | null>(null);
   const [priceSel, setPriceSel] = useState<string | null>(null);
+  const [term, setTerm] = useState('');
+  const router = useRouter();
+
+  /* Everything the panel collects, handed to the listing page as a query it
+     knows how to read. Before this the whole panel was decoration: the chips
+     set state that nothing ever sent anywhere. */
+  const submitSearch = () => {
+    const p = new URLSearchParams();
+    if (term.trim()) p.set('q', term.trim());
+    p.set('deal', listingMode);
+    p.set('type', propType === 'factory' ? 'โรงงาน' : 'โกดัง / คลังสินค้า');
+    if (sizeSel) p.set('size', sizeSel);
+    if (priceSel) p.set('price', priceSel);
+    router.push(`/${locale}/listing?${p}`);
+  };
 
   const [filterOpen, setFilterOpen] = useState(false);
   const [filterTab, setFilterTab] = useState<FilterTab>('type');
@@ -153,31 +172,42 @@ export function Hero({ copy }: { copy: SectionCopy }) {
         {/* search panel */}
         <div style={{ marginTop: 28, width: '100%', maxWidth: '860px', background: 'rgba(255,255,255,.14)', border: '1px solid rgba(255,255,255,.30)', borderRadius: 16, boxShadow: '0 12px 34px rgba(0,0,0,.22)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', padding: 16, textAlign: 'left' }}>
           <div id="hero-search-bar" style={{ background: 'var(--surface)', borderRadius: 12, boxShadow: '0 6px 16px rgba(0,0,0,.12)', padding: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+            {/* This was a <span> with the placeholder written into it and a
+                button with no handler: the search box on the front page could
+                not be typed in at all. */}
             <div id="hero-search-textwrap" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7A7974" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
-              <span style={{ fontSize: 15, color: 'var(--muted2)' }}>{d.hero.searchPlaceholder}</span>
+              <input
+                id="hero-search-input"
+                value={term}
+                onChange={(e) => setTerm(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') submitSearch(); }}
+                placeholder={d.hero.searchPlaceholder}
+                aria-label={d.hero.searchPlaceholder}
+                style={{ flex: 1, minWidth: 0, border: 0, outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 15, color: 'var(--text)' }}
+              />
             </div>
-            <button id="hero-search-btn" className="search-btn" style={{ border: 0, height: 44, padding: '0 26px', background: 'var(--neon)', color: 'var(--ink)', fontFamily: 'inherit', fontSize: 15, fontWeight: 700, borderRadius: 8, cursor: 'pointer', transition: 'transform .15s', flexShrink: 0 }}>{d.common.search}</button>
+            <button id="hero-search-btn" type="button" onClick={submitSearch} className="search-btn" style={{ border: 0, height: 44, padding: '0 26px', background: 'var(--neon)', color: 'var(--ink)', fontFamily: 'inherit', fontSize: 15, fontWeight: 700, borderRadius: 8, cursor: 'pointer', transition: 'transform .15s', flexShrink: 0 }}>{d.common.search}</button>
           </div>
 
           <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
-            <div onClick={() => setListingMode('rent')} style={listingMode === 'rent' ? activeChip : idleChip}>
+            <div data-hero-chip="rent" onClick={() => setListingMode('rent')} style={listingMode === 'rent' ? activeChip : idleChip}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18" /><path d="M5 21V9l7-5 7 5v12" /><path d="M9 21v-6h6v6" /></svg>
               {d.nav.forRent}
             </div>
-            <div onClick={() => setListingMode('sale')} style={listingMode === 'sale' ? activeChip : idleChip}>
+            <div data-hero-chip="sale" onClick={() => setListingMode('sale')} style={listingMode === 'sale' ? activeChip : idleChip}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M20.6 13.4L13 21a2 2 0 01-2.8 0l-7-7A2 2 0 013 12.6V4h8.6a2 2 0 011.4.6l7.6 7.6a2 2 0 010 2.8z" /><circle cx="7.5" cy="7.5" r="1.2" /></svg>
               {d.nav.forSale}
             </div>
-            <div onClick={() => openFilter('type')} style={propType === 'factory' ? activeChip : idleChip}>
+            <div data-hero-chip="type" onClick={() => openFilter('type')} style={propType === 'factory' ? activeChip : idleChip}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21V8l9-5 9 5v13" /><path d="M3 21h18" /><path d="M7 21v-8h10v8" /></svg>
               {enumLabel(propType === 'factory' ? 'โรงงาน' : 'โกดัง', locale)}
             </div>
-            <div onClick={() => openFilter('size')} style={sizeSel ? activeChip : idleChip}>
+            <div data-hero-chip="size" onClick={() => openFilter('size')} style={sizeSel ? activeChip : idleChip}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" /></svg>
               {sizeSel ? enumLabel(sizeSel, locale) : d.hero.size}
             </div>
-            <div onClick={() => openFilter('price')} style={priceSel ? activeChip : idleChip}>
+            <div data-hero-chip="price" onClick={() => openFilter('price')} style={priceSel ? activeChip : idleChip}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M14.5 9a2.5 2.5 0 00-2.5-1.8c-1.4 0-2.5.9-2.5 2s1.1 2 2.5 2 2.5.9 2.5 2-1.1 2-2.5 2A2.5 2.5 0 019.5 15" /><path d="M12 6v1.2M12 16.8V18" /></svg>
               {priceSel ? enumLabel(priceSel, locale) : d.hero.priceRange}
             </div>

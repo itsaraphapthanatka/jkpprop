@@ -492,3 +492,44 @@ test.describe('the location finder map', () => {
     await expect(airport).toHaveCSS('opacity', '1');
   });
 });
+
+test.describe('the search box on the front page', () => {
+  /* It was a <span> with the placeholder written into it, next to a button
+     with no handler — the search on the front page of a property site could
+     not be typed in. The chips under it set state that went nowhere, and two
+     of them offered size and price bands the listing page cannot filter by. */
+  test('typing a code and pressing search opens that property\'s listing', async ({ page, request }) => {
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=60')).json()).items as { code: string }[];
+    test.skip(!items.length, 'nothing published');
+    const code = items[0].code;
+
+    await page.goto('/th');
+    await page.locator('#hero-search-input').fill(code);
+    await page.locator('#hero-search-btn').click();
+
+    await expect(page).toHaveURL(new RegExp(`/listing\\\\?.*q=${code}`));
+    await expect(page.locator('#listing-q')).toContainText(code);
+    // the result set is narrowed to it, not the whole catalogue
+    await expect(page.locator('body')).toContainText(code);
+  });
+
+  test('Enter searches too, and the chips travel with it', async ({ page }) => {
+    await page.goto('/th');
+    await page.locator('[data-hero-chip="sale"]').click();
+    await page.locator('#hero-search-input').fill('ระยอง');
+    await page.locator('#hero-search-input').press('Enter');
+
+    await expect(page).toHaveURL(/deal=sale/);
+    await expect(page).toHaveURL(/q=/);
+  });
+
+  test('the size bands offered here are the ones the listing page filters by', async ({ page }) => {
+    await page.goto('/th');
+    await page.locator('[data-hero-chip="size"]').click();
+    // the six invented sizes are gone; these three are what the destination knows
+    for (const label of ['ต่ำกว่า 1,000 ตร.ม.', '1,000–3,000 ตร.ม.', 'สูงกว่า 3,000 ตร.ม.']) {
+      await expect(page.getByText(label, { exact: true }).first()).toBeVisible();
+    }
+    await expect(page.getByText('10,000 ตร.ม.+')).toHaveCount(0);
+  });
+});

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { SIZE_ITEMS, PRICE_ITEMS } from '@/lib/listingFilters';
 import Link from '@/i18n/LocaleLink';
 import { PhotoPlaceholder } from '@/components/common/PhotoPlaceholder';
 import { useI18n } from '@/i18n/useDict';
@@ -29,8 +30,7 @@ const SHARE_DEFS: { key: string; label: string; char: string; bg: string; color:
 
 /* zone options are derived from the inventory on the page, not listed here */
 const TYPE_ITEMS = ['โรงงาน', 'โกดัง/คลังสินค้า'];
-const SIZE_ITEMS = ['ต่ำกว่า 1,000 ตร.ม.', '1,000–3,000 ตร.ม.', 'สูงกว่า 3,000 ตร.ม.'];
-const PRICE_ITEMS = ['ต่ำกว่า ฿100,000', '฿100,000–300,000', 'สูงกว่า ฿300,000'];
+
 
 /* One card's worth of published inventory, handed down from the server
    component that queried it. This file used to carry a nine-item copy of the
@@ -98,6 +98,10 @@ export interface ListingPreset {
   filterKey?: ListingFilterKey;
   /** area pages narrow to one province; matched against the property's own */
   province?: string;
+  /* what the search box on the home page was told to look for */
+  q?: string;
+  sizeSel?: string;
+  priceSel?: string;
 }
 const DEFAULT_PRESET: ListingPreset = { breadcrumb: '' };
 
@@ -273,8 +277,9 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
   const [secOpen, setSecOpen] = useState<Record<SecKey, boolean>>({ zone: true, type: true, size: true, price: true });
   const [zoneSel, setZoneSel] = useState<string[]>([]);
   const [typeSel, setTypeSel] = useState<string[]>(preset.typeSel ?? []);
-  const [sizeSel, setSizeSel] = useState<string | null>(null);
-  const [priceSel, setPriceSel] = useState<string | null>(null);
+  const [sizeSel, setSizeSel] = useState<string | null>(preset.sizeSel ?? null);
+  const [priceSel, setPriceSel] = useState<string | null>(preset.priceSel ?? null);
+  const [q, setQ] = useState(preset.q ?? '');
   const [sortOpen, setSortOpen] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>('new');
   const [shareOpen, setShareOpen] = useState(false);
@@ -295,7 +300,10 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
     return v >= 100_000 && v <= 300_000;
   };
 
+  const term = q.trim().toLowerCase();
   const filtered = all.filter((it) => {
+    // the words typed into the home page's search box
+    if (term && ![it.title, it.code, it.loc, it.province].some((f) => (f ?? '').toLowerCase().includes(term))) return false;
     if (listingMode === 'rent' && it.deal !== 'ให้เช่า') return false;
     if (listingMode === 'sale' && it.deal !== 'ขาย') return false;
     if (zoneSel.length && !zoneSel.includes(it.loc)) return false;
@@ -329,6 +337,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
 
   const toggleSec = (key: SecKey) => setSecOpen((s) => ({ ...s, [key]: !s[key] }));
   const clearAll = () => {
+    setQ('');
     setZoneSel([]);
     setTypeSel([]);
     setSizeSel(null);
@@ -398,8 +407,17 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
             </svg>
             {d.listing.filters}
           </div>
-          <div style={{ fontSize: 15, color: 'var(--muted)' }}>
-            {d.listing.resultsFound} <span style={{ fontWeight: 800, color: 'var(--text)' }}>{totalCount}</span> {d.listing.results}
+          <div style={{ fontSize: 15, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span>{d.listing.resultsFound} <span style={{ fontWeight: 800, color: 'var(--text)' }}>{totalCount}</span> {d.listing.results}</span>
+            {/* what was typed on the home page, and a way out of it */}
+            {q.trim() && (
+              <span id="listing-q" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 8px 0 12px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: '13px', fontWeight: 700 }}>
+                {`“${q.trim()}”`}
+                <span onClick={() => setQ('')} title={d.common.clear} style={{ display: 'flex', cursor: 'pointer' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                </span>
+              </span>
+            )}
           </div>
         </div>
         <div id="sort-share-row" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
