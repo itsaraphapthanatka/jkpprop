@@ -155,7 +155,7 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
       <section data-anim="1" style={{ maxWidth: '1200px', margin: '0 auto', padding: '88px 24px' }}>
         <div style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600, letterSpacing: '.06em', color: 'var(--accent)', textTransform: 'uppercase' }}>{pick(copy.eyebrow, d.locations.eyebrow)}</div>
         <h2 style={{ margin: '8px 0 40px', textAlign: 'center', fontSize: '30px', fontWeight: 700, color: 'var(--text)' }}>{pick(copy.headline, d.locations.heading)}</h2>
-        <div className="rs-split-l" style={{ display: 'grid', gridTemplateColumns: '0.82fr 1.18fr', gap: '32px', alignItems: 'stretch' }}>
+        <div className="rs-split-l" style={{ display: 'grid', gridTemplateColumns: '1.06fr 0.94fr', gap: '32px', alignItems: 'stretch' }}>
 
           {/* LEFT: factor selector */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -182,7 +182,7 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
             })}
 
             {/* live result card */}
-            <div style={{ position: 'relative', overflow: 'hidden', marginTop: '2px', background: 'linear-gradient(120deg,#0A0E0C 0%,#0A0E0C 50%,#0E3A22 100%)', borderRadius: '16px', padding: '20px', color: '#fff', boxShadow: '0 18px 40px rgba(0,0,0,.4)' }}>
+            <div style={{ position: 'relative', overflow: 'hidden', marginTop: '2px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: 'linear-gradient(120deg,#0A0E0C 0%,#0A0E0C 50%,#0E3A22 100%)', borderRadius: '16px', padding: '24px 20px', color: '#fff', boxShadow: '0 18px 40px rgba(0,0,0,.4)' }}>
               <div style={{ position: 'absolute', bottom: '-45%', right: '-12%', width: '64%', height: '180%', background: 'radial-gradient(ellipse at center,rgba(var(--neon-rgb),.28) 0%,rgba(var(--neon-rgb),0) 62%)', pointerEvents: 'none' }} />
               <div style={{ position: 'relative', fontSize: '12px', fontWeight: 600, letterSpacing: '.04em', color: '#5FE39B', textTransform: 'uppercase' }}>{d.locations.available}</div>
               <div style={{ position: 'relative', display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '8px' }}>
@@ -209,7 +209,7 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
           <div
             onMouseEnter={() => setMapHover(true)}
             onMouseLeave={() => { setMapHover(false); setHoverPin(null); }}
-            style={{ position: 'relative', background: 'var(--tint)', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden', minHeight: '520px', transform: mapHover ? 'translateY(-4px)' : 'none', boxShadow: mapHover ? '0 26px 60px rgba(var(--ink-rgb),.20), inset 0 0 0 1px rgba(255,255,255,.5)' : '0 18px 44px rgba(var(--ink-rgb),.12), inset 0 0 0 1px rgba(255,255,255,.4)', transition: 'transform .3s cubic-bezier(.2,.8,.3,1), box-shadow .3s' }}
+            style={{ position: 'relative', background: '#D9E5E6', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden', minHeight: '780px', transform: mapHover ? 'translateY(-4px)' : 'none', boxShadow: mapHover ? '0 26px 60px rgba(var(--ink-rgb),.20), inset 0 0 0 1px rgba(255,255,255,.5)' : '0 18px 44px rgba(var(--ink-rgb),.12), inset 0 0 0 1px rgba(255,255,255,.4)', transition: 'transform .3s cubic-bezier(.2,.8,.3,1), box-shadow .3s' }}
           >
             <RegionMap
               factor={shown}

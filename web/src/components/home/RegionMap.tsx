@@ -31,8 +31,8 @@ export const FACTOR_PROVINCES: Record<Factor, string[]> = {
 
 export type MapPin = { name: string; lat: number; lng: number; color: string; icon: React.ReactNode };
 
-/* the drawing box, fitted to the provinces themselves with a little air */
-const PAD = 0.12;
+/* the drawing box, fitted to the country with a little air */
+const PAD = 0.04;
 const bounds = (() => {
   let w = 180, e = -180, s = 90, n = -90;
   for (const p of PROVINCES) for (const ring of p.rings) for (const [x, y] of ring) {
@@ -60,36 +60,14 @@ const LIT = '#034956';
 const LIT_LIGHT = '#0A6B78';
 const LIT_WALL = '#022E38';
 
-type Box = { x: number; y: number; w: number; h: number };
-const FULL: Box = { x: 0, y: 0, w: VW, h: VH };
-
-/* The frame that holds a factor's provinces, with room around them. Choosing a
-   factor eases the map to this instead of leaving the reader to find the three
-   provinces that just changed colour — and it is the system driving, so the
-   wheel keeps scrolling the page. */
-function frameOf(keys: string[]): Box {
-  const pts = PROVINCES.filter((p) => keys.includes(p.key)).flatMap((p) => p.rings.flat());
-  if (!pts.length) return FULL;
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  for (const [lng, lat] of pts) {
-    const x = px(lng), y = py(lat);
-    if (x < x0) x0 = x; if (x > x1) x1 = x;
-    if (y < y0) y0 = y; if (y > y1) y1 = y;
-  }
-  const pad = Math.max((x1 - x0), (y1 - y0)) * 0.3;
-  let w = x1 - x0 + pad * 2, h = y1 - y0 + pad * 2;
-  // keep the drawing's shape, or the provinces come out stretched
-  const ratio = VW / VH;
-  if (w / h > ratio) h = w / ratio; else w = h * ratio;
-  // never frame more than the whole map, and never wander off it
-  w = Math.min(w, VW); h = Math.min(h, VH);
-  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-  return {
-    x: Math.max(0, Math.min(VW - w, cx - w / 2)),
-    y: Math.max(0, Math.min(VH - h, cy - h / 2)),
-    w, h,
-  };
-}
+/* The whole country is the picture. It used to be the thirteen provinces of
+   the industrial belt alone, framed to whichever three a factor covered — so
+   the reader saw a shape with no country around it, and every choice re-cropped
+   the picture under them. The frame is fixed now and only the fill moves. */
+const VIEW_ASPECT = 0.72;                // the panel it sits in, roughly
+const VIEW_W = Math.round(VH * VIEW_ASPECT);
+const VIEW_X = Math.round((VW - VIEW_W) / 2);
+const VIEW = `${VIEW_X} 0 ${VIEW_W} ${VH}`;
 
 export function RegionMap({ factor, pins, activePin, onPinHover, locale, label, onProvinceClick, provinceHint }: {
   factor: Factor;
@@ -105,41 +83,28 @@ export function RegionMap({ factor, pins, activePin, onPinHover, locale, label, 
 }) {
   const [hover, setHover] = React.useState<string | null>(null);
 
-  /* the viewBox, eased toward whatever the choice frames */
-  const target = React.useMemo(() => frameOf(FACTOR_PROVINCES[factor] ?? []), [factor]);
-  const [view, setView] = React.useState<Box>(target);
-  const fromRef = React.useRef<Box>(target);
-  const rafRef = React.useRef<number | undefined>(undefined);
-
-  React.useEffect(() => {
-    const from = fromRef.current;
-    const t0 = performance.now();
-    const dur = 650;
-    const step = (now: number) => {
-      const p = Math.min(1, (now - t0) / dur);
-      const e = 1 - Math.pow(1 - p, 3);
-      const next = {
-        x: from.x + (target.x - from.x) * e,
-        y: from.y + (target.y - from.y) * e,
-        w: from.w + (target.w - from.w) * e,
-        h: from.h + (target.h - from.h) * e,
-      };
-      setView(next);
-      fromRef.current = next;
-      if (p < 1) rafRef.current = requestAnimationFrame(step);
-    };
-    rafRef.current = requestAnimationFrame(step);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [target]);
-
-  // pins and type keep their size on screen as the frame tightens
-  const k = view.w / VW;
+  const k = 1;
   const lit = new Set(FACTOR_PROVINCES[factor] ?? []);
+
+  /* Two provinces beside Bangkok are a very small thing on a whole country.
+     The colour and the halo say "these ones"; this says "over here", which is
+     the part a reader needs before they can read anything else. */
+  const ring = React.useMemo(() => {
+    const pts = PROVINCES.filter((p) => lit.has(p.key)).flatMap((p) => p.rings.flat());
+    if (!pts.length) return null;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const [lng, lat] of pts) {
+      const x = px(lng), y = py(lat);
+      if (x < x0) x0 = x; if (x > x1) x1 = x;
+      if (y < y0) y0 = y; if (y > y1) y1 = y;
+    }
+    return { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, r: Math.max(95, Math.hypot(x1 - x0, y1 - y0) / 2 + 34) };
+  }, [factor]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <svg
       id="lf-map-plane"
-      viewBox={`${view.x.toFixed(1)} ${view.y.toFixed(1)} ${view.w.toFixed(1)} ${view.h.toFixed(1)}`}
+      viewBox={VIEW}
       style={{ position: 'absolute', inset: 0, margin: 'auto', width: '100%', height: '100%', display: 'block' }}
       role="img"
       aria-label={label}
@@ -153,35 +118,50 @@ export function RegionMap({ factor, pins, activePin, onPinHover, locale, label, 
         <linearGradient id="rm-land" x1="0" y1="0" x2="0.4" y2="1">
           <stop offset="0%" stopColor="#F2EDE3" /><stop offset="100%" stopColor="#E3DCCE" />
         </linearGradient>
+        {/* the country beyond the belt: present, but not competing */}
+        <linearGradient id="rm-far" x1="0" y1="0" x2="0.4" y2="1">
+          <stop offset="0%" stopColor="#F6F2EA" /><stop offset="100%" stopColor="#EBE5D9" />
+        </linearGradient>
         <linearGradient id="rm-lit" x1="0" y1="0" x2="0.4" y2="1">
           <stop offset="0%" stopColor={LIT_LIGHT} /><stop offset="100%" stopColor={LIT} />
         </linearGradient>
         <filter id="rm-lift" x="-25%" y="-25%" width="150%" height="170%">
           <feDropShadow dx="0" dy="7" stdDeviation="7" floodColor="#022310" floodOpacity="0.2" />
         </filter>
+        {/* Two or three provinces are a small thing on a whole country. The
+            halo is what makes the reader's eye land on them without cropping
+            the country away to do it. */}
+        <filter id="rm-glow" x="-60%" y="-60%" width="220%" height="220%">
+          <feDropShadow dx="0" dy="0" stdDeviation="16" floodColor={LIT} floodOpacity="0.55" />
+          <feDropShadow dx="0" dy="10" stdDeviation="10" floodColor="#022310" floodOpacity="0.25" />
+        </filter>
       </defs>
 
       {/* the sea, so the coastline reads as a coastline */}
-      <rect x={0} y={0} width={VW} height={VH} fill="url(#rm-sea)" />
+      <rect x={VIEW_X} y={0} width={VIEW_W} height={VH} fill="url(#rm-sea)" />
 
       {PATHS.map((p) => {
         const on = lit.has(p.key);
         const hov = hover === p.key;
         // how far the block sits above its own shadow
         const lift = hov ? 10 : on ? 6 : 0;
+        /* Only the thirteen the site actually has inventory in answer to the
+           pointer. The rest are the country around them: giving every province
+           a link would promise 64 pages that do not exist. */
+        const live = p.hi;
         return (
           <g
             key={p.key}
             data-province={p.key}
             data-lit={on ? '1' : '0'}
-            onMouseEnter={() => setHover(p.key)}
-            onMouseLeave={() => setHover((c) => (c === p.key ? null : c))}
-            onClick={() => onProvinceClick(p)}
-            role="link"
-            tabIndex={0}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onProvinceClick(p); } }}
-            aria-label={`${provinceLabel(p.th, locale)} — ${provinceHint}`}
-            style={{ cursor: 'pointer', transition: 'transform .3s cubic-bezier(.2,.8,.3,1)' }}
+            onMouseEnter={live ? () => setHover(p.key) : undefined}
+            onMouseLeave={live ? () => setHover((c) => (c === p.key ? null : c)) : undefined}
+            onClick={live ? () => onProvinceClick(p) : undefined}
+            role={live ? 'link' : undefined}
+            tabIndex={live ? 0 : undefined}
+            onKeyDown={live ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onProvinceClick(p); } } : undefined}
+            aria-label={live ? `${provinceLabel(p.th, locale)} — ${provinceHint}` : undefined}
+            style={{ cursor: live ? 'pointer' : 'default', transition: 'transform .3s cubic-bezier(.2,.8,.3,1)' }}
           >
             {/* side wall — the same outline, dropped by the lift, in a darker
                 shade of its own colour so it reads as a cut edge rather than a
@@ -189,15 +169,15 @@ export function RegionMap({ factor, pins, activePin, onPinHover, locale, label, 
             <path
               d={p.d}
               transform={`translate(0 ${lift})`}
-              fill={on ? LIT_WALL : '#D6CEBF'}
-              filter={lift ? 'url(#rm-lift)' : undefined}
+              fill={on ? LIT_WALL : '#DCD4C6'}
+              filter={on ? 'url(#rm-glow)' : lift ? 'url(#rm-lift)' : undefined}
             />
             {/* top face */}
             <path
               d={p.d}
-              fill={on ? 'url(#rm-lit)' : 'url(#rm-land)'}
-              stroke={on ? '#F4FBF8' : '#D5CDBE'}
-              strokeWidth={on ? 1.6 : 0.9}
+              fill={on ? 'url(#rm-lit)' : p.hi ? 'url(#rm-land)' : 'url(#rm-far)'}
+              stroke={on ? '#F4FBF8' : p.hi ? '#D3CABA' : '#DFD8CB'}
+              strokeWidth={on ? 2.4 : p.hi ? 1.2 : 0.8}
               style={{
                 transform: `translateY(${-lift}px)`,
                 filter: hov ? 'brightness(1.08)' : 'none',
@@ -222,18 +202,31 @@ export function RegionMap({ factor, pins, activePin, onPinHover, locale, label, 
         );
       })}
 
+      {ring && (
+        <g style={{ pointerEvents: 'none' }}>
+          <circle cx={ring.cx} cy={ring.cy} r={ring.r} fill="none" stroke={LIT} strokeWidth={2.5} strokeDasharray="10 9" opacity={0.5} />
+          <circle cx={ring.cx} cy={ring.cy} r={ring.r + 16} fill="none" stroke={LIT} strokeWidth={1.2} opacity={0.18} />
+        </g>
+      )}
+
       {pins.map((pin) => {
         const on = FACTOR_PROVINCES[factor].length > 0 && pinIsLit(pin, factor);
+        /* Two ports 40 km apart put their names on top of each other. Of a
+           close pair the northern one writes above and the southern below —
+           away from each other, rather than both into the same gap. */
+        const above = pins.some((q) => q !== pin && pinIsLit(q, factor)
+          && Math.abs(px(q.lng) - px(pin.lng)) < 90
+          && py(q.lat) > py(pin.lat) && py(q.lat) - py(pin.lat) < 70);
         const hov = activePin === pin.name;
         const x = px(pin.lng), y = py(pin.lat);
         return (
           <g
             key={pin.name}
             data-pin={pin.name}
-            transform={`translate(${x} ${y}) scale(${(hov ? 1.18 : 1) * k})`}
+            transform={`translate(${x} ${y}) scale(${(hov ? 1.18 : 1) * (on ? 1.15 : 0.8) * k})`}
             onMouseEnter={() => onPinHover(pin.name)}
             onMouseLeave={() => onPinHover(null)}
-            style={{ opacity: on ? 1 : 0.66, transition: 'opacity .35s', pointerEvents: 'none' }}
+            style={{ opacity: on ? 1 : 0, transition: 'opacity .35s', pointerEvents: 'none' }}
           >
             {/* an SVG element scales about the viewport origin unless the box
                 is named — without this the ring flew off across the map */}
@@ -250,17 +243,17 @@ export function RegionMap({ factor, pins, activePin, onPinHover, locale, label, 
                 from the number of characters — a rule from a Latin alphabet,
                 so "CBD กรุงเทพฯ" ran straight out of its own box. A halo drawn
                 by the text itself fits whatever the word turns out to be. */}
-            <text
+            {on && <text
               textAnchor="middle"
-              y={34}
+              y={above ? -34 : 42}
               style={{
-                fontSize: 15, fontWeight: 800, fill: on ? '#12241D' : '#5C665E',
+                fontSize: 17, fontWeight: 800, fill: on ? '#12241D' : '#5C665E',
                 paintOrder: 'stroke', stroke: '#FFFFFF', strokeWidth: 6,
                 strokeLinejoin: 'round',
               }}
             >
               {pin.name}
-            </text>
+            </text>}
           </g>
         );
       })}

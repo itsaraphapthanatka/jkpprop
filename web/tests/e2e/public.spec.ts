@@ -454,24 +454,37 @@ test.describe('the location finder map', () => {
     await expect(page.locator('#lf-map-plane').getByText('ชลบุรี')).toBeVisible();
   });
 
-  test('choosing a factor frames its provinces', async ({ page }) => {
+  /* The map used to zoom to whichever provinces a factor covered, so the
+     country moved under the reader on every choice and they never saw where in
+     Thailand any of it was. The whole country stays put; only the fill moves. */
+  test('choosing a factor lights its provinces without moving the country', async ({ page }) => {
     await page.goto('/th');
     const plane = page.locator('#lf-map-plane');
     await plane.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(900);
+    await page.waitForTimeout(600);
 
-    const box = async () => (await plane.getAttribute('viewBox'))!.split(' ').map(Number);
-    const air = await box();
+    const frame = await plane.getAttribute('viewBox');
+    const litKeys = async () =>
+      (await plane.locator('[data-province][data-lit="1"]').evaluateAll((gs) =>
+        gs.map((g) => g.getAttribute('data-province')))).sort();
+
+    expect(await litKeys()).toEqual(['bangkok', 'samut_prakan']);
 
     await page.locator('[data-factor="eec"]').click();
-    await page.waitForTimeout(900);
-    const eec = await box();
+    await page.waitForTimeout(600);
 
-    // the frame moved, and it moved east and south — where the corridor is
-    expect(eec.join(' ')).not.toBe(air.join(' '));
-    expect(eec[0]).toBeGreaterThan(air[0]);
-    // and it never frames more than the map itself
-    expect(eec[2]).toBeLessThanOrEqual(1000.5);
+    expect(await litKeys()).toEqual(['chachoengsao', 'chonburi', 'rayong']);
+    expect(await plane.getAttribute('viewBox'), 'the country moved under the reader').toBe(frame);
+  });
+
+  test('the whole country is drawn, not only the provinces with inventory', async ({ page }) => {
+    await page.goto('/th');
+    const plane = page.locator('#lf-map-plane');
+    await plane.scrollIntoViewIfNeeded();
+    await expect(plane.locator('[data-province]')).toHaveCount(77);
+    // the far provinces are backdrop: they promise no page of their own
+    await expect(plane.locator('[data-province="chiang_mai"][role="link"]')).toHaveCount(0);
+    await expect(plane.locator('[data-province="chonburi"][role="link"]')).toHaveCount(1);
   });
 
   test('clicking a province opens the listing narrowed to it', async ({ page }) => {
