@@ -11,7 +11,20 @@ type Loc = 'air' | 'port' | 'bkk' | 'eec';
 type PinCat = 'air' | 'port' | 'bkk';
 
 interface FactorDef { key: Loc; title: string; desc: string; }
-interface PinDef { name: string; cat: PinCat; eec?: boolean; x: number; y: number; }
+interface PinDef { name: string; cat: PinCat; eec?: boolean; lat: number; lng: number; }
+
+/* What /assets/thailand-map-bg.png actually covers, read off the map by
+   fitting known towns (Ratchaburi, Chanthaburi, Lopburi, Rayong) to their real
+   coordinates. Pins are placed from their own latitude and longitude through
+   these bounds, instead of the eyeballed percentages they used to carry —
+   Don Mueang sat over Nakhon Nayok and Suvarnabhumi further east still. */
+const MAP_BOUNDS = { north: 14.8554, south: 12.3095, west: 99.6061, east: 102.3994 };
+const MAP_RATIO = 2140 / 2016; // the image's own aspect, so nothing is cropped
+
+const pinPos = (p: PinDef) => ({
+  x: ((p.lng - MAP_BOUNDS.west) / (MAP_BOUNDS.east - MAP_BOUNDS.west)) * 100,
+  y: ((MAP_BOUNDS.north - p.lat) / (MAP_BOUNDS.north - MAP_BOUNDS.south)) * 100,
+});
 interface ChipDef { key: Loc; label: string; c: string; }
 interface OptionDef { key: string; label: string; href: string; }
 interface Stat { count: string; dist: string; prov: string; title: string; }
@@ -26,12 +39,12 @@ const factorDefs: FactorDef[] = [
 ];
 
 const pinDefs: PinDef[] = [
-  { name: 'ดอนเมือง', cat: 'air', x: 57, y: 44 },
-  { name: 'สุวรรณภูมิ', cat: 'air', x: 64, y: 53 },
-  { name: 'CBD กรุงเทพฯ', cat: 'bkk', x: 55, y: 50 },
-  { name: 'ท่าเรือมหาชัย', cat: 'port', x: 51, y: 57 },
-  { name: 'ท่าเรือแหลมฉบัง', cat: 'port', eec: true, x: 64, y: 70 },
-  { name: 'ท่าเรือมาบตาพุด', cat: 'port', eec: true, x: 71, y: 81 },
+  { name: 'ดอนเมือง', cat: 'air', lat: 13.9126, lng: 100.6068 },
+  { name: 'สุวรรณภูมิ', cat: 'air', lat: 13.6900, lng: 100.7501 },
+  { name: 'CBD กรุงเทพฯ', cat: 'bkk', lat: 13.7280, lng: 100.5340 },
+  { name: 'ท่าเรือมหาชัย', cat: 'port', lat: 13.5470, lng: 100.2740 },
+  { name: 'ท่าเรือแหลมฉบัง', cat: 'port', eec: true, lat: 13.0827, lng: 100.8836 },
+  { name: 'ท่าเรือมาบตาพุด', cat: 'port', eec: true, lat: 12.6800, lng: 101.1500 },
 ];
 
 const chipDefs: ChipDef[] = [
@@ -81,9 +94,23 @@ const factorCardStyle = (on: boolean): React.CSSProperties => ({ display: 'flex'
 const iconWrapStyle: React.CSSProperties = { flexShrink: 0, width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#28251D' };
 const checkStyle = (on: boolean): React.CSSProperties => ({ flexShrink: 0, width: '20px', height: '20px', borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? 'var(--pine)' : 'transparent', border: '1.5px solid ' + (on ? 'var(--pine)' : '#D4D1CA'), transition: 'all .2s' });
 
-const pinWrapStyle = (p: PinDef, on: boolean): React.CSSProperties => ({ position: 'absolute', left: p.x + '%', top: p.y + '%', transform: 'translate(-50%,-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', zIndex: on ? 5 : 3, opacity: on ? 1 : 0.34, transition: 'opacity .35s, filter .35s', filter: on ? 'none' : 'grayscale(0.6)' });
+const pinWrapStyle = (p: PinDef, on: boolean, hover: boolean): React.CSSProperties => {
+  const { x, y } = pinPos(p);
+  return {
+    position: 'absolute', left: x + '%', top: y + '%',
+    // the pin lifts off the map under the cursor
+    transform: `translate(-50%,-50%) scale(${hover ? 1.18 : 1})`,
+    transformOrigin: 'center bottom',
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
+    zIndex: hover ? 6 : on ? 5 : 3,
+    opacity: on ? 1 : 0.34,
+    transition: 'opacity .35s, filter .35s, transform .25s cubic-bezier(.2,.8,.3,1)',
+    filter: on ? 'none' : 'grayscale(0.6)',
+    cursor: 'default',
+  };
+};
 const pinDotStyle = (col: string, on: boolean): React.CSSProperties => ({ position: 'absolute', inset: '7px', borderRadius: '9999px', background: on ? col : '#8A867E', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: on ? ('0 6px 16px ' + col + '80') : '0 2px 6px rgba(0,0,0,.25)', transition: 'all .35s' });
-const pinLabelStyle = (on: boolean): React.CSSProperties => ({ padding: '2px 9px', borderRadius: '7px', background: 'var(--surface)', boxShadow: '0 2px 8px rgba(0,0,0,.16)', fontSize: '11px', fontWeight: 700, whiteSpace: 'nowrap', color: on ? '#28251D' : '#9B968D', transition: 'color .35s' });
+const pinLabelStyle = (on: boolean, hover = false): React.CSSProperties => ({ padding: '2px 9px', borderRadius: '7px', background: 'var(--surface)', boxShadow: hover ? '0 6px 18px rgba(0,0,0,.28)' : '0 2px 8px rgba(0,0,0,.16)', fontSize: '11px', fontWeight: 700, whiteSpace: 'nowrap', color: on ? '#28251D' : '#9B968D', transition: 'color .35s, box-shadow .25s' });
 const HIDDEN: React.CSSProperties = { display: 'none' };
 
 const chipStyle = (c: ChipDef, on: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: '7px', height: '32px', padding: '0 13px', borderRadius: '9999px', cursor: 'pointer', fontSize: '12.5px', fontWeight: 700, background: on ? '#fff' : 'rgba(255,255,255,.72)', color: on ? '#28251D' : '#5F5A52', boxShadow: on ? ('0 4px 12px rgba(0,0,0,.16), inset 0 0 0 1.5px ' + c.c) : '0 2px 6px rgba(0,0,0,.08)', backdropFilter: 'blur(4px)', transition: 'all .2s' });
@@ -113,6 +140,12 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
   const pick = (v: string, fallback: string) => v || fallback;
   const router = useRouter();
   const [loc, setLocState] = useState<Loc>('air');
+  /* Hovering is a preview, not a choice: the map lifts and the pins for the
+     factor under the cursor light up, but the selection only changes on a
+     click. */
+  const [mapHover, setMapHover] = useState(false);
+  const [hoverPin, setHoverPin] = useState<string | null>(null);
+  const [hoverFactor, setHoverFactor] = useState<Loc | null>(null);
   const [, setBurstNonce] = useState(0);
   const [locationModalOpen, setLocationModalOpen] = useState(false);
   const [locationChoice, setLocationChoice] = useState('');
@@ -121,7 +154,9 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
 
   const setLoc = (k: Loc) => { setLocState(k); setBurstNonce((n) => n + 1); };
 
-  const active = (p: PinDef) => (loc === 'eec' ? !!p.eec : p.cat === loc);
+  // what the map is showing: the hovered factor if there is one, else the choice
+  const shown: Loc = hoverFactor ?? loc;
+  const active = (p: PinDef) => (shown === 'eec' ? !!p.eec : p.cat === shown);
   const result = STATS[loc];
   const activeDefs = OPTION_DEFS[loc] || [];
 
@@ -154,7 +189,14 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
             {factorDefs.map((f) => {
               const on = loc === f.key;
               return (
-                <div key={f.key} onClick={() => setLoc(f.key)} style={factorCardStyle(on)}>
+                <div
+                  key={f.key}
+                  data-factor={f.key}
+                  onClick={() => setLoc(f.key)}
+                  onMouseEnter={() => setHoverFactor(f.key)}
+                  onMouseLeave={() => setHoverFactor((c) => (c === f.key ? null : c))}
+                  style={factorCardStyle(on)}
+                >
                   <div style={iconWrapStyle}>{factorIcon(f.key)}</div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>{enumLabel(f.title, locale)}</div>
@@ -190,14 +232,23 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
           </div>
 
           {/* RIGHT: interactive map */}
-          <div style={{ position: 'relative', background: 'var(--tint)', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden', minHeight: '520px', boxShadow: '0 18px 44px rgba(var(--ink-rgb),.12), inset 0 0 0 1px rgba(255,255,255,.4)' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/assets/thailand-map-bg.png" alt={d.locations.mapAlt} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55 }} />
+          <div
+            onMouseEnter={() => setMapHover(true)}
+            onMouseLeave={() => { setMapHover(false); setHoverPin(null); }}
+            style={{ position: 'relative', background: 'var(--tint)', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden', minHeight: '520px', transform: mapHover ? 'translateY(-4px)' : 'none', boxShadow: mapHover ? '0 26px 60px rgba(var(--ink-rgb),.20), inset 0 0 0 1px rgba(255,255,255,.5)' : '0 18px 44px rgba(var(--ink-rgb),.12), inset 0 0 0 1px rgba(255,255,255,.4)', transition: 'transform .3s cubic-bezier(.2,.8,.3,1), box-shadow .3s' }}
+          >
+            {/* The map and the pins share one box with the image's own aspect
+                ratio. It used to be object-fit:cover — the image was cropped by
+                however tall the card happened to be, so pins positioned in
+                percentages slid off the places they name. */}
+            <div id="lf-map-plane" style={{ position: 'absolute', inset: 0, margin: 'auto', aspectRatio: String(MAP_RATIO), maxWidth: '100%', maxHeight: '100%' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/assets/thailand-map-bg.png" alt={d.locations.mapAlt} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', opacity: 0.55 }} />
 
             {/* result pill */}
             <div style={{ position: 'absolute', top: '16px', left: '16px', zIndex: 6, display: 'flex', alignItems: 'center', gap: '9px', height: '40px', padding: '0 16px', borderRadius: '9999px', background: 'rgba(255,255,255,.94)', backdropFilter: 'blur(6px)', boxShadow: '0 6px 18px rgba(0,0,0,.14)' }}>
               <span style={{ position: 'relative', display: 'flex', width: '9px', height: '9px' }}><span style={{ position: 'absolute', inset: 0, borderRadius: '9999px', background: 'var(--neon)', animation: 'pinPulse 1.8s ease-out infinite' }} /><span style={{ position: 'relative', width: '9px', height: '9px', borderRadius: '9999px', background: 'var(--accent)' }} /></span>
-              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{counts[loc] ?? 0} {d.locations.properties} · {enumLabel(result.title, locale)}</span>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{counts[shown] ?? 0} {d.locations.properties} · {enumLabel(STATS[shown].title, locale)}</span>
             </div>
 
             {/* region highlight */}
@@ -207,17 +258,25 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
             {pinDefs.map((p, i) => {
               const on = active(p);
               const col = CAT[p.cat];
+              const hov = hoverPin === p.name;
               return (
-                <div key={p.name + i} style={pinWrapStyle(p, on)}>
+                <div
+                  key={p.name + i}
+                  data-pin={p.name}
+                  onMouseEnter={() => setHoverPin(p.name)}
+                  onMouseLeave={() => setHoverPin((c) => (c === p.name ? null : c))}
+                  style={pinWrapStyle(p, on, hov)}
+                >
                   <div style={{ position: 'relative', width: '36px', height: '36px' }}>
                     <div style={HIDDEN} />
                     <div style={HIDDEN} />
                     <div style={pinDotStyle(col, on)}>{pinIcon(p.cat)}</div>
                   </div>
-                  <div style={pinLabelStyle(on)}>{enumLabel(p.name, locale)}</div>
+                  <div style={pinLabelStyle(on, hov)}>{enumLabel(p.name, locale)}</div>
                 </div>
               );
             })}
+            </div>
 
             {/* legend / filter chips */}
             <div style={{ position: 'absolute', bottom: '16px', left: '16px', right: '16px', zIndex: 6, display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
