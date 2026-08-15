@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { SIZE_ITEMS, PRICE_ITEMS } from '@/lib/listingFilters';
+import { useFavourites } from '@/lib/favourites';
 import Link from '@/i18n/LocaleLink';
 import { PhotoPlaceholder } from '@/components/common/PhotoPlaceholder';
 import { useI18n } from '@/i18n/useDict';
@@ -174,6 +175,7 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
 
   return (
     <div
+      data-card={it.code}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
@@ -205,6 +207,8 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
           onClick={onToggleFav}
           onMouseEnter={() => setFavHover(true)}
           onMouseLeave={() => setFavHover(false)}
+          data-fav
+          data-on={favFill === 'none' ? '0' : '1'}
           style={{ position: 'absolute', top: 10, right: 10, width: 30, height: 30, borderRadius: 9999, background: 'var(--neon)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,.14)', transition: 'transform .2s', transform: favHover ? 'scale(1.12)' : 'none' }}
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill={favFill} stroke="var(--ink)" strokeWidth="2">
@@ -270,7 +274,10 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
   /* Already queried, filtered by the preset and rendered on the server — no
      client fetch, so the markup search engines see is the real inventory. */
   const all = items.map(toListing);
-  const [favs, setFavs] = useState<Record<string, boolean>>({});
+  /* the heart used to fill in and forget — a reload emptied it and there was
+     nowhere to find what had been saved */
+  const favs = useFavourites();
+  const [onlyFavs, setOnlyFavs] = useState(false);
   /* null = both. /listing must not hide every property for sale just because
      the pills default to one of them; preset pages still pin their own. */
   const [listingMode, setListingMode] = useState<Mode | null>(preset.listingMode ?? null);
@@ -308,6 +315,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
     if (listingMode === 'sale' && it.deal !== 'ขาย') return false;
     if (zoneSel.length && !zoneSel.includes(it.loc)) return false;
     if (typeSel.length && !typeSel.includes(it.type)) return false;
+    if (onlyFavs && !favs.has(it.code)) return false;
     if (sizeSel && !inSize(it.areaSqm, sizeSel)) return false;
     if (priceSel && !inPrice(it.priceValue, priceSel)) return false;
     return true;
@@ -409,6 +417,18 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
           </div>
           <div style={{ fontSize: 15, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span>{d.listing.resultsFound} <span style={{ fontWeight: 800, color: 'var(--text)' }}>{totalCount}</span> {d.listing.results}</span>
+            {/* the saved ones, and a way back to them */}
+            {favs.codes.length > 0 && (
+              <span
+                id="listing-only-favs"
+                onClick={() => setOnlyFavs((v) => !v)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 12px', borderRadius: 9999, cursor: 'pointer', fontSize: '13px', fontWeight: 700, background: onlyFavs ? 'var(--pine)' : 'var(--surface)', color: onlyFavs ? '#fff' : 'var(--text)', border: '1px solid ' + (onlyFavs ? 'var(--pine)' : 'var(--border)') }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill={onlyFavs ? '#fff' : 'none'} stroke="currentColor" strokeWidth="2"><path d="M20.8 8.6a5.5 5.5 0 00-9-1.8L12 8l-.1-.1a5.5 5.5 0 10-7.8 7.8l7.9 7.9 7.9-7.9a5.5 5.5 0 00.9-7z" /></svg>
+                {d.listing.saved} {favs.codes.length}
+              </span>
+            )}
+
             {/* what was typed on the home page, and a way out of it */}
             {q.trim() && (
               <span id="listing-q" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 8px 0 12px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: '13px', fontWeight: 700 }}>
@@ -517,8 +537,8 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
               <ListingCard
                 key={it.slot}
                 it={it}
-                favFill={favs[it.slot] ? 'var(--ink)' : 'none'}
-                onToggleFav={() => setFavs((f) => ({ ...f, [it.slot]: !f[it.slot] }))}
+                favFill={favs.has(it.slot) ? 'var(--ink)' : 'none'}
+                onToggleFav={() => favs.toggle(it.slot)}
               />
             ))}
           </div>

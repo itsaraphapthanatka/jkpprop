@@ -66,6 +66,7 @@ export type Dictionary = {
   };
   floating: { backToTop: string; cookieSettings: string; pdpa: string; cookieBody: string; accept: string; decline: string };
   listing: {
+    saved: string;
     totalArea: string; title: string; resultsFound: string; results: string; filters: string; sortBy: string;
     zone: string; type: string; size: string; price: string; clear: string; search: string;
     newest: string; priceAsc: string; priceDesc: string; sizeAsc: string; sizeDesc: string;
@@ -243,7 +244,7 @@ const th: Dictionary = {
     accept: 'ยอมรับคุกกี้', decline: 'ปฏิเสธทั้งหมด',
   },
   listing: {
-    totalArea: 'ขนาดพื้นที่รวม', title: 'อสังหาริมทรัพย์ทั้งหมด', resultsFound: 'พบ', results: 'รายการ',
+    saved: 'บันทึกไว้', totalArea: 'ขนาดพื้นที่รวม', title: 'อสังหาริมทรัพย์ทั้งหมด', resultsFound: 'พบ', results: 'รายการ',
     filters: 'ตัวกรองการค้นหา', sortBy: 'เรียงตาม:',
     zone: 'ทำเล', type: 'ประเภทอสังหา', size: 'ขนาดพื้นที่', price: 'ช่วงราคา',
     clear: 'ล้างค่า', search: 'ค้นหา',
@@ -446,7 +447,7 @@ const en: Dictionary = {
     accept: 'Accept cookies', decline: 'Decline all',
   },
   listing: {
-    totalArea: 'Total area', title: 'All properties', resultsFound: 'Found', results: 'listings',
+    saved: 'Saved', totalArea: 'Total area', title: 'All properties', resultsFound: 'Found', results: 'listings',
     filters: 'Search filters', sortBy: 'Sort by:',
     zone: 'Location', type: 'Property type', size: 'Floor area', price: 'Price range',
     clear: 'Clear', search: 'Search',
@@ -649,7 +650,7 @@ const zh: Dictionary = {
     accept: '接受 Cookie', decline: '全部拒绝',
   },
   listing: {
-    totalArea: '总面积', title: '全部房源', resultsFound: '共找到', results: '个房源',
+    saved: '已保存', totalArea: '总面积', title: '全部房源', resultsFound: '共找到', results: '个房源',
     filters: '搜索筛选', sortBy: '排序：',
     zone: '地区', type: '房源类型', size: '建筑面积', price: '价格区间',
     clear: '清除', search: '搜索',

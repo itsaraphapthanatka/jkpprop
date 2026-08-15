@@ -551,3 +551,32 @@ test.describe('the search box on the front page', () => {
     await expect(page.getByText('10,000 ตร.ม.+')).toHaveCount(0);
   });
 });
+
+test.describe('the heart on a listing card', () => {
+  /* It filled in and forgot: the state lived in the page's memory, so a reload
+     emptied it, and there was nowhere to see what had been saved. */
+  test('a saved property is still saved after a reload, and can be listed', async ({ page, request }) => {
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=60')).json()).items as { code: string }[];
+    test.skip(items.length < 2, 'need two published properties');
+
+    await page.goto('/th/listing');
+    const card = page.locator(`[data-card="${items[0].code}"]`);
+    await expect(card).toBeVisible();
+    await card.locator('[data-fav]').click();
+
+    // it survives the page going away
+    await page.reload();
+    await expect(page.locator(`[data-card="${items[0].code}"] [data-fav][data-on="1"]`)).toBeVisible();
+
+    // and there is a way back to what was saved
+    const only = page.locator('#listing-only-favs');
+    await expect(only).toContainText('1');
+    await only.click();
+    await expect(page.locator('[data-card]')).toHaveCount(1);
+    await expect(page.locator(`[data-card="${items[0].code}"]`)).toBeVisible();
+
+    // clicking the heart again takes it out
+    await page.locator(`[data-card="${items[0].code}"] [data-fav]`).click();
+    await expect(page.locator('#listing-only-favs')).toHaveCount(0);
+  });
+});
