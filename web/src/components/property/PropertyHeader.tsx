@@ -7,6 +7,7 @@ import { useLocale } from '@/i18n/LocaleLink';
 import { localizePath } from '@/i18n/config';
 import Image from 'next/image';
 import { useDict } from '@/i18n/useDict';
+import { SavedLink } from '@/components/site/SavedLink';
 
 type Lang = 'th' | 'en' | 'zh';
 
@@ -147,6 +148,7 @@ export function PropertyHeader() {
 
             <Link className="nav-link" href="/faq" style={navText}>{d.nav.faq}</Link>
             <Link className="nav-link" href="/about" style={navText}>{d.nav.about}</Link>
+            <SavedLink />
 
             {/* language */}
             <div style={{ position: 'relative' }}>
@@ -299,6 +301,7 @@ export function PropertyHeader() {
           <Link href="/warehouse-rent" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>{d.nav.warehouseRent}</Link>
           <Link href="/faq" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>{d.nav.faq}</Link>
           <Link href="/about" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>{d.nav.about}</Link>
+          <SavedLink block />
           <Link href="/contact" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 48, borderRadius: 9999, background: 'var(--neon)', color: 'var(--ink)', fontSize: '14.5px', fontWeight: 800 }}>{d.nav.contactTeam}</Link>
         </div>
       </div>

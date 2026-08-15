@@ -7,6 +7,7 @@ import { useLocale } from '@/i18n/LocaleLink';
 import { localizePath } from '@/i18n/config';
 import Image from 'next/image';
 import { useDict } from '@/i18n/useDict';
+import { SavedLink } from '@/components/site/SavedLink';
 
 type Lang = 'th' | 'en' | 'zh';
 
@@ -202,6 +203,7 @@ export function ListingHeader() {
 
             <Link className="nav-link" href="/faq" style={{ fontSize: 14, fontWeight: 500, color: 'var(--muted)' }}>{d.nav.faq}</Link>
             <Link className="nav-link" href="/about" style={{ fontSize: 14, fontWeight: 500, color: 'var(--muted)' }}>{d.nav.about}</Link>
+            <SavedLink />
 
             {/* language */}
             <div style={{ position: 'relative' }}>
@@ -390,6 +392,7 @@ export function ListingHeader() {
           )}
           <Link href="/faq" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>{d.nav.faq}</Link>
           <Link href="/about" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>{d.nav.about}</Link>
+          <SavedLink block />
           <div style={{ marginTop: 12, paddingTop: 16, borderTop: '1px solid var(--border)', display: 'flex', gap: 8 }}>
             {LANG_DEFS.map((l) => (
               <div

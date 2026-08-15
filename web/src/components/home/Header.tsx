@@ -7,6 +7,7 @@ import { useLocale } from '@/i18n/LocaleLink';
 import { localizePath } from '@/i18n/config';
 import Image from 'next/image';
 import { useDict } from '@/i18n/useDict';
+import { SavedLink } from '@/components/site/SavedLink';
 
 type Lang = 'th' | 'en' | 'zh';
 
@@ -210,6 +211,7 @@ export function Header() {
             <Link className="nav-link" href="/about" style={{ fontSize: 14, fontWeight: 500, color: 'var(--muted)' }}>
               {d.nav.about}
             </Link>
+            <SavedLink />
 
             {/* language */}
             <div style={{ position: 'relative' }}>

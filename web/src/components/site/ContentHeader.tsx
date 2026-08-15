@@ -7,6 +7,7 @@ import { useLocale } from '@/i18n/LocaleLink';
 import { localizePath } from '@/i18n/config';
 import Image from 'next/image';
 import { useDict } from '@/i18n/useDict';
+import { SavedLink } from '@/components/site/SavedLink';
 
 /* ============================================================
    Shared header for the content pages (About / FAQ / Contact).
@@ -164,6 +165,7 @@ export function ContentHeader({ active }: { active?: 'about' | 'faq' }) {
 
             {topLink(d.nav.faq, '/faq', active === 'faq')}
             {topLink(d.nav.about, '/about', active === 'about')}
+            <SavedLink />
 
             {/* language */}
             <div style={{ position: 'relative' }}>
@@ -280,6 +282,7 @@ export function ContentHeader({ active }: { active?: 'about' | 'faq' }) {
           )}
           <Link href="/faq" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>{d.nav.faq}</Link>
           <Link href="/about" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>{d.nav.about}</Link>
+          <SavedLink block />
           <div style={{ marginTop: 12, paddingTop: 16, borderTop: '1px solid var(--border)', display: 'flex', gap: 8 }}>
             {LANG_DEFS.map((l) => (
               <div

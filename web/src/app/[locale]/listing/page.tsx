@@ -32,8 +32,14 @@ export default async function ListingPage({ searchParams }: { searchParams: Prom
   const size = SIZE_ITEMS.includes(one('size') ?? '') ? one('size') : undefined;
   const price = PRICE_ITEMS.includes(one('price') ?? '') ? one('price') : undefined;
 
+  /* ?saved=1 — the heart in the masthead lands here. The codes live in the
+     reader's browser, so the filtering happens client-side; this only opens
+     the page with that filter already on. */
+  const saved = one('saved') === '1';
+
   const preset = {
     breadcrumb: province ?? q ?? '',
+    ...(saved ? { onlyFavs: true } : {}),
     ...(province ? { province } : {}),
     ...(q ? { q } : {}),
     ...(deal === 'rent' || deal === 'sale' ? { listingMode: deal as 'rent' | 'sale' } : {}),

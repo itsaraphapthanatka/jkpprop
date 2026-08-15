@@ -103,6 +103,8 @@ export interface ListingPreset {
   q?: string;
   sizeSel?: string;
   priceSel?: string;
+  /** ?saved=1 — arriving from the heart in the masthead */
+  onlyFavs?: boolean;
 }
 const DEFAULT_PRESET: ListingPreset = { breadcrumb: '' };
 
@@ -277,7 +279,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
   /* the heart used to fill in and forget — a reload emptied it and there was
      nowhere to find what had been saved */
   const favs = useFavourites();
-  const [onlyFavs, setOnlyFavs] = useState(false);
+  const [onlyFavs, setOnlyFavs] = useState(preset.onlyFavs ?? false);
   /* null = both. /listing must not hide every property for sale just because
      the pills default to one of them; preset pages still pin their own. */
   const [listingMode, setListingMode] = useState<Mode | null>(preset.listingMode ?? null);

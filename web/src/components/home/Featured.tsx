@@ -6,6 +6,7 @@ import { PhotoPlaceholder } from '@/components/common/PhotoPlaceholder';
 import { useDict, useI18n } from '@/i18n/useDict';
 import { enumLabel } from '@/i18n/enums';
 import type { SectionCopy } from '@/lib/server/sectionCopy';
+import { useFavourites } from '@/lib/favourites';
 
 /* Cards come from the database via the home page (a server component), not
    from a list in this file. They used to be a copy of the design prototype's
@@ -77,7 +78,9 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
 
   return (
     <div
- className="rs-card-third"      onMouseEnter={() => setHover(true)}
+      data-card={it.slot}
+      className="rs-card-third"
+      onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
         position: 'relative', flex: '0 0 calc(33.3333% - 16px)', background: 'var(--surface)',
@@ -100,6 +103,8 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
           <span style={{ width: 6, height: 6, borderRadius: 9999, background: '#fff' }} />{enumLabel(it.deal, locale)}
         </div>
         <div
+          data-fav
+          data-on={favFill === 'none' ? '0' : '1'}
           onClick={onToggleFav}
           onMouseEnter={() => setFavHover(true)}
           onMouseLeave={() => setFavHover(false)}
@@ -149,7 +154,10 @@ export function Featured({ items = [], copy }: { items?: FeaturedItem[]; copy: S
   const pick = (v: string, fallback: string) => v || fallback;
   const listings = items.map(toListing);
   const rowRef = useRef<HTMLDivElement>(null);
-  const [favs, setFavs] = useState<Record<number, boolean>>({});
+  /* keyed by property code, and kept in the browser: this was a
+     Record<number, boolean> keyed by position in the row, so it forgot on
+     every navigation and a card that moved took someone else's heart */
+  const favs = useFavourites();
   const [progress, setProgress] = useState(0);
   const [seeAllHover, setSeeAllHover] = useState(false);
 
@@ -204,12 +212,12 @@ export function Featured({ items = [], copy }: { items?: FeaturedItem[]; copy: S
       ) : (
         <>
           <div ref={rowRef} onScroll={onRowScroll} className="no-sb" style={{ display: 'flex', gap: 24, overflowX: 'auto', scrollBehavior: 'smooth', padding: '6px 4px 14px' }}>
-            {listings.map((it, i) => (
+            {listings.map((it) => (
               <ListingCard
                 key={it.slot}
                 it={it}
-                favFill={favs[i] ? 'var(--ink)' : 'none'}
-                onToggleFav={() => setFavs((f) => ({ ...f, [i]: !f[i] }))}
+                favFill={favs.has(it.slot) ? 'var(--ink)' : 'none'}
+                onToggleFav={() => favs.toggle(it.slot)}
               />
             ))}
           </div>

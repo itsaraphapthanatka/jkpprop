@@ -589,4 +589,33 @@ test.describe('the heart on a listing card', () => {
     await page.locator(`[data-card="${items[0].code}"] [data-fav]`).click();
     await expect(page.locator('#listing-only-favs')).toHaveCount(0);
   });
+
+  /* The heart was a light that came on and led nowhere: pressed on the home
+     page, it was forgotten by the next page, and nothing in the masthead said
+     anything had been saved. */
+  test('a property hearted on the home page is still there on the listing page', async ({ page, request }) => {
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=6')).json()).items as { code: string }[];
+    test.skip(!items.length, 'nothing published');
+
+    await page.goto('/th');
+    await expect(page.locator('#saved-link')).toHaveCount(0);   // nothing saved: no counter reading zero
+    const card = page.locator(`[data-card="${items[0].code}"]`).first();
+    await card.scrollIntoViewIfNeeded();
+    await card.locator('[data-fav]').click();
+
+    const saved = page.locator('#saved-link');
+    await expect(saved).toContainText('1');
+
+    // and it leads back to them
+    await saved.click();
+    await expect(page).toHaveURL(/\/listing\?saved=1/);
+    await expect(page.locator('[data-card]')).toHaveCount(1);
+    await expect(page.locator(`[data-card="${items[0].code}"]`)).toBeVisible();
+
+    // the same link is in the masthead of the other pages
+    await page.goto('/th/contact');
+    await expect(page.locator('#saved-link')).toContainText('1');
+    await page.goto(`/th/property/${items[0].code}`);
+    await expect(page.locator('#saved-link')).toContainText('1');
+  });
 });
