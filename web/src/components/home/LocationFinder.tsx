@@ -260,7 +260,7 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
                 percentages slid off the places they name. */}
             <div id="lf-map-plane" style={{ position: 'absolute', inset: 0, margin: 'auto', aspectRatio: String(MAP_RATIO), maxWidth: '100%', maxHeight: '100%' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/assets/thailand-map-bg.png" alt={d.locations.mapAlt} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', opacity: 0.55 }} />
+              <img src="/assets/thailand-map-bg.png" alt={d.locations.mapAlt} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', opacity: 0.72 }} />
 
             {/* result pill */}
             <div style={{ position: 'absolute', top: '16px', left: '16px', zIndex: 6, display: 'flex', alignItems: 'center', gap: '9px', height: '40px', padding: '0 16px', borderRadius: '9999px', background: 'rgba(255,255,255,.94)', backdropFilter: 'blur(6px)', boxShadow: '0 6px 18px rgba(0,0,0,.14)' }}>
@@ -287,12 +287,16 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
                     width: w + '%', height: h + '%',
                     transform: 'translate(-50%,-50%)',
                     borderRadius: '9999px',
-                    background: `radial-gradient(closest-side, ${col}55, ${col}22 55%, ${col}00 100%)`,
-                    border: '1px solid ' + col + (on ? '55' : '00'),
+                    /* it was there before, at a third of this strength over a
+                       map already dimmed to 55% — technically visible, which
+                       is not the same as visible */
+                    background: `radial-gradient(closest-side, ${col}66, ${col}33 60%, ${col}00 100%)`,
+                    border: '2px dashed ' + col + (on ? 'AA' : '00'),
+                    boxShadow: on ? `0 0 0 1px ${col}22, 0 10px 34px ${col}44` : 'none',
                     opacity: on ? 1 : 0,
                     pointerEvents: 'none',
                     zIndex: 2,
-                    transition: 'opacity .35s, width .35s, height .35s, background .35s',
+                    transition: 'opacity .35s, width .35s, height .35s, background .35s, box-shadow .35s',
                   }}
                 />
               );
