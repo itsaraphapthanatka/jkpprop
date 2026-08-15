@@ -21,6 +21,18 @@ interface PinDef { name: string; cat: PinCat; eec?: boolean; lat: number; lng: n
 const MAP_BOUNDS = { north: 14.8554, south: 12.3095, west: 99.6061, east: 102.3994 };
 const MAP_RATIO = 2140 / 2016; // the image's own aspect, so nothing is cropped
 
+/* How far around a pin counts as "this area", in kilometres. An airport or a
+   port draws industry from further out than a city centre does, and the EEC is
+   a whole economic corridor rather than a point. */
+const HALO_KM: Record<Loc, number> = { air: 30, port: 30, bkk: 22, eec: 55 };
+
+/* km → a share of the map, through the same bounds the pins use. Latitude is
+   111 km per degree; longitude shrinks by cos(lat) this far north. */
+const haloSize = (km: number, lat: number) => ({
+  w: ((km / (111 * Math.cos((lat * Math.PI) / 180))) / (MAP_BOUNDS.east - MAP_BOUNDS.west)) * 200,
+  h: ((km / 111) / (MAP_BOUNDS.north - MAP_BOUNDS.south)) * 200,
+});
+
 const pinPos = (p: PinDef) => ({
   x: ((p.lng - MAP_BOUNDS.west) / (MAP_BOUNDS.east - MAP_BOUNDS.west)) * 100,
   y: ((MAP_BOUNDS.north - p.lat) / (MAP_BOUNDS.north - MAP_BOUNDS.south)) * 100,
@@ -111,7 +123,12 @@ const pinWrapStyle = (p: PinDef, on: boolean, hover: boolean): React.CSSProperti
 };
 const pinDotStyle = (col: string, on: boolean): React.CSSProperties => ({ position: 'absolute', inset: '7px', borderRadius: '9999px', background: on ? col : '#8A867E', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: on ? ('0 6px 16px ' + col + '80') : '0 2px 6px rgba(0,0,0,.25)', transition: 'all .35s' });
 const pinLabelStyle = (on: boolean, hover = false): React.CSSProperties => ({ padding: '2px 9px', borderRadius: '7px', background: 'var(--surface)', boxShadow: hover ? '0 6px 18px rgba(0,0,0,.28)' : '0 2px 8px rgba(0,0,0,.16)', fontSize: '11px', fontWeight: 700, whiteSpace: 'nowrap', color: on ? '#28251D' : '#9B968D', transition: 'color .35s, box-shadow .25s' });
-const HIDDEN: React.CSSProperties = { display: 'none' };
+const pulseRingStyle = (col: string, delay: number): React.CSSProperties => ({
+  position: 'absolute', inset: 0, borderRadius: '9999px',
+  border: '2px solid ' + col, opacity: 0.5,
+  animation: `pinPulse 1.8s ease-out ${delay}s infinite`,
+  pointerEvents: 'none',
+});
 
 const chipStyle = (c: ChipDef, on: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: '7px', height: '32px', padding: '0 13px', borderRadius: '9999px', cursor: 'pointer', fontSize: '12.5px', fontWeight: 700, background: on ? '#fff' : 'rgba(255,255,255,.72)', color: on ? '#28251D' : '#5F5A52', boxShadow: on ? ('0 4px 12px rgba(0,0,0,.16), inset 0 0 0 1.5px ' + c.c) : '0 2px 6px rgba(0,0,0,.08)', backdropFilter: 'blur(4px)', transition: 'all .2s' });
 const chipDotStyle = (c: ChipDef): React.CSSProperties => ({ width: '8px', height: '8px', borderRadius: '9999px', background: c.c, flexShrink: 0 });
@@ -251,8 +268,35 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
               <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{counts[shown] ?? 0} {d.locations.properties} · {enumLabel(STATS[shown].title, locale)}</span>
             </div>
 
-            {/* region highlight */}
-            <div style={HIDDEN} />
+            {/* The area each factor covers. This was a hidden placeholder: the
+                map could light up its pins but never showed the region they
+                stand for, so "ใกล้ท่าเรือ" pointed at three dots and left the
+                reader to guess how far that reached. */}
+            {pinDefs.map((p) => {
+              const on = active(p);
+              const { x, y } = pinPos(p);
+              const { w, h } = haloSize(HALO_KM[shown] ?? 30, p.lat);
+              const col = shown === 'eec' ? '#D9A62B' : CAT[p.cat];
+              return (
+                <div
+                  key={'halo-' + p.name}
+                  data-halo={p.name}
+                  aria-hidden
+                  style={{
+                    position: 'absolute', left: x + '%', top: y + '%',
+                    width: w + '%', height: h + '%',
+                    transform: 'translate(-50%,-50%)',
+                    borderRadius: '9999px',
+                    background: `radial-gradient(closest-side, ${col}55, ${col}22 55%, ${col}00 100%)`,
+                    border: '1px solid ' + col + (on ? '55' : '00'),
+                    opacity: on ? 1 : 0,
+                    pointerEvents: 'none',
+                    zIndex: 2,
+                    transition: 'opacity .35s, width .35s, height .35s, background .35s',
+                  }}
+                />
+              );
+            })}
 
             {/* pins */}
             {pinDefs.map((p, i) => {
@@ -268,8 +312,10 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
                   style={pinWrapStyle(p, on, hov)}
                 >
                   <div style={{ position: 'relative', width: '36px', height: '36px' }}>
-                    <div style={HIDDEN} />
-                    <div style={HIDDEN} />
+                    {/* the two rings were ported as display:none — the pin the
+                        reader just chose looked the same as one it did not */}
+                    {on && <span style={pulseRingStyle(col, 0)} />}
+                    {on && <span style={pulseRingStyle(col, 0.9)} />}
                     <div style={pinDotStyle(col, on)}>{pinIcon(p.cat)}</div>
                   </div>
                   <div style={pinLabelStyle(on, hov)}>{enumLabel(p.name, locale)}</div>

@@ -439,6 +439,25 @@ test.describe('the location finder map', () => {
     expect(wide.x).toBeLessThan(0.42);
   });
 
+  test('the map highlights the area of the factor, chosen or hovered', async ({ page }) => {
+    await page.goto('/th');
+    await page.locator('#lf-map-plane').scrollIntoViewIfNeeded();
+
+    // airports are the default choice — their areas are lit, the ports' are not
+    await expect(page.locator('[data-halo="ดอนเมือง"]')).toHaveCSS('opacity', '1');
+    await expect(page.locator('[data-halo="ท่าเรือแหลมฉบัง"]')).toHaveCSS('opacity', '0');
+
+    // hovering the EEC factor lights the corridor without choosing it
+    await page.locator('[data-factor="eec"]').hover();
+    await expect(page.locator('[data-halo="ท่าเรือมาบตาพุด"]')).toHaveCSS('opacity', '1');
+    await expect(page.locator('[data-halo="ดอนเมือง"]')).toHaveCSS('opacity', '0');
+
+    // clicking makes it the choice, and it stays lit with the cursor away
+    await page.locator('[data-factor="eec"]').click();
+    await page.locator('#lf-map-plane').hover();
+    await expect(page.locator('[data-halo="ท่าเรือมาบตาพุด"]')).toHaveCSS('opacity', '1');
+  });
+
   test('hovering a factor previews it on the map without choosing it', async ({ page }) => {
     await page.goto('/th');
     await page.locator('#lf-map-plane').scrollIntoViewIfNeeded();
