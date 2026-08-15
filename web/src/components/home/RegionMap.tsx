@@ -13,7 +13,7 @@
  * downwards for the side wall, then the top face over it.
  */
 import * as React from 'react';
-import { PROVINCES } from '@/lib/thaiProvinces';
+import { PROVINCES, type Province } from '@/lib/thaiProvinces';
 import { provinceLabel } from '@/i18n/places';
 import type { Locale } from '@/i18n/config';
 
@@ -52,7 +52,38 @@ const pathOf = (rings: [number, number][][]) =>
 
 const PATHS = PROVINCES.map((p) => ({ ...p, d: pathOf(p.rings) }));
 
-export function RegionMap({ factor, pins, activePin, onPinHover, locale, label }: {
+type Box = { x: number; y: number; w: number; h: number };
+const FULL: Box = { x: 0, y: 0, w: VW, h: VH };
+
+/* The frame that holds a factor's provinces, with room around them. Choosing a
+   factor eases the map to this instead of leaving the reader to find the three
+   provinces that just changed colour — and it is the system driving, so the
+   wheel keeps scrolling the page. */
+function frameOf(keys: string[]): Box {
+  const pts = PROVINCES.filter((p) => keys.includes(p.key)).flatMap((p) => p.rings.flat());
+  if (!pts.length) return FULL;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const [lng, lat] of pts) {
+    const x = px(lng), y = py(lat);
+    if (x < x0) x0 = x; if (x > x1) x1 = x;
+    if (y < y0) y0 = y; if (y > y1) y1 = y;
+  }
+  const pad = Math.max((x1 - x0), (y1 - y0)) * 0.22;
+  let w = x1 - x0 + pad * 2, h = y1 - y0 + pad * 2;
+  // keep the drawing's shape, or the provinces come out stretched
+  const ratio = VW / VH;
+  if (w / h > ratio) h = w / ratio; else w = h * ratio;
+  // never frame more than the whole map, and never wander off it
+  w = Math.min(w, VW); h = Math.min(h, VH);
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  return {
+    x: Math.max(0, Math.min(VW - w, cx - w / 2)),
+    y: Math.max(0, Math.min(VH - h, cy - h / 2)),
+    w, h,
+  };
+}
+
+export function RegionMap({ factor, pins, activePin, onPinHover, locale, label, onProvinceClick, provinceHint }: {
   factor: Factor;
   pins: MapPin[];
   activePin: string | null;
@@ -60,15 +91,48 @@ export function RegionMap({ factor, pins, activePin, onPinHover, locale, label }
   locale: Locale;
   /** the accessible name, from the dictionary — the site has three languages */
   label: string;
+  /** clicking a province opens the listing narrowed to it */
+  onProvinceClick: (province: Province) => void;
+  provinceHint: string;
 }) {
   const [hover, setHover] = React.useState<string | null>(null);
+
+  /* the viewBox, eased toward whatever the choice frames */
+  const target = React.useMemo(() => frameOf(FACTOR_PROVINCES[factor] ?? []), [factor]);
+  const [view, setView] = React.useState<Box>(target);
+  const fromRef = React.useRef<Box>(target);
+  const rafRef = React.useRef<number | undefined>(undefined);
+
+  React.useEffect(() => {
+    const from = fromRef.current;
+    const t0 = performance.now();
+    const dur = 650;
+    const step = (now: number) => {
+      const p = Math.min(1, (now - t0) / dur);
+      const e = 1 - Math.pow(1 - p, 3);
+      const next = {
+        x: from.x + (target.x - from.x) * e,
+        y: from.y + (target.y - from.y) * e,
+        w: from.w + (target.w - from.w) * e,
+        h: from.h + (target.h - from.h) * e,
+      };
+      setView(next);
+      fromRef.current = next;
+      if (p < 1) rafRef.current = requestAnimationFrame(step);
+    };
+    rafRef.current = requestAnimationFrame(step);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [target]);
+
+  // pins and type keep their size on screen as the frame tightens
+  const k = view.w / VW;
   const lit = new Set(FACTOR_PROVINCES[factor] ?? []);
   const tone = factor === 'eec' ? '#D9A62B' : factor === 'port' ? '#0E7C86' : factor === 'bkk' ? '#7A5AF8' : '#2A6FDB';
 
   return (
     <svg
       id="lf-map-plane"
-      viewBox={`0 0 ${VW} ${VH}`}
+      viewBox={`${view.x.toFixed(1)} ${view.y.toFixed(1)} ${view.w.toFixed(1)} ${view.h.toFixed(1)}`}
       style={{ position: 'absolute', inset: 0, margin: 'auto', width: '100%', height: '100%', display: 'block' }}
       role="img"
       aria-label={label}
@@ -88,7 +152,12 @@ export function RegionMap({ factor, pins, activePin, onPinHover, locale, label }
             data-lit={on ? '1' : '0'}
             onMouseEnter={() => setHover(p.key)}
             onMouseLeave={() => setHover((c) => (c === p.key ? null : c))}
-            style={{ cursor: 'default', transition: 'transform .3s cubic-bezier(.2,.8,.3,1)' }}
+            onClick={() => onProvinceClick(p)}
+            role="link"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onProvinceClick(p); } }}
+            aria-label={`${provinceLabel(p.th, locale)} — ${provinceHint}`}
+            style={{ cursor: 'pointer', transition: 'transform .3s cubic-bezier(.2,.8,.3,1)' }}
           >
             {/* side wall — the same outline, dropped by the lift */}
             <path d={p.d} transform={`translate(0 ${lift})`} fill={on ? tone : '#B9C4C9'} opacity={on ? 0.55 : 0.5} />
@@ -102,14 +171,20 @@ export function RegionMap({ factor, pins, activePin, onPinHover, locale, label }
               strokeWidth={on ? 2 : 1}
               style={{ transform: `translateY(${-lift}px)`, transition: 'fill-opacity .3s, transform .3s cubic-bezier(.2,.8,.3,1)' }}
             />
-            {hov && (
-              <text
-                x={px(p.rings[0].reduce((a, [x]) => a + x, 0) / p.rings[0].length)}
-                y={py(p.rings[0].reduce((a, [, y]) => a + y, 0) / p.rings[0].length) - lift}
-                textAnchor="middle"
-                style={{ fontSize: 18, fontWeight: 800, fill: on ? '#123' : '#4A555A', paintOrder: 'stroke', stroke: '#fff', strokeWidth: 5, strokeLinejoin: 'round' }}
-              >{provinceLabel(p.th, locale)}</text>
-            )}
+            {hov && (() => {
+              const cx = px(p.rings[0].reduce((a, [x]) => a + x, 0) / p.rings[0].length);
+              const cy = py(p.rings[0].reduce((a, [, y]) => a + y, 0) / p.rings[0].length) - lift;
+              return (
+                <g style={{ pointerEvents: 'none' }}>
+                  <text x={cx} y={cy} textAnchor="middle" style={{ fontSize: 18 * k, fontWeight: 800, fill: on ? '#123' : '#33403F', paintOrder: 'stroke', stroke: '#fff', strokeWidth: 5 * k, strokeLinejoin: 'round' }}>
+                    {provinceLabel(p.th, locale)}
+                  </text>
+                  <text x={cx} y={cy + 16 * k} textAnchor="middle" style={{ fontSize: 11 * k, fontWeight: 700, fill: '#5A6A69', paintOrder: 'stroke', stroke: '#fff', strokeWidth: 4 * k, strokeLinejoin: 'round' }}>
+                    {provinceHint}
+                  </text>
+                </g>
+              );
+            })()}
           </g>
         );
       })}
@@ -122,16 +197,22 @@ export function RegionMap({ factor, pins, activePin, onPinHover, locale, label }
           <g
             key={pin.name}
             data-pin={pin.name}
-            transform={`translate(${x} ${y}) scale(${hov ? 1.18 : 1})`}
+            transform={`translate(${x} ${y}) scale(${(hov ? 1.18 : 1) * k})`}
             onMouseEnter={() => onPinHover(pin.name)}
             onMouseLeave={() => onPinHover(null)}
-            style={{ opacity: on ? 1 : 0.35, transition: 'opacity .35s, transform .25s cubic-bezier(.2,.8,.3,1)' }}
+            style={{ opacity: on ? 1 : 0.35, transition: 'opacity .35s', pointerEvents: 'none' }}
           >
             {/* an SVG element scales about the viewport origin unless the box
                 is named — without this the ring flew off across the map */}
             {on && <circle r={26} fill="none" stroke={pin.color} strokeWidth={2} opacity={0.5} style={{ transformBox: 'fill-box', transformOrigin: 'center', animation: 'pinPulse 1.8s ease-out infinite' }} />}
-            <circle r={15} fill={on ? pin.color : '#8A867E'} stroke="#fff" strokeWidth={3} />
-            <g transform="translate(-8 -8) scale(0.67)" style={{ color: '#fff' }}>{pin.icon}</g>
+            {/* a white collar under the dot: the pin sits on a province filled
+                in its own colour, and a coloured dot on a coloured field is a
+                dot nobody can find */}
+            <circle r={17} fill="#fff" />
+            <circle r={13} fill={on ? pin.color : '#8A867E'} />
+            {/* the icon is authored 12 units wide; at 0.67 it was a speck
+                inside a 30-unit dot */}
+            <g transform="translate(-9 -9) scale(1.5)">{pin.icon}</g>
             <g transform="translate(0 30)">
               <rect x={-pin.name.length * 5 - 8} y={-13} width={pin.name.length * 10 + 16} height={24} rx={7} fill="#fff" opacity={0.95} />
               <text textAnchor="middle" y={3} style={{ fontSize: 15, fontWeight: 700, fill: on ? '#28251D' : '#9B968D' }}>{pin.name}</text>

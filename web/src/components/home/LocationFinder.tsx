@@ -216,6 +216,8 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
               onPinHover={setHoverPin}
               locale={locale}
               label={d.locations.mapAlt}
+              provinceHint={d.locations.seeInArea}
+              onProvinceClick={(prov) => router.push(`/${locale}/listing?province=${encodeURIComponent(prov.th)}`)}
             />
 
             {/* result pill */}

@@ -444,6 +444,35 @@ test.describe('the location finder map', () => {
     await expect(page.locator('#lf-map-plane').getByText('ชลบุรี')).toBeVisible();
   });
 
+  test('choosing a factor frames its provinces', async ({ page }) => {
+    await page.goto('/th');
+    const plane = page.locator('#lf-map-plane');
+    await plane.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(900);
+
+    const box = async () => (await plane.getAttribute('viewBox'))!.split(' ').map(Number);
+    const air = await box();
+
+    await page.locator('[data-factor="eec"]').click();
+    await page.waitForTimeout(900);
+    const eec = await box();
+
+    // the frame moved, and it moved east and south — where the corridor is
+    expect(eec.join(' ')).not.toBe(air.join(' '));
+    expect(eec[0]).toBeGreaterThan(air[0]);
+    // and it never frames more than the map itself
+    expect(eec[2]).toBeLessThanOrEqual(1000.5);
+  });
+
+  test('clicking a province opens the listing narrowed to it', async ({ page }) => {
+    await page.goto('/th');
+    await page.locator('#lf-map-plane').scrollIntoViewIfNeeded();
+    await page.locator('[data-province="chonburi"]').click();
+
+    await expect(page).toHaveURL(/\/listing\?province=/);
+    await expect(page.locator('body')).toContainText('ชลบุรี');
+  });
+
   test('hovering a factor previews it on the map without choosing it', async ({ page }) => {
     await page.goto('/th');
     await page.locator('#lf-map-plane').scrollIntoViewIfNeeded();
