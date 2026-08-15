@@ -52,6 +52,14 @@ const pathOf = (rings: [number, number][][]) =>
 
 const PATHS = PROVINCES.map((p) => ({ ...p, d: pathOf(p.rings) }));
 
+/* The map used to be drawn in blue, purple and gold — none of which appear
+   anywhere else on this site, so it read as a stock illustration dropped onto
+   a cream and deep-green page. One colour now, the brand's own, and the four
+   factors differ by which provinces light up rather than by hue. */
+const LIT = '#034956';
+const LIT_LIGHT = '#0A6B78';
+const LIT_WALL = '#022E38';
+
 type Box = { x: number; y: number; w: number; h: number };
 const FULL: Box = { x: 0, y: 0, w: VW, h: VH };
 
@@ -68,7 +76,7 @@ function frameOf(keys: string[]): Box {
     if (x < x0) x0 = x; if (x > x1) x1 = x;
     if (y < y0) y0 = y; if (y > y1) y1 = y;
   }
-  const pad = Math.max((x1 - x0), (y1 - y0)) * 0.22;
+  const pad = Math.max((x1 - x0), (y1 - y0)) * 0.3;
   let w = x1 - x0 + pad * 2, h = y1 - y0 + pad * 2;
   // keep the drawing's shape, or the provinces come out stretched
   const ratio = VW / VH;
@@ -127,7 +135,6 @@ export function RegionMap({ factor, pins, activePin, onPinHover, locale, label, 
   // pins and type keep their size on screen as the frame tightens
   const k = view.w / VW;
   const lit = new Set(FACTOR_PROVINCES[factor] ?? []);
-  const tone = factor === 'eec' ? '#D9A62B' : factor === 'port' ? '#0E7C86' : factor === 'bkk' ? '#7A5AF8' : '#2A6FDB';
 
   return (
     <svg
@@ -137,8 +144,25 @@ export function RegionMap({ factor, pins, activePin, onPinHover, locale, label, 
       role="img"
       aria-label={label}
     >
+      <defs>
+        {/* Light falls from the top-left in all of them, so the blocks read as
+            one solid thing rather than four separately shaded ones. */}
+        <linearGradient id="rm-sea" x1="0" y1="0" x2="0.3" y2="1">
+          <stop offset="0%" stopColor="#E4EDED" /><stop offset="100%" stopColor="#CEDCDD" />
+        </linearGradient>
+        <linearGradient id="rm-land" x1="0" y1="0" x2="0.4" y2="1">
+          <stop offset="0%" stopColor="#F2EDE3" /><stop offset="100%" stopColor="#E3DCCE" />
+        </linearGradient>
+        <linearGradient id="rm-lit" x1="0" y1="0" x2="0.4" y2="1">
+          <stop offset="0%" stopColor={LIT_LIGHT} /><stop offset="100%" stopColor={LIT} />
+        </linearGradient>
+        <filter id="rm-lift" x="-25%" y="-25%" width="150%" height="170%">
+          <feDropShadow dx="0" dy="7" stdDeviation="7" floodColor="#022310" floodOpacity="0.2" />
+        </filter>
+      </defs>
+
       {/* the sea, so the coastline reads as a coastline */}
-      <rect x={0} y={0} width={VW} height={VH} fill="#DCE7EC" />
+      <rect x={0} y={0} width={VW} height={VH} fill="url(#rm-sea)" />
 
       {PATHS.map((p) => {
         const on = lit.has(p.key);
@@ -159,27 +183,36 @@ export function RegionMap({ factor, pins, activePin, onPinHover, locale, label, 
             aria-label={`${provinceLabel(p.th, locale)} — ${provinceHint}`}
             style={{ cursor: 'pointer', transition: 'transform .3s cubic-bezier(.2,.8,.3,1)' }}
           >
-            {/* side wall — the same outline, dropped by the lift */}
-            <path d={p.d} transform={`translate(0 ${lift})`} fill={on ? tone : '#B9C4C9'} opacity={on ? 0.55 : 0.5} />
+            {/* side wall — the same outline, dropped by the lift, in a darker
+                shade of its own colour so it reads as a cut edge rather than a
+                blur. It carries the shadow, which the top face then sits on. */}
+            <path
+              d={p.d}
+              transform={`translate(0 ${lift})`}
+              fill={on ? LIT_WALL : '#D6CEBF'}
+              filter={lift ? 'url(#rm-lift)' : undefined}
+            />
             {/* top face */}
             <path
               d={p.d}
-              transform={`translate(0 ${-0})`}
-              fill={on ? tone : '#EDF1F2'}
-              fillOpacity={on ? (hov ? 0.95 : 0.82) : hov ? 1 : 0.95}
-              stroke={on ? '#FFFFFF' : '#C7D0D4'}
-              strokeWidth={on ? 2 : 1}
-              style={{ transform: `translateY(${-lift}px)`, transition: 'fill-opacity .3s, transform .3s cubic-bezier(.2,.8,.3,1)' }}
+              fill={on ? 'url(#rm-lit)' : 'url(#rm-land)'}
+              stroke={on ? '#F4FBF8' : '#D5CDBE'}
+              strokeWidth={on ? 1.6 : 0.9}
+              style={{
+                transform: `translateY(${-lift}px)`,
+                filter: hov ? 'brightness(1.08)' : 'none',
+                transition: 'transform .3s cubic-bezier(.2,.8,.3,1), filter .25s',
+              }}
             />
             {hov && (() => {
               const cx = px(p.rings[0].reduce((a, [x]) => a + x, 0) / p.rings[0].length);
               const cy = py(p.rings[0].reduce((a, [, y]) => a + y, 0) / p.rings[0].length) - lift;
               return (
                 <g style={{ pointerEvents: 'none' }}>
-                  <text x={cx} y={cy} textAnchor="middle" style={{ fontSize: 18 * k, fontWeight: 800, fill: on ? '#123' : '#33403F', paintOrder: 'stroke', stroke: '#fff', strokeWidth: 5 * k, strokeLinejoin: 'round' }}>
+                  <text x={cx} y={cy} textAnchor="middle" style={{ fontSize: 18 * k, fontWeight: 800, fill: on ? '#F4FBF8' : '#3B4740', paintOrder: 'stroke', stroke: on ? LIT_WALL : '#F6F2E9', strokeWidth: 5 * k, strokeLinejoin: 'round' }}>
                     {provinceLabel(p.th, locale)}
                   </text>
-                  <text x={cx} y={cy + 16 * k} textAnchor="middle" style={{ fontSize: 11 * k, fontWeight: 700, fill: '#5A6A69', paintOrder: 'stroke', stroke: '#fff', strokeWidth: 4 * k, strokeLinejoin: 'round' }}>
+                  <text x={cx} y={cy + 16 * k} textAnchor="middle" style={{ fontSize: 11 * k, fontWeight: 700, fill: on ? '#DCF3EC' : '#6E7A70', paintOrder: 'stroke', stroke: on ? LIT_WALL : '#F6F2E9', strokeWidth: 3.5 * k, strokeLinejoin: 'round' }}>
                     {provinceHint}
                   </text>
                 </g>
@@ -200,7 +233,7 @@ export function RegionMap({ factor, pins, activePin, onPinHover, locale, label, 
             transform={`translate(${x} ${y}) scale(${(hov ? 1.18 : 1) * k})`}
             onMouseEnter={() => onPinHover(pin.name)}
             onMouseLeave={() => onPinHover(null)}
-            style={{ opacity: on ? 1 : 0.35, transition: 'opacity .35s', pointerEvents: 'none' }}
+            style={{ opacity: on ? 1 : 0.66, transition: 'opacity .35s', pointerEvents: 'none' }}
           >
             {/* an SVG element scales about the viewport origin unless the box
                 is named — without this the ring flew off across the map */}
@@ -208,15 +241,26 @@ export function RegionMap({ factor, pins, activePin, onPinHover, locale, label, 
             {/* a white collar under the dot: the pin sits on a province filled
                 in its own colour, and a coloured dot on a coloured field is a
                 dot nobody can find */}
-            <circle r={17} fill="#fff" />
-            <circle r={13} fill={on ? pin.color : '#8A867E'} />
+            <circle r={17} fill="#fff" opacity={0.94} />
+            <circle r={13} fill={on ? pin.color : '#7C867E'} />
             {/* the icon is authored 12 units wide; at 0.67 it was a speck
                 inside a 30-unit dot */}
             <g transform="translate(-9 -9) scale(1.5)">{pin.icon}</g>
-            <g transform="translate(0 30)">
-              <rect x={-pin.name.length * 5 - 8} y={-13} width={pin.name.length * 10 + 16} height={24} rx={7} fill="#fff" opacity={0.95} />
-              <text textAnchor="middle" y={3} style={{ fontSize: 15, fontWeight: 700, fill: on ? '#28251D' : '#9B968D' }}>{pin.name}</text>
-            </g>
+            {/* The label used to sit on a rounded box whose width was guessed
+                from the number of characters — a rule from a Latin alphabet,
+                so "CBD กรุงเทพฯ" ran straight out of its own box. A halo drawn
+                by the text itself fits whatever the word turns out to be. */}
+            <text
+              textAnchor="middle"
+              y={34}
+              style={{
+                fontSize: 15, fontWeight: 800, fill: on ? '#12241D' : '#5C665E',
+                paintOrder: 'stroke', stroke: '#FFFFFF', strokeWidth: 6,
+                strokeLinejoin: 'round',
+              }}
+            >
+              {pin.name}
+            </text>
           </g>
         );
       })}

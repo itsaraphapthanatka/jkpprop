@@ -489,17 +489,23 @@ test.describe('the location finder map', () => {
 
     const port = page.locator('[data-pin="ท่าเรือแหลมฉบัง"]');
     const airport = page.locator('[data-pin="ดอนเมือง"]');
+    /* dimmed, not a particular number: how far a pin fades is a design
+       decision that has already been retuned once, and pinning the exact
+       value here only means the test fails when the map is restyled */
+    const dim = async (g: typeof port) => Number(await g.evaluate((el) => getComputedStyle(el).opacity));
+    const lit = async (g: typeof port) => (await dim(g)) === 1;
+
     // airports are the default: the port pin starts dimmed
-    await expect(port).toHaveCSS('opacity', '0.35');
+    await expect.poll(() => dim(port)).toBeLessThan(1);
 
     await page.locator('[data-factor="port"]').hover();
-    await expect(port).toHaveCSS('opacity', '1');
-    await expect(airport).toHaveCSS('opacity', '0.35');
+    await expect.poll(() => lit(port)).toBe(true);
+    await expect.poll(() => dim(airport)).toBeLessThan(1);
 
     // moving away puts it back — hovering is a preview, not a choice
     await page.locator('[data-factor="air"]').hover();
-    await expect(port).toHaveCSS('opacity', '0.35');
-    await expect(airport).toHaveCSS('opacity', '1');
+    await expect.poll(() => dim(port)).toBeLessThan(1);
+    await expect.poll(() => lit(airport)).toBe(true);
   });
 });
 

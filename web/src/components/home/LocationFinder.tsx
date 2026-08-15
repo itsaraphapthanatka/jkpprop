@@ -21,7 +21,9 @@ interface OptionDef { key: string; label: string; href: string; }
    more invented figures waiting for someone to wire them up by mistake. */
 interface Stat { dist: string; prov: string; title: string; }
 
-const CAT: Record<PinCat, string> = { air: '#2A6FDB', port: '#0E7C86', bkk: '#7A5AF8' };
+/* Pin colours in the site's own family — they were a stock blue, teal and
+   violet, three hues that appear nowhere else on a cream and deep-green page. */
+const CAT: Record<PinCat, string> = { air: '#2E6E8E', port: '#0B6E72', bkk: '#3C6B52' };
 
 const factorDefs: FactorDef[] = [
   { key: 'air', title: 'ใกล้สนามบิน', desc: 'ขนส่งทางอากาศและด่วน' },
