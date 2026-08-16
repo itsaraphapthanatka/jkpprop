@@ -54,7 +54,18 @@ $COMPOSE up -d --force-recreate app
 # on its own healthcheck; this asks the way a visitor would.
 for i in $(seq 1 20); do
   code=$(curl -s -o /dev/null -w '%{http_code}' -m 10 "http://127.0.0.1:${APP_PORT:-3110}/api/branding" || true)
-  [ "$code" = "200" ] && { echo "✓ app ตอบ 200 แล้ว ($APP)"; exit 0; }
+  if [ "$code" = "200" ]; then
+    echo "✓ app ตอบ 200 แล้ว ($APP)"
+    # Every deploy pulls a fresh pair of images (~2.8 GB) and the old ones stay
+    # behind. Four deploys in an afternoon took this disk from 85% to 99%, on a
+    # box that also holds eighteen other sites' data. Rolling back re-pulls from
+    # the registry, so nothing here is needed to keep a copy.
+    docker images --format '{{.Repository}}:{{.Tag}}' \
+      | grep '/jkpprop-' | grep -v ":${TAG}$" | grep -v ':latest$' \
+      | xargs -r docker rmi >/dev/null 2>&1 || true
+    echo "  (ลบ image รุ่นเก่าออกแล้ว เหลือ $(df -h / | awk 'NR==2{print $4}') ว่าง)"
+    exit 0
+  fi
   sleep 3
 done
 

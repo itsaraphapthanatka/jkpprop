@@ -9,9 +9,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -
 
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
-# only what the CLI needs, not the whole dependency tree
-RUN npm ci --omit=dev --ignore-scripts \
-  && npm i --no-save prisma@6 tsx bcryptjs \
+# Only what the CLI needs. `npm ci` was installing the whole production tree —
+# next, react, sharp and everything else — to run `prisma migrate deploy`,
+# which made this image 2.26 GB against the app's 543 MB. Every deploy pulls it.
+RUN npm i --no-save prisma@6 @prisma/client tsx bcryptjs \
   && npx prisma generate
 
 # `migrate deploy` applies committed migrations and never prompts or resets —
