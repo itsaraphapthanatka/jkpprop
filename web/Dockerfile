@@ -21,6 +21,14 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # a real URL is only needed at runtime; the build just must not fail on it
 ENV NEXT_TELEMETRY_DISABLED=1
+# The VPS this ships to has 3.9 GB of RAM and eighteen other containers on it.
+# Left alone, the build took every page of cache the machine had — available
+# memory fell from 1.4 GB to 66 MB, the page cache collapsed from 1.4 GB to
+# 137 MB, and disk reads went from 110 to 40,000 blocks a second as every other
+# service had to fetch itself back off the disk. Nothing was killed; the whole
+# box simply stopped answering. A ceiling on the heap keeps the build inside
+# its own means.
+ENV NODE_OPTIONS=--max-old-space-size=1024
 RUN npx prisma generate && npm run build
 
 # ---- runtime ---------------------------------------------------------------
