@@ -282,6 +282,27 @@ test.describe('the heart and the share button on a property page', () => {
   });
 });
 
+test.describe('sharing a single FAQ answer', () => {
+  /* The button said "แชร์" and copied the question's *text* to the clipboard —
+     no link, and nothing on screen said anything had happened. */
+  test('hands out a link that opens that question', async ({ page, context }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.goto('/th/faq');
+    await page.locator('#faq-layout button[aria-expanded]').first().click();
+    await page.locator('[data-testid^="faq-share-"]').first().click();
+
+    await expect(page.locator('#share-menu')).toBeVisible();
+    await page.locator('[data-testid="share-copy"]').click();
+
+    const link = await page.evaluate(() => navigator.clipboard.readText());
+    expect(link, 'the clipboard got the question text, not a link').toContain('/th/faq#');
+
+    // and the link is worth having: it opens the answer it names
+    await page.goto(new URL(link).pathname + new URL(link).hash);
+    await expect(page.locator('#faq-layout [id^="faq-a-"]:not([hidden])')).toHaveCount(1);
+  });
+});
+
 test.describe('the share menu', () => {
   /* The share control on a property page did nothing at all, and the one on
      the listing page opened three items that closed the menu and nothing else. */

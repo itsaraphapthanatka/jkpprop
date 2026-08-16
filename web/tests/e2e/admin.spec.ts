@@ -2645,7 +2645,7 @@ test.describe('the dashboard task list', () => {
     await expect(page.locator(`[data-task="${task.id}"]`)).toHaveCount(0);
   });
 
-  test('the count matches the rows on screen', async ({ page, request }) => {
+  test('the count matches the rows on screen', async ({ page }) => {
     test.skip(!leadId, 'no lead');
     await page.goto('/admin');
     const rows = await page.locator('[data-task]').count();

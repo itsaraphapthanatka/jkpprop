@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from '@/i18n/LocaleLink';
 import { useDict } from '@/i18n/useDict';
 import { FALLBACK_CATS } from '@/lib/faqDefaults';
 import type { SectionCopy } from '@/lib/server/sectionCopy';
 import type { FaqCategory } from '@/lib/server/faqCopy';
+import { ShareMenu } from '@/components/site/ShareMenu';
 
 /* ============================================================
    Ported verbatim from FAQ.dc.html — hero, sticky category
@@ -25,6 +26,22 @@ export function FaqBody({ cats, copy }: { cats?: FaqCategory[]; copy: SectionCop
   const pick = (v: string, fallback: string) => v || fallback;
   const CATS = cats && cats.length ? cats : FALLBACK_CATS;
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
+  /* read after mount — the server has no window, and a share link has to carry
+     the address the reader is actually on */
+  const [origin, setOrigin] = useState('');
+  const [pathname, setPathname] = useState('');
+  useEffect(() => {
+    setOrigin(window.location.origin);
+    setPathname(window.location.pathname);
+    /* arriving on a shared link opens the question it names, rather than
+       dropping the reader on a page of closed rows */
+    // the category key is Thai, so the anchor arrives percent-encoded
+    const id = decodeURIComponent(window.location.hash.replace('#', ''));
+    if (id.startsWith('q-')) {
+      setOpenMap((m) => ({ ...m, [id.slice(2)]: true }));
+      setTimeout(() => document.getElementById(id)?.scrollIntoView({ block: 'center' }), 100);
+    }
+  }, []);
   const [searchQuery, setSearchQuery] = useState('');
 
   const toggle = (k: string) => setOpenMap((m) => ({ ...m, [k]: !m[k] }));
@@ -122,8 +139,10 @@ export function FaqBody({ cats, copy }: { cats?: FaqCategory[]; copy: SectionCop
                 {cat.qs.map(([question, answer], i) => {
                   const k = cat.key + '-' + i;
                   const open = !!openMap[k];
+                  // a question has to have an address before anyone can share it
+                  const anchor = `q-${k}`;
                   return (
-                    <div key={k} style={{ borderRadius: 14, overflow: 'hidden', background: open ? 'var(--pine)' : 'var(--surface)', border: '1px solid ' + (open ? 'var(--pine)' : 'var(--border)') }}>
+                    <div key={k} id={anchor} style={{ borderRadius: 14, overflow: 'hidden', scrollMarginTop: 90, background: open ? 'var(--pine)' : 'var(--surface)', border: '1px solid ' + (open ? 'var(--pine)' : 'var(--border)') }}>
                       <button
                         type="button"
                         onClick={() => toggle(k)}
@@ -152,21 +171,17 @@ export function FaqBody({ cats, copy }: { cats?: FaqCategory[]; copy: SectionCop
                           {/* the CMS body is markup; it arrives sanitised from faqCopy,
                               so paragraphs and lists render instead of showing their tags */}
                           <div dangerouslySetInnerHTML={{ __html: answer }} />
-                          <div
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              try {
-                                if (navigator.clipboard) navigator.clipboard.writeText(question);
-                              } catch {
-                                /* noop */
-                              }
-                            }}
-                            style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end' }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: '#8FE6B6', cursor: 'pointer' }}>
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.6 10.6l6.8-3.8M8.6 13.4l6.8 3.8" /></svg>
-                              {d.faq.share}
-                            </div>
+                          {/* It said "แชร์" and copied the question's *text* to the
+                              clipboard — no link, and no sign that anything had
+                              happened. Same menu as the rest of the site, and it
+                              hands out a link that opens this question. */}
+                          <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end' }}>
+                            <ShareMenu target={{ url: `${origin}${pathname}#${encodeURIComponent(anchor)}`, title: question }}>
+                              <div data-testid={`faq-share-${k}`} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: '#8FE6B6', cursor: 'pointer' }}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.6 10.6l6.8-3.8M8.6 13.4l6.8 3.8" /></svg>
+                                {d.faq.share}
+                              </div>
+                            </ShareMenu>
                           </div>
                       </div>
                     </div>
