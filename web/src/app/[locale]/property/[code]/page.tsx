@@ -76,7 +76,11 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
   const related = (await loadPublicListings({ locale, type: p.typeKey, limit: 4 }).catch(() => []))
     .filter((r) => r.code !== p.publicCode)
     .slice(0, 3)
-    .map((r) => ({ code: r.code, deal: r.deal, title: r.title, loc: r.loc, price: r.price, img: r.img }));
+    .map((r) => ({
+      code: r.code, deal: r.deal, title: r.title, loc: r.loc, price: r.price, img: r.img,
+      // the card shows these too; the old related card simply left them out
+      photos: r.photos, type: propertyType(r.typeKey).label, area: r.areaLabel,
+    }));
 
   const zoningRaw = String(values.zoning_color ?? '').trim();
   const photos = Array.isArray(values.photos) ? (values.photos as string[]) : [];

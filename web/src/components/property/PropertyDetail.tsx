@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 import { Gallery } from './Gallery';
 import { InquiryBox } from './InquiryBox';
 import Link from '@/i18n/LocaleLink';
-import { PhotoPlaceholder } from '@/components/common/PhotoPlaceholder';
 import type { SpecRow } from '@/lib/server/propertySpecs';
 import { useDict } from '@/i18n/useDict';
+import { PropertyCard, type CardListing } from '@/components/listing/PropertyCard';
+import { useFavourites } from '@/lib/favourites';
 
 /* ---- responsive helper (source media queries target #pd-* ids not in globals) ---- */
 function useMaxWidth(px: number) {
@@ -54,7 +55,7 @@ const SPEC_ICON_FALLBACK = qi(<><circle cx="12" cy="12" r="9" /><path d="M12 8v8
 const featureIcon = fi(<path d="M20 6L9 17l-5-5" />);
 const nearbyIcon = ni(<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z" />);
 
-export type RelatedProperty = { code: string; deal: string; title: string; loc: string; price: string; img: string | null };
+export type RelatedProperty = CardListing;
 
 const sectionCard: React.CSSProperties = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, padding: '26px 28px' };
 const sectionHead = (title: string, mb = 18): React.ReactNode => (
@@ -84,50 +85,6 @@ function ShareBtn({ children }: { children: React.ReactNode }) {
   );
 }
 
-function RelatedCard({ r }: { r: RelatedProperty }) {
-  const d = useDict();
-  const [hover, setHover] = useState(false);
-  return (
-    <Link
-      href={`/property/${encodeURIComponent(r.code)}`}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        background: 'var(--surface)',
-        border: '1.5px solid var(--border)',
-        borderRadius: 18,
-        overflow: 'hidden',
-        transition: 'transform .3s cubic-bezier(.2,.7,.3,1),box-shadow .3s',
-        transform: hover ? 'translateY(-6px)' : 'none',
-        boxShadow: hover ? '0 20px 40px rgba(0,0,0,.1)' : 'none',
-      }}
-    >
-      <div style={{ position: 'relative', height: 180, background: 'var(--tint)' }}>
-        {r.img
-          ? /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={r.img} alt={r.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-          : <PhotoPlaceholder />}
-        <span style={{ position: 'absolute', top: 12, left: 12, height: 26, padding: '0 11px', borderRadius: 9999, background: 'rgba(255,255,255,.95)', color: 'var(--deep)', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5 }}>
-          <span style={{ width: 7, height: 7, borderRadius: 9999, background: 'var(--deep)' }} />{r.deal}
-        </span>
-      </div>
-      <div style={{ padding: '16px 18px' }}>
-        <code style={{ fontSize: '11.5px', color: 'var(--deep)', fontWeight: 700 }}>{r.code}</code>
-        <div style={{ marginTop: 6, fontSize: 14, fontWeight: 700, color: 'var(--text)', lineHeight: 1.45 }}>{r.title}</div>
-        <div style={{ marginTop: 8, fontSize: 12, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 5 }}>
-          {pin(13, 'var(--muted2)')}{r.loc}
-        </div>
-        <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 15, fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: 'var(--accent)' }}>{r.price}</span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 4 }}>
-            {d.common.viewDetail}
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-          </span>
-        </div>
-      </div>
-    </Link>
-  );
-}
 
 /* Everything the public detail page shows, all of it read from the record —
    see lib/server/propertySpecs for how the stored fields become rows. */
@@ -152,6 +109,8 @@ const baht = (n: number) => `฿${n.toLocaleString('th-TH')}`;
    carried a full demo record as its default. */
 export function PropertyDetail({ property }: { property: PublicProperty }) {
   const d = useDict();
+  // the same list the listing page and the masthead read
+  const favs = useFavourites();
   const w980 = useMaxWidth(980);
   const w640 = useMaxWidth(640);
 
@@ -326,9 +285,17 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
             <span style={{ width: 26, height: 2, background: 'var(--pine)', borderRadius: 2 }} />
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>{d.property.similar}</h2>
           </div>
-          <div className="rs-cols-3" id="pd-related" style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(3, related.length)}, 1fr)`, gap: 20 }}>
+          {/* Fixed three columns, not one per card: with a single similar
+              property the grid used to give it the whole 1320px, and a card
+              stretched that wide stops reading as a card at all. */}
+          <div className="rs-cols-3" id="pd-related" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, alignItems: 'start' }}>
             {related.map((r) => (
-              <RelatedCard key={r.code} r={r} />
+              <PropertyCard
+                key={r.code}
+                it={r}
+                favFill={favs.has(r.code) ? 'var(--ink)' : 'none'}
+                onToggleFav={() => favs.toggle(r.code)}
+              />
             ))}
           </div>
         </section>

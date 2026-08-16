@@ -206,6 +206,44 @@ test.describe('FAQ answers from the CMS', () => {
   });
 });
 
+test.describe('the similar-properties row on a property page', () => {
+  /* It had drifted into a card of its own — no photo count, no type, a line of
+     text where the listing's card has a button — and the grid gave it a column
+     per card, so one similar property was stretched across the whole page. */
+  test('is the same card as the listing page, at card width', async ({ page, request }) => {
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=6')).json()).items as { code: string }[];
+    test.skip(items.length < 2, 'needs a second property of the same type to be similar to');
+
+    await page.goto(`/th/property/${items[0].code}`);
+    const row = page.locator('#pd-related');
+    await row.scrollIntoViewIfNeeded();
+
+    const card = row.locator('[data-card]').first();
+    await expect(card).toBeVisible();
+
+    /* a card, not a band across the page. On a phone one column is the whole
+       row and that is right — what is never right is a card 1,272px wide, so
+       the check is against a card's own maximum rather than the row's width */
+    const cardBox = (await card.boundingBox())!;
+    expect(cardBox.width).toBeLessThanOrEqual(560);
+
+    // the same parts the listing card has
+    await expect(card.locator('[data-fav]')).toBeVisible();
+    await expect(card).toContainText(/ตร\.ม\./);
+    await expect(card.getByText('ดูรายละเอียด')).toBeVisible();
+  });
+
+  test('the heart there saves to the same list as everywhere else', async ({ page, request }) => {
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=6')).json()).items as { code: string }[];
+    test.skip(items.length < 2, 'needs a similar property');
+
+    await page.goto(`/th/property/${items[0].code}`);
+    await page.locator('#pd-related').scrollIntoViewIfNeeded();
+    await page.locator('#pd-related [data-fav]').first().click();
+    await expect(page.locator('#saved-link')).toContainText('1');
+  });
+});
+
 test.describe('the contact map', () => {
   /* It was a stock photograph of a world map — decorative, and no use to
      anyone trying to find the office. It takes a coordinate from the CMS now,
