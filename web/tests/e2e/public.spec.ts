@@ -525,6 +525,23 @@ test.describe('the location finder map', () => {
     await expect(page.locator('body')).toContainText('ระยอง');
   });
 
+  /* Clicking a province left the browser's focus ring on it: a blue rectangle
+     round the shape's bounding box, which on a map reads as a selection nobody
+     made. The keyboard still gets one — that is the point of a focus ring. */
+  test('clicking a province leaves no focus rectangle behind', async ({ page }) => {
+    await page.goto('/th');
+    const plane = page.locator('#lf-map-plane');
+    await plane.scrollIntoViewIfNeeded();
+    const prov = page.locator('[data-province="chachoengsao"]');
+    const box = (await prov.boundingBox())!;
+
+    // pressed, not clicked: a real pointer focus without navigating away
+    await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.5);
+    await page.mouse.down();
+    expect(await prov.evaluate((el) => getComputedStyle(el).outlineStyle)).toBe('none');
+    await page.mouse.up();
+  });
+
   test('clicking a province opens the listing narrowed to it', async ({ page }) => {
     await page.goto('/th');
     await page.locator('#lf-map-plane').scrollIntoViewIfNeeded();

@@ -140,5 +140,11 @@ svg[fill="none"] { stroke-width:1.7px !important; }
 .belt-card-count b { font-size:16px; color:#28251D; }
 .belt-card-go { margin-top:2px; font-size:11.5px; font-weight:700; color:#034956; }
 .belt-prov { cursor:pointer; transition:fill .3s, fill-opacity .3s, stroke .3s; }
+/* Clicking a province left the browser's focus ring on it — a blue rectangle
+   round the shape's bounding box, which on a map reads as a selection that was
+   never made. Gone for the pointer; kept for the keyboard, where a focus ring
+   is the only thing telling you where you are. */
+.leaflet-container .leaflet-interactive:focus { outline:none; }
+.leaflet-container .leaflet-interactive:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 .leaflet-container { background:#F4F6F5; font:inherit; }
 .leaflet-control-attribution { font-size:10px; background:rgba(255,255,255,.75); }
