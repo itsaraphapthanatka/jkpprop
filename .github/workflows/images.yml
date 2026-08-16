@@ -1,0 +1,68 @@
+# Build the two images on GitHub's runners, not on the VPS.
+#
+# The VPS has 3.9 GB of RAM, two cores and eighteen other production
+# containers on it. A Next.js build there took the machine's free memory from
+# 1.4 GB to 66 MB and its page cache from 1.4 GB to 137 MB, so every other
+# service had to read itself back off the disk; the box stopped answering and
+# had to be rebooted by hand. Nothing about that build needs to happen on the
+# machine that serves the site.
+#
+# What comes out: ghcr.io/<owner>/jkpprop-app and …/jkpprop-migrate, tagged
+# both `latest` and the commit sha, so a bad deploy can be rolled back to a
+# known image rather than rebuilt.
+name: images
+
+on:
+  push:
+    branches: [main, deploy/behind-nginx]
+    paths:
+      - 'web/**'
+      - '.github/workflows/images.yml'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      # both images every time: the migrate image carries the schema, and an
+      # app built against a migration the database has not had applied is the
+      # one combination that breaks production
+      matrix:
+        include:
+          - name: jkpprop-app
+            file: web/Dockerfile
+          - name: jkpprop-migrate
+            file: web/Dockerfile.migrate
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          # provided to every workflow run; no secret to create or rotate
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: web
+          file: ${{ matrix.file }}
+          # the VPS is x86_64; the Mac these are often built on is not
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.name }}:latest
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.name }}:${{ github.sha }}
+          # a build cache that lives in the registry, so a run that changes one
+          # component does not reinstall node_modules from scratch
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

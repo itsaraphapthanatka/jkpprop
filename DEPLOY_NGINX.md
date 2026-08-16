@@ -35,20 +35,52 @@ ls /etc/nginx/sites-enabled/     # มีเว็บอะไรอยู่บ
 > ss -lnt "sport = :3110" | grep -q LISTEN && echo ใช้อยู่ || echo ว่าง
 > ```
 
-## 2. build ที่เครื่องตัวเอง แล้วส่ง image ขึ้นไป
+## 2. image สร้างที่ GitHub Actions — ไม่ build บน VPS
 
-Next.js กิน RAM ตอน build พอสมควร บนเครื่องที่ RAM เหลือน้อย OOM killer
-อาจไปฆ่า container ของเว็บอื่นด้วย — build ที่อื่นปลอดภัยกว่า
+เครื่องนี้มี RAM 3.9 GB กับ 2 คอร์ และรันคอนเทนเนอร์ของเว็บอื่นอีก 18 ตัว
+วันที่ 16 ส.ค. 2569 การ build บนเครื่องทำให้หน่วยความจำว่างเหลือ 66 MB และ
+page cache พังจาก 1.4 GB เหลือ 137 MB ทุกเซอร์วิสต้องอ่านตัวเองกลับจากดิสก์
+(อ่านดิสก์พุ่งจาก 110 เป็น 40,000 บล็อก/วินาที) เครื่องหยุดตอบจนต้องรีบูตมือ
 
-`--platform linux/amd64` สำคัญถ้า build จาก Mac (Apple Silicon เป็น arm64)
+ตอนนี้ push ขึ้น `main` หรือ `deploy/behind-nginx` แล้ว `.github/workflows/images.yml`
+จะ build ทั้งสอง image บน runner ของ GitHub แล้วส่งขึ้น GHCR ให้เอง:
+
+* `ghcr.io/<owner>/jkpprop-app:latest` และ `:<git-sha>`
+* `ghcr.io/<owner>/jkpprop-migrate:latest` และ `:<git-sha>`
+
+ติด tag ด้วย sha ไว้ด้วย เพื่อให้ย้อนกลับไป build ที่รู้ว่าใช้ได้ ไม่ใช่ต้อง build ใหม่
+
+### ตั้งค่าครั้งเดียวบน VPS
+
+image เป็น package ส่วนตัว เครื่องจึงต้องมี token อ่านอย่างเดียว
+(สร้างที่ github.com/settings/tokens ให้สิทธิ์ `read:packages` อย่างเดียวพอ)
 
 ```bash
-docker build --platform linux/amd64 -t jkpprop-app:latest     -f web/Dockerfile         web/
-docker build --platform linux/amd64 -t jkpprop-migrate:latest -f web/Dockerfile.migrate web/
-
-docker save jkpprop-app:latest jkpprop-migrate:latest | gzip | \
-  ssh root@VPS 'gunzip | docker load'
+cd /srv/jkpprop
+printf '%s' 'ghp_xxx' > .ghcr-token && chmod 600 .ghcr-token
+cp /path/to/deploy/pull-and-restart.sh . && chmod +x pull-and-restart.sh
 ```
+
+### ทุกครั้งที่ deploy
+
+```bash
+/srv/jkpprop/pull-and-restart.sh              # ตัวล่าสุด
+/srv/jkpprop/pull-and-restart.sh <git-sha>    # ย้อนกลับไปตัวที่รู้ว่าใช้ได้
+```
+
+สคริปต์จะ pull → รัน migrate → เปลี่ยน container ของ app → แล้ว **ยิง HTTP จริง
+เข้าไปเช็คว่าตอบ 200** ก่อนบอกว่าเสร็จ ถ้าไม่ตอบใน 60 วินาที มันจะฟ้องและคืน
+exit code ไม่ใช่ 0
+
+> วิธีเดิม (build บนแมคแล้ว `docker save | ssh 'docker load'`) ยังใช้ได้อยู่
+> ถ้า GitHub Actions ล่ม — compose อ่านชื่อ image จาก `APP_IMAGE`/`MIGRATE_IMAGE`
+> ใน `.env` ถ้าไม่ได้ตั้งไว้ ก็จะกลับไปใช้ `jkpprop-app:latest` ในเครื่องเหมือนเดิม
+>
+> ```bash
+> docker build --platform linux/amd64 -t jkpprop-app:latest     -f web/Dockerfile         web/
+> docker build --platform linux/amd64 -t jkpprop-migrate:latest -f web/Dockerfile.migrate web/
+> docker save jkpprop-app:latest jkpprop-migrate:latest | gzip | ssh root@VPS 'gunzip | docker load'
+> ```
 
 ## 3. ตั้งค่าบน VPS
 

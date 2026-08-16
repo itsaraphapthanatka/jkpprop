@@ -42,7 +42,10 @@ services:
       - '127.0.0.1:${DB_PORT:-5435}:5432'
 
   migrate:
-    image: jkpprop-migrate:latest
+    # Set by deploy/pull-and-restart.sh to a ghcr.io tag. The bare local name
+    # is the fallback, so a box that has not moved to the registry yet still
+    # comes up from whatever `docker load` put there.
+    image: ${MIGRATE_IMAGE:-jkpprop-migrate:latest}
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-jkp}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-jkpprop}
     depends_on:
@@ -51,7 +54,7 @@ services:
     restart: 'no'
 
   app:
-    image: jkpprop-app:latest
+    image: ${APP_IMAGE:-jkpprop-app:latest}
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-jkp}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-jkpprop}
