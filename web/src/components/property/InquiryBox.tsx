@@ -14,13 +14,14 @@ const inputStyle: React.CSSProperties = {
   outline: 'none',
 };
 
-type Social = { label: string; bg: string; grad: string; glyph: React.ReactNode };
+type Social = { key: 'line' | 'whatsapp' | 'facebook'; label: string; bg: string; grad: string; glyph: React.ReactNode };
 
 /* Official brand marks (white glyph on the brand's green gradient badge),
    matching the "gradient circle + white logo" style of the social-media
    logo collection. Paths are the standard monochrome brand glyphs. */
 const SOCIALS: Social[] = [
   {
+    key: 'line',
     label: 'Line',
     bg: '#E3F5DC',
     grad: 'linear-gradient(145deg,#06C755 0%,#00B900 100%)',
@@ -31,16 +32,19 @@ const SOCIALS: Social[] = [
     ),
   },
   {
-    label: 'WeChat',
-    bg: '#DDF0DD',
-    grad: 'linear-gradient(145deg,#3DC94F 0%,#07C160 100%)',
+    /* WeChat has no field in /admin/company to hold an ID, so there is nothing
+       to link to — a button that goes nowhere is worse than one that is absent.
+       Add a field there and it can come back. */
+    key: 'facebook',
+    label: 'Facebook',
+    bg: '#DEEAFB',
+    grad: 'linear-gradient(145deg,#3B82F6 0%,#1877F2 100%)',
     glyph: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff" aria-hidden="true">
-        <path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 0 1 .598.082l1.584.926a.272.272 0 0 0 .14.047c.134 0 .24-.111.24-.247 0-.06-.023-.12-.038-.177l-.327-1.233a.582.582 0 0 1-.023-.156.49.49 0 0 1 .201-.398C23.024 18.48 24 16.82 24 14.98c0-3.21-3.014-5.837-6.628-6.123-.144-.01-.288-.01-.434-.007zm-3.628 3.386c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.969-.982zm4.844 0c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.969-.982z" />
-      </svg>
+      <svg width="23" height="23" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 3.925 23.094 9.101 24v-8.437H6.353v-3.49h2.748V9.63c0-3.007 1.792-4.669 4.533-4.669 1.313 0 2.686.235 2.686.235v2.953H14.96c-1.49 0-1.955.93-1.955 1.886v2.038h3.328l-.532 3.49h-2.796V24C20.075 23.094 24 18.1 24 12.073z" /></svg>
     ),
   },
   {
+    key: 'whatsapp',
     label: 'WhatsApp',
     bg: '#DCF3E5',
     grad: 'linear-gradient(145deg,#5BE58A 0%,#25D366 100%)',
@@ -52,12 +56,22 @@ const SOCIALS: Social[] = [
   },
 ];
 
-function SocialButton({ s }: { s: Social }) {
+/* WhatsApp can carry the first line of the message; the others cannot, and
+   pretending otherwise would just produce a broken link */
+function waPrefill(key: string, url: string, code: string, prefix: string) {
+  if (key !== 'whatsapp' || !code) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}text=${encodeURIComponent(`${prefix} ${code}`.trim())}`;
+}
+
+function SocialButton({ s, href }: { s: Social; href: string }) {
   const d = useDict();
   const [hover, setHover] = useState(false);
   return (
     <a
-      href="#"
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
       aria-label={d.inquiry.contactVia + s.label}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
@@ -83,19 +97,60 @@ function SocialButton({ s }: { s: Social }) {
 /* `code` identifies the property being asked about. It was a module-level
    constant, so an enquiry sent from any property page arrived naming
    JKP-SPK0042 — the sales team could not tell what the lead was about. */
-export function InquiryBox({ code = '', topOffset = 88, stacked = false }: { code?: string; topOffset?: number; stacked?: boolean }) {
+export function InquiryBox({ code = '', typeLabel = '', socials = [], topOffset = 88, stacked = false }: {
+  code?: string;
+  /** what kind of property is being asked about, for the lead record */
+  typeLabel?: string;
+  /** the company's own chat accounts — only the ones that are set are shown */
+  socials?: { key: string; url: string }[];
+  topOffset?: number;
+  stacked?: boolean;
+}) {
   const d = useDict();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState(`${d.inquiry.interestedIn} ${code}`.trim());
   const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
   const [btnHover, setBtnHover] = useState(false);
 
-  const onSubmit = (e: React.FormEvent) => {
+  /* This used to be `setSent(true)` and nothing else: the visitor typed their
+     name and number, saw "ส่งเรียบร้อย", and no one at the company ever heard
+     about it. It posts to the same endpoint the requirement form on /contact
+     uses, so the enquiry lands in the leads queue with the property code on it. */
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSent(true);
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      const res = await fetch('/api/public/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name, phone, email, message,
+          // the API requires this; from a property page the sender is the customer
+          respondentType: 'เป็น ลูกค้า (ผู้เช่า)',
+          typeLabel,
+          req: [{ k: 'ทรัพย์ที่สนใจ', v: code }],
+        }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(json?.error?.message || d.inquiry.failed);
+      setSent(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : d.inquiry.failed);
+    } finally {
+      setBusy(false);
+    }
   };
+
+  /* a chat button is drawn only when there is an account behind it */
+  const channels = SOCIALS
+    .map((s) => ({ s, url: socials.find((c) => c.key === s.key)?.url ?? '' }))
+    .filter((c) => c.url);
 
   return (
     <div id="pd-inquiry" style={{ position: stacked ? 'static' : 'sticky', top: stacked ? 'auto' : topOffset, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -112,11 +167,13 @@ export function InquiryBox({ code = '', topOffset = 88, stacked = false }: { cod
         </div>
 
         {/* socials */}
-        <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-          {SOCIALS.map((s) => (
-            <SocialButton key={s.label} s={s} />
-          ))}
-        </div>
+        {channels.length > 0 && (
+          <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: `repeat(${channels.length}, 1fr)`, gap: 8 }}>
+            {channels.map(({ s, url }) => (
+              <SocialButton key={s.label} s={s} href={waPrefill(s.key, url, code, d.inquiry.interestedIn)} />
+            ))}
+          </div>
+        )}
 
         {/* divider */}
         <div style={{ margin: '16px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -141,6 +198,7 @@ export function InquiryBox({ code = '', topOffset = 88, stacked = false }: { cod
 
           <button
             type="submit"
+            disabled={busy || sent}
             onMouseEnter={() => setBtnHover(true)}
             onMouseLeave={() => setBtnHover(false)}
             style={{
@@ -164,7 +222,7 @@ export function InquiryBox({ code = '', topOffset = 88, stacked = false }: { cod
               boxShadow: btnHover ? '0 12px 26px rgba(var(--deep-rgb),.35)' : 'none',
             }}
           >
-            {sent ? (
+            {busy ? d.inquiry.sending : sent ? (
               <>
                 {d.inquiry.sent}
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6">
@@ -180,6 +238,13 @@ export function InquiryBox({ code = '', topOffset = 88, stacked = false }: { cod
               </>
             )}
           </button>
+
+          {error && (
+            <p id="pd-inquiry-error" role="alert" style={{ margin: '10px 0 0', fontSize: 12.5, lineHeight: 1.6, color: '#B3261E' }}>{error}</p>
+          )}
+          {sent && !error && (
+            <p id="pd-inquiry-sent" role="status" style={{ margin: '10px 0 0', fontSize: 12.5, lineHeight: 1.6, color: 'var(--accent)' }}>{d.inquiry.sentNote}</p>
+          )}
         </form>
       </div>
     </div>

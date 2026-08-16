@@ -206,6 +206,82 @@ test.describe('FAQ answers from the CMS', () => {
   });
 });
 
+test.describe('the enquiry box on a property page', () => {
+  /* Its submit handler was `setSent(true)` and nothing else: the visitor typed
+     their name and number, the button turned green, and nobody at the company
+     ever heard about it. */
+  test('sends the enquiry, with the property code on it', async ({ page, request }) => {
+    const code = ((await (await request.get('/api/public/listings?locale=th&limit=1')).json()).items as { code: string }[])[0].code;
+
+    // caught rather than delivered: the point is what it sends, not another row
+    let body: Record<string, unknown> | null = null;
+    await page.route('**/api/public/leads', async (route) => {
+      body = JSON.parse(route.request().postData() ?? '{}');
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, data: {} }) });
+    });
+
+    await page.goto(`/th/property/${code}`);
+    await page.locator('#pd-inquiry input').nth(0).fill('คุณทดสอบ');
+    await page.locator('#pd-inquiry input').nth(1).fill('t@example.com');
+    await page.locator('#pd-inquiry input').nth(2).fill('0800000000');
+    await page.getByRole('button', { name: /ส่งคำถาม|Send enquiry/ }).click();
+
+    await expect(page.locator('#pd-inquiry-sent')).toBeVisible();
+    expect(body, 'nothing was posted').not.toBeNull();
+    expect(body!.name).toBe('คุณทดสอบ');
+    expect(body!.phone).toBe('0800000000');
+    expect(JSON.stringify(body!.req)).toContain(code);   // which property this is about
+  });
+
+  test('says so when it fails, instead of showing a tick', async ({ page, request }) => {
+    const code = ((await (await request.get('/api/public/listings?locale=th&limit=1')).json()).items as { code: string }[])[0].code;
+    await page.route('**/api/public/leads', (route) =>
+      route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: { message: 'ระบบขัดข้อง' } }) }));
+
+    await page.goto(`/th/property/${code}`);
+    await page.locator('#pd-inquiry input').nth(0).fill('คุณทดสอบ');
+    await page.locator('#pd-inquiry input').nth(2).fill('0800000000');
+    await page.getByRole('button', { name: /ส่งคำถาม|Send enquiry/ }).click();
+
+    await expect(page.locator('#pd-inquiry-error')).toBeVisible();
+    await expect(page.locator('#pd-inquiry-sent')).toHaveCount(0);
+  });
+
+  /* The Line / WeChat / WhatsApp buttons were `href="#"`, and WeChat has no
+     field anywhere to hold an account. A chat button is drawn only where there
+     is an account behind it. */
+  test('a chat button exists only where an account is configured', async ({ page, request }) => {
+    const code = ((await (await request.get('/api/public/listings?locale=th&limit=1')).json()).items as { code: string }[])[0].code;
+    await page.goto(`/th/property/${code}`);
+    const hrefs = await page.locator('#pd-inquiry a[target="_blank"]').evaluateAll((as) => as.map((a) => (a as HTMLAnchorElement).href));
+    for (const h of hrefs) expect(h, 'a chat button that goes nowhere').toMatch(/^https:\/\//);
+  });
+});
+
+test.describe('the heart and the share button on a property page', () => {
+  test('the heart saves this property, the share button copies its link', async ({ page, context, request }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    const code = ((await (await request.get('/api/public/listings?locale=th&limit=1')).json()).items as { code: string }[])[0].code;
+
+    await page.goto(`/th/property/${code}`);
+    await page.locator('[data-testid="pd-fav"]').click();
+    await expect(page.locator('#saved-link')).toContainText('1');
+
+    await page.locator('[data-testid="pd-share"]').click();
+    await expect(page.locator('#pd-share-done')).toBeVisible();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(`/property/${code}`);
+  });
+
+  test('the breadcrumb goes back to the listing, not to "#"', async ({ page, request }) => {
+    const code = ((await (await request.get('/api/public/listings?locale=th&limit=1')).json()).items as { code: string }[])[0].code;
+    await page.goto(`/th/property/${code}`);
+    const crumb = page.getByRole('link', { name: 'อสังหาริมทรัพย์ทั้งหมด' });
+    await expect(crumb).toHaveAttribute('href', '/th/listing');
+    await crumb.click();
+    await expect(page).toHaveURL(/\/th\/listing$/);
+  });
+});
+
 test.describe('the similar-properties row on a property page', () => {
   /* It had drifted into a card of its own — no photo count, no type, a line of
      text where the listing's card has a button — and the grid gave it a column

@@ -100,6 +100,8 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
     zoning: zoningRaw ? enumLabel(zoningRaw, locale) : null,
     photos,
     related,
+    // only channels that are actually configured in /admin/company
+    socials: company.socials.map((sc) => ({ key: sc.key as string, url: sc.url })),
   };
 
   return (

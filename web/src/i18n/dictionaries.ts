@@ -91,7 +91,7 @@ export type Dictionary = {
     heading: string; hours: string; orFillIn: string; contactVia: string;
     interestedIn: string; wantMore: string;
     namePh: string; emailPh: string; phonePh: string;
-    send: string; sent: string;
+    send: string; sent: string; sending: string; failed: string; sentNote: string;
   };
   about: {
     hero: string; breadcrumb: string;
@@ -286,7 +286,9 @@ const th: Dictionary = {
     orFillIn: 'หรือกรอกฟอร์ม', contactVia: 'ติดต่อผ่าน ',
     interestedIn: 'สนใจทรัพย์', wantMore: 'ต้องการข้อมูลเพิ่มเติม…',
     namePh: 'ชื่อของคุณ', emailPh: 'อีเมล', phonePh: 'เบอร์โทรศัพท์',
-    send: 'ส่งคำถาม', sent: 'ส่งแล้ว',
+    send: 'ส่งคำถาม', sent: 'ส่งแล้ว', sending: 'กำลังส่ง…',
+    failed: 'ส่งไม่สำเร็จ กรุณาลองใหม่ หรือโทรหาเราได้เลย',
+    sentNote: 'ทีมงานได้รับคำถามของท่านแล้ว จะติดต่อกลับโดยเร็วที่สุด',
   },
   about: {
     hero: 'เกี่ยวกับเรา', breadcrumb: 'เกี่ยวกับเรา',
@@ -499,7 +501,9 @@ const en: Dictionary = {
     orFillIn: 'or use the form', contactVia: 'Contact via ',
     interestedIn: 'Enquiry about', wantMore: '— please send more information.',
     namePh: 'Your name', emailPh: 'Email', phonePh: 'Phone number',
-    send: 'Send enquiry', sent: 'Sent',
+    send: 'Send enquiry', sent: 'Sent', sending: 'Sending…',
+    failed: 'That did not go through. Please try again, or call us.',
+    sentNote: 'We have your enquiry and will be in touch shortly.',
   },
   about: {
     hero: 'About us', breadcrumb: 'About us',
@@ -712,7 +716,9 @@ const zh: Dictionary = {
     orFillIn: '或填写表单', contactVia: '通过以下方式联系 ',
     interestedIn: '咨询房源', wantMore: '，希望了解更多信息。',
     namePh: '您的姓名', emailPh: '电子邮箱', phonePh: '电话号码',
-    send: '发送咨询', sent: '已发送',
+    send: '发送咨询', sent: '已发送', sending: '发送中…',
+    failed: '发送失败，请重试，或直接致电我们。',
+    sentNote: '我们已收到您的咨询，会尽快与您联系。',
   },
   about: {
     hero: '关于我们', breadcrumb: '关于我们',

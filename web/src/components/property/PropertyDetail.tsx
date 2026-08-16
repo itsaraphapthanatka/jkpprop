@@ -72,10 +72,24 @@ const pin = (w: number, stroke: string, sw = '1.8') => (
   </svg>
 );
 
-function ShareBtn({ children }: { children: React.ReactNode }) {
+/* Both of these were bare <div>s with a cursor and no handler — the heart did
+   not save anything and the share button shared nothing. */
+function ShareBtn({ children, onClick, title, testId }: {
+  children: React.ReactNode;
+  onClick: () => void;
+  title: string;
+  testId?: string;
+}) {
   const [hover, setHover] = useState(false);
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label={title}
+      title={title}
+      data-testid={testId}
+      onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{ width: 38, height: 38, borderRadius: 10, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', cursor: 'pointer', background: hover ? 'var(--tint)' : 'transparent', transition: 'background .2s' }}
@@ -100,6 +114,8 @@ export type PublicProperty = {
   zoning: string | null;
   photos: string[];
   related: RelatedProperty[];
+  /** the company's chat accounts, so the buttons in the enquiry box go somewhere */
+  socials: { key: string; url: string }[];
 };
 
 const baht = (n: number) => `฿${n.toLocaleString('th-TH')}`;
@@ -111,6 +127,23 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
   const d = useDict();
   // the same list the listing page and the masthead read
   const favs = useFavourites();
+  const [copied, setCopied] = useState(false);
+
+  /* Hand the page over: the phone share sheet where there is one, the
+     clipboard everywhere else. The button used to do neither. */
+  const share = async () => {
+    const url = typeof window === 'undefined' ? '' : window.location.href;
+    const nav = typeof navigator === 'undefined' ? undefined : (navigator as Navigator & { share?: (d: ShareData) => Promise<void> });
+    try {
+      if (nav?.share) { await nav.share({ title: property.title, url }); return; }
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* refused (no permission, or the sheet was dismissed) — say nothing
+         rather than claim a copy that did not happen */
+    }
+  };
   const w980 = useMaxWidth(980);
   const w640 = useMaxWidth(640);
 
@@ -131,7 +164,7 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
       <div style={{ maxWidth: '1320px', margin: '0 auto', padding: '16px 24px 0', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--muted2)', flexWrap: 'wrap' }}>
         <Link href="/" style={{ color: 'var(--muted2)' }}>{d.common.home}</Link>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted3)" strokeWidth="2"><path d="M9 6l6 6-6 6" /></svg>
-        <a href="#" style={{ color: 'var(--muted2)' }}>{d.listing.title}</a>
+        <Link href="/listing" style={{ color: 'var(--muted2)' }}>{d.listing.title}</Link>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted3)" strokeWidth="2"><path d="M9 6l6 6-6 6" /></svg>
         <span style={{ color: 'var(--text)', fontWeight: 600 }}>{code}</span>
       </div>
@@ -185,12 +218,13 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
             <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
               <div style={{ fontSize: 12, color: 'var(--muted2)' }}>{d.property.updatedAt} {property.updatedAt} · <span style={{ color: 'var(--muted3)' }}>{d.property.notGuaranteed}</span></div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <ShareBtn>
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.8 8.6a5.5 5.5 0 00-9-1.8L12 8l-.1-.1a5.5 5.5 0 10-7.8 7.8l7.9 7.9 7.9-7.9a5.5 5.5 0 00.9-7z" /></svg>
+                <ShareBtn onClick={() => favs.toggle(code)} title={d.listing.saved} testId="pd-fav">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill={favs.has(code) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2"><path d="M20.8 8.6a5.5 5.5 0 00-9-1.8L12 8l-.1-.1a5.5 5.5 0 10-7.8 7.8l7.9 7.9 7.9-7.9a5.5 5.5 0 00.9-7z" /></svg>
                 </ShareBtn>
-                <ShareBtn>
+                <ShareBtn onClick={share} title={d.listing.copyLink} testId="pd-share">
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.6 10.6l6.8-3.8M8.6 13.4l6.8 3.8" /></svg>
                 </ShareBtn>
+                {copied && <span id="pd-share-done" style={{ alignSelf: 'center', fontSize: 12, fontWeight: 700, color: 'var(--accent)' }}>{d.faq.copied}</span>}
               </div>
             </div>
           </div>
@@ -274,7 +308,7 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
             to a single column at ≤980, the sidebar sits below a long left
             column, so stickiness is unset via the `stacked` prop instead of
             fighting the box's own layout with an extra CSS pass) */}
-        <InquiryBox code={code} stacked={w980} />
+        <InquiryBox code={code} typeLabel={property.typeLabel} socials={property.socials} stacked={w980} />
       </div>
 
       {/* RELATED — other published properties of the same type. Was three
