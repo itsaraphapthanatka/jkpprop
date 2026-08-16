@@ -97,5 +97,9 @@ jobs:
           # the server's own key, so this cannot be talked into deploying to
           # somebody else's machine
           printf '%s\n' "$HOSTKEY" > ~/.ssh/known_hosts
+          # The migrate image is over a gigabyte; the pull runs silent for
+          # minutes and the connection was dropped under it. Keepalives hold
+          # the channel open while the far end says nothing.
           ssh -i ~/.ssh/deploy -o BatchMode=yes -o IdentitiesOnly=yes \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=40 \
             "$USER@$HOST" "deploy ${{ github.sha }}"
