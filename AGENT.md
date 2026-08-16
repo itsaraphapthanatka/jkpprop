@@ -87,6 +87,11 @@ admin = **workflow-first product UI** ใน brand family เดียวกั�
 3. ภาพรวม screen/flow → `JKP_Property_Handoff.md`
 4. ถ้ายังต้องเลือก → เลือกสิ่งที่ support platform architecture + ตรงดีไซน์ ก่อน aesthetic เดาเอง — **อย่าด้นสด**
 
+## 12.5 การทดสอบ
+- แผนและทีม tester อยู่ที่ `TEST_PLAN.md` และ `.claude/agents/tester-*.md`
+- ก่อน push: `npx tsc --noEmit && npx eslint src && npm test && npm run build && npx playwright test`
+- หลัง deploy ทุกครั้ง: `tester-release` (image ตรง commit · migration ขึ้น · กวาด vhost · ดิสก์/แรม)
+
 ## 13. Common failure modes to avoid
 - มองเป็น web redesign แทน platform (หรือกลับกัน: ทำ platform จนลืมทำ UI ให้ตรงดีไซน์)
 - ทำหน้า public โดยไม่แตะ listing/detail/lead object logic
