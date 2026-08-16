@@ -138,7 +138,15 @@ svg[fill="none"] { stroke-width:1.7px !important; }
 .belt-card-prov { font-size:12px; color:#7A7974; }
 .belt-card-count { margin-top:6px; padding-top:8px; border-top:1px solid #E7E3DC; font-size:12.5px; color:#5F5A52; }
 .belt-card-count b { font-size:16px; color:#28251D; }
-.belt-card-go { margin-top:2px; font-size:11.5px; font-weight:700; color:#034956; }
+.belt-card-go { margin-top:2px; font-size:12px; font-weight:700; color:#034956; text-decoration:none; }
+.belt-card-go:hover { text-decoration:underline; }
+
+/* the card that stays open on the area a reader picked — same face as the one
+   that follows the cursor, but this one takes a pointer */
+.belt-card-pop .leaflet-popup-content-wrapper { border-radius:14px; box-shadow:0 16px 40px rgba(2,35,16,.26); }
+.belt-card-pop .leaflet-popup-content { display:flex; flex-direction:column; gap:2px; margin:12px 14px; min-width:170px; font:inherit; white-space:nowrap; }
+.belt-card-pop a.belt-card-go { display:inline-block; padding:6px 0 0; }
+.belt-card-pop .leaflet-popup-close-button { color:#9B968D; }
 .belt-prov { cursor:pointer; transition:fill .3s, fill-opacity .3s, stroke .3s; }
 /* Clicking a province left the browser's focus ring on it — a blue rectangle
    round the shape's bounding box, which on a map reads as a selection that was

@@ -237,6 +237,8 @@ export function LocationFinder({ counts = {}, provinceCounts = {}, copy }: { cou
                 count: countIn(provinceCounts, pd.prov),
               }))}
               countLabel={d.locations.properties}
+              provinceCount={(key) => countIn(provinceCounts, key)}
+              hrefFor={(prov) => `/${locale}/listing?province=${encodeURIComponent(prov.th)}`}
               activePin={hoverPin}
               onPinHover={setHoverPin}
               locale={locale}

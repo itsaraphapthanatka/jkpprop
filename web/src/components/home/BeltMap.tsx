@@ -38,7 +38,20 @@ const BOUNDS: [[number, number], [number, number]] = [[12.35, 99.4], [14.75, 101
 const FILL_ON = '#0E7C86';
 const FILL_OFF = '#E8C98A';
 
-export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, onProvinceClick, provinceHint, countLabel }: {
+/* The same card twice: a quiet one that follows the cursor, and one that stays
+   put when something is chosen and carries the link. The hovering one used to
+   carry the link too — a line that looked like a link, sat under the cursor,
+   and could not be clicked, because a Leaflet tooltip takes no pointer. */
+function cardHtml(o: { cat?: string; name: string; province: string; count: number; countLabel: string; go?: string; href?: string }) {
+  const esc = escapeHtml;
+  return (o.cat ? `<span class="belt-card-cat">${esc(o.cat)}</span>` : '')
+    + `<span class="belt-card-name">${esc(o.name)}</span>`
+    + (o.province && o.province !== o.name ? `<span class="belt-card-prov">${esc(o.province)}</span>` : '')
+    + `<span class="belt-card-count"><b>${o.count}</b> ${esc(o.countLabel)}</span>`
+    + (o.go && o.href ? `<a class="belt-card-go" data-go href="${esc(o.href)}">${esc(o.go)} &rarr;</a>` : '');
+}
+
+export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, onProvinceClick, provinceHint, countLabel, provinceCount, hrefFor }: {
   factor: Factor;
   pins: MapPin[];
   activePin: string | null;
@@ -51,6 +64,10 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
   provinceHint: string;
   /** the word for "listings", for the card on a pin */
   countLabel: string;
+  /** how many published properties stand in a province */
+  provinceCount: (key: string) => number;
+  /** where the link in a chosen card goes */
+  hrefFor: (province: Province) => string;
 }) {
   const d = useDict();
   const consent = useConsent();
@@ -69,24 +86,30 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
   const cb = React.useRef({ onProvinceClick, onPinHover });
   cb.current = { onProvinceClick, onPinHover };
 
-  /* the province under a hovered pin, lifted out of the factor's own colouring
-     and put back when the cursor leaves */
-  const litProvince = React.useCallback((key: string, on: boolean) => {
-    const poly = layers.current[key];
-    if (!poly) return;
-    if (on) {
-      poly.setStyle({ fillColor: FILL_ON, fillOpacity: 0.62, color: '#0B5F68', weight: 3 });
-      poly.bringToFront();
-    } else {
-      const isLit = (FACTOR_PROVINCES[factorRef.current] ?? []).includes(key);
-      poly.setStyle({
-        fillColor: isLit ? FILL_ON : FILL_OFF,
-        fillOpacity: isLit ? 0.5 : 0.3,
-        color: isLit ? '#0B5F68' : '#C9A055',
-        weight: isLit ? 2.2 : 1.2,
-      });
-    }
+  /* One place decides how a province looks, because four things now have an
+     opinion about it: what the reader picked, what the cursor is on, what the
+     factor covers, and everything else. */
+  const hoverRef = React.useRef<string | null>(null);
+  const selectedRef = React.useRef<string | null>(null);
+
+  const styleFor = React.useCallback((key: string) => {
+    if (selectedRef.current === key) return { fillColor: FILL_ON, fillOpacity: 0.72, color: '#022E38', weight: 3.4 };
+    if (hoverRef.current === key) return { fillColor: FILL_ON, fillOpacity: 0.6, color: '#0B5F68', weight: 3 };
+    if ((FACTOR_PROVINCES[factorRef.current] ?? []).includes(key)) return { fillColor: FILL_ON, fillOpacity: 0.5, color: '#0B5F68', weight: 2.2 };
+    return { fillColor: FILL_OFF, fillOpacity: 0.3, color: '#C9A055', weight: 1.2 };
   }, []);
+
+  const repaint = React.useCallback(() => {
+    for (const [key, poly] of Object.entries(layers.current)) {
+      poly.setStyle(styleFor(key));
+      poly.getElement()?.setAttribute('data-lit', (FACTOR_PROVINCES[factorRef.current] ?? []).includes(key) ? '1' : '0');
+      poly.getElement()?.setAttribute('data-selected', selectedRef.current === key ? '1' : '0');
+      if (selectedRef.current === key || hoverRef.current === key) poly.bringToFront();
+    }
+  }, [styleFor]);
+
+  const setHovered = React.useCallback((key: string | null) => { hoverRef.current = key; repaint(); }, [repaint]);
+  const select = React.useCallback((key: string | null) => { selectedRef.current = key; repaint(); }, [repaint]);
 
   React.useEffect(() => {
     if (!allowed || !host.current || map.current) return;
@@ -122,8 +145,19 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
           fillOpacity: 0.42,
           className: `belt-prov belt-${p.key}`,
         }).addTo(m);
-        poly.bindTooltip(`${provinceLabel(p.th, locale)} · ${provinceHint}`, { sticky: true, direction: 'top' });
-        poly.on('click', () => cb.current.onProvinceClick(p));
+        poly.bindTooltip(
+          cardHtml({ name: provinceLabel(p.th, locale), province: '', count: provinceCount(p.key), countLabel }),
+          { className: 'belt-card', sticky: true, direction: 'top', opacity: 1 },
+        );
+        poly.bindPopup(
+          cardHtml({ name: provinceLabel(p.th, locale), province: '', count: provinceCount(p.key), countLabel, go: provinceHint, href: hrefFor(p) }),
+          { className: 'belt-card-pop', closeButton: true, autoPan: false },
+        );
+        /* Clicking used to leave the page at once. It picks the area out
+           instead, and the card it opens is where the reader decides to go. */
+        poly.on('click', () => select(p.key));
+        poly.on('mouseover', () => setHovered(p.key));
+        poly.on('mouseout', () => setHovered(null));
         poly.getElement()?.setAttribute('data-province', p.key);
         layers.current[p.key] = poly;
       }
@@ -145,20 +179,32 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
            state it set was read by no one. It now says what the place is, how
            many published properties stand in its province, and lights that
            province; clicking opens them. */
-        mk.bindTooltip(
-          `<span class="belt-card-cat">${escapeHtml(pin.catLabel)}</span>`
-          + `<span class="belt-card-name">${escapeHtml(pin.name)}</span>`
-          + `<span class="belt-card-prov">${escapeHtml(provinceLabel(PROVINCE[pin.province]?.th ?? '', locale))}</span>`
-          + `<span class="belt-card-count"><b>${pin.count}</b> ${escapeHtml(countLabel)}</span>`
-          + `<span class="belt-card-go">${escapeHtml(provinceHint)} &rarr;</span>`,
-          { className: 'belt-card', direction: 'top', offset: [0, -20], opacity: 1 },
-        );
-        mk.on('mouseover', () => { cb.current.onPinHover(pin.name); litProvince(pin.province, true); });
-        mk.on('mouseout', () => { cb.current.onPinHover(null); litProvince(pin.province, false); });
-        mk.on('click', () => { const p = PROVINCE[pin.province]; if (p) cb.current.onProvinceClick(p); });
+        const prov = PROVINCE[pin.province];
+        const base = { cat: pin.catLabel, name: pin.name, province: provinceLabel(prov?.th ?? '', locale), count: pin.count, countLabel };
+        mk.bindTooltip(cardHtml(base), { className: 'belt-card', direction: 'top', offset: [0, -20], opacity: 1 });
+        mk.bindPopup(cardHtml({ ...base, go: provinceHint, href: prov ? hrefFor(prov) : undefined }),
+          { className: 'belt-card-pop', closeButton: true, autoPan: false, offset: [0, -20] });
+        mk.on('mouseover', () => { cb.current.onPinHover(pin.name); setHovered(pin.province); });
+        mk.on('mouseout', () => { cb.current.onPinHover(null); setHovered(null); });
+        mk.on('click', () => select(pin.province));
         mk.getElement()?.setAttribute('data-pin', pin.name);
         markers.current[pin.name] = mk;
       }
+
+      /* the link is markup Leaflet built, so it is wired up when the card
+         opens — and it stays a real href, so it works without any of this */
+      m.on('popupopen', (e) => {
+        const el = (e.popup as LType.Popup).getElement();
+        el?.querySelector<HTMLAnchorElement>('[data-go]')?.addEventListener('click', (ev) => {
+          const target = PROVINCES.find((p) => hrefFor(p) === (ev.currentTarget as HTMLAnchorElement).getAttribute('href'));
+          if (!target) return;
+          ev.preventDefault();
+          cb.current.onProvinceClick(target);
+        });
+      });
+      // choosing nothing is also a choice
+      m.on('popupclose', () => select(null));
+      m.on('click', () => select(null));
 
       map.current = m;
       setBuilt((n) => n + 1);   // now there is something to paint
@@ -174,18 +220,7 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
   /* the choice only repaints — the view stays put, so the reader keeps the
      place they were looking at */
   React.useEffect(() => {
-    const lit = new Set(FACTOR_PROVINCES[factor] ?? []);
-    for (const [key, poly] of Object.entries(layers.current)) {
-      const on = lit.has(key);
-      poly.setStyle({
-        fillColor: on ? FILL_ON : FILL_OFF,
-        fillOpacity: on ? 0.5 : 0.3,
-        color: on ? '#0B5F68' : '#C9A055',
-        weight: on ? 2.2 : 1.2,
-      });
-      poly.getElement()?.setAttribute('data-lit', on ? '1' : '0');
-      if (on) poly.bringToFront();
-    }
+    repaint();
     for (const [name, mk] of Object.entries(markers.current)) {
       const on = (PIN_FACTORS[name] ?? []).includes(factor);
       const el = mk.getElement();
@@ -195,7 +230,7 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
         el.setAttribute('data-on', on ? '1' : '0');
       }
     }
-  }, [factor, allowed, built]);
+  }, [factor, allowed, built, repaint]);
 
   React.useEffect(() => {
     for (const [name, mk] of Object.entries(markers.current)) {

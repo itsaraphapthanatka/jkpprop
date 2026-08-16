@@ -517,14 +517,6 @@ test.describe('the location finder map', () => {
     await expect.poll(async () => chonburi.evaluate((el) => getComputedStyle(el).fillOpacity)).not.toBe(hovered);
   });
 
-  test('clicking a pin opens the listing for the province it stands in', async ({ page }) => {
-    await page.goto('/th');
-    await page.locator('#lf-map-plane').scrollIntoViewIfNeeded();
-    await page.locator('[data-pin="ท่าเรือมาบตาพุด"]').click();
-    await expect(page).toHaveURL(/\/listing\?province=/);
-    await expect(page.locator('body')).toContainText('ระยอง');
-  });
-
   /* Clicking a province left the browser's focus ring on it: a blue rectangle
      round the shape's bounding box, which on a map reads as a selection nobody
      made. The keyboard still gets one — that is the point of a focus ring. */
@@ -542,13 +534,46 @@ test.describe('the location finder map', () => {
     await page.mouse.up();
   });
 
-  test('clicking a province opens the listing narrowed to it', async ({ page }) => {
+  /* Clicking used to leave the page immediately, which is a strong thing to do
+     to somebody who was still looking. It picks the area out and opens a card;
+     the card is where they decide to go — and the line offering that was in the
+     hovering card before, where it looked like a link and took no pointer. */
+  test('clicking picks the area out instead of leaving the page', async ({ page }) => {
     await page.goto('/th');
-    await page.locator('#lf-map-plane').scrollIntoViewIfNeeded();
-    await page.locator('[data-province="chonburi"]').click();
+    const plane = page.locator('#lf-map-plane');
+    await plane.scrollIntoViewIfNeeded();
 
+    await page.locator('[data-pin="ท่าเรือแหลมฉบัง"]').click();
+
+    await expect(page).toHaveURL(/\/th$/);                       // still here
+    await expect(page.locator('[data-province="chonburi"][data-selected="1"]')).toBeVisible();
+
+    const card = page.locator('.belt-card-pop');
+    await expect(card).toBeVisible();
+    const go = card.locator('[data-go]');
+    await expect(go).toBeVisible();
+    await expect(go).toHaveAttribute('href', /listing\?province=/);
+
+    await go.click();
     await expect(page).toHaveURL(/\/listing\?province=/);
     await expect(page.locator('body')).toContainText('ชลบุรี');
+  });
+
+  test('a province is chosen the same way, and unchosen by clicking off it', async ({ page }) => {
+    await page.goto('/th');
+    const plane = page.locator('#lf-map-plane');
+    await plane.scrollIntoViewIfNeeded();
+
+    /* Chachoengsao carries no pin, so a point in the middle of it is the
+       province and nothing else — on a phone the pins cover most of the
+       provinces that have them */
+    const box = (await page.locator('[data-province="chachoengsao"]').boundingBox())!;
+    await page.mouse.click(box.x + box.width * 0.6, box.y + box.height * 0.5);
+    await expect(page.locator('[data-province="chachoengsao"][data-selected="1"]')).toBeVisible();
+    await expect(page).toHaveURL(/\/th$/);
+
+    await page.locator('.belt-card-pop .leaflet-popup-close-button').click();
+    await expect(page.locator('[data-province][data-selected="1"]')).toHaveCount(0);
   });
 
   test('hovering a factor previews it on the map without choosing it', async ({ page }) => {
