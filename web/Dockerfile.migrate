@@ -7,13 +7,16 @@ FROM node:22-slim
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
 
-COPY package.json package-lock.json ./
+# No package.json from the app: with one present, npm installs that whole tree
+# — next, react, sharp, and with `npm i` the devDependencies as well. This image
+# only runs `prisma migrate deploy`, and it was 2.26 GB (2.34 GB once npm was
+# also pulling the dev tree) against the app's 543 MB, downloaded on every
+# deploy. Its own tiny manifest, and only the four packages it uses.
+RUN npm init -y > /dev/null \
+  && npm i --no-audit --no-fund prisma@6.19.3 @prisma/client@6.19.3 tsx bcryptjs
+
 COPY prisma ./prisma
-# Only what the CLI needs. `npm ci` was installing the whole production tree —
-# next, react, sharp and everything else — to run `prisma migrate deploy`,
-# which made this image 2.26 GB against the app's 543 MB. Every deploy pulls it.
-RUN npm i --no-save prisma@6 @prisma/client tsx bcryptjs \
-  && npx prisma generate
+RUN npx prisma generate
 
 # `migrate deploy` applies committed migrations and never prompts or resets —
 # the only safe variant against a database with real data in it
