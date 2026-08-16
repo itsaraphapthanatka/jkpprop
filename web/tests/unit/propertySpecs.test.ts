@@ -4,6 +4,8 @@
    never appeared at all. */
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { stripInternal } from '../../src/lib/server/propertyDto.ts';
+import { PROPERTY_TYPES } from '../../src/lib/propertySchema.ts';
 import { buildSpecs } from '../../src/lib/server/propertySpecs.ts';
 
 const values = {
@@ -62,5 +64,38 @@ describe('the spec table follows the Field Builder', () => {
   test('switching off a custom field hides it as well', () => {
     const rows = buildSpecs(values, 'th', { extra, disabled: [extra[0].key] }).rows;
     assert.ok(!rows.some((r) => r.key === extra[0].key));
+  });
+});
+
+/* The pin is not public. It was for four of the six types: warehouses and
+   showrooms saved it under `location_map`, which every public payload deletes,
+   while a house, a condo, a plot and a factory had a text box that saved it
+   inside the location group — where no filter looked. */
+describe('the exact location never leaves the building', () => {
+  const pin = '13.6688, 100.6014';
+
+  test('a coordinate typed into the old text box is stripped', () => {
+    const out = stripInternal('house', {
+      location: { project: 'บ้านสวย', tambon: 'บางนา', province: 'กรุงเทพมหานคร', map: pin },
+    }, null);
+    assert.equal(JSON.stringify(out).includes(pin), false, 'the pin reached a public payload');
+    // the rest of the address survives — it is what the page shows
+    assert.equal((out.location as Record<string, string>).tambon, 'บางนา');
+  });
+
+  test('and so is the map picker\'s own field', () => {
+    const out = stripInternal('warehouse', { location_map: pin, province: 'ชลบุรี' }, null);
+    assert.equal(JSON.stringify(out).includes(pin), false);
+    assert.equal(out.province, 'ชลบุรี');
+  });
+
+  test('every type asks for the pin the same way', () => {
+    for (const t of PROPERTY_TYPES) {
+      const keys = t.fields.map((f) => f.key);
+      assert.ok(keys.includes('location_map'), `${t.key} has no map field`);
+      const loc = t.fields.find((f) => f.key === 'location');
+      assert.ok(!loc?.sub?.some((sf) => sf.key === 'map'),
+        `${t.key} still has a coordinate box inside its location group`);
+    }
   });
 });

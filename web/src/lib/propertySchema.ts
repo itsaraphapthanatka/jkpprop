@@ -71,6 +71,12 @@ const ICON_FACTORY = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none
 const ICON_WAREHOUSE = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#034956" stroke-width="1.8"><path d="M3 21V8l9-5 9 5v13"></path><path d="M3 21h18"></path><path d="M7 21v-8h10v8"></path></svg>';
 const ICON_SHOWROOM = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#034956" stroke-width="1.8"><path d="M3 9l1.5-5h15L21 9"></path><path d="M3 9a3 3 0 006 0 3 3 0 006 0 3 3 0 006 0"></path><path d="M5 11v10h14V11"></path><path d="M9 21v-6h6v6"></path></svg>';
 
+/* The pin is `location_map` for every type, not a text box inside this group.
+   It used to be both: warehouses and showrooms got the map picker, while a
+   house, a condo, a plot and a factory got a box to type coordinates into —
+   and because that box saved to `location.map` rather than `location_map`,
+   the filter that keeps exact coordinates out of the public API did not know
+   about it. The pin of every house on the site was public. */
 const LOC_HOME: FieldDef = {
   key: 'location', label: 'ตำแหน่งบ้าน', kind: 'location',
   sub: [
@@ -78,9 +84,11 @@ const LOC_HOME: FieldDef = {
     { key: 'tambon', label: 'แขวง / ตำบล', kind: 'text' },
     { key: 'amphoe', label: 'เขต / อำเภอ', kind: 'text' },
     { key: 'province', label: 'จังหวัด', kind: 'text' },
-    { key: 'map', label: 'พิกัดใน Google Map', kind: 'text' },
   ],
 };
+
+/** the same picker warehouses have had all along */
+const MAP_FIELD: FieldDef = { key: 'location_map', label: 'ตำแหน่งบนแผนที่', kind: 'map' };
 const LOC_CONDO: FieldDef = { ...LOC_HOME, label: 'ตำแหน่งโครงการ', sub: [{ key: 'project', label: 'ชื่อโครงการ', kind: 'text' }, ...LOC_HOME.sub!.slice(1)] };
 const LOC_LAND: FieldDef = {
   key: 'location', label: 'ตำแหน่งที่ดิน', kind: 'location', required: true,
@@ -88,7 +96,6 @@ const LOC_LAND: FieldDef = {
     { key: 'tambon', label: 'แขวง / ตำบล', kind: 'text' },
     { key: 'amphoe', label: 'เขต / อำเภอ', kind: 'text' },
     { key: 'province', label: 'จังหวัด', kind: 'text' },
-    { key: 'map', label: 'พิกัดใน Google Map', kind: 'text' },
   ],
 };
 
@@ -112,6 +119,7 @@ const HOUSE: PropertyType = {
     F.price(),
     F.transfer(),
     LOC_HOME,
+    MAP_FIELD,
     F.photos(),
     F.video(),
     { key: 'deed_copy', label: 'สำเนาโฉนดที่ดิน (หน้า–หลัง)', kind: 'media', required: true, note: 'เอกสารสิทธิ์ — จำเป็นต้องมี' },
@@ -139,6 +147,7 @@ const CONDO: PropertyType = {
     F.price(),
     F.transfer(),
     LOC_CONDO,
+    MAP_FIELD,
     F.photos(),
     F.video(),
     { key: 'deed_copy', label: 'สำเนาโฉนด (หน้า–หลัง) / ใบ อ.ช.2', kind: 'media', required: true, note: 'เอกสารสิทธิ์ — จำเป็นต้องมี' },
@@ -150,6 +159,7 @@ const LAND: PropertyType = {
   fields: [
     F.deal(),
     LOC_LAND,
+    MAP_FIELD,
     { key: 'land_size', label: 'ขนาดพื้นที่', kind: 'group', sub: [{ key: 'rai', label: 'ไร่', kind: 'number' }, { key: 'ngan', label: 'งาน', kind: 'number' }, { key: 'wa', label: 'ตารางวา', kind: 'number' }] },
     { key: 'zoning_color', label: 'ผังเมืองสีอะไร', kind: 'select', options: ['เขียว', 'เหลือง', 'ส้ม', 'น้ำตาล', 'แดง', 'ชมพู', 'ม่วง', 'อื่นๆ'], note: 'ดูได้จากกฎหมายผังเมือง / LandsMaps' },
     { key: 'land_use', label: 'ใช้ประโยชน์อะไรได้บ้าง', kind: 'text', note: 'ดูได้จากกฎหมายผังเมือง' },
@@ -182,6 +192,7 @@ const FACTORY: PropertyType = {
     { key: 'overhead_crane', label: 'มีเครนเหนือศีรษะ', kind: 'boolean' },
     F.price(),
     LOC_LAND,
+    MAP_FIELD,
     F.photos(),
     { key: 'deed_copy', label: 'เอกสารสิทธิ์ / โฉนด', kind: 'media' },
   ],

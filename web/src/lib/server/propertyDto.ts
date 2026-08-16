@@ -20,6 +20,25 @@ export function stripInternal(typeKey: string, values: Vals, user: User | null):
   if (user && hasPriv(user, 'internal_note')) return values;
   const out = { ...values };
   for (const k of INTERNAL_KEYS[typeKey] ?? []) delete out[k];
+  return stripCoords(out);
+}
+
+/* The exact pin, wherever a record happens to keep it.
+ *
+ * Every public payload deletes `location_map`, which is where the map picker
+ * saves. Houses, condos, plots and factories used to have a text box inside
+ * the location group instead, saving to `location.map` — a key no filter knew
+ * about, so those coordinates went out with the rest of the group. The field
+ * is gone, but records written before it was are still in the database. */
+export function stripCoords(values: Vals): Vals {
+  const out = { ...values };
+  delete out.location_map;
+  const loc = out.location;
+  if (loc && typeof loc === 'object' && !Array.isArray(loc) && 'map' in (loc as Record<string, unknown>)) {
+    const copy = { ...(loc as Record<string, unknown>) };
+    delete copy.map;
+    out.location = copy;
+  }
   return out;
 }
 
