@@ -102,6 +102,7 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
     related,
     // only channels that are actually configured in /admin/company
     socials: company.socials.map((sc) => ({ key: sc.key as string, url: sc.url })),
+    wechatId: company.wechatId,
   };
 
   return (

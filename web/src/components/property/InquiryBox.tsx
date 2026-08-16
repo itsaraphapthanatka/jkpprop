@@ -14,7 +14,7 @@ const inputStyle: React.CSSProperties = {
   outline: 'none',
 };
 
-type Social = { key: 'line' | 'whatsapp' | 'facebook'; label: string; bg: string; grad: string; glyph: React.ReactNode };
+type Social = { key: 'line' | 'whatsapp' | 'facebook' | 'wechat'; label: string; bg: string; grad: string; glyph: React.ReactNode };
 
 /* Official brand marks (white glyph on the brand's green gradient badge),
    matching the "gradient circle + white logo" style of the social-media
@@ -64,45 +64,70 @@ function waPrefill(key: string, url: string, code: string, prefix: string) {
   return `${url}${sep}text=${encodeURIComponent(`${prefix} ${code}`.trim())}`;
 }
 
-function SocialButton({ s, href }: { s: Social; href: string }) {
+function SocialButton({ s, href, onCopy, note }: {
+  s: Social;
+  href?: string;
+  /** WeChat has no link to open, so its tile copies the ID instead */
+  onCopy?: () => void;
+  note?: string;
+}) {
   const d = useDict();
   const [hover, setHover] = useState(false);
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={d.inquiry.contactVia + s.label}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 7,
-        padding: '14px 0',
-        borderRadius: 14,
-        background: s.bg,
-        transition: 'transform .2s,box-shadow .2s',
-        transform: hover ? 'translateY(-3px)' : 'none',
-        boxShadow: hover ? '0 10px 22px rgba(var(--deep-rgb),.18)' : 'none',
-      }}
-    >
+  const style: React.CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 7,
+    padding: '14px 0',
+    borderRadius: 14,
+    border: 0,
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    background: s.bg,
+    transition: 'transform .2s,box-shadow .2s',
+    transform: hover ? 'translateY(-3px)' : 'none',
+    boxShadow: hover ? '0 10px 22px rgba(var(--deep-rgb),.18)' : 'none',
+  };
+  const on = { onMouseEnter: () => setHover(true), onMouseLeave: () => setHover(false) };
+  const inner = (
+    <>
       <span style={{ width: 42, height: 42, borderRadius: 9999, background: s.grad, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 5px 12px rgba(0,0,0,.15)' }}>{s.glyph}</span>
       <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--deep)' }}>{s.label}</span>
-    </a>
+      {note && <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--muted2)', maxWidth: '92%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{note}</span>}
+    </>
   );
+
+  return href
+    ? <a href={href} target="_blank" rel="noopener noreferrer" aria-label={d.inquiry.contactVia + s.label} style={style} {...on}>{inner}</a>
+    : <button type="button" data-testid="inquiry-wechat" onClick={onCopy} aria-label={d.inquiry.contactVia + s.label} style={style} {...on}>{inner}</button>;
 }
+
+/* WeChat's own tile: the mark is here rather than in SOCIALS because there is
+   no URL field for it — it is reached by copying an ID, not by a link. */
+const WECHAT: Social = {
+  key: 'wechat',
+  label: 'WeChat',
+  bg: '#DDF0DD',
+  grad: 'linear-gradient(145deg,#3DC94F 0%,#07C160 100%)',
+  glyph: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff" aria-hidden="true">
+      <path d="M8.7 3C4.6 3 1.3 5.8 1.3 9.2c0 1.9 1 3.6 2.6 4.7l-.5 1.7 2-1a9 9 0 002.6.4h.6a5.6 5.6 0 01-.2-1.5c0-3.2 3.1-5.7 6.9-5.7h.5C15.4 5.1 12.4 3 8.7 3zM6.3 7.6a1 1 0 110-2 1 1 0 010 2zm4.9 0a1 1 0 110-2 1 1 0 010 2z" />
+      <path d="M22.7 13.4c0-2.7-2.7-4.9-6-4.9s-6 2.2-6 4.9 2.7 4.9 6 4.9c.7 0 1.4-.1 2-.3l1.8.9-.4-1.4c1.6-.9 2.6-2.4 2.6-4.1zm-8-.9a.85.85 0 110-1.7.85.85 0 010 1.7zm4.1 0a.85.85 0 110-1.7.85.85 0 010 1.7z" />
+    </svg>
+  ),
+};
 
 /* `code` identifies the property being asked about. It was a module-level
    constant, so an enquiry sent from any property page arrived naming
    JKP-SPK0042 — the sales team could not tell what the lead was about. */
-export function InquiryBox({ code = '', typeLabel = '', socials = [], topOffset = 88, stacked = false }: {
+export function InquiryBox({ code = '', typeLabel = '', socials = [], wechatId = '', topOffset = 88, stacked = false }: {
   code?: string;
   /** what kind of property is being asked about, for the lead record */
   typeLabel?: string;
   /** the company's own chat accounts — only the ones that are set are shown */
   socials?: { key: string; url: string }[];
+  /** WeChat has no link; the button copies the ID */
+  wechatId?: string;
   topOffset?: number;
   stacked?: boolean;
 }) {
@@ -151,6 +176,15 @@ export function InquiryBox({ code = '', typeLabel = '', socials = [], topOffset 
   const channels = SOCIALS
     .map((s) => ({ s, url: socials.find((c) => c.key === s.key)?.url ?? '' }))
     .filter((c) => c.url);
+  const [wechatCopied, setWechatCopied] = useState(false);
+  const copyWechat = async () => {
+    try {
+      await navigator.clipboard.writeText(wechatId);
+      setWechatCopied(true);
+      setTimeout(() => setWechatCopied(false), 2000);
+    } catch { /* refused — the ID is on screen either way */ }
+  };
+  const tiles = channels.length + (wechatId ? 1 : 0);
 
   return (
     <div id="pd-inquiry" style={{ position: stacked ? 'static' : 'sticky', top: stacked ? 'auto' : topOffset, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -167,11 +201,14 @@ export function InquiryBox({ code = '', typeLabel = '', socials = [], topOffset 
         </div>
 
         {/* socials */}
-        {channels.length > 0 && (
-          <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: `repeat(${channels.length}, 1fr)`, gap: 8 }}>
+        {tiles > 0 && (
+          <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: `repeat(${Math.min(3, tiles)}, 1fr)`, gap: 8 }}>
             {channels.map(({ s, url }) => (
               <SocialButton key={s.label} s={s} href={waPrefill(s.key, url, code, d.inquiry.interestedIn)} />
             ))}
+            {wechatId && (
+              <SocialButton s={WECHAT} onCopy={copyWechat} note={wechatCopied ? d.faq.copied : wechatId} />
+            )}
           </div>
         )}
 

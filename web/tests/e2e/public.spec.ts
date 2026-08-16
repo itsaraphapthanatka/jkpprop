@@ -259,7 +259,7 @@ test.describe('the enquiry box on a property page', () => {
 });
 
 test.describe('the heart and the share button on a property page', () => {
-  test('the heart saves this property, the share button copies its link', async ({ page, context, request }) => {
+  test('the heart saves this property, the share button opens the share menu', async ({ page, context, request }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     const code = ((await (await request.get('/api/public/listings?locale=th&limit=1')).json()).items as { code: string }[])[0].code;
 
@@ -267,9 +267,9 @@ test.describe('the heart and the share button on a property page', () => {
     await page.locator('[data-testid="pd-fav"]').click();
     await expect(page.locator('#saved-link')).toContainText('1');
 
+    // the share button opens the menu; what the menu does is checked with it
     await page.locator('[data-testid="pd-share"]').click();
-    await expect(page.locator('#pd-share-done')).toBeVisible();
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(`/property/${code}`);
+    await expect(page.locator('#share-menu')).toBeVisible();
   });
 
   test('the breadcrumb goes back to the listing, not to "#"', async ({ page, request }) => {
@@ -279,6 +279,81 @@ test.describe('the heart and the share button on a property page', () => {
     await expect(crumb).toHaveAttribute('href', '/th/listing');
     await crumb.click();
     await expect(page).toHaveURL(/\/th\/listing$/);
+  });
+});
+
+test.describe('the share menu', () => {
+  /* The share control on a property page did nothing at all, and the one on
+     the listing page opened three items that closed the menu and nothing else. */
+  test('offers the five ways, and copy really copies', async ({ page, context, request }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    const code = ((await (await request.get('/api/public/listings?locale=th&limit=1')).json()).items as { code: string }[])[0].code;
+
+    await page.goto(`/th/property/${code}`);
+    await page.locator('[data-testid="pd-share"]').click();
+    const menu = page.locator('#share-menu');
+    await expect(menu).toBeVisible();
+
+    for (const t of ['share-copy', 'share-email', 'share-line', 'share-whatsapp', 'share-wechat']) {
+      await expect(menu.locator(`[data-testid="${t}"]`)).toBeVisible();
+    }
+    // the three that are links must be links to somewhere
+    await expect(menu.locator('[data-testid="share-email"]')).toHaveAttribute('href', /^mailto:\?subject=/);
+    await expect(menu.locator('[data-testid="share-line"]')).toHaveAttribute('href', /line\.me\/lineit\/share\?url=http/);
+    await expect(menu.locator('[data-testid="share-whatsapp"]')).toHaveAttribute('href', /wa\.me\/\?text=/);
+
+    await menu.locator('[data-testid="share-copy"]').click();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(`/property/${code}`);
+  });
+
+  /* WeChat has no share URL a browser may open, so it shows the page as a code
+     for the app's scanner rather than a link that quietly fails. */
+  test('WeChat shows the page as a scannable code', async ({ page, request }) => {
+    const code = ((await (await request.get('/api/public/listings?locale=th&limit=1')).json()).items as { code: string }[])[0].code;
+    await page.goto(`/th/property/${code}`);
+    await page.locator('[data-testid="pd-share"]').click();
+    await page.locator('[data-testid="share-wechat"]').click();
+
+    const img = page.locator('#share-menu img');
+    await expect(img).toBeVisible({ timeout: 10_000 });
+    expect(await img.getAttribute('src')).toMatch(/^data:image\/png;base64,/);
+  });
+
+  test('the listing page uses the same menu', async ({ page }) => {
+    await page.goto('/th/listing');
+    await page.locator('[data-share-trigger]').click();
+    await expect(page.locator('#share-menu [data-testid="share-wechat"]')).toBeVisible();
+  });
+
+  /* Clicking inside the menu used to close it: the listener that watched for
+     an outside click caught the inside ones too. */
+  test('clicking inside it does not close it; clicking away does', async ({ page, request }) => {
+    const code = ((await (await request.get('/api/public/listings?locale=th&limit=1')).json()).items as { code: string }[])[0].code;
+    await page.goto(`/th/property/${code}`);
+    await page.locator('[data-testid="pd-share"]').click();
+    await page.locator('[data-testid="share-wechat"]').click();
+    await expect(page.locator('#share-menu')).toBeVisible();
+
+    /* a corner, so this lands on the sheet behind the menu whatever the
+       screen size — at phone width the middle of the page is the menu */
+    const vp = page.viewportSize()!;
+    await page.mouse.click(3, vp.height - 3);
+    await expect(page.locator('#share-menu')).toHaveCount(0);
+  });
+});
+
+test.describe('the chat buttons in the enquiry box', () => {
+  test('WeChat is an ID to copy, not a link that goes nowhere', async ({ page, context, request }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    const code = ((await (await request.get('/api/public/listings?locale=th&limit=1')).json()).items as { code: string }[])[0].code;
+    await page.goto(`/th/property/${code}`);
+
+    const wechat = page.locator('[data-testid="inquiry-wechat"]');
+    test.skip(!(await wechat.count()), 'no WeChat ID set in this database');
+
+    await wechat.click();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBeTruthy();
+    await expect(wechat).toContainText('คัดลอกแล้ว');
   });
 });
 

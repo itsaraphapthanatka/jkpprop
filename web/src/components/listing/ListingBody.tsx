@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SIZE_ITEMS, PRICE_ITEMS } from '@/lib/listingFilters';
 import { useFavourites } from '@/lib/favourites';
 import Link from '@/i18n/LocaleLink';
 import { PropertyCard } from './PropertyCard';
+import { ShareMenu } from '@/components/site/ShareMenu';
 import { useI18n } from '@/i18n/useDict';
 import { enumLabel } from '@/i18n/enums';
 
@@ -20,14 +21,6 @@ import { enumLabel } from '@/i18n/enums';
 type SortKey = 'new' | 'price_asc' | 'price_desc' | 'size_asc' | 'size_desc';
 type Mode = 'rent' | 'sale';
 type SecKey = 'zone' | 'type' | 'size' | 'price';
-
-const SHARE_DEFS: { key: string; label: string; char: string; bg: string; color: string }[] = [
-  { key: 'copy', label: '', char: '⛓', bg: 'var(--tint)', color: 'var(--accent)' },
-  { key: 'email', label: '', char: '✉', bg: '#FDECC8', color: '#D9A62B' },
-  { key: 'line', label: 'Line', char: 'L', bg: '#E3F5DC', color: '#06C755' },
-  { key: 'whatsapp', label: 'Whatsapp', char: 'W', bg: '#DCF3E5', color: '#25D366' },
-  { key: 'wechat', label: 'Wechat', char: '微', bg: '#DDF0DD', color: '#1AAD19' },
-];
 
 /* zone options are derived from the inventory on the page, not listed here */
 const TYPE_ITEMS = ['โรงงาน', 'โกดัง/คลังสินค้า'];
@@ -179,7 +172,6 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
     { key: 'size_asc', label: d.listing.sizeAsc },
     { key: 'size_desc', label: d.listing.sizeDesc },
   ];
-  const shareLabel = (k: string) => (k === 'copy' ? d.listing.copyLink : k === 'email' ? d.listing.email : '');
   /* Already queried, filtered by the preset and rendered on the server — no
      client fetch, so the markup search engines see is the real inventory. */
   const all = items.map(toListing);
@@ -198,7 +190,10 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
   const [q, setQ] = useState(preset.q ?? '');
   const [sortOpen, setSortOpen] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>('new');
-  const [shareOpen, setShareOpen] = useState(false);
+  const shareTitle = preset.breadcrumb ? `${d.listing.title} · ${enumLabel(preset.breadcrumb, locale)}` : d.listing.title;
+  /* what the share menu hands out: whatever the reader is actually looking at */
+  const [shareUrl, setShareUrl] = useState('');
+  useEffect(() => setShareUrl(window.location.href), []);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [activePage, setActivePage] = useState<number>(1);
 
@@ -260,14 +255,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
     setSizeSel(null);
     setPriceSel(null);
   };
-  const toggleSort = () => {
-    setSortOpen((v) => !v);
-    setShareOpen(false);
-  };
-  const toggleShare = () => {
-    setShareOpen((v) => !v);
-    setSortOpen(false);
-  };
+  const toggleSort = () => setSortOpen((v) => !v);
 
   type Section = { key: SecKey; title: string; items: { label: string; checked: boolean; select: () => void }[] };
   const sections: Section[] = [
@@ -387,8 +375,10 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
               </div>
             )}
           </div>
-          <div style={{ position: 'relative' }}>
-            <div onClick={toggleShare} style={{ width: 40, height: 40, borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--accent)' }}>
+          {/* The three items behind this used to close the menu and nothing
+              else. It is the same menu the property page uses now. */}
+          <ShareMenu target={{ url: shareUrl, title: shareTitle }}>
+            <div style={{ width: 40, height: 40, borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--accent)' }}>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="18" cy="5" r="3" />
                 <circle cx="6" cy="12" r="3" />
@@ -396,17 +386,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
                 <path d="M8.6 10.6l6.8-3.8M8.6 13.4l6.8 3.8" />
               </svg>
             </div>
-            {shareOpen && (
-              <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 190, background: 'var(--surface)', borderRadius: 16, boxShadow: '0 20px 50px rgba(0,0,0,.18)', padding: 8, zIndex: 60 }}>
-                {SHARE_DEFS.map((s) => (
-                  <div key={s.key} className="share-opt" onClick={() => setShareOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 10px', borderRadius: 11, cursor: 'pointer', fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>
-                    <div style={{ width: 26, height: 26, borderRadius: 8, background: s.bg, color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{s.char}</div>
-                    {shareLabel(s.key) || s.label}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          </ShareMenu>
         </div>
       </div>
 

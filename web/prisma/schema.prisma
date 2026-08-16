@@ -556,5 +556,9 @@ model CompanyProfile {
   facebookUrl   String   @default("")
   whatsappUrl   String   @default("")
   instagramUrl  String   @default("")
+  /* WeChat is an ID, not a URL — there is no link a browser may open into the
+     app — so the site shows it to be copied, and the share menu offers the
+     page as a QR code for the scanner instead. */
+  wechatId      String   @default("")
   updatedAt     DateTime @updatedAt
 }

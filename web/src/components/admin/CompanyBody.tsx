@@ -17,7 +17,7 @@ type Profile = {
   legalName: string; address: Tr; shortLocation: Tr;
   phones: Phone[]; salesEmail: string; generalEmail: string;
   hoursDays: Tr; hoursValue: string;
-  lineUrl: string; facebookUrl: string; whatsappUrl: string; instagramUrl: string;
+  lineUrl: string; facebookUrl: string; whatsappUrl: string; instagramUrl: string; wechatId: string;
 };
 
 /* The icons for these were href="#" on the contact page and in both footers.
@@ -37,7 +37,7 @@ const EMPTY_TR: Tr = { th: '', en: '', zh: '' };
 const BLANK: Profile = {
   legalName: '', address: { ...EMPTY_TR }, shortLocation: { ...EMPTY_TR },
   phones: [], salesEmail: '', generalEmail: '', hoursDays: { ...EMPTY_TR }, hoursValue: '',
-  lineUrl: '', facebookUrl: '', whatsappUrl: '', instagramUrl: '',
+  lineUrl: '', facebookUrl: '', whatsappUrl: '', instagramUrl: '', wechatId: '',
 };
 
 const label: React.CSSProperties = { display: 'block', marginTop: 16, fontSize: 12, fontWeight: 700, color: 'var(--muted)' };
@@ -69,6 +69,7 @@ export function CompanyBody() {
           hoursDays: asTr(r.hoursDays), hoursValue: r.hoursValue ?? '',
           lineUrl: r.lineUrl ?? '', facebookUrl: r.facebookUrl ?? '',
           whatsappUrl: r.whatsappUrl ?? '', instagramUrl: r.instagramUrl ?? '',
+          wechatId: r.wechatId ?? '',
         });
       })
       .catch((e) => alive && setLoadError(e instanceof ApiClientError ? e.message : 'โหลดข้อมูลไม่สำเร็จ'));
@@ -195,6 +196,18 @@ export function CompanyBody() {
               </div>
             );
           })}
+
+          {/* WeChat is an ID, not a URL — a link into the app does not exist,
+              so the site shows this to be copied and offers the page as a QR
+              code in the share menu instead */}
+          <div>
+            <label htmlFor="c-wechatId" style={label}>WeChat ID</label>
+            <input
+              id="c-wechatId" value={p.wechatId} placeholder="เช่น jkp-property"
+              onChange={(e) => setP((s) => ({ ...s, wechatId: e.target.value }))}
+              style={input}
+            />
+          </div>
         </div>
       </div>
     </AdminShell>

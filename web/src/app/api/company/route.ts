@@ -25,6 +25,8 @@ const trBlock = (v: unknown): Tr => {
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const URL_RE = /^https?:\/\/[^\s<>"']+$/i;
 const SOCIALS = ['lineUrl', 'facebookUrl', 'whatsappUrl', 'instagramUrl'] as const;
+/* not a URL, so it is not validated as one */
+const PLAIN = ['wechatId'] as const;
 
 export const GET = handler(async () => {
   const row = await db.companyProfile.findFirst();
@@ -60,6 +62,7 @@ export const PUT = handler(async (req: Request) => {
 
   const data = {
     ...socials,
+    ...Object.fromEntries(PLAIN.map((k) => [k, text(body[k], 100)])),
     legalName: text(body.legalName, 200),
     address: trBlock(body.address) as Prisma.InputJsonValue,
     shortLocation: trBlock(body.shortLocation) as Prisma.InputJsonValue,

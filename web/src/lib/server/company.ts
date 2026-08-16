@@ -26,6 +26,8 @@ export type Company = {
   hoursValue: string;
   /** only the channels that have a link — an empty one renders no icon */
   socials: Social[];
+  /** WeChat is an ID, not a URL: shown to be copied rather than linked */
+  wechatId: string;
 };
 
 export type SocialKey = 'line' | 'facebook' | 'whatsapp' | 'instagram';
@@ -96,6 +98,8 @@ export async function loadCompany(locale: Locale): Promise<Company> {
     ] as const)
       .map(([key, url]) => ({ key, url: safeUrl(url) }))
       .filter((sc): sc is Social => !!sc.url),
+    /* an ID to copy, not a link to follow */
+    wechatId: (row?.wechatId ?? '').trim().slice(0, 100),
   };
 }
 

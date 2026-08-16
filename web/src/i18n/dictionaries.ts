@@ -87,6 +87,7 @@ export type Dictionary = {
     priceRent: string; priceSale: string; updatedAt: string; notGuaranteed: string;
     noPhotos: string; photos: string;
   };
+  share: { copy: string; email: string; wechat: string; wechatHint: string; back: string };
   inquiry: {
     heading: string; hours: string; orFillIn: string; contactVia: string;
     interestedIn: string; wantMore: string;
@@ -280,6 +281,11 @@ const th: Dictionary = {
     priceRent: 'ราคาเช่า', priceSale: 'ราคาขาย',
     updatedAt: 'อัปเดตล่าสุด', notGuaranteed: 'ราคา/สถานะไม่การันตี ต้องตรวจสอบอีกครั้ง',
     noPhotos: 'ยังไม่มีรูปทรัพย์นี้', photos: 'รูป',
+  },
+  share: {
+    copy: 'คัดลอกลิงก์', email: 'อีเมล', wechat: 'WeChat',
+    wechatHint: 'เปิด WeChat แล้วสแกนรหัสนี้เพื่อเปิดหน้านี้',
+    back: 'ย้อนกลับ',
   },
   inquiry: {
     heading: 'ขอข้อมูลเพิ่มเติม', hours: 'ทีมขายพร้อมดูแล จ–ศ 9:00–18:00',
@@ -496,6 +502,11 @@ const en: Dictionary = {
     updatedAt: 'Last updated', notGuaranteed: 'Price and availability are not guaranteed — please confirm with us.',
     noPhotos: 'No photos for this property yet', photos: 'photos',
   },
+  share: {
+    copy: 'Copy link', email: 'Email', wechat: 'WeChat',
+    wechatHint: 'Open WeChat and scan this to open the page',
+    back: 'Back',
+  },
   inquiry: {
     heading: 'Request more information', hours: 'Our sales team is available Mon–Fri, 9:00–18:00',
     orFillIn: 'or use the form', contactVia: 'Contact via ',
@@ -710,6 +721,11 @@ const zh: Dictionary = {
     priceRent: '租金', priceSale: '售价',
     updatedAt: '最近更新', notGuaranteed: '价格与状态不作保证，请再次向我们确认。',
     noPhotos: '该房源暂无照片', photos: '张照片',
+  },
+  share: {
+    copy: '复制链接', email: '电子邮件', wechat: '微信',
+    wechatHint: '打开微信扫一扫，即可打开本页',
+    back: '返回',
   },
   inquiry: {
     heading: '索取更多资料', hours: '销售团队服务时间：周一至周五 9:00–18:00',
