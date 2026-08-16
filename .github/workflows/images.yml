@@ -66,3 +66,36 @@ jobs:
           # component does not reinstall node_modules from scratch
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # ---------------------------------------------------------------------------
+  # Put the built image on the VPS.
+  #
+  # The key this uses cannot open a shell there. sshd runs
+  # /srv/jkpprop/deploy-only.sh instead of whatever is asked for, and that
+  # accepts one word — `deploy` with an optional sha — before handing over to
+  # the deploy script. The box serves eighteen other people's sites; a key in a
+  # CI secret should be able to do exactly one thing.
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/deploy/behind-nginx'
+    runs-on: ubuntu-latest
+    # never two deploys at once, and never cancel one half-done
+    concurrency:
+      group: deploy-vps
+      cancel-in-progress: false
+    steps:
+      - name: ship it
+        env:
+          KEY: ${{ secrets.VPS_SSH_KEY }}
+          HOST: ${{ secrets.VPS_HOST }}
+          USER: ${{ secrets.VPS_USER }}
+          HOSTKEY: ${{ secrets.VPS_HOST_KEY }}
+        run: |
+          test -n "$KEY" || { echo "ยังไม่ได้ตั้ง secret VPS_SSH_KEY"; exit 1; }
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          # the server's own key, so this cannot be talked into deploying to
+          # somebody else's machine
+          printf '%s\n' "$HOSTKEY" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy -o BatchMode=yes -o IdentitiesOnly=yes \
+            "$USER@$HOST" "deploy ${{ github.sha }}"

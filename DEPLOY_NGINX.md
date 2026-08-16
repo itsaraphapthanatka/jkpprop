@@ -63,10 +63,29 @@ cp /path/to/deploy/pull-and-restart.sh . && chmod +x pull-and-restart.sh
 
 ### ทุกครั้งที่ deploy
 
+push ขึ้น `deploy/behind-nginx` แล้ว GitHub Actions จะ build → push → **ssh เข้ามา
+deploy ให้เอง** ไม่ต้องทำอะไรต่อ (ต้องตั้ง secret `VPS_SSH_KEY` `VPS_HOST`
+`VPS_USER` `VPS_HOST_KEY` ในหน้า Settings ของ repo ก่อน)
+
+สั่งเองก็ได้ ถ้าอยากย้อนกลับหรือ Actions ล่ม:
+
 ```bash
 /srv/jkpprop/pull-and-restart.sh              # ตัวล่าสุด
 /srv/jkpprop/pull-and-restart.sh <git-sha>    # ย้อนกลับไปตัวที่รู้ว่าใช้ได้
 ```
+
+### คีย์ที่ GitHub ถืออยู่ ทำอะไรได้บ้าง
+
+เครื่องนี้ให้บริการเว็บของคนอื่นอีก 18 ตัว คีย์ที่ฝากไว้ใน CI จึงถูกล็อกไว้ให้
+ทำได้อย่างเดียว — `authorized_keys` บังคับให้ sshd รัน `/srv/jkpprop/deploy-only.sh`
+แทนคำสั่งที่ client ส่งมา ไม่ว่าจะส่งอะไรมา และปิด pty / port-forward /
+agent-forward ทั้งหมด สคริปต์นั้นรับได้แค่คำว่า `deploy` ตามด้วย sha (hex)
+
+ทดสอบแล้ว: `cat /etc/shadow` → *"คีย์นี้รันได้แค่ deploy [git-sha]"* ·
+`deploy ; rm -rf /` → *"tag ไม่ถูกรูปแบบ"*
+
+ถอนสิทธิ์คีย์นี้เมื่อไรก็ได้: ลบบรรทัดที่ลงท้ายด้วย `jkpprop-deploy` ออกจาก
+`/root/.ssh/authorized_keys` (มีไฟล์สำรอง `authorized_keys.bak.*` อยู่ข้าง ๆ)
 
 สคริปต์จะ pull → รัน migrate → เปลี่ยน container ของ app → แล้ว **ยิง HTTP จริง
 เข้าไปเช็คว่าตอบ 200** ก่อนบอกว่าเสร็จ ถ้าไม่ตอบใน 60 วินาที มันจะฟ้องและคืน
