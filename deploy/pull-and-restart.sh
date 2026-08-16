@@ -23,6 +23,17 @@ MIG="ghcr.io/${OWNER}/jkpprop-migrate:${TAG}"
 if [ -f .ghcr-token ]; then
   chmod 600 .ghcr-token
   docker login ghcr.io -u "$OWNER" --password-stdin < .ghcr-token >/dev/null
+else
+  cat >&2 <<'MSG'
+✗ ไม่พบ /srv/jkpprop/.ghcr-token
+
+  image เป็น package ส่วนตัว ต้องมี token อ่านอย่างเดียววางไว้ก่อน:
+    1. สร้างที่ https://github.com/settings/tokens  (classic → ติ๊ก read:packages อย่างเดียว)
+    2. บนเครื่องนี้:
+         printf '%s' 'ghp_xxxxx' > /srv/jkpprop/.ghcr-token && chmod 600 /srv/jkpprop/.ghcr-token
+    3. รันสคริปต์นี้ใหม่
+MSG
+  exit 2
 fi
 
 echo "→ ดึง $APP"
