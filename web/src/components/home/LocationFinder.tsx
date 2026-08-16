@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from '@/i18n/LocaleLink';
 import { useI18n } from '@/i18n/useDict';
 import { enumLabel } from '@/i18n/enums';
-import { RegionMap } from './RegionMap';
+import { BeltMap } from './BeltMap';
 import type { SectionCopy } from '@/lib/server/sectionCopy';
 
 type Loc = 'air' | 'port' | 'bkk' | 'eec';
@@ -94,7 +94,7 @@ const chipDotStyle = (c: ChipDef): React.CSSProperties => ({ width: '8px', heigh
 const optionStyle = (on: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 15px', borderRadius: '12px', cursor: 'pointer', border: '1.5px solid ' + (on ? 'var(--pine)' : 'var(--border)'), background: on ? 'rgba(var(--pine-rgb),.05)' : 'transparent', color: on ? 'var(--pine)' : 'var(--text)' });
 const radioStyle = (on: boolean): React.CSSProperties => ({ width: '19px', height: '19px', borderRadius: '9999px', border: '1.5px solid ' + (on ? 'var(--pine)' : 'var(--border)'), background: on ? 'var(--pine)' : 'transparent', boxShadow: on ? 'inset 0 0 0 3px var(--surface)' : 'none' });
 
-const adviceFabStyle = (hov: boolean): React.CSSProperties => ({ position: 'absolute', bottom: '16px', right: '16px', zIndex: 7, display: 'flex', alignItems: 'center', gap: hov ? '10px' : '0', height: '46px', padding: hov ? '0 20px' : '0', width: hov ? 'auto' : '46px', borderRadius: '9999px', background: '#D9A62B', cursor: 'pointer', boxShadow: '0 10px 26px rgba(217,166,43,.4)', transition: 'all .3s cubic-bezier(.2,.8,.3,1)', justifyContent: 'center', overflow: 'hidden' });
+const adviceFabStyle = (hov: boolean): React.CSSProperties => ({ position: 'absolute', bottom: '16px', right: '16px', zIndex: 850, display: 'flex', alignItems: 'center', gap: hov ? '10px' : '0', height: '46px', padding: hov ? '0 20px' : '0', width: hov ? 'auto' : '46px', borderRadius: '9999px', background: '#D9A62B', cursor: 'pointer', boxShadow: '0 10px 26px rgba(217,166,43,.4)', transition: 'all .3s cubic-bezier(.2,.8,.3,1)', justifyContent: 'center', overflow: 'hidden' });
 
 /* ---- icon helpers ---- */
 function factorIcon(key: Loc) {
@@ -104,10 +104,12 @@ function factorIcon(key: Loc) {
   return (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><path d="M7 14l4-4 3 3 5-6" /></svg>);
 }
 
+/* markup rather than elements: these are handed to Leaflet, which builds the
+   marker's HTML itself */
 function pinIcon(cat: PinCat) {
-  if (cat === 'air') return (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2L16 11l3.5-3.5a2.1 2.1 0 00-3-3L13 8 4.8 6.2a1 1 0 00-.9 1.7L9 11l-2 3H4l-1 1 4 2 2 4 1-1v-3l3-2 3.1 5.1a1 1 0 001.7-.9z" /></svg>);
-  if (cat === 'port') return (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 16l1.5 4h13L20 16" /><path d="M6 16V9h3V6h6v3h3v7" /><path d="M10 9V7h4v2" /></svg>);
-  return (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M6 21V5a2 2 0 012-2h5a2 2 0 012 2v16M15 9h3a2 2 0 012 2v10" /></svg>);
+  if (cat === 'air') return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2L16 11l3.5-3.5a2.1 2.1 0 00-3-3L13 8 4.8 6.2a1 1 0 00-.9 1.7L9 11l-2 3H4l-1 1 4 2 2 4 1-1v-3l3-2 3.1 5.1a1 1 0 001.7-.9z" /></svg>';
+  if (cat === 'port') return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l1.5 4h13L20 16" /><path d="M6 16V9h3V6h6v3h3v7" /><path d="M10 9V7h4v2" /></svg>';
+  return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M6 21V5a2 2 0 012-2h5a2 2 0 012 2v16M15 9h3a2 2 0 012 2v10" /></svg>';
 }
 
 export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<Loc, number>>; copy: SectionCopy }) {
@@ -155,7 +157,7 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
       <section data-anim="1" style={{ maxWidth: '1200px', margin: '0 auto', padding: '88px 24px' }}>
         <div style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600, letterSpacing: '.06em', color: 'var(--accent)', textTransform: 'uppercase' }}>{pick(copy.eyebrow, d.locations.eyebrow)}</div>
         <h2 style={{ margin: '8px 0 40px', textAlign: 'center', fontSize: '30px', fontWeight: 700, color: 'var(--text)' }}>{pick(copy.headline, d.locations.heading)}</h2>
-        <div className="rs-split-l" style={{ display: 'grid', gridTemplateColumns: '1.06fr 0.94fr', gap: '32px', alignItems: 'stretch' }}>
+        <div className="rs-split-l" style={{ display: 'grid', gridTemplateColumns: '0.86fr 1.14fr', gap: '32px', alignItems: 'stretch' }}>
 
           {/* LEFT: factor selector */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -209,11 +211,11 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
           <div
             onMouseEnter={() => setMapHover(true)}
             onMouseLeave={() => { setMapHover(false); setHoverPin(null); }}
-            style={{ position: 'relative', background: '#D9E5E6', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden', minHeight: '780px', transform: mapHover ? 'translateY(-4px)' : 'none', boxShadow: mapHover ? '0 26px 60px rgba(var(--ink-rgb),.20), inset 0 0 0 1px rgba(255,255,255,.5)' : '0 18px 44px rgba(var(--ink-rgb),.12), inset 0 0 0 1px rgba(255,255,255,.4)', transition: 'transform .3s cubic-bezier(.2,.8,.3,1), box-shadow .3s' }}
+            style={{ position: 'relative', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden', minHeight: '560px', transform: mapHover ? 'translateY(-4px)' : 'none', boxShadow: mapHover ? '0 26px 60px rgba(var(--ink-rgb),.20), inset 0 0 0 1px rgba(255,255,255,.5)' : '0 18px 44px rgba(var(--ink-rgb),.12), inset 0 0 0 1px rgba(255,255,255,.4)', transition: 'transform .3s cubic-bezier(.2,.8,.3,1), box-shadow .3s' }}
           >
-            <RegionMap
+            <BeltMap
               factor={shown}
-              pins={pinDefs.map((pd) => ({ name: enumLabel(pd.name, locale), lat: pd.lat, lng: pd.lng, color: CAT[pd.cat], icon: pinIcon(pd.cat) }))}
+              pins={pinDefs.map((pd) => ({ name: enumLabel(pd.name, locale), lat: pd.lat, lng: pd.lng, color: CAT[pd.cat], iconSvg: pinIcon(pd.cat) }))}
               activePin={hoverPin}
               onPinHover={setHoverPin}
               locale={locale}
@@ -223,13 +225,13 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
             />
 
             {/* result pill */}
-            <div style={{ position: 'absolute', top: '16px', left: '16px', zIndex: 6, display: 'flex', alignItems: 'center', gap: '9px', height: '40px', padding: '0 16px', borderRadius: '9999px', background: 'rgba(255,255,255,.94)', backdropFilter: 'blur(6px)', boxShadow: '0 6px 18px rgba(0,0,0,.14)' }}>
+            <div style={{ position: 'absolute', top: '16px', left: '16px', zIndex: 850, display: 'flex', alignItems: 'center', gap: '9px', height: '40px', padding: '0 16px', borderRadius: '9999px', background: 'rgba(255,255,255,.94)', backdropFilter: 'blur(6px)', boxShadow: '0 6px 18px rgba(0,0,0,.14)' }}>
               <span style={{ position: 'relative', display: 'flex', width: '9px', height: '9px' }}><span style={{ position: 'absolute', inset: 0, borderRadius: '9999px', background: 'var(--neon)', animation: 'pinPulse 1.8s ease-out infinite' }} /><span style={{ position: 'relative', width: '9px', height: '9px', borderRadius: '9999px', background: 'var(--accent)' }} /></span>
               <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{counts[shown] ?? 0} {d.locations.properties} · {enumLabel(STATS[shown].title, locale)}</span>
             </div>
 
             {/* legend / filter chips */}
-            <div style={{ position: 'absolute', bottom: '16px', left: '16px', right: '16px', zIndex: 6, display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ position: 'absolute', bottom: '16px', left: '16px', right: '16px', zIndex: 850, display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               {chipDefs.map((c) => {
                 const on = loc === c.key;
                 return (
@@ -242,7 +244,7 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
 
             {/* ask for advice fab */}
             {adviceTooltipVisible && (
-              <div style={{ position: 'absolute', bottom: '70px', right: '16px', zIndex: 7, maxWidth: '260px', padding: '12px 16px', borderRadius: '14px', background: '#04140C', color: '#fff', fontSize: '12.5px', lineHeight: 1.6, boxShadow: '0 14px 32px rgba(0,0,0,.3)' }}>{d.locations.unsureTitle}</div>
+              <div style={{ position: 'absolute', bottom: '70px', right: '16px', zIndex: 850, maxWidth: '260px', padding: '12px 16px', borderRadius: '14px', background: '#04140C', color: '#fff', fontSize: '12.5px', lineHeight: 1.6, boxShadow: '0 14px 32px rgba(0,0,0,.3)' }}>{d.locations.unsureTitle}</div>
             )}
             <div onMouseEnter={() => setAdviceHover(true)} onMouseLeave={() => setAdviceHover(false)} onClick={() => { setAdviceModalOpen(true); setAdviceHover(false); }} style={adviceFabStyle(hov)}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#04140C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M12 2a7 7 0 00-7 7c0 2.4 1.2 4.2 2.5 5.3.4.3.5.8.5 1.2v1c0 .8.7 1.5 1.5 1.5h5c.8 0 1.5-.7 1.5-1.5v-1c0-.4.1-.9.5-1.2C17.8 13.2 19 11.4 19 9a7 7 0 00-7-7z" /><path d="M10 22h4" /></svg>

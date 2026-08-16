@@ -455,36 +455,42 @@ test.describe('the location finder map', () => {
   });
 
   /* The map used to zoom to whichever provinces a factor covered, so the
-     country moved under the reader on every choice and they never saw where in
-     Thailand any of it was. The whole country stays put; only the fill moves. */
-  test('choosing a factor lights its provinces without moving the country', async ({ page }) => {
+     country moved under the reader on every choice. The view stays put; only
+     the fill moves. */
+  test('choosing a factor lights its provinces without moving the map', async ({ page }) => {
     await page.goto('/th');
     const plane = page.locator('#lf-map-plane');
     await plane.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(1500);
 
-    const frame = await plane.getAttribute('viewBox');
     const litKeys = async () =>
       (await plane.locator('[data-province][data-lit="1"]').evaluateAll((gs) =>
         gs.map((g) => g.getAttribute('data-province')))).sort();
+    /* the pane's transform, not an attribute the element may simply not have:
+       the check this replaces read `viewBox` off a <div>, so it compared null
+       with null and could never have failed */
+    const view = () => plane.locator('.leaflet-map-pane').getAttribute('style');
 
     expect(await litKeys()).toEqual(['bangkok', 'samut_prakan']);
+    const before = await view();
 
     await page.locator('[data-factor="eec"]').click();
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(700);
 
     expect(await litKeys()).toEqual(['chachoengsao', 'chonburi', 'rayong']);
-    expect(await plane.getAttribute('viewBox'), 'the country moved under the reader').toBe(frame);
+    expect(await view(), 'the map moved under the reader').toBe(before);
   });
 
-  test('the whole country is drawn, not only the provinces with inventory', async ({ page }) => {
+  /* The pins were floated over a photograph in percentages and slid off the
+     places they name. They stand on a real basemap now — which is somebody
+     else's work, and says so. */
+  test('it draws a real basemap under the provinces, and credits it', async ({ page }) => {
     await page.goto('/th');
-    const plane = page.locator('#lf-map-plane');
-    await plane.scrollIntoViewIfNeeded();
-    await expect(plane.locator('[data-province]')).toHaveCount(77);
-    // the far provinces are backdrop: they promise no page of their own
-    await expect(plane.locator('[data-province="chiang_mai"][role="link"]')).toHaveCount(0);
-    await expect(plane.locator('[data-province="chonburi"][role="link"]')).toHaveCount(1);
+    await page.locator('#lf-map-plane').scrollIntoViewIfNeeded();
+    await expect.poll(() => page.locator('.leaflet-tile').count(), { timeout: 15_000 }).toBeGreaterThan(0);
+    await expect(page.locator('#lf-map-plane')).toContainText('OpenStreetMap');
+    await expect(page.locator('[data-pin]')).toHaveCount(6);
+    await expect(page.locator('[data-province]')).toHaveCount(13);
   });
 
   test('clicking a province opens the listing narrowed to it', async ({ page }) => {

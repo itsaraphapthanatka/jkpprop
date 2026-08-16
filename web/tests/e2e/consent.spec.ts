@@ -66,6 +66,23 @@ test.describe('cookie consent', () => {
     await expect(page.locator('#consent-gate')).toHaveCount(0);
   });
 
+  /* The home page grew a second third party when the map started drawing over
+     a real basemap. A category that covers one of two maps is not consent. */
+  test('the basemap on the home page waits for the same answer', async ({ page }) => {
+    const tiles: string[] = [];
+    page.on('request', (r) => { if (r.url().includes('cartocdn.com')) tiles.push(r.url()); });
+
+    await page.goto('/th');
+    await page.locator('#lf-map-plane').scrollIntoViewIfNeeded();
+    await page.locator('#consent-reject').click();
+    await page.waitForTimeout(1200);
+    expect(tiles, 'tiles were fetched before anyone agreed to them').toEqual([]);
+    await expect(page.locator('#belt-map-allow')).toBeVisible();
+
+    await page.locator('#belt-map-allow').click();
+    await expect.poll(() => tiles.length, { timeout: 15_000 }).toBeGreaterThan(0);
+  });
+
   test('the policy it links to exists in all three languages', async ({ page, request }) => {
     for (const loc of ['th', 'en', 'zh']) {
       const r = await request.get(`/${loc}/p/cookies`);

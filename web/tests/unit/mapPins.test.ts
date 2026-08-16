@@ -5,7 +5,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { PROVINCE } from '../../src/lib/thaiProvinces.ts';
-import { FACTOR_PROVINCES, PIN_FACTORS } from '../../src/components/home/RegionMap.tsx';
+import { FACTOR_PROVINCES, PIN_FACTORS } from '../../src/lib/mapFactors.ts';
 
 const inRing = (lng: number, lat: number, ring: [number, number][]) => {
   let hit = false;
