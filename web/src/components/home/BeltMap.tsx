@@ -17,14 +17,20 @@
 import * as React from 'react';
 import type * as LType from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { PROVINCES, type Province } from '@/lib/thaiProvinces';
+import { PROVINCES, PROVINCE, type Province } from '@/lib/thaiProvinces';
 import { provinceLabel } from '@/i18n/places';
 import type { Locale } from '@/i18n/config';
 import { useConsent } from '@/lib/consent';
 import { useDict } from '@/i18n/useDict';
 import { FACTOR_PROVINCES, PIN_FACTORS, type Factor } from '@/lib/mapFactors';
 
-export type MapPin = { name: string; lat: number; lng: number; color: string; iconSvg: string };
+export type MapPin = {
+  name: string; lat: number; lng: number; color: string; iconSvg: string;
+  /** the province it stands in — what its card counts and its click opens */
+  province: string;
+  catLabel: string;
+  count: number;
+};
 
 /* the belt, with room for the whole of Rayong and Ayutthaya */
 const BOUNDS: [[number, number], [number, number]] = [[12.35, 99.4], [14.75, 101.95]];
@@ -32,7 +38,7 @@ const BOUNDS: [[number, number], [number, number]] = [[12.35, 99.4], [14.75, 101
 const FILL_ON = '#0E7C86';
 const FILL_OFF = '#E8C98A';
 
-export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, onProvinceClick, provinceHint }: {
+export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, onProvinceClick, provinceHint, countLabel }: {
   factor: Factor;
   pins: MapPin[];
   activePin: string | null;
@@ -43,6 +49,8 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
   /** clicking a province opens the listing narrowed to it */
   onProvinceClick: (province: Province) => void;
   provinceHint: string;
+  /** the word for "listings", for the card on a pin */
+  countLabel: string;
 }) {
   const d = useDict();
   const consent = useConsent();
@@ -53,11 +61,32 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
   const layers = React.useRef<Record<string, LType.Polygon>>({});
   const markers = React.useRef<Record<string, LType.Marker>>({});
   const [built, setBuilt] = React.useState(0);
+  const factorRef = React.useRef(factor);
+  factorRef.current = factor;
 
   /* the handlers change every render; the layers are built once, so they read
      the current ones through a ref rather than being rebuilt to capture them */
   const cb = React.useRef({ onProvinceClick, onPinHover });
   cb.current = { onProvinceClick, onPinHover };
+
+  /* the province under a hovered pin, lifted out of the factor's own colouring
+     and put back when the cursor leaves */
+  const litProvince = React.useCallback((key: string, on: boolean) => {
+    const poly = layers.current[key];
+    if (!poly) return;
+    if (on) {
+      poly.setStyle({ fillColor: FILL_ON, fillOpacity: 0.62, color: '#0B5F68', weight: 3 });
+      poly.bringToFront();
+    } else {
+      const isLit = (FACTOR_PROVINCES[factorRef.current] ?? []).includes(key);
+      poly.setStyle({
+        fillColor: isLit ? FILL_ON : FILL_OFF,
+        fillOpacity: isLit ? 0.5 : 0.3,
+        color: isLit ? '#0B5F68' : '#C9A055',
+        weight: isLit ? 2.2 : 1.2,
+      });
+    }
+  }, []);
 
   React.useEffect(() => {
     if (!allowed || !host.current || map.current) return;
@@ -104,14 +133,29 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
           icon: L.divIcon({
             className: 'belt-pin',
             html: `<span class="belt-pin-dot" style="background:${pin.color}">${pin.iconSvg}</span><span class="belt-pin-label">${escapeHtml(pin.name)}</span>`,
-            iconSize: [0, 0],
+            /* no iconSize: Leaflet would write it onto the element, and a
+               0x0 marker is a marker nothing can point at — the dot and the
+               label sized the box themselves */
             iconAnchor: [17, 17],
           }),
           keyboard: false,
           interactive: true,
         }).addTo(m);
-        mk.on('mouseover', () => cb.current.onPinHover(pin.name));
-        mk.on('mouseout', () => cb.current.onPinHover(null));
+        /* Hovering a pin used to scale it by a tenth and nothing else — the
+           state it set was read by no one. It now says what the place is, how
+           many published properties stand in its province, and lights that
+           province; clicking opens them. */
+        mk.bindTooltip(
+          `<span class="belt-card-cat">${escapeHtml(pin.catLabel)}</span>`
+          + `<span class="belt-card-name">${escapeHtml(pin.name)}</span>`
+          + `<span class="belt-card-prov">${escapeHtml(provinceLabel(PROVINCE[pin.province]?.th ?? '', locale))}</span>`
+          + `<span class="belt-card-count"><b>${pin.count}</b> ${escapeHtml(countLabel)}</span>`
+          + `<span class="belt-card-go">${escapeHtml(provinceHint)} &rarr;</span>`,
+          { className: 'belt-card', direction: 'top', offset: [0, -20], opacity: 1 },
+        );
+        mk.on('mouseover', () => { cb.current.onPinHover(pin.name); litProvince(pin.province, true); });
+        mk.on('mouseout', () => { cb.current.onPinHover(null); litProvince(pin.province, false); });
+        mk.on('click', () => { const p = PROVINCE[pin.province]; if (p) cb.current.onProvinceClick(p); });
         mk.getElement()?.setAttribute('data-pin', pin.name);
         markers.current[pin.name] = mk;
       }

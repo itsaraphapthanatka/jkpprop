@@ -6,13 +6,14 @@ import Link from '@/i18n/LocaleLink';
 import { useI18n } from '@/i18n/useDict';
 import { enumLabel } from '@/i18n/enums';
 import { BeltMap } from './BeltMap';
+import { PROVINCE } from '@/lib/thaiProvinces';
 import type { SectionCopy } from '@/lib/server/sectionCopy';
 
 type Loc = 'air' | 'port' | 'bkk' | 'eec';
 type PinCat = 'air' | 'port' | 'bkk';
 
 interface FactorDef { key: Loc; title: string; desc: string; }
-interface PinDef { name: string; cat: PinCat; eec?: boolean; lat: number; lng: number; }
+interface PinDef { name: string; cat: PinCat; prov: string; eec?: boolean; lat: number; lng: number; }
 
 interface ChipDef { key: Loc; label: string; c: string; }
 interface OptionDef { key: string; label: string; href: string; }
@@ -32,14 +33,28 @@ const factorDefs: FactorDef[] = [
   { key: 'eec', title: 'ระเบียงเศรษฐกิจภาคตะวันออก (EEC)', desc: 'หัวใจอุตสาหกรรม EEC' },
 ];
 
+/* `prov` is the province each one stands in — checked against the real
+   boundaries in tests/unit/mapPins.test.ts, and what the pin's card and its
+   click are both about */
 const pinDefs: PinDef[] = [
-  { name: 'ดอนเมือง', cat: 'air', lat: 13.9126, lng: 100.6068 },
-  { name: 'สุวรรณภูมิ', cat: 'air', lat: 13.6900, lng: 100.7501 },
-  { name: 'CBD กรุงเทพฯ', cat: 'bkk', lat: 13.7280, lng: 100.5340 },
-  { name: 'ท่าเรือมหาชัย', cat: 'port', lat: 13.5470, lng: 100.2740 },
-  { name: 'ท่าเรือแหลมฉบัง', cat: 'port', eec: true, lat: 13.0827, lng: 100.8836 },
-  { name: 'ท่าเรือมาบตาพุด', cat: 'port', eec: true, lat: 12.6800, lng: 101.1500 },
+  { name: 'ดอนเมือง', cat: 'air', prov: 'bangkok', lat: 13.9126, lng: 100.6068 },
+  { name: 'สุวรรณภูมิ', cat: 'air', prov: 'samut_prakan', lat: 13.6900, lng: 100.7501 },
+  { name: 'CBD กรุงเทพฯ', cat: 'bkk', prov: 'bangkok', lat: 13.7280, lng: 100.5340 },
+  { name: 'ท่าเรือมหาชัย', cat: 'port', prov: 'samut_sakhon', lat: 13.5470, lng: 100.2740 },
+  { name: 'ท่าเรือแหลมฉบัง', cat: 'port', eec: true, prov: 'chonburi', lat: 13.0827, lng: 100.8836 },
+  { name: 'ท่าเรือมาบตาพุด', cat: 'port', eec: true, prov: 'rayong', lat: 12.6800, lng: 101.1500 },
 ];
+
+/* what a pin is, in words — the chips already name the three categories */
+const CAT_LABEL: Record<PinCat, string> = { air: 'สนามบิน', port: 'ท่าเรือ', bkk: 'ใจกลางกรุงเทพฯ' };
+
+/* the listing's province is free text ("ชลบุรี", "ศรีราชา, ชลบุรี"), so it is
+   matched the same way the area counts match it */
+function countIn(counts: Record<string, number>, key: string) {
+  const th = PROVINCE[key]?.th ?? '';
+  const short = th.replace(/^จังหวัด/, '').replace('มหานคร', '');
+  return Object.entries(counts).reduce((n, [name, c]) => (short && name.includes(short) ? n + c : n), 0);
+}
 
 const chipDefs: ChipDef[] = [
   { key: 'air', label: 'สนามบิน', c: CAT.air },
@@ -112,7 +127,7 @@ function pinIcon(cat: PinCat) {
   return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M6 21V5a2 2 0 012-2h5a2 2 0 012 2v16M15 9h3a2 2 0 012 2v10" /></svg>';
 }
 
-export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<Loc, number>>; copy: SectionCopy }) {
+export function LocationFinder({ counts = {}, provinceCounts = {}, copy }: { counts?: Partial<Record<Loc, number>>; provinceCounts?: Record<string, number>; copy: SectionCopy }) {
   const { d, locale } = useI18n();
   const pick = (v: string, fallback: string) => v || fallback;
   const router = useRouter();
@@ -215,7 +230,13 @@ export function LocationFinder({ counts = {}, copy }: { counts?: Partial<Record<
           >
             <BeltMap
               factor={shown}
-              pins={pinDefs.map((pd) => ({ name: enumLabel(pd.name, locale), lat: pd.lat, lng: pd.lng, color: CAT[pd.cat], iconSvg: pinIcon(pd.cat) }))}
+              pins={pinDefs.map((pd) => ({
+                name: enumLabel(pd.name, locale), lat: pd.lat, lng: pd.lng,
+                color: CAT[pd.cat], iconSvg: pinIcon(pd.cat), province: pd.prov,
+                catLabel: enumLabel(CAT_LABEL[pd.cat], locale),
+                count: countIn(provinceCounts, pd.prov),
+              }))}
+              countLabel={d.locations.properties}
               activePin={hoverPin}
               onPinHover={setHoverPin}
               locale={locale}

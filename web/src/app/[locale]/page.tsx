@@ -68,6 +68,12 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     ]),
   ) as Record<keyof typeof AREA_PROVINCES, number>;
 
+  /* how many published properties stand in each province, for the card that
+     appears when the cursor is on a pin — a real number, counted here, rather
+     than a figure written into the design */
+  const provinceCounts: Record<string, number> = {};
+  for (const it of all) provinceCounts[it.province] = (provinceCounts[it.province] ?? 0) + 1;
+
   return (
     <div style={{ width: '100%', background: '#000000', position: 'relative' }}>
       <style dangerouslySetInnerHTML={{ __html: homeCss }} />
@@ -87,7 +93,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             and the ones with nothing to show hide themselves. */}
         <Hero copy={section(c, 'h')} />
         {section(c, 'n').enabled && <Featured items={featured} copy={section(c, 'n')} />}
-        {section(c, 'l').enabled && <LocationFinder counts={counts} copy={section(c, 'l')} />}
+        {section(c, 'l').enabled && <LocationFinder counts={counts} provinceCounts={provinceCounts} copy={section(c, 'l')} />}
         {section(c, 's').enabled && <Steps copy={section(c, 's')} />}
         {section(c, 'w').enabled && <WhyUs copy={section(c, 'w')} kpi={section(c, 'wk')} stats={stats} />}
         <Certifications copy={section(c, 'ct')} />

@@ -125,7 +125,20 @@ svg[fill="none"] { stroke-width:1.7px !important; }
 .belt-pin { display:flex; align-items:center; gap:8px; white-space:nowrap; transition:opacity .3s, transform .2s; }
 .belt-pin-dot { display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9999px; border:2.5px solid #fff; box-shadow:0 3px 10px rgba(2,35,16,.28); flex-shrink:0; }
 .belt-pin-label { font-size:13.5px; font-weight:700; color:#28251D; padding:2px 8px; border-radius:7px; background:rgba(255,255,255,.9); box-shadow:0 1px 4px rgba(2,35,16,.14); }
-.belt-pin-active { transform:scale(1.1); }
+.belt-pin:hover, .belt-pin-active { transform:scale(1.12); z-index:700 !important; }
+.belt-pin:hover .belt-pin-dot, .belt-pin-active .belt-pin-dot { box-shadow:0 0 0 6px rgba(255,255,255,.55), 0 6px 18px rgba(2,35,16,.34); }
+.belt-pin:hover .belt-pin-label, .belt-pin-active .belt-pin-label { background:#fff; }
+
+/* the card that opens when the cursor is on a pin */
+.belt-card.leaflet-tooltip { display:flex; flex-direction:column; gap:2px; padding:12px 14px; min-width:170px;
+  border:0; border-radius:14px; background:#fff; box-shadow:0 16px 40px rgba(2,35,16,.26); font:inherit; white-space:nowrap; }
+.belt-card.leaflet-tooltip::before { border-top-color:#fff; }
+.belt-card-cat { font-size:10.5px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:#0E7C86; }
+.belt-card-name { font-size:15px; font-weight:800; color:#28251D; }
+.belt-card-prov { font-size:12px; color:#7A7974; }
+.belt-card-count { margin-top:6px; padding-top:8px; border-top:1px solid #E7E3DC; font-size:12.5px; color:#5F5A52; }
+.belt-card-count b { font-size:16px; color:#28251D; }
+.belt-card-go { margin-top:2px; font-size:11.5px; font-weight:700; color:#034956; }
 .belt-prov { cursor:pointer; transition:fill .3s, fill-opacity .3s, stroke .3s; }
 .leaflet-container { background:#F4F6F5; font:inherit; }
 .leaflet-control-attribution { font-size:10px; background:rgba(255,255,255,.75); }

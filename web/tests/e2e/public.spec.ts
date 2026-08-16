@@ -493,6 +493,38 @@ test.describe('the location finder map', () => {
     await expect(page.locator('[data-province]')).toHaveCount(13);
   });
 
+  /* Hovering a pin scaled it by a tenth and set a state nothing read. It now
+     has to earn the gesture: say what the place is, count what is actually
+     published in its province, and go there when clicked. */
+  test('a pin under the cursor says what it is, and counts what is there', async ({ page, request }) => {
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=60')).json()).items as { province: string }[];
+    const inChonburi = items.filter((it) => it.province.includes('ชลบุรี')).length;
+
+    await page.goto('/th');
+    await page.locator('#lf-map-plane').scrollIntoViewIfNeeded();
+    await page.locator('[data-pin="ท่าเรือแหลมฉบัง"]').hover();
+
+    const card = page.locator('.belt-card');
+    await expect(card).toBeVisible();
+    await expect(card).toContainText('ท่าเรือแหลมฉบัง');
+    await expect(card).toContainText('ชลบุรี');
+    await expect(card).toContainText(String(inChonburi));   // the real number, not a figure from the design
+
+    // and the province it stands in is picked out while the cursor is there
+    const chonburi = page.locator('[data-province="chonburi"]');
+    const hovered = await chonburi.getAttribute('fill-opacity') ?? await chonburi.evaluate((el) => getComputedStyle(el).fillOpacity);
+    await page.locator('[data-pin="ดอนเมือง"]').hover();
+    await expect.poll(async () => chonburi.evaluate((el) => getComputedStyle(el).fillOpacity)).not.toBe(hovered);
+  });
+
+  test('clicking a pin opens the listing for the province it stands in', async ({ page }) => {
+    await page.goto('/th');
+    await page.locator('#lf-map-plane').scrollIntoViewIfNeeded();
+    await page.locator('[data-pin="ท่าเรือมาบตาพุด"]').click();
+    await expect(page).toHaveURL(/\/listing\?province=/);
+    await expect(page.locator('body')).toContainText('ระยอง');
+  });
+
   test('clicking a province opens the listing narrowed to it', async ({ page }) => {
     await page.goto('/th');
     await page.locator('#lf-map-plane').scrollIntoViewIfNeeded();
