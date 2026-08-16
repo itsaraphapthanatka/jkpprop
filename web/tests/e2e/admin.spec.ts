@@ -519,6 +519,33 @@ test.describe('brand colours reach the public site', () => {
     expect(after).toMatch(/--ink-rgb:\d+,\d+,\d+/);
     expect(after).not.toContain('--ink-rgb:2,35,16');
   });
+
+  /* The icons in the share menu were a fixed gold — a colour from no palette
+     anyone had chosen. They read the brand token now, so they change with it. */
+  test('the share menu icons follow the chosen colour', async ({ page, request }) => {
+    await signIn(page, OWNER);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const listing = await (await request.get('/api/public/listings?locale=th&limit=1')).json();
+    const code = listing.items[0].code as string;
+
+    const iconColour = async () => {
+      await page.goto(`/th/property/${code}`);
+      await page.locator('[data-testid="pd-share"]').click();
+      await expect(page.locator('#share-menu')).toBeVisible();
+      return page.locator('#share-menu [data-testid="share-copy"] svg').evaluate((el) => getComputedStyle(el).stroke);
+    };
+
+    expect(await iconColour()).toBe('rgb(3, 73, 86)');          // ค่าเริ่มต้น
+
+    const res = await request.put('/api/branding', {
+      headers: { cookie },
+      data: { ...restore, primary: '#B3261E', accent: '#B3261E' },
+    });
+    expect(res.ok(), await res.text()).toBeTruthy();
+
+    expect(await iconColour()).toBe('rgb(179, 38, 30)');         // ตามที่หลังบ้านเลือก
+  });
 });
 
 test.describe('the CMS editor shows each language its own text', () => {

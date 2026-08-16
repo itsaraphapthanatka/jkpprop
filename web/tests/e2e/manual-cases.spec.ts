@@ -58,11 +58,12 @@ test.describe('เคสที่เคยต้องทดสอบด้ว�
   /* หน้าจอสามความกว้าง ไม่มีอะไรล้นแนวนอน — ของที่ล้นจอบนมือถือคือสิ่งที่คน
      เห็นก่อนอย่างอื่น และเป็นสิ่งที่เทสต์อื่นทั้งชุดไม่เคยดู */
   test('M-02 · 412 / 768 / 1440 ไม่มีอะไรล้นจอ', async ({ page }) => {
+    // สิบห้าการนำทางในเคสเดียว — เกินเวลามาตรฐาน 30 วินาทีตามปกติ
+    test.slow();
     for (const [w, h] of [[412, 915], [768, 1024], [1440, 900]] as const) {
       await page.setViewportSize({ width: w, height: h });
       for (const path of ['/th', '/th/listing', '/th/faq', '/th/contact', '/th/about']) {
-        await page.goto(path);
-        await page.waitForTimeout(300);
+        await page.goto(path, { waitUntil: 'domcontentloaded' });
         const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
         expect(over, `${path} ที่ ${w}px ล้นแนวนอน ${over}px`).toBeLessThanOrEqual(1);
       }

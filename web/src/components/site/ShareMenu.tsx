@@ -152,32 +152,34 @@ const backBtn: React.CSSProperties = {
   fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer',
 };
 
-const GOLD = '#C79A2E';
+/* The icons were a fixed gold, which is nobody's brand once /admin/branding
+   picks a colour. `--accent` is what that page writes, so they follow it. */
+const MARK = 'var(--accent)';
 const linkIcon = (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.9">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={MARK} strokeWidth="1.9">
     <path d="M10 13a5 5 0 007.5.5l3-3a5 5 0 00-7-7l-1.7 1.7" />
     <path d="M14 11a5 5 0 00-7.5-.5l-3 3a5 5 0 007 7l1.7-1.7" />
   </svg>
 );
 const mailIcon = (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.9">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={MARK} strokeWidth="1.9">
     <rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 7l9 6 9-6" />
   </svg>
 );
 const lineIcon = (
   <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
-    <rect width="24" height="24" rx="6" fill={GOLD} />
+    <rect width="24" height="24" rx="6" fill={MARK} />
     <path fill="#fff" d="M12 5.4c-3.6 0-6.5 2.3-6.5 5.2 0 2.6 2.3 4.7 5.4 5.1.2 0 .5.1.6.3.1.2 0 .4 0 .6l-.1.6c0 .2-.1.6.5.3s3.4-2 4.6-3.4c.8-.9 1.2-1.8 1.2-2.9 0-2.9-2.9-5.2-6.5-5.2z" />
   </svg>
 );
 const waIcon = (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.7">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={MARK} strokeWidth="1.7">
     <path d="M21 11.5a8.5 8.5 0 01-12.6 7.4L3 21l2.2-5.2A8.5 8.5 0 1121 11.5z" />
     <path d="M8.8 9.2c.2-.5.5-.5.8-.5h.5c.2 0 .4 0 .5.4l.7 1.6c0 .2 0 .3-.1.5l-.4.5c-.1.2-.2.3 0 .6.7 1.1 1.6 1.8 2.7 2.2.3.1.4 0 .5-.1l.6-.7c.2-.2.3-.2.5-.1l1.6.8c.2.1.3.2.3.3 0 .8-.5 1.6-1.4 1.8-2.6.5-6.9-3.4-7.1-6-.1-.6.1-1.1.3-1.3z" />
   </svg>
 );
 const wechatIcon = (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill={GOLD} aria-hidden="true">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill={MARK} aria-hidden="true">
     <path d="M8.7 3C4.6 3 1.3 5.8 1.3 9.2c0 1.9 1 3.6 2.6 4.7l-.5 1.7 2-1a9 9 0 002.6.4h.6a5.6 5.6 0 01-.2-1.5c0-3.2 3.1-5.7 6.9-5.7h.5C15.4 5.1 12.4 3 8.7 3zM6.3 7.6a1 1 0 110-2 1 1 0 010 2zm4.9 0a1 1 0 110-2 1 1 0 010 2z" />
     <path d="M22.7 13.4c0-2.7-2.7-4.9-6-4.9s-6 2.2-6 4.9 2.7 4.9 6 4.9c.7 0 1.4-.1 2-.3l1.8.9-.4-1.4c1.6-.9 2.6-2.4 2.6-4.1zm-8-.9a.85.85 0 110-1.7.85.85 0 010 1.7zm4.1 0a.85.85 0 110-1.7.85.85 0 010 1.7z" />
   </svg>
