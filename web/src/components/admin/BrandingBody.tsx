@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { apiGet, apiPut, ApiClientError } from '@/lib/apiClient';
+import { WatermarkCard } from './WatermarkCard';
 
 /* ============================================================
    Ported from AdminBranding.dc.html — the DCLogic-driven theme
@@ -310,6 +311,9 @@ export function BrandingBody() {
             ))}
           </div>
         </div>
+
+        {/* watermark stamped on public property photos — saves independently */}
+        <WatermarkCard />
 
         {/* logo + identity */}
         <div style={card}>

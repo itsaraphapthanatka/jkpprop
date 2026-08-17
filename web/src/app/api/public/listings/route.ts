@@ -6,6 +6,7 @@
    Query: ?deal=rent|sale ?type=factory|warehouse ?province=… ?limit=… */
 import { ok, handler } from '@/lib/server/api';
 import { db } from '@/lib/server/db';
+import { watermarkVersion, withVersion } from '@/lib/server/photoUrl';
 import { stripInternal, displayArea, displayLocation, displayProvince } from '@/lib/server/propertyDto';
 
 const PRIVATE_KEYS = ['location_map', 'lessor_name', 'lessor_phone', 'lessor_company', 'lessor_status'];
@@ -25,6 +26,9 @@ export const GET = handler(async (req: Request) => {
     orderBy: { updatedAt: 'desc' },
     take: 200,
   });
+
+  // one lookup for the whole page — every row shares the org's watermark version
+  const wmVersion = rows.length ? await watermarkVersion(rows[0].orgId) : 0;
 
   const items = rows.flatMap((p) => {
     const values = stripInternal(p.typeKey, (p.values ?? {}) as Record<string, unknown>, null);
@@ -57,7 +61,7 @@ export const GET = handler(async (req: Request) => {
       area,
       areaLabel: area !== null ? `${area.toLocaleString('th-TH')} ตร.ม.` : '',
       typeKey: p.typeKey,
-      img: photos[0] ?? null,
+      img: photos[0] ? withVersion(photos[0], wmVersion) : null,
       photos: String(photos.length),
     }];
   }).slice(0, limit);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 type Thumb = { id: string; src: string; more: boolean };
 
@@ -29,8 +29,17 @@ const galleryCss = `
 }
 `;
 
-export function Gallery() {
-  const [mainSrc, setMainSrc] = useState(MAIN_SRC);
+export function Gallery({ photos = [], dealLabel, typeLabel }: { photos?: string[]; dealLabel?: string; typeLabel?: string }) {
+  // real photos when the property has them; the demo shots otherwise
+  const real = photos.filter(Boolean);
+  const main = real[0] ?? MAIN_SRC;
+  const thumbs: Thumb[] = real.length
+    ? real.slice(1, 4).map((src, i) => ({ id: 'pd-r' + i, src, more: i === 2 && real.length > 4 }))
+    : THUMBS;
+  const extra = Math.max(0, real.length - 4);
+  const [mainSrc, setMainSrc] = useState(main);
+  // a different property (or a new watermark version) must reset the viewer
+  useEffect(() => { setMainSrc(main); }, [main]);
 
   return (
     <section style={{ maxWidth: '1320px', margin: '0 auto', padding: '16px 24px 0' }}>
@@ -42,9 +51,9 @@ export function Gallery() {
           <img src={mainSrc} alt="รูปทรัพย์หลัก" style={fillImg} />
           <div style={{ position: 'absolute', top: 16, left: 16, display: 'flex', gap: 8 }}>
             <span style={{ height: 30, padding: '0 14px', borderRadius: 9999, background: 'rgba(255,255,255,.95)', color: '#0D6C3B', fontSize: '12.5px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ width: 8, height: 8, borderRadius: 9999, background: '#0D6C3B' }} />ให้เช่า
+              <span style={{ width: 8, height: 8, borderRadius: 9999, background: '#0D6C3B' }} />{dealLabel ?? 'ให้เช่า'}
             </span>
-            <span style={{ height: 30, padding: '0 14px', borderRadius: 9999, background: 'rgba(2,29,14,.72)', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center' }}>โรงงาน</span>
+            <span style={{ height: 30, padding: '0 14px', borderRadius: 9999, background: 'rgba(2,29,14,.72)', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center' }}>{typeLabel ?? 'โรงงาน'}</span>
           </div>
           <div style={{ position: 'absolute', bottom: 16, right: 16, height: 32, padding: '0 13px', borderRadius: 9999, background: 'rgba(2,29,14,.72)', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
@@ -52,13 +61,13 @@ export function Gallery() {
               <circle cx="8.5" cy="8.5" r="1.5" />
               <path d="M21 15l-5-5L5 21" />
             </svg>
-            12 รูป
+            {(real.length || 12).toLocaleString('th-TH')} รูป
           </div>
         </div>
 
         {/* THUMBS */}
         <div id="pd-gallery-thumbs" style={{ display: 'grid', gridTemplateRows: 'repeat(3,minmax(0,1fr))', gap: 12, minHeight: 0 }}>
-          {THUMBS.map((t) => (
+          {thumbs.map((t) => (
             <div
               key={t.id}
               onClick={() => setMainSrc(t.src)}
@@ -67,7 +76,7 @@ export function Gallery() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={t.src} alt="รูป" style={fillImg} />
               {t.more && (
-                <div style={{ position: 'absolute', inset: 0, background: 'rgba(2,29,14,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 16, fontWeight: 800 }}>+9</div>
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(2,29,14,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 16, fontWeight: 800 }}>+{real.length ? extra : 9}</div>
               )}
             </div>
           ))}

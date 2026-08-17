@@ -31,6 +31,20 @@ export const objectKey = (id: string, mime: string) => `${id}.${EXT_BY_MIME[mime
    is what the public sees, `originalKey` is what admins can still download. */
 export const originalKey = (id: string, mime: string) => `${id}-original.${EXT_BY_MIME[mime] ?? 'bin'}`;
 
+/* The logo watermark is composited lazily and cached under a key that carries
+   the settings version, so changing where the logo sits produces a new
+   derivative instead of needing a purge. */
+export const watermarkedKey = (id: string, mime: string, version: number) =>
+  `${id}-wm${version}.${EXT_BY_MIME[mime] ?? 'bin'}`;
+
+/** Pulls the asset id out of a stored media src, for both URL shapes. */
+export function mediaIdFromSrc(src: string): string | null {
+  const api = /\/api\/media\/([^/?#]+)\/raw/.exec(src);
+  if (api) return api[1];
+  const file = /\/([^/?#]+)\.[a-z0-9]+(?:[?#]|$)/i.exec(src); // CDN: <base>/<id>.<ext>
+  return file ? file[1] : null;
+}
+
 /** legacy name kept so existing imports keep working */
 export const diskPathFor = (id: string, mime: string) => path.join(UPLOAD_DIR, objectKey(id, mime));
 

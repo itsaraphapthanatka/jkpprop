@@ -154,6 +154,8 @@ function RelatedCard({ r }: { r: (typeof related)[number] }) {
 export type PublicProperty = {
   code: string; title: string; typeLabel: string; location: string;
   area: number | null; dealType: string; priceRent: number | null; priceSale: number | null;
+  /** media srcs from /api/public/properties/:code — already watermarked when served */
+  photos?: string[];
 };
 
 const baht = (n: number) => `฿${n.toLocaleString('th-TH')}`;
@@ -191,7 +193,7 @@ export function PropertyDetail({ property }: { property?: PublicProperty }) {
       </div>
 
       {/* GALLERY */}
-      <Gallery />
+      <Gallery photos={property?.photos} dealLabel={property?.dealType || undefined} typeLabel={property?.typeLabel} />
 
       {/* MAIN SPLIT */}
       <div

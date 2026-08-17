@@ -5,6 +5,7 @@
    label; an approximate map is the page's job, not the API's. */
 import { ok, handler, ApiError } from '@/lib/server/api';
 import { db } from '@/lib/server/db';
+import { watermarkVersion, withVersionAll } from '@/lib/server/photoUrl';
 import { stripInternal, displayArea, displayLocation } from '@/lib/server/propertyDto';
 import { propertyType } from '@/lib/propertySchema';
 
@@ -18,7 +19,10 @@ export const GET = handler(async (_req: Request, ctx: { params: Promise<{ code: 
   const values = stripInternal(p.typeKey, (p.values ?? {}) as Record<string, unknown>, null);
   for (const k of PRIVATE_KEYS) delete values[k];
 
-  const photos = Array.isArray(values.photos) ? (values.photos as string[]) : [];
+  const rawPhotos = Array.isArray(values.photos) ? (values.photos as string[]) : [];
+  // ?v= turns over the immutable cache when the watermark setting moves
+  const photos = withVersionAll(rawPhotos, await watermarkVersion(p.orgId));
+  values.photos = photos;
   return ok({
     code: p.publicCode,
     title: p.title,
