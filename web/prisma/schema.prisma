@@ -477,6 +477,16 @@ model Branding {
   font      String   @default("noto") // noto|plex|inter
   radius    String   @default("md") // sharp|sm|md|round
   logo      String? // media src
+  // Watermark stamped on every property photo the public sees (FR-ADM-09b).
+  // wmVersion bumps whenever a rendered property changes, so cached
+  // derivatives and browser caches are invalidated by URL rather than purged.
+  wmEnabled Boolean  @default(false)
+  wmSrc     String? // media src of the uploaded logo
+  wmAnchor  String   @default("bottom-right") // 9-point anchor | tiled
+  wmScale   Int      @default(18) // % of photo width
+  wmOpacity Int      @default(70) // %
+  wmMargin  Int      @default(3) // % of photo width
+  wmVersion Int      @default(0)
   updatedAt DateTime @updatedAt
 }
 
