@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PhotoPlaceholder } from '@/components/common/PhotoPlaceholder';
 import { useDict } from '@/i18n/useDict';
 
@@ -41,6 +41,9 @@ export function Gallery({
 }) {
   const d = useDict();
   const [mainSrc, setMainSrc] = useState<string | null>(photos[0] ?? null);
+  /* เปลี่ยนทรัพย์ หรือลายน้ำถูกตั้งค่าใหม่ (URL มี ?v= ใหม่) ต้องรีเซ็ตรูปหลัก
+     ไม่งั้นค้างอยู่ที่รูปของทรัพย์ก่อนหน้า */
+  useEffect(() => { setMainSrc(photos[0] ?? null); }, [photos]);
 
   const thumbs = photos.slice(1, 1 + MAX_THUMBS);
   const overflow = Math.max(0, photos.length - 1 - MAX_THUMBS);

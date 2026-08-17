@@ -113,6 +113,7 @@ export type PublicProperty = {
   updatedAt: string;
   specs: { quick: SpecRow[]; rows: SpecRow[]; features: string[]; nearby: string[] };
   zoning: string | null;
+  /** media src จาก /api/public/properties/:code — ใส่ลายน้ำแล้วตอนเสิร์ฟ */
   photos: string[];
   related: RelatedProperty[];
   /** the company's chat accounts, so the buttons in the enquiry box go somewhere */

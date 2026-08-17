@@ -10,6 +10,9 @@ export const metadata: Metadata = { title: 'Branding · JKP CMS', robots: { inde
    wrapping AdminShell. */
 
 const brandCss = `
+/* watermark editor: controls beside preview on desktop, stacked on narrow */
+@media (max-width:900px){ #wm-split{grid-template-columns:1fr !important;} }
+
 @media (max-width:1100px){ #brand-split{grid-template-columns:1fr !important;} #brand-preview{position:static !important;} }
 @media (max-width:640px){ #brand-actions{flex-wrap:wrap !important;width:100% !important;row-gap:8px !important;} }
 `;

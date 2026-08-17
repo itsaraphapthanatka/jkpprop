@@ -5,6 +5,7 @@
    label; an approximate map is the page's job, not the API's. */
 import { ok, handler, ApiError } from '@/lib/server/api';
 import { db } from '@/lib/server/db';
+import { watermarkVersion, withVersionAll } from '@/lib/server/photoUrl';
 import { stripInternal, displayArea, displayLocation } from '@/lib/server/propertyDto';
 import { propertyType } from '@/lib/propertySchema';
 import { loadFieldOverride } from '@/lib/server/fieldOverride';
@@ -25,7 +26,13 @@ export const GET = handler(async (req: Request, ctx: { params: Promise<{ code: s
      the JSON — otherwise "hidden" only means "not drawn" */
   const schema = await loadFieldOverride(p.orgId, p.typeKey);
   for (const k of schema.disabled) delete values[k];
-  const photos = Array.isArray(values.photos) ? (values.photos as string[]) : [];
+  /* ?v= พลิกแคชเมื่อการตั้งค่าลายน้ำเปลี่ยน — รูปเสิร์ฟด้วย immutable cache
+     หนึ่งปี ซึ่งถูกสำหรับไบต์ที่ไม่เปลี่ยน แต่ลายน้ำมาจากค่าที่แอดมินขยับได้ */
+  const photos = withVersionAll(
+    Array.isArray(values.photos) ? (values.photos as string[]) : [],
+    await watermarkVersion(p.orgId),
+  );
+  values.photos = photos;
   /* the caller says which language it is rendering in; without one the record
      answers in its own, which is Thai */
   const rawLocale = new URL(req.url).searchParams.get('locale') ?? '';
