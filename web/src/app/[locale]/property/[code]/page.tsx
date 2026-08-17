@@ -16,6 +16,7 @@ import { loadFieldOverride, stripDisabled } from '@/lib/server/fieldOverride';
 import { loadPublicListings } from '@/lib/server/publicListings';
 import { loadCompany } from '@/lib/server/company';
 import { listCmsPages } from '@/lib/server/cmsPages';
+import { watermarkVersion, withVersionAll } from '@/lib/server/photoUrl';
 
 /* Public property detail. Read straight from the database in the server
    component — no client fetch, so the page is indexable.
@@ -83,7 +84,11 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
     }));
 
   const zoningRaw = String(values.zoning_color ?? '').trim();
-  const photos = Array.isArray(values.photos) ? (values.photos as string[]) : [];
+  // ?v= so a browser holding last week's copy of a photo picks up the watermark
+  const photos = withVersionAll(
+    Array.isArray(values.photos) ? (values.photos as string[]) : [],
+    await watermarkVersion(p.orgId),
+  );
 
   const property = {
     code: p.publicCode,

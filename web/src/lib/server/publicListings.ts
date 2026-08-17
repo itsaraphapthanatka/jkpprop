@@ -16,6 +16,7 @@ import { DEFAULT_LOCALE, type Locale } from '@/i18n/config';
 import { stripInternal, displayArea, displayLocation, displayProvince } from './propertyDto';
 import { localTitle } from './propertyI18n';
 import { provinceLabel, canonicalProvince, sameProvince } from '@/i18n/places';
+import { watermarkVersion, withVersion } from './photoUrl';
 
 const PRIVATE_KEYS = ['location_map', 'lessor_name', 'lessor_phone', 'lessor_company', 'lessor_status'];
 
@@ -81,6 +82,15 @@ export async function loadPublicListings(q: ListingQuery = {}): Promise<PublicLi
     (a, b) => Number(isFeatured(b.values)) - Number(isFeatured(a.values)),
   );
 
+  /* Card images are served with a one-year immutable cache, so a browser that
+     saw a photo before the logo watermark was switched on would keep showing
+     the unstamped copy. ?v=<settings version> makes it a different URL. One
+     lookup per org, not per row. */
+  const wmv = new Map<string, number>();
+  for (const orgId of new Set(rows.map((r) => r.orgId))) {
+    wmv.set(orgId, await watermarkVersion(orgId));
+  }
+
   return rows.flatMap((p) => {
     const values = stripInternal(p.typeKey, (p.values ?? {}) as Record<string, unknown>, null);
     for (const k of PRIVATE_KEYS) delete values[k];
@@ -124,7 +134,7 @@ export async function loadPublicListings(q: ListingQuery = {}): Promise<PublicLi
       area,
       areaLabel: area !== null ? `${area.toLocaleString('en-US')} ${d.common.sqm}` : '',
       typeKey: p.typeKey,
-      img: photos[0] ?? null,
+      img: photos[0] ? withVersion(photos[0], wmv.get(p.orgId) ?? 0) : null,
       photos: String(photos.length),
       province,
     }];

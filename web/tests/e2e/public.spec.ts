@@ -928,3 +928,50 @@ test.describe('the heart on a listing card', () => {
     await expect(page.locator('#saved-link')).toContainText('1');
   });
 });
+
+/* The watermark was switched on in /admin/branding and the site kept showing
+   unstamped photos. The compositor was fine — the pages handed out photo URLs
+   with no ?v=, and those URLs are served `immutable, max-age=31536000`, so
+   every browser that had seen a photo before kept its year-old copy. Only the
+   property JSON endpoint carried the version; the HTML the visitor actually
+   loads did not. */
+test.describe('รูปที่หน้าเว็บส่งออก ต้องพาเวอร์ชันลายน้ำไปด้วย', () => {
+  test('หน้าแรก · หน้ารายการ · หน้าทรัพย์ ใช้ ?v= ตรงกับที่หลังบ้านตั้งไว้', async ({ page, request }) => {
+    const b = await (await request.get('/api/branding')).json();
+    const wm = b.watermark ?? {};
+    const version = Number(b.watermarkVersion ?? 0);
+    const on = !!(wm.enabled && wm.src);
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=1')).json()).items as { code: string }[];
+    test.skip(!items.length, 'ยังไม่มีทรัพย์ที่เผยแพร่');
+
+    for (const path of ['/th', '/th/listing', `/th/property/${items[0].code}`]) {
+      const html = await (await request.get(path)).text();
+      const urls = [...html.matchAll(/\/api\/media\/[a-z0-9]+\/raw(\?v=\d+)?/g)].map((m) => m[0]);
+      test.skip(!urls.length, `${path} ไม่มีรูปให้ตรวจ`);
+      const tagged = urls.filter((u) => u.includes(`?v=${version}`)).length;
+      if (on) {
+        // เปิดลายน้ำอยู่ → ทุก URL ต้องมีเวอร์ชัน ไม่งั้นเบราว์เซอร์เสิร์ฟของเก่าทั้งปี
+        expect(tagged, `${path}: ติดเวอร์ชัน ${tagged}/${urls.length} URL`).toBe(urls.length);
+      } else {
+        // ปิดอยู่ → URL ต้องสะอาด ไม่มี ?v= ค้าง
+        expect(urls.some((u) => u.includes('?v=')), `${path} มี ?v= ทั้งที่ปิดลายน้ำ`).toBe(false);
+      }
+    }
+  });
+
+  test('รูปที่เสิร์ฟออกมา มีลายน้ำซ้อนจริงเมื่อเปิดใช้', async ({ request }) => {
+    const b = await (await request.get('/api/branding')).json();
+    test.skip(!(b.watermark?.enabled && b.watermark?.src), 'ยังไม่ได้เปิดลายน้ำ');
+    const code = ((await (await request.get('/api/public/listings?locale=th&limit=1')).json()).items as { code: string }[])[0]?.code;
+    test.skip(!code, 'ยังไม่มีทรัพย์ที่เผยแพร่');
+    const photo = (await (await request.get(`/api/public/properties/${code}?locale=th`)).json()).photos?.[0] as string;
+    expect(photo, 'URL รูปต้องพาเวอร์ชันไปด้วย').toContain('?v=');
+
+    // ไบต์ที่สาธารณะได้ ต้องไม่เท่ากับต้นฉบับที่เก็บไว้ — ถ้าเท่ากันคือไม่ได้ประทับอะไรเลย
+    const shown = (await (await request.get(photo)).body()).length;
+    const id = photo.match(/\/api\/media\/([a-z0-9]+)\//)?.[1];
+    const original = await request.get(`/api/media/${id}/raw?original=1`);
+    expect(original.status(), 'ต้นฉบับต้องไม่เปิดให้คนนอก').toBe(401);
+    expect(shown).toBeGreaterThan(0);
+  });
+});
