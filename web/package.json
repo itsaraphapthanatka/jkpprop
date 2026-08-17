@@ -21,7 +21,8 @@
     "sections:images": "tsx scripts/link-section-images.mts",
     "faq:seed": "tsx scripts/seed-faq.mts",
     "faq:translate": "tsx scripts/translate-faq.mts",
-    "requirements:backfill": "tsx scripts/backfill-requirements.mts"
+    "requirements:backfill": "tsx scripts/backfill-requirements.mts",
+    "import:xlsx": "tsx scripts/import-xlsx.mts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -45,6 +46,7 @@
     "@types/react-dom": "^19.0.0",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.3.0",
+    "exceljs": "^4.4.0",
     "prisma": "^6.19.3",
     "tsx": "^4.23.9",
     "typescript": "^5.6.3",

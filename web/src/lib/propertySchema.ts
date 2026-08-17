@@ -178,28 +178,9 @@ const LAND: PropertyType = {
 };
 
 /* existing industrial types — now schema-driven too */
-const FACTORY: PropertyType = {
-  key: 'factory', label: 'โรงงาน', icon: ICON_FACTORY,
-  fields: [
-    F.deal(),
-    { key: 'usable_area', label: 'พื้นที่ใช้สอย', kind: 'number', unit: 'ตร.ม.', required: true, system: true },
-    { key: 'land_area', label: 'ขนาดที่ดิน', kind: 'number', unit: 'ไร่-งาน-ตร.ว.' },
-    { key: 'clear_height', label: 'ความสูงใต้อาคาร', kind: 'number', unit: 'ม.', system: true },
-    { key: 'floor_loading', label: 'รับน้ำหนักพื้น', kind: 'number', unit: 'ตัน/ตร.ม.', system: true },
-    { key: 'power_system', label: 'ระบบไฟฟ้า', kind: 'select', options: ['1 Phase', '3 Phase 50/150A', '3 Phase 200A+', 'อื่นๆ'] },
-    { key: 'zoning_color', label: 'พื้นที่สี (ผังเมือง)', kind: 'select', options: ['เขตสีม่วง — อุตสาหกรรม', 'เขตสีม่วงอ่อน', 'เขตสีเม็ดมะปราง — คลังสินค้า', 'เขตสีน้ำตาล', 'อื่นๆ'] },
-    { key: 'factory_license', label: 'ขอใบ ร.ง.4 ได้', kind: 'boolean' },
-    { key: 'overhead_crane', label: 'มีเครนเหนือศีรษะ', kind: 'boolean' },
-    F.price(),
-    LOC_LAND,
-    MAP_FIELD,
-    F.photos(),
-    { key: 'deed_copy', label: 'เอกสารสิทธิ์ / โฉนด', kind: 'media' },
-  ],
-};
 
 /* Urban-planning zone colours (พื้นที่สี ผังเมือง) */
-const ZONE_COLORS = ['เขียว — ชนบท/เกษตรกรรม', 'เหลือง — ที่อยู่อาศัยหนาแน่นน้อย', 'ส้ม — ที่อยู่อาศัยหนาแน่นปานกลาง', 'น้ำตาล — ที่อยู่อาศัยหนาแน่นมาก', 'แดง — พาณิชยกรรม', 'ม่วง — อุตสาหกรรม', 'เม็ดมะปราง — คลังสินค้า', 'ขาว-เขียว — อนุรักษ์ชนบท', 'อื่นๆ'];
+const ZONE_COLORS = ['เขียว — ชนบท/เกษตรกรรม', 'เหลือง — ที่อยู่อาศัยหนาแน่นน้อย', 'ส้ม — ที่อยู่อาศัยหนาแน่นปานกลาง', 'น้ำตาล — ที่อยู่อาศัยหนาแน่นมาก', 'แดง — พาณิชยกรรม', 'ม่วง — อุตสาหกรรม', 'เม็ดมะปราง — คลังสินค้า', 'ขาว-เขียว — อนุรักษ์ชนบท', 'เขียวอ่อน — อนุรักษ์สิ่งแวดล้อม', 'อื่นๆ'];
 
 /* โกดัง / คลังสินค้า — full detail set ported from the ops import form
    (AppSheet "WUT Demo"), grouped into sections matching that layout. */
@@ -221,7 +202,8 @@ const WAREHOUSE_FIELDS: FieldDef[] = [
   { key: 'district', label: 'เขต / อำเภอ', kind: 'text', required: true, section: 'ประเภทและทำเล' },
   { key: 'province', label: 'จังหวัด', kind: 'text', required: true, section: 'ประเภทและทำเล' },
   { key: 'zoning_color', label: 'พื้นที่สี (ผังเมือง)', kind: 'select', options: ZONE_COLORS, required: true, section: 'ประเภทและทำเล' },
-  { key: 'zone', label: 'โซน', kind: 'select', options: ['ปลอดอากร (Free Zone)', 'การนิคมอุตสาหกรรม (กนอ.)', 'วัตถุอันตราย (DG Zone)'], section: 'ประเภทและทำเล' },
+  // ทรัพย์หนึ่งแห่งอยู่ได้หลายโซนพร้อมกัน — ข้อมูลจริงของทีมเขียน "ปลอดอากร | กนอ. | DG"
+  { key: 'zone', label: 'โซน', kind: 'multiselect', options: ['ปลอดอากร (Free Zone)', 'การนิคมอุตสาหกรรม (กนอ.)', 'วัตถุอันตราย (DG Zone)'], section: 'ประเภทและทำเล' },
   { key: 'nearby', label: 'อยู่ใกล้ (สถานที่สำคัญ)', kind: 'text', section: 'ประเภทและทำเล', placeholder: 'เช่น ลาดพร้าว 101, โชคชัย 4' },
   { key: 'location_map', label: 'ตำแหน่งบนแผนที่', kind: 'map', section: 'ประเภทและทำเล' },
 
@@ -261,7 +243,7 @@ const WAREHOUSE_FIELDS: FieldDef[] = [
   { key: 'price_sale', label: 'ราคาขาย', kind: 'price', unit: 'บาท', section: 'ราคาและค่าใช้จ่าย', showWhen: WHEN_SALE },
   { key: 'land_tax', label: 'ภาษีที่ดิน', kind: 'group', section: 'ราคาและค่าใช้จ่าย', showWhen: WHEN_RENT, sub: payerAmount(['เจ้าของ', 'ผู้เช่า']) },
   { key: 'withholding_tax', label: 'หัก ณ ที่จ่าย', kind: 'group', section: 'ราคาและค่าใช้จ่าย', showWhen: WHEN_RENT, sub: payerAmount(['เจ้าของ', 'ผู้เช่า']) },
-  { key: 'vat', label: 'VAT', kind: 'select', options: ['รวม', 'ไม่รวม'], section: 'ราคาและค่าใช้จ่าย', showWhen: WHEN_RENT },
+  { key: 'vat', label: 'VAT', kind: 'select', options: ['รวม', 'ไม่รวม', 'ไม่มี'], section: 'ราคาและค่าใช้จ่าย', showWhen: WHEN_RENT },
   { key: 'stamp_duty', label: 'อากรแสตมป์', kind: 'group', section: 'ราคาและค่าใช้จ่าย', note: 'เก็บทั้งกรณีเช่าและกรณีขาย', sub: payerAmount(['เจ้าของ', 'ผู้เช่า']) },
   { key: 'transfer_fee_resp', label: 'ค่าใช้จ่ายวันโอนกรรมสิทธิ์', kind: 'select', options: ['ผู้ขาย รับผิดชอบ 100%', 'ผู้ขายและผู้ซื้อ รับผิดชอบ 50/50', 'ผู้ซื้อ รับผิดชอบ 100%'], section: 'ราคาและค่าใช้จ่าย', showWhen: WHEN_SALE },
   { key: 'common_fee', label: 'ค่าส่วนกลาง', kind: 'number', unit: 'บาท/เดือน', section: 'ราคาและค่าใช้จ่าย' },
@@ -269,13 +251,13 @@ const WAREHOUSE_FIELDS: FieldDef[] = [
   { key: 'water_rate', label: 'ค่าน้ำ', kind: 'number', unit: 'บาท/หน่วย', section: 'ราคาและค่าใช้จ่าย' },
 
   // 6 · เงื่อนไขสัญญา
-  { key: 'lease_term', label: 'อายุสัญญาเช่า', kind: 'select', options: ['1 ปี', '2 ปี', '3 ปี', '5 ปี', 'อื่นๆ'], section: 'เงื่อนไขสัญญา' },
-  { key: 'deposit_months', label: 'เงินประกัน / ค่ามัดจำ', kind: 'select', options: ['1 เดือน', '2 เดือน', '3 เดือน', '6 เดือน'], section: 'เงื่อนไขสัญญา' },
+  { key: 'lease_term', label: 'อายุสัญญาเช่า', kind: 'select', options: ['1 ปี', '1-3 ปี', '2 ปี', '3 ปี', '5 ปี', 'อื่นๆ'], section: 'เงื่อนไขสัญญา' },
+  { key: 'deposit_months', label: 'เงินประกัน / ค่ามัดจำ', kind: 'select', options: ['1 เดือน', '2 เดือน', '3 เดือน', '4 เดือน', '6 เดือน'], section: 'เงื่อนไขสัญญา' },
   { key: 'advance_months', label: 'ค่าเช่าล่วงหน้า', kind: 'select', options: ['1 เดือน', '2 เดือน', '3 เดือน'], section: 'เงื่อนไขสัญญา' },
 
   // 7 · คุณสมบัติและการใช้งาน
-  { key: 'features', label: 'คุณสมบัติ', kind: 'multiselect', options: ['พื้นที่สูงโปร่ง', 'มีพื้นที่สำนักงาน', 'รถบรรทุกเข้าถึงได้', 'พื้นเทคอนกรีต', 'ใกล้ถนนหลัก', 'มีลานจอด / ลานเทรลเลอร์', 'อาคารเดี่ยว', 'ยกพื้นเทียบตู้ (Dock leveler)'], section: 'คุณสมบัติและการใช้งาน' },
-  { key: 'usage', label: 'การใช้งานที่เหมาะ', kind: 'multiselect', options: ['โกดัง', 'สตูดิโอ', 'โรงงาน', 'ศูนย์กระจายสินค้า', 'ครัวกลาง', 'โปรดักชั่น', 'ห้องเก็บของ', 'E-Commerce'], section: 'คุณสมบัติและการใช้งาน' },
+  { key: 'features', label: 'คุณสมบัติ', kind: 'multiselect', options: ['พื้นที่สูงโปร่ง', 'มีพื้นที่สำนักงาน', 'รถบรรทุกเข้าถึงได้', 'พื้นเทคอนกรีต', 'ใกล้ถนนหลัก', 'มีลานจอด / ลานเทรลเลอร์', 'อาคารเดี่ยว', 'ยกพื้นเทียบตู้ (Dock leveler)', 'มีที่จอดรถ', 'พื้นที่โครงการ', 'รถคอนเทนเนอร์เข้าได้', 'เครนเหนือศีรษะ'], section: 'คุณสมบัติและการใช้งาน' },
+  { key: 'usage', label: 'การใช้งานที่เหมาะ', kind: 'multiselect', options: ['โกดัง', 'สตูดิโอ', 'โรงงาน', 'ศูนย์กระจายสินค้า', 'ครัวกลาง', 'โปรดักชั่น', 'ห้องเก็บของ', 'E-Commerce', 'โชว์รูม', 'ผลิต'], section: 'คุณสมบัติและการใช้งาน' },
 
   // 8 · หมายเหตุ (โน้ตลับของทีม — ไม่ออกหน้าเว็บ ไม่เข้าข้อความโพสต์)
   { key: 'internal_note', label: 'หมายเหตุ', kind: 'textarea', section: 'หมายเหตุ', internalOnly: true, note: 'บันทึกภายในทีมเท่านั้น เช่น เงื่อนไขต่อรอง เบอร์คนเฝ้า ข้อควรระวัง — ไม่ถูกส่งไปหน้าเว็บและไม่รวมอยู่ในข้อความโพสต์', placeholder: 'เห็นเฉพาะทีมงานในระบบหลังบ้าน…' },
@@ -286,6 +268,24 @@ const WAREHOUSE_FIELDS: FieldDef[] = [
   // 10 · ข้อความสรุปอัตโนมัติ (อ่านอย่างเดียว + ปุ่มคัดลอก)
   { key: 'summary_template', label: 'ข้อความสำหรับโพสต์ / ส่งลูกค้า', kind: 'summary', section: 'หมายเหตุ : รายละเอียดทรัพย์ (รวม)', note: 'ประกอบจากทุกฟิลด์ที่กรอกไว้ด้านบน — อัปเดตอัตโนมัติ' },
 ];
+
+/* โรงงานเคยมีเพียง 14 ฟิลด์ ขณะที่โกดังและโชว์รูมมี 50 — ทั้งที่ทีมเก็บข้อมูล
+   ชุดเดียวกันให้ทั้งสามประเภท ผังเมือง ผู้ให้เช่า ระบบไฟ ค่าส่วนกลาง เงื่อนไข
+   สัญญา จึงไม่มีที่เก็บสำหรับโรงงาน และข้อมูลจริงของทีมตกหล่นตั้งแต่ตอนกรอก
+   ตอนนี้ใช้ชุดเดียวกัน แล้วต่อท้ายด้วยฟิลด์ที่มีแต่โรงงานเท่านั้น */
+const FACTORY_ONLY: FieldDef[] = [
+  { key: 'usable_area', label: 'พื้นที่ใช้สอย', kind: 'number', unit: 'ตร.ม.', section: 'พื้นที่และอาคาร' },
+  { key: 'land_area', label: 'พื้นที่ดิน', kind: 'number', unit: 'ตารางวา', section: 'พื้นที่และอาคาร' },
+  { key: 'clear_height', label: 'ความสูงใต้คาน', kind: 'number', unit: 'เมตร', section: 'พื้นที่และอาคาร' },
+  { key: 'factory_license', label: 'มีใบอนุญาต ร.ง.4', kind: 'boolean', section: 'เอกสารและใบอนุญาต' },
+  { key: 'overhead_crane', label: 'มีเครนเหนือศีรษะ', kind: 'boolean', section: 'พื้นที่และอาคาร' },
+  { key: 'deed_copy', label: 'สำเนาโฉนด / เอกสารสิทธิ์', kind: 'media', section: 'เอกสารและใบอนุญาต' },
+];
+
+const FACTORY: PropertyType = {
+  key: 'factory', label: 'โรงงาน', icon: ICON_FACTORY,
+  fields: [...WAREHOUSE_FIELDS, ...FACTORY_ONLY],
+};
 
 const WAREHOUSE: PropertyType = { key: 'warehouse', label: 'โกดัง / คลังสินค้า', icon: ICON_WAREHOUSE, fields: WAREHOUSE_FIELDS };
 
