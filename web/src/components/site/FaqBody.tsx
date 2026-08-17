@@ -163,7 +163,9 @@ export function FaqBody({ locale }: { locale: Locale }) {
                         onClick={() => toggle(k)}
                         aria-expanded={open}
                         aria-controls={k + '-panel'}
-                        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, padding: '16px 18px', cursor: 'pointer', background: 'transparent', border: 'none', textAlign: 'start', font: 'inherit' }}
+                        /* the card clips overflow for its rounded corners, which
+                           would cut a default focus ring — pull it inside */
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, padding: '16px 18px', cursor: 'pointer', background: 'transparent', border: 'none', textAlign: 'start', font: 'inherit', outlineOffset: '-3px' }}
                       >
                         <span style={{ fontSize: '14.5px', fontWeight: 600, color: open ? '#fff' : 'var(--text)' }}>{question}</span>
                         <span style={{ width: 26, height: 26, borderRadius: 9999, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: open ? '#2DFB91' : 'var(--tint)', transition: 'all .2s' }}>
