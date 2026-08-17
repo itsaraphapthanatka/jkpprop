@@ -60,7 +60,9 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const stats = { published: live.published, provinces: live.provinces, lastUpdated: statDate(live.lastUpdated, locale) };
   const c = await loadPageCopy('home', locale).catch(() => ({}));
 
-  const all = await loadPublicListings({ locale, limit: 60 }).catch(() => []);
+  /* นับจากของจริงทั้งหมด ไม่ใช่ 60 รายการแรก — ตอนนำเข้าทรัพย์จริง 393 รายการ
+     ตัวเลขต่อทำเลบนหน้าแรกกลายเป็นการนับจากกองที่ถูกตัดมาแล้ว */
+  const all = await loadPublicListings({ locale, limit: 500 }).catch(() => []);
   const counts = Object.fromEntries(
     Object.entries(AREA_PROVINCES).map(([key, provinces]) => [
       key,
