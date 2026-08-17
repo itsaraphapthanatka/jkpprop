@@ -6,6 +6,12 @@
    from a setting an admin can move. Appending ?v=<version> means a settings
    change hands out a different URL, so browsers and CDNs pick up the new
    stamp instead of showing last year's copy.
+
+   Every surface that hands a photo URL to a visitor has to do this, not just
+   the JSON API: when only /api/public/properties/:code applied it, the site
+   composited correctly and still looked unstamped, because the HTML linked
+   the un-versioned URL. The surfaces are loadPublicListings (home, listing,
+   related cards, /api/public/listings) and the property detail page.
    ============================================================ */
 import { db } from '@/lib/server/db';
 
