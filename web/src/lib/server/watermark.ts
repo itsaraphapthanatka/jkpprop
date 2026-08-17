@@ -10,6 +10,11 @@
    logo's own dimensions.
    ============================================================ */
 import sharp from 'sharp';
+import { wmPlacement, type WatermarkConfig } from '@/lib/watermarkConfig';
+
+// sharp is a default export, so its types are derived rather than namespaced
+type SharpImage = ReturnType<typeof sharp>;
+type Overlay = Parameters<SharpImage['composite']>[0][number];
 
 export const WATERMARK_TYPES = ['none', 'corner', 'tiled'] as const;
 export type WatermarkType = (typeof WATERMARK_TYPES)[number];
@@ -48,6 +53,12 @@ function tiledSvg(w: number, h: number, text: string): string {
 </svg>`;
 }
 
+const encode = (out: SharpImage, mime: string) => {
+  if (mime === 'image/png') return out.png().toBuffer();
+  if (mime === 'image/webp') return out.webp().toBuffer();
+  return out.jpeg({ quality: 88 }).toBuffer();
+};
+
 /**
  * Returns the bytes to serve publicly. `none`, a non-raster file, or an
  * unreadable image all fall through to the original — a watermark failure
@@ -67,10 +78,60 @@ export async function applyWatermark(
 
     const svg = type === 'tiled' ? tiledSvg(width, height, brand) : cornerSvg(width, height, brand);
     const out = img.composite([{ input: Buffer.from(svg), top: 0, left: 0 }]);
+    return await encode(out, mime);
+  } catch {
+    return input;
+  }
+}
 
-    if (mime === 'image/png') return await out.png().toBuffer();
-    if (mime === 'image/webp') return await out.webp().toBuffer();
-    return await out.jpeg({ quality: 88 }).toBuffer();
+/* ============================================================
+   Image watermark (the agency's own logo), positioned by the setting in
+   /admin/branding. Applied on top of whatever the upload-time text style
+   produced, so both can coexist.
+   ============================================================ */
+
+/**
+ * Composites the uploaded logo onto the photo using the org's watermark
+ * setting. Falls through to the input on any problem — a broken logo file
+ * must never cost the photo.
+ */
+export async function applyImageWatermark(
+  input: Buffer,
+  mime: string,
+  logo: Buffer,
+  cfg: WatermarkConfig,
+): Promise<Buffer> {
+  if (!cfg.enabled || !canWatermark(mime)) return input;
+  try {
+    const img = sharp(input, { failOn: 'none' });
+    const { width, height } = await img.metadata();
+    if (!width || !height) return input;
+
+    // scale the logo to a share of the photo's width so one setting suits any size
+    const targetW = Math.max(8, Math.round((cfg.scale / 100) * width));
+    const mark = sharp(logo, { failOn: 'none' }).ensureAlpha();
+    const marked = await mark
+      .resize({ width: Math.min(targetW, width), fit: 'inside', withoutEnlargement: false })
+      // multiply the alpha channel to honour the opacity setting
+      .composite([{
+        input: Buffer.from([255, 255, 255, Math.round((cfg.opacity / 100) * 255)]),
+        raw: { width: 1, height: 1, channels: 4 },
+        tile: true,
+        blend: 'dest-in',
+      }])
+      .png()
+      .toBuffer();
+
+    const meta = await sharp(marked).metadata();
+    const lw = meta.width ?? targetW;
+    const lh = meta.height ?? targetW;
+    if (lw > width || lh > height) return input; // logo cannot fit — leave the photo alone
+
+    const layers: Overlay[] = cfg.anchor === 'tiled'
+      ? [{ input: marked, tile: true, blend: 'over' }]
+      : [{ input: marked, ...wmPlacement(width, height, lw, lh, cfg), blend: 'over' }];
+
+    return await encode(img.composite(layers), mime);
   } catch {
     return input;
   }
