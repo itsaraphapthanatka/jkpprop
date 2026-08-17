@@ -64,7 +64,7 @@ export async function ListingShell({ preset }: { preset?: ListingPreset }) {
   const company = await loadCompany(locale);
   const pages = await listCmsPages(locale).catch(() => []);
   const q = preset?.filterKey ? PRESET_QUERY[preset.filterKey] : {};
-  const items = await loadPublicListings({ locale, ...q, province: preset?.province, limit: 60 }).catch(() => []);
+  const items = await loadPublicListings({ locale, ...q, province: preset?.province, limit: 500 }).catch(() => []);
 
   return (
     <div style={{ width: '100%', background: '#000000', position: 'relative' }}>

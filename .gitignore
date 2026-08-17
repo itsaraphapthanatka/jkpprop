@@ -38,6 +38,8 @@ yarn-error.log*
 # Zip files
 *.zip
 web/uploads/
+# โฟลเดอร์รูปทุกแบบ — ครั้งหนึ่งเคยหลุดขึ้น git ไป 193 MB
+web/uploads*/
 
 # Playwright
 web/test-results/

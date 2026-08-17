@@ -63,12 +63,15 @@ export const isFeatured = (values: unknown): boolean =>
 export async function loadPublicListings(q: ListingQuery = {}): Promise<PublicListing[]> {
   const d = getDictionary(q.locale ?? DEFAULT_LOCALE);
   const perMonth = d.common.perMonth;
-  const limit = Math.min(60, Math.max(1, Number(q.limit ?? 24)));
+/* เพดานเดิมคือ 60 ตั้งไว้ตอนที่ทั้งระบบมีทรัพย์ 3 รายการ พอทีมนำเข้าของจริง
+   393 รายการ หน้ารายการก็เห็นแค่ 60 รายการแรก อีก 336 รายการหายไปเงียบ ๆ
+   ทั้งจากหน้าเว็บและจากตัวกรอง */
+  const limit = Math.min(500, Math.max(1, Number(q.limit ?? 24)));
 
   const found = await db.property.findMany({
     where: { status: 'active', ...(q.type ? { typeKey: q.type } : {}) },
     orderBy: { updatedAt: 'desc' },
-    take: 200,
+    take: 1000,
   });
 
   /* The star Ops ticks on /admin/listings decides what leads the homepage
