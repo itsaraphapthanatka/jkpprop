@@ -13,7 +13,9 @@ import { mkdir, readFile, unlink, writeFile } from 'fs/promises';
 import { createHash } from 'crypto';
 import path from 'path';
 
-export const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
+/* UPLOADS_DIR lets the deployment put the volume somewhere other than the app
+   directory; unset, it is where it has always been. */
+export const UPLOAD_DIR = process.env.UPLOADS_DIR || path.join(process.cwd(), 'uploads');
 
 export const EXT_BY_MIME: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -124,10 +126,28 @@ export async function ensureUploadDir() {
   await mkdir(UPLOAD_DIR, { recursive: true });
 }
 
+/* Thrown when the storage itself refuses the write, as opposed to a bad
+   upload. On the VPS the uploads volume once ended up owned by the host user
+   while the container runs as uid 1001, so every upload failed with EACCES —
+   and the admin only saw "อัปโหลดไม่สำเร็จ", which points at the file. */
+export class StorageWriteError extends Error {
+  constructor(readonly cause: unknown) {
+    super('เซิร์ฟเวอร์เขียนไฟล์ลงที่เก็บไม่ได้ (สิทธิ์โฟลเดอร์ uploads) — แจ้งผู้ดูแลระบบ');
+    this.name = 'StorageWriteError';
+  }
+}
+
 export async function putObject(id: string, mime: string, body: Buffer, key = objectKey(id, mime)) {
   if (!usingS3) {
-    await ensureUploadDir();
-    await writeFile(path.join(UPLOAD_DIR, key), body);
+    try {
+      await ensureUploadDir();
+      await writeFile(path.join(UPLOAD_DIR, key), body);
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException)?.code === 'EACCES' || (e as NodeJS.ErrnoException)?.code === 'EPERM') {
+        throw new StorageWriteError(e);
+      }
+      throw e;
+    }
     return;
   }
   const res = await signedFetch('PUT', key, body, mime);

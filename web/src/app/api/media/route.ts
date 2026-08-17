@@ -6,7 +6,7 @@ import { ok, handler, ApiError } from '@/lib/server/api';
 import { requireUser, requireRole } from '@/lib/server/auth';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
-import { putObject, publicUrlFor, originalKey, EXT_BY_MIME, MAX_UPLOAD_BYTES } from '@/lib/server/mediaStore';
+import { putObject, publicUrlFor, originalKey, EXT_BY_MIME, MAX_UPLOAD_BYTES, StorageWriteError } from '@/lib/server/mediaStore';
 import { applyWatermark, isWatermarkType, canWatermark } from '@/lib/server/watermark';
 
 export const runtime = 'nodejs';
@@ -56,13 +56,22 @@ export const POST = handler(async (req: Request) => {
     },
   });
 
-  // FR-ADM-09: keep the untouched file, serve only the watermarked one
-  const original = Buffer.from(await file.arrayBuffer());
-  await putObject(asset.id, file.type, original, originalKey(asset.id, file.type));
-  const shown = await applyWatermark(original, file.type, watermarkType);
-  await putObject(asset.id, file.type, shown);
-  const src = publicUrlFor(asset.id, file.type);
-  await db.mediaAsset.update({ where: { id: asset.id }, data: { path: src } });
+  // FR-ADM-09: keep the untouched file, serve only the watermarked one.
+  // If the bytes can't be stored, the row must not survive — an asset with no
+  // file behind it shows up in the library as a permanently broken thumbnail.
+  let src: string;
+  try {
+    const original = Buffer.from(await file.arrayBuffer());
+    await putObject(asset.id, file.type, original, originalKey(asset.id, file.type));
+    const shown = await applyWatermark(original, file.type, watermarkType);
+    await putObject(asset.id, file.type, shown);
+    src = publicUrlFor(asset.id, file.type);
+    await db.mediaAsset.update({ where: { id: asset.id }, data: { path: src } });
+  } catch (e) {
+    await db.mediaAsset.delete({ where: { id: asset.id } }).catch(() => { /* nothing to undo */ });
+    if (e instanceof StorageWriteError) throw new ApiError('STORAGE', e.message, 500);
+    throw e;
+  }
 
   await audit({
     user, orgId: user.orgId, action: 'media.upload', entity: 'mediaAsset', entityId: asset.id,

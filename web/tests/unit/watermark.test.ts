@@ -3,6 +3,9 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import sharp from 'sharp';
+import { mkdtemp, chmod, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   normalizeWatermark, wmPlacement, wmFingerprint, WM_DEFAULTS, WM_ANCHORS,
   type WatermarkConfig,
@@ -137,5 +140,29 @@ describe('compositing', () => {
     const tiled = await sharp(await applyImageWatermark(p, 'image/jpeg', l, cfg({ anchor: 'tiled' }))).stats();
     // the red logo lifts the mean of the red channel; tiling lifts it further
     assert.ok(tiled.channels[0].mean > corner.channels[0].mean, `${tiled.channels[0].mean} vs ${corner.channels[0].mean}`);
+  });
+});
+
+/* What actually broke in production: the uploads volume ended up owned by the
+   host user while the container runs as uid 1001, so every upload failed with
+   EACCES. The admin saw only "อัปโหลดไม่สำเร็จ" — a message that blames the
+   file. The store now names the real cause so it is fixable, not a mystery. */
+describe('uploads ที่เขียนไม่ลง', () => {
+  test('โฟลเดอร์ที่เขียนไม่ได้ → บอกว่าเป็นเรื่องสิทธิ์ ไม่ใช่ "อัปโหลดไม่สำเร็จ"', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'jkp-uploads-'));
+    await chmod(dir, 0o555); // readable, not writable — exactly the EACCES case
+    const prev = process.env.UPLOADS_DIR;
+    process.env.UPLOADS_DIR = dir;
+    try {
+      const store = await import(`../../src/lib/server/mediaStore.ts?ro=${encodeURIComponent(dir)}`);
+      await assert.rejects(
+        () => store.putObject('abc', 'image/png', Buffer.from([1, 2, 3])),
+        (e: Error) => e.name === 'StorageWriteError' && /สิทธิ์โฟลเดอร์/.test(e.message),
+      );
+    } finally {
+      if (prev === undefined) delete process.env.UPLOADS_DIR; else process.env.UPLOADS_DIR = prev;
+      await chmod(dir, 0o755);
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 });
