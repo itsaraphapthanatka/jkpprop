@@ -44,6 +44,17 @@ docker pull "$MIG"
 grep -q '^APP_IMAGE=' .env && sed -i "s|^APP_IMAGE=.*|APP_IMAGE=$APP|" .env || echo "APP_IMAGE=$APP" >> .env
 grep -q '^MIGRATE_IMAGE=' .env && sed -i "s|^MIGRATE_IMAGE=.*|MIGRATE_IMAGE=$MIG|" .env || echo "MIGRATE_IMAGE=$MIG" >> .env
 
+# The app runs as uid 1001 (nextjs). Anything that copies files into the
+# uploads volume from the host — the photo import did — can leave the directory
+# owned by the host user instead, and then every upload fails with EACCES while
+# the photos already there keep serving, so nothing looks wrong until an admin
+# tries to add a file. One stat per deploy is cheaper than finding that twice.
+VOL=$(docker volume inspect jkpprop_uploads --format '{{.Mountpoint}}' 2>/dev/null || true)
+if [ -n "$VOL" ] && [ "$(stat -c %u "$VOL")" != "1001" ]; then
+  echo "→ คืนสิทธิ์โฟลเดอร์ uploads ให้ uid 1001 (เดิมเป็นของ uid $(stat -c %u "$VOL"))"
+  chown -R 1001:1001 "$VOL"
+fi
+
 echo "→ migrate"
 $COMPOSE run --rm migrate
 
