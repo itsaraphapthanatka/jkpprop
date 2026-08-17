@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import { LOCALES, DEFAULT_LOCALE, isLocale, localizePath, HTML_LANG, LOCALE_LABEL } from '../../src/i18n/config.ts';
 import { getDictionary, type Dictionary } from '../../src/i18n/dictionaries.ts';
 import { enumLabel, untranslated } from '../../src/i18n/enums.ts';
+import { getFaq, getFaqUi, FAQ_KEYS } from '../../src/i18n/faq.ts';
 import { PROPERTY_TYPES } from '../../src/lib/propertySchema.ts';
 
 const leafKeys = (o: unknown, prefix = ''): string[] =>
@@ -98,5 +99,82 @@ describe('enum labels', () => {
     for (const locale of ['en', 'zh'] as const) {
       assert.deepEqual(untranslated(labels, locale), [], `property types missing ${locale}`);
     }
+  });
+});
+
+describe('faq content', () => {
+  const th = getFaq('th');
+
+  test('every locale carries the canonical categories in the canonical order', () => {
+    for (const locale of LOCALES) {
+      assert.deepEqual(getFaq(locale).map((c) => c.key), [...FAQ_KEYS], `${locale} category order drifted`);
+    }
+  });
+
+  test('every locale answers exactly the same questions', () => {
+    const shape = th.map((c) => [c.key, c.qs.length] as const);
+    for (const locale of LOCALES) {
+      assert.deepEqual(getFaq(locale).map((c) => [c.key, c.qs.length] as const), shape,
+        `${locale} has a different number of questions in some category`);
+    }
+  });
+
+  test('no category title, question or answer is blank', () => {
+    for (const locale of LOCALES) {
+      for (const c of getFaq(locale)) {
+        assert.notEqual(c.title.trim(), '', `${locale}/${c.key} has no title`);
+        c.qs.forEach(({ q, a }, i) => {
+          assert.notEqual(q.trim(), '', `${locale}/${c.key}[${i}] has no question`);
+          assert.notEqual(a.trim(), '', `${locale}/${c.key}[${i}] has no answer`);
+        });
+      }
+    }
+  });
+
+  /* the live site shipped a published FAQ entry with an empty body; this
+     is the guard that stops a stub reaching readers again */
+  test('every answer is a real answer, not a stub', () => {
+    for (const locale of LOCALES) {
+      for (const c of getFaq(locale)) {
+        c.qs.forEach(({ q, a }, i) => {
+          const min = locale === 'zh' ? 40 : 80; // zh says the same thing in fewer characters
+          assert.ok(a.trim().length >= min, `${locale}/${c.key}[${i}] answer looks like a stub: "${q}"`);
+          assert.ok(!/^(tbd|todo|n\/a|-+)$/i.test(a.trim()), `${locale}/${c.key}[${i}] is a placeholder`);
+        });
+      }
+    }
+  });
+
+  test('en and zh are translated, not copies of the Thai', () => {
+    for (const locale of ['en', 'zh'] as const) {
+      const cats = getFaq(locale);
+      cats.forEach((c, ci) => {
+        assert.notEqual(c.title, th[ci].title, `${locale}/${c.key} title left in Thai`);
+        c.qs.forEach(({ q, a }, i) => {
+          assert.notEqual(q, th[ci].qs[i].q, `${locale}/${c.key}[${i}] question left in Thai`);
+          assert.notEqual(a, th[ci].qs[i].a, `${locale}/${c.key}[${i}] answer left in Thai`);
+        });
+      });
+    }
+  });
+
+  test('category keys are unique, so the #anchors and openMap keys cannot collide', () => {
+    assert.equal(new Set(FAQ_KEYS).size, FAQ_KEYS.length);
+  });
+
+  test('page chrome is defined in every locale with the same keys and no blanks', () => {
+    const keys = Object.keys(getFaqUi('th')).sort();
+    for (const locale of LOCALES) {
+      const ui = getFaqUi(locale);
+      assert.deepEqual(Object.keys(ui).sort(), keys, `${locale} chrome keys drifted`);
+      for (const [k, v] of Object.entries(ui)) {
+        assert.notEqual(v.trim(), '', `${locale} chrome.${k} is blank`);
+      }
+    }
+  });
+
+  test('an unknown locale falls back to Thai rather than rendering nothing', () => {
+    assert.deepEqual(getFaq('de' as never), th);
+    assert.deepEqual(getFaqUi('de' as never), getFaqUi('th'));
   });
 });
