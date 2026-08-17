@@ -15,13 +15,14 @@ import { loadPageCopy, section } from '@/lib/server/sectionCopy';
 import { isLocale, DEFAULT_LOCALE } from '@/i18n/config';
 import { loadCompany } from '@/lib/server/company';
 import { listCmsPages } from '@/lib/server/cmsPages';
+import { sameProvince } from '@/i18n/places';
 
 /* Which provinces each location tab covers. The tab used to print a fixed
    "640+ / 820+ / 1,150+ รายการ" — inventory the catalogue never had. */
 const AREA_PROVINCES = {
-  air: ['สมุทรปราการ', 'กรุงเทพ'],
+  air: ['สมุทรปราการ', 'กรุงเทพมหานคร'],
   port: ['ชลบุรี', 'ระยอง', 'สมุทรสาคร'],
-  bkk: ['กรุงเทพ', 'นนทบุรี'],
+  bkk: ['กรุงเทพมหานคร', 'นนทบุรี'],
   eec: ['ชลบุรี', 'ระยอง', 'ฉะเชิงเทรา'],
 } as const;
 
@@ -66,7 +67,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const counts = Object.fromEntries(
     Object.entries(AREA_PROVINCES).map(([key, provinces]) => [
       key,
-      all.filter((it) => provinces.some((p) => it.province.includes(p))).length,
+      all.filter((it) => provinces.some((p) => sameProvince(it.province, p))).length,
     ]),
   ) as Record<keyof typeof AREA_PROVINCES, number>;
 

@@ -15,7 +15,7 @@ import { getDictionary, type Dictionary } from '@/i18n/dictionaries';
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/config';
 import { stripInternal, displayArea, displayLocation, displayProvince } from './propertyDto';
 import { localTitle } from './propertyI18n';
-import { provinceLabel } from '@/i18n/places';
+import { provinceLabel, canonicalProvince, sameProvince } from '@/i18n/places';
 
 const PRIVATE_KEYS = ['location_map', 'lessor_name', 'lessor_phone', 'lessor_company', 'lessor_status'];
 
@@ -91,8 +91,10 @@ export async function loadPublicListings(q: ListingQuery = {}): Promise<PublicLi
     if (q.deal === 'rent' && !isRent) return [];
     if (q.deal === 'sale' && !isSale) return [];
 
-    const province = displayProvince(values);
-    if (q.province && !province.includes(q.province)) return [];
+    /* ชื่อจังหวัดเทียบด้วยรูปมาตรฐาน ไม่ใช่เทียบข้อความดิบ — ข้อมูลเขียน
+       "กรุงเทพ" ส่วนลิงก์จากแผนที่ส่ง "กรุงเทพมหานคร" มา */
+    const province = canonicalProvince(displayProvince(values));
+    if (q.province && !sameProvince(province, q.province)) return [];
 
     const rent = Number(values.price_rent ?? NaN);
     const sale = Number(values.price_sale ?? values.price ?? NaN);

@@ -3,6 +3,7 @@
    silently ships untranslated. */
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { canonicalProvince, sameProvince, provinceLabel } from '../../src/i18n/places.ts';
 import { LOCALES, DEFAULT_LOCALE, isLocale, localizePath, HTML_LANG, LOCALE_LABEL } from '../../src/i18n/config.ts';
 import { getDictionary, type Dictionary } from '../../src/i18n/dictionaries.ts';
 import { enumLabel, untranslated } from '../../src/i18n/enums.ts';
@@ -98,5 +99,27 @@ describe('enum labels', () => {
     for (const locale of ['en', 'zh'] as const) {
       assert.deepEqual(untranslated(labels, locale), [], `property types missing ${locale}`);
     }
+  });
+});
+
+/* ชื่อจังหวัดที่คนกรอกกับชื่อที่แผนที่ใช้ ไม่เคยตรงกันเอง
+   ข้อมูลจริงเขียน "กรุงเทพ" 256 รายการ ลิงก์จากแผนที่ส่ง "กรุงเทพมหานคร"
+   หน้ารายการจึงว่างเปล่าทั้งที่มีทรัพย์อยู่ */
+describe('ชื่อจังหวัดที่เขียนคนละแบบ', () => {
+  test('รูปมาตรฐานเดียวกัน', () => {
+    for (const v of ['กรุงเทพ', 'กรุงเทพฯ', 'กทม.', 'จังหวัดกรุงเทพมหานคร', 'กรุงเทพมหานคร']) {
+      assert.equal(canonicalProvince(v), 'กรุงเทพมหานคร', v);
+    }
+  });
+
+  test('เทียบกันได้ไม่ว่าจะเขียนแบบไหน', () => {
+    assert.ok(sameProvince('กรุงเทพ', 'กรุงเทพมหานคร'));
+    assert.ok(sameProvince('จังหวัดสมุทรปราการ', 'สมุทรปราการ'));
+    assert.ok(!sameProvince('กรุงเทพ', 'สมุทรปราการ'));
+  });
+
+  test('ป้ายภาษาอื่นก็ตามไปด้วย', () => {
+    assert.equal(provinceLabel('กรุงเทพ', 'en'), 'Bangkok');
+    assert.equal(provinceLabel('กรุงเทพ', 'zh'), '曼谷');
   });
 });

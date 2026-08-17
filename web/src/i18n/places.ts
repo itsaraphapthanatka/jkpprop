@@ -85,9 +85,36 @@ const DISTRICT_EN: Record<string, string> = {
 
 const clean = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 
+/* คนกรอกข้อมูลเขียนชื่อจังหวัดกันคนละแบบ และแผนที่ก็ใช้ชื่อทางการ:
+   ข้อมูลจริงของทีมเขียน "กรุงเทพ" 256 รายการ ขณะที่ลิงก์จากแผนที่ส่ง
+   "กรุงเทพมหานคร" ไปกรอง — ไม่มีอะไรตรงกัน หน้ารายการจึงว่างเปล่า
+   ทุกที่ที่เทียบชื่อจังหวัดต้องเทียบด้วยรูปนี้ */
+const PROVINCE_ALIAS: Record<string, string> = {
+  'กรุงเทพ': 'กรุงเทพมหานคร',
+  'กรุงเทพฯ': 'กรุงเทพมหานคร',
+  'กทม': 'กรุงเทพมหานคร',
+  'กทม.': 'กรุงเทพมหานคร',
+  'จังหวัดกรุงเทพมหานคร': 'กรุงเทพมหานคร',
+  'พระนคร': 'กรุงเทพมหานคร',
+  'อยุธยา': 'พระนครศรีอยุธยา',
+  'โคราช': 'นครราชสีมา',
+};
+
+/** ชื่อจังหวัดในรูปเดียว ไม่ว่าจะพิมพ์มาแบบไหน */
+export function canonicalProvince(name: unknown): string {
+  const th = clean(name).replace(/^จังหวัด\s*/, '');
+  return PROVINCE_ALIAS[th] ?? th;
+}
+
+/** ชื่อสองชื่อนี้หมายถึงจังหวัดเดียวกันไหม */
+export const sameProvince = (a: unknown, b: unknown): boolean => {
+  const x = canonicalProvince(a), y = canonicalProvince(b);
+  return !!x && !!y && (x === y || x.includes(y) || y.includes(x));
+};
+
 /** The province in the reader's language: Chinese name, romanisation, or Thai. */
 export function provinceLabel(name: unknown, locale: Locale): string {
-  const th = clean(name);
+  const th = canonicalProvince(name);
   if (!th || locale === DEFAULT_LOCALE) return th;
   if (locale === 'zh') return PROVINCE_ZH[th] ?? PROVINCE_EN[th] ?? th;
   return PROVINCE_EN[th] ?? th;
