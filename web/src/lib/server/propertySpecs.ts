@@ -12,6 +12,7 @@
  * renders a short page, which is the honest outcome.
  */
 import { enumLabel } from '@/i18n/enums';
+import { provinceLabel, districtLabel, subdistrictLabel } from '@/i18n/places';
 import type { Locale } from '@/i18n/config';
 import type { FieldDef } from '@/lib/propertySchema';
 
@@ -72,9 +73,34 @@ const NO: Record<Locale, string> = { th: 'ไม่ได้', en: 'No', zh: '�
 const num = (n: number, locale: Locale) =>
   n.toLocaleString(locale === 'th' ? 'th-TH' : locale === 'zh' ? 'zh-CN' : 'en-US');
 
+/* Units the team types into free-text fields, as they type them. */
+const TH_UNIT_WORD: Record<string, Record<Locale, string>> = {
+  'ตัน': { th: 'ตัน', en: 'tonnes', zh: '吨' },
+  'ตร.ม.': { th: 'ตร.ม.', en: 'sqm', zh: '平方米' },
+  'ตร.ว.': { th: 'ตร.ว.', en: 'sq wah', zh: '平方哇' },
+  'ไร่': { th: 'ไร่', en: 'rai', zh: '莱' },
+  'เมตร': { th: 'เมตร', en: 'm', zh: '米' },
+  'ม.': { th: 'ม.', en: 'm', zh: '米' },
+  'กก.': { th: 'กก.', en: 'kg', zh: '公斤' },
+  'กม.': { th: 'กม.', en: 'km', zh: '公里' },
+  'คัน': { th: 'คัน', en: 'vehicles', zh: '辆' },
+  'ช่อง': { th: 'ช่อง', en: 'bays', zh: '个' },
+};
+
+/* Place names are not enum options, so enumLabel never had a row for them and
+   the table printed the stored Thai to an English reader — "กรุงเทพ" under
+   Province, "ลาดกระบัง" under District. They have their own tables. */
+const PLACE_LABEL: Record<string, (v: unknown, l: Locale) => string> = {
+  province: provinceLabel,
+  district: districtLabel, amphoe: districtLabel,
+  subdistrict: subdistrictLabel, tambon: subdistrictLabel,
+};
+
 /** Render one stored value for display, or null when there is nothing to show. */
 function format(key: string, v: unknown, locale: Locale): string | null {
   if (v === null || v === undefined || v === '') return null;
+  const place = PLACE_LABEL[key];
+  if (place && typeof v === 'string') return place(v, locale) || null;
   if (Array.isArray(v)) {
     const parts = v.map((x) => enumLabel(String(x), locale)).filter(Boolean);
     return parts.length ? parts.join(', ') : null;
@@ -90,7 +116,15 @@ function format(key: string, v: unknown, locale: Locale): string | null {
   if (!s) return null;
   const u = UNITS[key]?.[locale];
   // a stored "3,500" is still a measurement and still wants its unit
-  return u && /^[\d,.]+$/.test(s) ? `${s} ${u}` : enumLabel(s, locale);
+  if (u && /^[\d,.]+$/.test(s)) return `${s} ${u}`;
+  /* Free-text measurements arrive with the unit typed in — the imported sheet
+     fills floor loading in as "3 ตัน". The number is language-neutral; only
+     the word after it needs translating, and translating it into the field's
+     own unit would be a different claim ("3 tonnes" is not "3 t/sqm"). */
+  const measured = s.match(/^([\d,.]+)\s*([ก-๙.]+)$/);
+  const word = measured && TH_UNIT_WORD[measured[2]]?.[locale];
+  if (word) return `${measured![1]} ${word}`;
+  return enumLabel(s, locale);
 }
 
 export type SpecRow = { key: string; label: string; value: string };

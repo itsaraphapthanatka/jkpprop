@@ -936,7 +936,7 @@ test.describe('the heart on a listing card', () => {
    property JSON endpoint carried the version; the HTML the visitor actually
    loads did not. */
 test.describe('รูปที่หน้าเว็บส่งออก ต้องพาเวอร์ชันลายน้ำไปด้วย', () => {
-  test('หน้าแรก · หน้ารายการ · หน้าทรัพย์ ใช้ ?v= ตรงกับที่หลังบ้านตั้งไว้', async ({ page, request }) => {
+  test('หน้าแรก · หน้ารายการ · หน้าทรัพย์ ใช้ ?v= ตรงกับที่หลังบ้านตั้งไว้', async ({ request }) => {
     const b = await (await request.get('/api/branding')).json();
     const wm = b.watermark ?? {};
     const version = Number(b.watermarkVersion ?? 0);
@@ -974,4 +974,49 @@ test.describe('รูปที่หน้าเว็บส่งออก ต�
     expect(original.status(), 'ต้นฉบับต้องไม่เปิดให้คนนอก').toBe(401);
     expect(shown).toBeGreaterThan(0);
   });
+});
+
+/* Switching to English used to change the chrome and leave the listings in
+   Thai: the 393 imported records carry no translations, so every headline fell
+   back to its Thai original, and the spec table printed stored Thai values —
+   "3 ชั้น" for the number of floors, "ไม่ใช่" for cold storage. */
+test.describe('เปลี่ยนภาษาแล้วเนื้อหาต้องเปลี่ยนตาม', () => {
+  /* ฿ (U+0E3F) นั่งอยู่ในบล็อกอักษรไทย แต่มันคือสัญลักษณ์สกุลเงิน ไม่ใช่คำไทย
+     จึงต้องเว้นไว้ ไม่งั้นราคาทุกรายการจะนับเป็น "ยังไม่ได้แปล" */
+  const hasThaiWord = (s: string) => /[\u0E01-\u0E3E\u0E40-\u0E5B]/.test(s);
+
+  for (const locale of ['en', 'zh'] as const) {
+    test(`/${locale}: หัวเรื่องทรัพย์ไม่เหลือภาษาไทย`, async ({ page, request }) => {
+      const items = (await (await request.get(`/api/public/listings?locale=${locale}&limit=12`)).json()).items as { code: string; title: string }[];
+      test.skip(!items.length, 'ยังไม่มีทรัพย์ที่เผยแพร่');
+      const bad = items.filter((i) => hasThaiWord(i.title));
+      expect(bad.map((b) => `${b.code}: ${b.title}`), 'หัวเรื่องที่ยังเป็นไทย').toEqual([]);
+
+      await page.goto(`/${locale}/listing`);
+      const cardTitles = await page.locator('[data-card] h3, [data-card] h2').allInnerTexts();
+      expect(cardTitles.filter(hasThaiWord), 'การ์ดบนหน้ารายการ').toEqual([]);
+    });
+
+    test(`/${locale}: ตารางสเปคในหน้าทรัพย์อ่านเป็นภาษานั้นจริง`, async ({ page, request }) => {
+      const code = ((await (await request.get(`/api/public/listings?locale=${locale}&limit=1`)).json()).items as { code: string }[])[0]?.code;
+      test.skip(!code, 'ยังไม่มีทรัพย์ที่เผยแพร่');
+      await page.goto(`/${locale}/property/${code}`);
+      await expect(page.locator('h1')).toBeVisible();
+      expect(hasThaiWord(await page.locator('h1').innerText()), 'หัวเรื่องหน้าทรัพย์ยังเป็นไทย').toBe(false);
+
+      /* ค่าที่โชว์ในตาราง — ยกเว้นแถวที่เป็นข้อความอิสระที่ทีมพิมพ์เอง
+         (ชื่อซอย ชื่อแลนด์มาร์ก) ซึ่งเป็นที่อยู่ ไม่ใช่คำที่แปลได้ */
+      const FREE_TEXT = ['Nearby', '附近', 'Address', '地址'];
+      const rows = await page.locator('[data-spec-row]').all();
+      // ตารางว่างเปล่าจะทำให้เทสต์นี้ผ่านโดยไม่ได้ตรวจอะไรเลย
+      expect(rows.length, 'ไม่มีแถวสเปคให้ตรวจ').toBeGreaterThan(3);
+      const leftover: string[] = [];
+      for (const r of rows) {
+        const [label, value] = (await r.innerText()).split('\n');
+        if (FREE_TEXT.some((f) => (label ?? '').includes(f))) continue;
+        if (value && hasThaiWord(value)) leftover.push(`${label} = ${value}`);
+      }
+      expect(leftover, 'ค่าที่ยังเป็นไทยในตารางสเปค').toEqual([]);
+    });
+  }
 });

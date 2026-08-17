@@ -9,7 +9,7 @@ import { watermarkVersion, withVersionAll } from '@/lib/server/photoUrl';
 import { stripInternal, displayArea, displayLocation } from '@/lib/server/propertyDto';
 import { propertyType } from '@/lib/propertySchema';
 import { loadFieldOverride } from '@/lib/server/fieldOverride';
-import { localDescription, localTitle } from '@/lib/server/propertyI18n';
+import { localDescription, localTitleFor } from '@/lib/server/propertyI18n';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/config';
 
 const PRIVATE_KEYS = ['location_map', 'lessor_name', 'lessor_phone', 'lessor_company', 'lessor_status'];
@@ -39,7 +39,7 @@ export const GET = handler(async (req: Request, ctx: { params: Promise<{ code: s
   const locale = isLocale(rawLocale) ? rawLocale : DEFAULT_LOCALE;
   return ok({
     code: p.publicCode,
-    title: localTitle(p, locale),
+    title: localTitleFor(p, values, locale),
     description: localDescription(p, locale),
     typeKey: p.typeKey,
     typeLabel: propertyType(p.typeKey).label,

@@ -226,7 +226,7 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
               {sectionHead(d.property.specs)}
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {specs.rows.map((r) => (
-                  <div key={r.key} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+                  <div key={r.key} data-spec-row={r.key} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
                     <span style={{ fontSize: '13.5px', color: 'var(--muted)' }}>{r.label}</span>
                     <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', textAlign: 'right' }}>{r.value}</span>
                   </div>

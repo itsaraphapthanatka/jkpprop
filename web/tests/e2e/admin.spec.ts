@@ -2239,11 +2239,31 @@ test.describe('a property reads in the visitor\'s language', () => {
     expect(th).toContain('โกดังทดสอบการแปล 1,000 ตร.ม.');
   });
 
-  test('an untranslated property falls back to Thai instead of rendering blank', async ({ request }) => {
-    const cards = await (await request.get('/api/public/listings?locale=en&limit=60')).json();
+  /* An untranslated record used to show its Thai title on /en, which is what
+     393 imported records did all at once. The headline is now composed from
+     the record's own fields when nobody has written a translation — and a
+     real translation, as the test above shows, still wins over it. */
+  test('an untranslated property gets an English headline built from its own fields', async ({ request }) => {
+    const cards = await (await request.get('/api/public/listings?locale=en&limit=500')).json();
     const mine = (cards.items as { code: string; title: string }[]).find((c) => c.code === code);
     expect(mine, 'the property should be published and listed').toBeTruthy();
-    expect(mine!.title).toBe('โกดังทดสอบการแปล 1,000 ตร.ม.');
+    expect(mine!.title).toBe(`Warehouse for rent — Rayong (${code})`);
+    expect(mine!.title, 'no Thai left in an English headline').not.toMatch(/[ก-฾เ-๛]/);
+  });
+
+  test('a record with nothing to build a headline from keeps its Thai title', async ({ request }) => {
+    // no type-specific address at all → composing would yield little but the code
+    const bare = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { typeKey: 'warehouse', title: 'โกดังไม่มีที่อยู่', status: 'active', values: { deal_type: 'เช่า' } },
+    })).json();
+    try {
+      const cards = await (await request.get('/api/public/listings?locale=en&limit=500')).json();
+      const mine = (cards.items as { code: string; title: string }[]).find((c) => c.code === bare.publicCode);
+      expect(mine!.title).toBe('โกดังไม่มีที่อยู่');
+    } finally {
+      await request.delete(`/api/properties/${bare.id}`, { headers: { cookie } }).catch(() => null);
+    }
   });
 
   test('the "แปลไม่ครบ" card and column count the real thing', async ({ page, request }) => {

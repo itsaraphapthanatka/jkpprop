@@ -14,7 +14,7 @@ import { db } from './db';
 import { getDictionary, type Dictionary } from '@/i18n/dictionaries';
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/config';
 import { stripInternal, displayArea, displayLocation, displayProvince } from './propertyDto';
-import { localTitle } from './propertyI18n';
+import { localTitleFor } from './propertyI18n';
 import { provinceLabel, canonicalProvince, sameProvince } from '@/i18n/places';
 import { watermarkVersion, withVersion } from './photoUrl';
 
@@ -124,7 +124,7 @@ export async function loadPublicListings(q: ListingQuery = {}): Promise<PublicLi
     return [{
       code: p.publicCode,
       // the Thai title is the record's own; en/zh come from the translation tab
-      title: localTitle(p, q.locale ?? DEFAULT_LOCALE),
+      title: localTitleFor(p, values, q.locale ?? DEFAULT_LOCALE),
       /* stays Thai on purpose: this is the enum key. Both the badge
          (enumLabel) and the listing page's rent/sale filter match on it. */
       deal: isRent ? 'ให้เช่า' : 'ขาย',

@@ -175,6 +175,51 @@ const dict: Record<string, Row> = {
   'ไม่ระบุ': { en: 'Not specified', zh: '未指定' },
   '1 เฟส': { en: 'Single phase', zh: '单相电' },
   '3 เฟส': { en: 'Three phase', zh: '三相电' },
+
+  /* ---- everything the 393 imported records actually store ----
+     These were all falling through to Thai on the English and Chinese site:
+     an English visitor read "3 ชั้น" for the number of floors and "ไม่ใช่"
+     for cold storage. The list came from the stored values themselves, not
+     from the schema's option lists, so it covers what is really on the site. */
+  'ใช่': { en: 'Yes', zh: '有' },
+  'ไม่ใช่': { en: 'No', zh: '无' },
+  'ไม่มี': { en: 'None', zh: '无' },
+  'ไม่มีออฟฟิศ': { en: 'No office', zh: '无办公室' },
+  'มากกว่า 3 ชั้น': { en: 'More than 3 floors', zh: '3 层以上' },
+  '1 ชั้น': { en: '1 floor', zh: '1 层' },
+  '2 ชั้น': { en: '2 floors', zh: '2 层' },
+  '3 ชั้น': { en: '3 floors', zh: '3 层' },
+  '4 ชั้น': { en: '4 floors', zh: '4 层' },
+  '1 เดือน': { en: '1 month', zh: '1 个月' },
+  '2 เดือน': { en: '2 months', zh: '2 个月' },
+  '3 เดือน': { en: '3 months', zh: '3 个月' },
+  '4 เดือน': { en: '4 months', zh: '4 个月' },
+  '6 เดือน': { en: '6 months', zh: '6 个月' },
+  '1 ปี': { en: '1 year', zh: '1 年' },
+  '1-3 ปี': { en: '1–3 years', zh: '1–3 年' },
+  '3 ปี': { en: '3 years', zh: '3 年' },
+  '5 ปี': { en: '5 years', zh: '5 年' },
+  'ผู้ขายและผู้ซื้อ รับผิดชอบ 50/50': { en: 'Split 50/50 between buyer and seller', zh: '买卖双方各承担 50%' },
+
+  /* features shown as chips on the property page */
+  'มีพื้นที่สำนักงาน': { en: 'Office space', zh: '含办公区' },
+  'มีที่จอดรถ': { en: 'Parking', zh: '有停车位' },
+  'มีลานจอด / ลานเทรลเลอร์': { en: 'Trailer yard', zh: '拖车停放场' },
+  'รถคอนเทนเนอร์เข้าได้': { en: 'Container truck access', zh: '集装箱车可进出' },
+  'ยกพื้นเทียบตู้ (Dock leveler)': { en: 'Dock leveler', zh: '装卸平台' },
+  'ใกล้ถนนหลัก': { en: 'Near a main road', zh: '靠近主干道' },
+  'พื้นที่โครงการ': { en: 'Within an estate', zh: '园区内' },
+
+  /* what the space is used for */
+  'ผลิต': { en: 'Manufacturing', zh: '生产' },
+  'โปรดักชั่น': { en: 'Production', zh: '制作' },
+  'ครัวกลาง': { en: 'Central kitchen', zh: '中央厨房' },
+  'ศูนย์กระจายสินค้า': { en: 'Distribution centre', zh: '配送中心' },
+  'ห้องเก็บของ': { en: 'Storage', zh: '仓储' },
+  'สตูดิโอ': { en: 'Studio', zh: '摄影棚' },
+  'โชว์รูม': { en: 'Showroom', zh: '展厅' },
+
+  'เขียวอ่อน — อนุรักษ์สิ่งแวดล้อม': { en: 'Light green — conservation', zh: '浅绿区 — 环境保护' },
 };
 
 /** Translate a stored option value. Unknown values return unchanged. */

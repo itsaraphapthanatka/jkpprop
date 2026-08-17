@@ -7,7 +7,7 @@ import { ok, handler, ApiError, rateLimit, clientIp } from '@/lib/server/api';
 import { db } from '@/lib/server/db';
 import { stripInternal, displayArea, displayLocation } from '@/lib/server/propertyDto';
 import { propertyType } from '@/lib/propertySchema';
-import { localDescription, localTitle } from '@/lib/server/propertyI18n';
+import { localDescription, localTitleFor } from '@/lib/server/propertyI18n';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/config';
 
 const PRIVATE_KEYS = ['location_map', 'lessor_name', 'lessor_phone', 'lessor_company', 'lessor_status'];
@@ -37,7 +37,7 @@ export const GET = handler(async (req: Request, ctx: { params: Promise<{ token: 
     const photos = Array.isArray(values.photos) ? (values.photos as string[]) : [];
     return [{
       code: p.publicCode,
-      title: localTitle(p, locale),
+      title: localTitleFor(p, values, locale),
       typeLabel: propertyType(p.typeKey).label,
       description: localDescription(p, locale),
       location: displayLocation(values, locale),

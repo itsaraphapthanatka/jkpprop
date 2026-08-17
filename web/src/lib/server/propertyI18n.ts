@@ -8,6 +8,9 @@
  * rather than showing an empty card.
  */
 import { DEFAULT_LOCALE, LOCALES, type Locale } from '@/i18n/config';
+import { displayTitle } from '@/lib/propertyTitle';
+import { propertyType } from '@/lib/propertySchema';
+import { displayArea } from './propertyDto';
 
 export type Translated = { title: string; description: string };
 export type PropertyI18n = Partial<Record<Exclude<Locale, 'th'>, Translated>>;
@@ -41,6 +44,29 @@ type Rec = { title: string; i18n?: unknown };
 export function localTitle(p: Rec, locale: Locale): string {
   if (locale === DEFAULT_LOCALE) return p.title;
   return parseI18n(p.i18n)[locale as Exclude<Locale, 'th'>]?.title || p.title;
+}
+
+/* The same question, for a record that also carries the fields a headline can
+   be composed from: a translation if there is one, otherwise a title built in
+   the reader's language rather than a Thai one shown to someone who cannot
+   read it. See lib/propertyTitle. */
+export function localTitleFor(
+  p: Rec & { typeKey: string; publicCode: string },
+  values: Record<string, unknown>,
+  locale: Locale,
+): string {
+  if (locale === DEFAULT_LOCALE) return p.title;
+  return displayTitle(
+    p.title,
+    parseI18n(p.i18n)[locale as Exclude<Locale, 'th'>]?.title,
+    {
+      typeLabel: propertyType(p.typeKey).label,
+      values,
+      area: displayArea(values),
+      code: p.publicCode,
+    },
+    locale,
+  );
 }
 
 /** The description in the reader's language; there is no Thai one to fall back to. */

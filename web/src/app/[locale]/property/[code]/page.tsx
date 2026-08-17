@@ -6,7 +6,7 @@ import { SiteFooter } from '@/components/home/SiteFooter';
 import { Floating } from '@/components/home/Floating';
 import { db } from '@/lib/server/db';
 import { stripInternal, displayArea, displayLocation } from '@/lib/server/propertyDto';
-import { localDescription, localTitle } from '@/lib/server/propertyI18n';
+import { localDescription, localTitleFor } from '@/lib/server/propertyI18n';
 import { propertyType } from '@/lib/propertySchema';
 import { enumLabel } from '@/i18n/enums';
 import { isLocale, DEFAULT_LOCALE, type Locale } from '@/i18n/config';
@@ -51,7 +51,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const found = await load(code).catch(() => null);
   if (!found) return { title: `${d.listing.emptyTitle} · JKP Property` };
   const area = displayArea(found.values);
-  const title = localTitle(found.p, locale);
+  const title = localTitleFor(found.p, found.values, locale);
   return {
     title: `${title} · ${found.p.publicCode} · JKP Property`,
     /* the property's own description in this language when the team wrote one;
@@ -92,7 +92,7 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
 
   const property = {
     code: p.publicCode,
-    title: localTitle(p, locale),
+    title: localTitleFor(p, values, locale),
     description: localDescription(p, locale),
     typeLabel: enumLabel(propertyType(p.typeKey).label, locale),
     location: displayLocation(values, locale),

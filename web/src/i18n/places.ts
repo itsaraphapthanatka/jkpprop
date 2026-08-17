@@ -81,6 +81,46 @@ const DISTRICT_EN: Record<string, string> = {
   เมืองปทุมธานี: 'Mueang Pathum Thani', สามโคก: 'Sam Khok', ลาดหลุมแก้ว: 'Lat Lum Kaeo',
   // Saraburi / Prachinburi
   หนองแค: 'Nong Khae', แก่งคอย: 'Kaeng Khoi', ศรีมหาโพธิ: 'Si Maha Phot', กบินทร์บุรี: 'Kabin Buri',
+  /* The 393 imported records reach well past the factory belt this table was
+     first written for — half of Bangkok appears in them. These are the rest of
+     the districts that actually occur in the inventory. */
+  บางกะปิ: 'Bang Kapi', คันนายาว: 'Khan Na Yao', สะพานสูง: 'Saphan Sung', บางเขน: 'Bang Khen',
+  บึงกุ่ม: 'Bueng Kum', วังทองหลาง: 'Wang Thonglang', ห้วยขวาง: 'Huai Khwang', สายไหม: 'Sai Mai',
+  หนองจอก: 'Nong Chok', ลาดพร้าว: 'Lat Phrao', บางซื่อ: 'Bang Sue', คลองเตย: 'Khlong Toei',
+  ปทุมวัน: 'Pathum Wan', ดินแดง: 'Din Daeng', บางพลัด: 'Bang Phlat', ทวีวัฒนา: 'Thawi Watthana',
+  วัฒนา: 'Watthana', ปากเกร็ด: 'Pak Kret',
+};
+
+/* Subdistricts (แขวง in Bangkok, ตำบล elsewhere). Same rule as districts:
+   romanised where known, left in Thai otherwise. The stored value carries its
+   own prefix and the spacing is not consistent — "แขวง คันนายาว" and
+   "แขวงคันนายาว" are the same place — so the lookup strips both. */
+const SUBDISTRICT_EN: Record<string, string> = {
+  // Bangkok
+  คลองกุ่ม: 'Khlong Kum', คลองจั่น: 'Khlong Chan', คลองเจ้าคุณสิงห์: 'Khlong Chaokhun Sing',
+  คลองเตย: 'Khlong Toei', คลองสองต้นนุ่น: 'Khlong Song Ton Nun', คลองสามประเวศ: 'Khlong Sam Prawet',
+  คันนายาว: 'Khan Na Yao', คู้ฝั่งเหนือ: 'Khu Fang Nuea', จระเข้บัว: 'Chorakhe Bua',
+  จันทร์เกษม: 'Chan Kasem', ดอกไม้: 'Dokmai', ดินแดง: 'Din Daeng', ทรายกองดิน: 'Sai Kong Din',
+  ทับช้าง: 'Thap Chang', ทับยาว: 'Thap Yao', ท่าแร้ง: 'Tha Raeng', นวมินทร์: 'Nawamin',
+  นวลจันทร์: 'Nuan Chan', บางกะปิ: 'Bang Kapi', บางจาก: 'Bang Chak', บางชัน: 'Bang Chan',
+  บางซื่อ: 'Bang Sue', บางนาใต้: 'Bang Na Tai', บางนาเหนือ: 'Bang Na Nuea', บางอ้อ: 'Bang O',
+  ประเวศ: 'Prawet', พระโขนง: 'Phra Khanong', พลับพลา: 'Phlapphla', พัฒนาการ: 'Phatthanakan',
+  มีนบุรี: 'Min Buri', รามอินทรา: 'Ram Inthra', ราษฎร์พัฒนา: 'Rat Phatthana',
+  ลาดกระบัง: 'Lat Krabang', ลาดพร้าว: 'Lat Phrao', ลำผักชี: 'Lam Phak Chi',
+  // the register spells this ลำปลาทิว; the imported sheet writes ลำประทิว
+  ลำปลาทิว: 'Lam Pla Thio', ลำประทิว: 'Lam Prathio',
+  วงศ์สว่าง: 'Wong Sawang', วังใหม่: 'Wang Mai', ศาลาธรรมสพน์: 'Sala Thammasop',
+  สวนหลวง: 'Suan Luang', สามวาตะวันออก: 'Sam Wa Tawan Ok', สามเสนนอก: 'Sam Sen Nok',
+  สายไหม: 'Sai Mai', แสนแสบ: 'Saen Saep', หนองบอน: 'Nong Bon', ห้วยขวาง: 'Huai Khwang',
+  หัวหมาก: 'Hua Mak', อนุสาวรีย์: 'Anusawari', ออเงิน: 'O Ngoen',
+  // Samut Prakan · Pathum Thani · Nonthaburi
+  บางแก้ว: 'Bang Kaeo', บางโฉลง: 'Bang Chalong', บางปลา: 'Bang Pla', บางปูใหม่: 'Bang Pu Mai',
+  บางพลีใหญ่: 'Bang Phli Yai', บางเพรียง: 'Bang Phriang', บางเสาธง: 'Bang Sao Thong',
+  บ้านระกาศ: 'Ban Rakat', แพรกษาใหม่: 'Phraeksa Mai', ราชาเทวะ: 'Racha Thewa',
+  เทพารักษ์: 'Theparak', สำโรง: 'Samrong', สำโรงใต้: 'Samrong Tai', สำโรงเหนือ: 'Samrong Nuea',
+  คลองหนึ่ง: 'Khlong Nueng', ลาดสวาย: 'Lat Sawai', บ้านใหม่: 'Ban Mai',
+  // the register spells this ศีรษะจรเข้ใหญ่; the sheet writes ศรีสาจรเข้ใหญ่
+  ศีรษะจรเข้ใหญ่: 'Sisa Chorakhe Yai', ศรีสาจรเข้ใหญ่: 'Sisa Chorakhe Yai',
 };
 
 const clean = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
@@ -122,7 +162,16 @@ export function provinceLabel(name: unknown, locale: Locale): string {
 
 /** The district, romanised where we know it. Chinese uses the same Latin form. */
 export function districtLabel(name: unknown, locale: Locale): string {
-  const th = clean(name);
-  if (!th || locale === DEFAULT_LOCALE) return th;
-  return DISTRICT_EN[th] ?? th;
+  const raw = clean(name);
+  if (!raw || locale === DEFAULT_LOCALE) return raw;
+  // the prefix is only stripped to look the name up; an unknown place is
+  // handed back exactly as stored rather than half-trimmed
+  return DISTRICT_EN[raw.replace(/^(เขต|อำเภอ|อ\.)\s*/, '')] ?? raw;
+}
+
+/** The subdistrict, romanised where we know it. The stored prefix is dropped. */
+export function subdistrictLabel(name: unknown, locale: Locale): string {
+  const raw = clean(name);
+  if (!raw || locale === DEFAULT_LOCALE) return raw;
+  return SUBDISTRICT_EN[raw.replace(/^(แขวง|ตำบล|ต\.)\s*/, '')] ?? raw;
 }
