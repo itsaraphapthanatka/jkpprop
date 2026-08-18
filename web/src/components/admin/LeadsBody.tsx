@@ -8,8 +8,10 @@ import Link from 'next/link';
    lead list + detail card (status/agent dropdowns), filter chips,
    follow-up tasks, and timeline/notes. Behavior mirrors the DCLogic.
    Real leads come from GET /api/leads (PII masked unless the caller has the
-   'pii' privilege — reveal via POST /api/leads/:id/reveal-contact); the
-   porting-era demo rows stay below them so the pipeline pages keep context. */
+   'pii' privilege — reveal via POST /api/leads/:id/reveal-contact). There is
+   nothing else in the list: the porting-era demo rows used to sit underneath
+   the real ones, so a CRM with no leads yet showed six invented companies with
+   working-looking phone numbers next to whatever had actually come in. */
 
 type Lead = {
   name: string; company: string; country: string; initial: string;
@@ -37,14 +39,6 @@ const stMap: Record<string, React.CSSProperties> = {
   won: st('#0D6C3B', '#fff'),
 };
 
-const leadsData: Lead[] = [
-  { name: 'บ. ไทยโลจิสติกส์', company: 'คุณสมหมาย · TH', country: 'ไทย', initial: 'ท', avBg: '#E8F3EC', avFg: '#0D6C3B', time: '5น.', status: 'new', statusK: 'new', source: 'requirement form', phone: '+66 81-234-5678', email: 'somchai@thailog.co.th', agent: 'มอบหมาย: อารยา' },
-  { name: 'Sunrise Foods Ltd.', company: 'Mr. Lee · CN', country: 'จีน', initial: 'S', avBg: '#EEF4F3', avFg: '#034956', time: '22น.', status: 'qualified', statusK: 'qualified', source: 'contact form', phone: '+86 138-0000-1111', email: 'lee@sunrise.cn', agent: 'มอบหมาย: วีรพล' },
-  { name: 'Metro Pack Co.', company: 'คุณวิภา · TH', country: 'ไทย', initial: 'M', avBg: '#FBF3E1', avFg: '#9A741C', time: '1ชม.', status: 'negotiating', statusK: 'negotiating', source: 'inquiry', phone: '+66 89-999-0000', email: 'wipa@metropack.com', agent: 'มอบหมาย: อารยา' },
-  { name: 'Nippon Steel TH', company: 'Mr. Tanaka · JP', country: 'ญี่ปุ่น', initial: 'N', avBg: '#EEF4F3', avFg: '#034956', time: '3ชม.', status: 'shortlisted', statusK: 'shortlisted', source: 'requirement form', phone: '+66 2-100-2000', email: 'tanaka@nsteel.co.th', agent: 'มอบหมาย: วีรพล' },
-  { name: 'บ. เอเชีย โกลด์', company: 'คุณธนา · TH', country: 'ไทย', initial: 'อ', avBg: '#E8F3EC', avFg: '#0D6C3B', time: 'เมื่อวาน', status: 'requirements_confirmed', statusK: 'requirements_confirmed', source: 'contact form', phone: '+66 81-555-4444', email: 'thana@asiagold.co.th', agent: 'มอบหมาย: อารยา' },
-  { name: 'Global Ware Inc.', company: 'Ms. Chen · CN', country: 'จีน', initial: 'G', avBg: '#0D6C3B', avFg: '#fff', time: '2 วัน', status: 'won', statusK: 'won', source: 'referral', phone: '+86 139-8888-7777', email: 'chen@globalware.cn', agent: 'มอบหมาย: วีรพล' },
-];
 
 /* map a public requirement-form submission into a Lead row (defensive against
    malformed / hand-edited localStorage records) */
@@ -134,6 +128,17 @@ export function LeadsBody() {
   const [agentOpen, setAgentOpen] = React.useState(false);
   const [statusVal, setStatusVal] = React.useState<string | null>(null);
   const [agentVal, setAgentVal] = React.useState<string | null>(null);
+  /* รายชื่อที่นี่เคยเป็นค่าคงที่ในโค้ด — อารยา วีรพล สมชาย ซึ่งไม่มีใครมีบัญชีใน
+     ระบบเลย และกดเลือกแล้วก็แค่เปลี่ยน state ในหน้าจอ ไม่ได้ยิงอะไรออกไป
+     รีเฟรชทีก็หายไป ทั้งที่ฝั่งข้อมูล (Lead.assigneeId → User) รองรับมาตลอด */
+  const [team, setTeam] = React.useState<{ id: string; name: string; role: string }[]>([]);
+  React.useEffect(() => {
+    let alive = true;
+    apiGet<{ items: { id: string; name: string; role: string }[] }>('/api/users/assignable')
+      .then((r) => { if (alive) setTeam(r.items ?? []); })
+      .catch(() => { /* ยังมอบหมายไม่ได้ก็ยังดูข้อมูล lead ได้ */ });
+    return () => { alive = false; };
+  }, []);
   const [taskAdding, setTaskAdding] = React.useState(false);
   const [taskText, setTaskText] = React.useState('');
   /* What the panel shows for this lead, straight from the server.
@@ -149,7 +154,12 @@ export function LeadsBody() {
   const [filters, setFilters] = React.useState<Record<string, string>>({ status: 'ทั้งหมด', agent: 'ทั้งหมด', source: 'ทั้งหมด', date: 'ทุกช่วง' });
 
   // add-lead
-  const [rows, setRows] = React.useState<Lead[]>(leadsData);
+  /* หน้านี้เคยเอา lead ตัวอย่างที่ฝังไว้ในโค้ดมาต่อท้าย lead จริงเสมอ — บน
+     production ที่ยังไม่มี lead สักราย สิ่งที่ทีมขายเห็นคือ 'บ. ไทยโลจิสติกส์
+     คุณสมหมาย +66 81-234-5678' ปนอยู่กับของจริง ชื่อและเบอร์ที่ไม่มีอยู่จริง
+     ในระบบ CRM คือสิ่งที่จะมีคนหยิบไปโทรจริง จึงเอาออกทั้งชุด */
+  const [rows, setRows] = React.useState<Lead[]>([]);
+  const [loaded, setLoaded] = React.useState(false);
   const [webCount, setWebCount] = React.useState(0);
 
   // real leads from the API, newest first; if the API is unreachable fall
@@ -159,13 +169,14 @@ export function LeadsBody() {
     apiGet<{ items: ApiLead[] }>('/api/leads')
       .then((r) => {
         if (!alive || !Array.isArray(r.items)) return;
-        setRows([...r.items.map(webToLead), ...leadsData]);
+        setRows(r.items.map(webToLead));
         setWebCount(r.items.length);
       })
       .catch(() => {
         const web = loadLeads();
-        if (alive && web.length) { setRows([...web.map(webToLead), ...leadsData]); setWebCount(web.length); }
-      });
+        if (alive && web.length) { setRows(web.map(webToLead)); setWebCount(web.length); }
+      })
+      .finally(() => { if (alive) setLoaded(true); });
     return () => { alive = false; };
   }, []);
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -175,7 +186,14 @@ export function LeadsBody() {
   const setF = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
   const canCreate = form.name.trim().length > 0;
 
-  const cur = rows[selected];
+  /* an empty pipeline is a real state — everything below reads from `cur`, so
+     it gets a blank stand-in rather than crashing the page */
+  const NO_LEAD: Lead = {
+    name: '', company: '', country: '', initial: '', avBg: 'var(--tint)', avFg: 'var(--muted)',
+    time: '', status: 'new', statusK: 'new', source: '', phone: '', email: '', agent: '',
+  };
+  const cur = rows[selected] ?? NO_LEAD;
+  const hasLead = rows.length > 0;
 
   const curApiId = cur?.apiId;
   const loadDetail = React.useCallback(() => {
@@ -294,7 +312,7 @@ export function LeadsBody() {
   ];
 
   const curStatus = statusVal || statusLabelMap[cur.statusK];
-  const curAgent = agentVal || 'อารยา';
+  const curAgent = agentVal ?? (cur.agent?.replace('มอบหมาย: ', '') || 'ยังไม่มอบหมาย');
 
   const statusOptions = ([['New', 'new'], ['Qualified', 'qualified'], ['Req. confirmed', 'requirements_confirmed'], ['Shortlisted', 'shortlisted'], ['Negotiating', 'negotiating'], ['Won', 'won']] as [string, string][]).map(([label, key]) => ({
     label,
@@ -315,12 +333,33 @@ export function LeadsBody() {
     style: dd(curStatus === label),
   }));
 
-  const agentOptions = ['อารยา', 'วีรพล', 'สมชาย', 'ยังไม่มอบหมาย'].map((label) => ({
-    label,
-    active: curAgent === label,
-    select: () => { setAgentVal(label); setAgentOpen(false); },
-    style: dd(curAgent === label),
-  }));
+  const assign = (assigneeId: string | null, label: string) => {
+    const before = curAgent;
+    setAgentVal(label);
+    setAgentOpen(false);
+    if (!cur.apiId) return; // ตัวอย่างที่ยังไม่ได้บันทึกลงระบบ
+    apiPatch(`/api/leads/${cur.apiId}`, { assigneeId })
+      .then(() => setRows((r) => r.map((x, i) => (i === selected ? { ...x, agent: 'มอบหมาย: ' + label } : x))))
+      .catch((e) => {
+        setAgentVal(before); // คืนป้ายเดิม ไม่ให้หน้าจอโชว์สิ่งที่ยังไม่ได้บันทึก
+        window.alert(e instanceof ApiClientError ? e.message : 'บันทึกผู้รับผิดชอบไม่สำเร็จ');
+      });
+  };
+
+  const agentOptions = [
+    ...team.map((m) => ({
+      label: m.name,
+      active: curAgent === m.name,
+      select: () => assign(m.id, m.name),
+      style: dd(curAgent === m.name),
+    })),
+    {
+      label: 'ยังไม่มอบหมาย',
+      active: curAgent === 'ยังไม่มอบหมาย',
+      select: () => assign(null, 'ยังไม่มอบหมาย'),
+      style: dd(curAgent === 'ยังไม่มอบหมาย'),
+    },
+  ];
 
   const chipDef = (key: string, prefix: string, opts: string[]) => {
     const val = filters[key];
@@ -346,7 +385,7 @@ export function LeadsBody() {
 
   const filterChips = [
     chipDef('status', 'สถานะ', ['ทั้งหมด', 'New', 'Qualified', 'Negotiating', 'Won']),
-    chipDef('agent', 'Agent', ['ทั้งหมด', 'อารยา', 'วีรพล', 'สมชาย']),
+    chipDef('agent', 'Agent', ['ทั้งหมด', ...team.map((m) => m.name)]),
     chipDef('source', 'Source', ['ทั้งหมด', 'requirement form', 'contact form', 'inquiry', 'referral']),
     chipDef('date', 'ช่วงวันที่', ['ทุกช่วง', 'วันนี้', '7 วัน', '30 วัน']),
   ];
@@ -533,12 +572,18 @@ export function LeadsBody() {
         <div style={{ minWidth: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
           <div style={{ padding: '13px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>{42 + (rows.length - leadsData.length)} leads</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>{rows.length} leads</span>
               {webCount > 0 && <span style={{ height: 19, padding: '0 8px', borderRadius: 9999, background: '#E8F3EC', color: '#0D6C3B', fontSize: 10, fontWeight: 800, display: 'inline-flex', alignItems: 'center' }}>+{webCount} จากเว็บ</span>}
             </span>
             <span style={{ fontSize: 12, color: 'var(--muted2)' }}>เรียง: ใหม่ล่าสุด</span>
           </div>
           <div className="a-scroll" style={{ maxHeight: 660, overflowY: 'auto' }}>
+            {loaded && !leads.length && (
+              <div id="lead-empty" style={{ padding: '34px 18px', textAlign: 'center', fontSize: 13, color: 'var(--muted3)', lineHeight: 1.7 }}>
+                ยังไม่มี lead ในระบบ<br />
+                lead จะเข้ามาเองเมื่อมีคนกรอกฟอร์มบนเว็บ หรือกด “เพิ่ม Lead” เพื่อบันทึกเองจากการโทร
+              </div>
+            )}
             {leads.map((l, i) => (
               <div key={i} onClick={l.select} style={l.rowStyle}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
@@ -561,6 +606,15 @@ export function LeadsBody() {
         </div>
 
         {/* DETAIL */}
+        {!hasLead ? (
+          <div id="lead-detail-empty" style={{ minWidth: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '64px 24px', textAlign: 'center' }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>ยังไม่มี lead ให้ดู</div>
+            <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--muted2)', lineHeight: 1.7 }}>
+              ฟอร์ม “แจ้งความต้องการ” และ “ติดต่อทีมงาน” บนเว็บส่งเข้าที่นี่โดยตรง<br />
+              ถ้าลูกค้าโทรมา กด “เพิ่ม Lead” เพื่อบันทึกเองได้
+            </p>
+          </div>
+        ) : (
         <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* header card */}
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 22 }}>
@@ -779,6 +833,7 @@ export function LeadsBody() {
             </div>
           </div>
         </div>
+        )}
       </div>
     </>
   );

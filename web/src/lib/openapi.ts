@@ -752,6 +752,13 @@ export const openapi = {
         responses: { 200: okRes('บันทึกแล้ว'), ...AUTH_ERRORS },
       },
     },
+    '/api/users/assignable': {
+      get: {
+        tags: ['Config'], summary: 'ผู้ใช้ที่รับมอบหมาย lead ได้ (ผู้ใช้ที่ล็อกอินแล้วทุกคน)',
+        description: 'คืนเฉพาะ id/ชื่อ/บทบาท สำหรับเมนูมอบหมาย — /api/users เต็มรูปแบบยังเป็นของ owner เท่านั้น',
+        responses: { 200: okRes('รายชื่อผู้รับผิดชอบ'), ...AUTH_ERRORS },
+      },
+    },
     '/api/properties/translate': {
       post: {
         tags: ['Properties'], summary: 'เติมหัวเรื่อง EN/中文 ให้ทรัพย์ที่ยังไม่มีคำแปล',
