@@ -60,12 +60,9 @@ const menuIcon = (paths: string, color: string) =>
   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="' + color + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + paths + '</svg>';
 
 /* ---- static data ---- */
-const SUMMARY = [
-  { label: 'ทรัพย์ทั้งหมด', value: '246', color: '#28251D' },
-  { label: 'มีประกาศเผยแพร่', value: '198', color: '#0D6C3B' },
-  { label: 'ร่าง / รอข้อมูล', value: '34', color: '#D9A62B' },
-  { label: 'แปลไม่ครบ 3 ภาษา', value: '12', color: '#C0392B' },
-];
+/* ไม่มีตัวเลขตั้งต้นแล้ว การ์ดสี่ใบนี้เคยขึ้น 246 / 198 / 34 / 12 ระหว่างรอ
+   API ตอบ ซึ่งเป็นเลขจากไฟล์ออกแบบ ไม่ใช่ของคลังนี้ — ถ้ายังไม่รู้ก็ควรบอกว่า
+   ยังไม่รู้ ไม่ใช่เดาให้ดูสวย */
 
 
 type FilterKey = 'type' | 'province' | 'status';
@@ -361,10 +358,10 @@ export function PropertiesBody() {
   };
 
   const summaryCards = [
-    { label: 'ทรัพย์ทั้งหมด', value: summary ? String(summary.total) : SUMMARY[0].value, color: '#28251D' },
-    { label: 'มีประกาศเผยแพร่', value: summary ? String(summary.published) : SUMMARY[1].value, color: '#0D6C3B' },
-    { label: 'ร่าง / รอข้อมูล', value: summary ? String(summary.draft) : SUMMARY[2].value, color: '#D9A62B' },
-    { label: 'แปลไม่ครบ 3 ภาษา', value: summary ? String(summary.transIncomplete) : SUMMARY[3].value, color: '#C0392B' },
+    { label: 'ทรัพย์ทั้งหมด', value: summary ? String(summary.total) : '—', color: '#28251D' },
+    { label: 'มีประกาศเผยแพร่', value: summary ? String(summary.published) : '—', color: '#0D6C3B' },
+    { label: 'ร่าง / รอข้อมูล', value: summary ? String(summary.draft) : '—', color: '#D9A62B' },
+    { label: 'แปลไม่ครบ 3 ภาษา', value: summary ? String(summary.transIncomplete) : '—', color: '#C0392B' },
   ];
 
   /* การ์ด "แปลไม่ครบ 3 ภาษา" บอกจำนวนได้อย่างเดียว มาตลอด — คนอ่านรู้ว่ามี 393

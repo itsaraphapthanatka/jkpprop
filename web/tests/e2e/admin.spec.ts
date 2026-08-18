@@ -659,7 +659,9 @@ test.describe('adding CMS content', () => {
   test('the search box filters the list', async ({ page }) => {
     await signIn(page, OWNER);
     await page.goto('/admin/cms');
-    const rows = page.locator('#cms-split > div').first().locator('.a-scroll > div');
+    /* นับเฉพาะแถวเนื้อหา — กล่องบอกสถานะว่าง ("ไม่พบเนื้อหาที่ตรงกับ…") ก็เป็น
+       ลูกของ .a-scroll เหมือนกัน ถ้านับรวมก็จะดูเหมือนกรองแล้วไม่ลดลง */
+    const rows = page.locator('[data-cms-row]');
     await expect.poll(async () => rows.count()).toBeGreaterThan(0);
     const before = await rows.count();
 

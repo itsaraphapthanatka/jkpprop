@@ -33,45 +33,20 @@ const cmsCss = `
 #cms-body-edit:empty::before{content:attr(data-placeholder);color:#9B968D;font-style:italic;}
 `;
 
+/* ตัวเลขข้างชื่อหมวดเคยเป็นค่าคงที่ (14 / 32 / 26 / 3) ที่โผล่จนกว่า API จะตอบ
+   และค้างอยู่ถ้าอ่านไม่ได้ — ของจริงคือ 6 / 2 / 25 / 1 คนละเรื่องกันทั้งชุด */
 const TYPE_DEFS = [
-  { key: 'pages', label: 'Pages', count: '14', icon: '<path d="M4 4h16v16H4z"></path><path d="M4 9h16M9 9v11"></path>' },
-  { key: 'articles', label: 'บทความ', count: '32', icon: '<path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path>' },
-  { key: 'faq', label: 'FAQ', count: '26', icon: '<circle cx="12" cy="12" r="10"></circle><path d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3M12 17h.01"></path>' },
-  { key: 'certs', label: 'ใบรับรอง', count: '3', icon: '<path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 19.3 7.2 17l.9-5.4L4.2 7.7l5.4-.8z"></path>' },
+  { key: 'pages', label: 'Pages', icon: '<path d="M4 4h16v16H4z"></path><path d="M4 9h16M9 9v11"></path>' },
+  { key: 'articles', label: 'บทความ', icon: '<path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path>' },
+  { key: 'faq', label: 'FAQ', icon: '<circle cx="12" cy="12" r="10"></circle><path d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3M12 17h.01"></path>' },
+  { key: 'certs', label: 'ใบรับรอง', icon: '<path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 19.3 7.2 17l.9-5.4L4.2 7.7l5.4-.8z"></path>' },
 ];
 
-const L3: Lang[] = [{ k: 'TH', on: true }, { k: 'EN', on: true }, { k: 'ZH', on: true }];
 const L1: Lang[] = [{ k: 'TH', on: true }, { k: 'EN', on: false }, { k: 'ZH', on: false }];
-const L2: Lang[] = [{ k: 'TH', on: true }, { k: 'EN', on: true }, { k: 'ZH', on: false }];
 
-const DATA_BY_TYPE: Record<string, Article[]> = {
-  pages: [
-    { title: 'หน้าแรก (Home)', status: 'เผยแพร่', statusK: 'pub', cat: 'หน้าหลัก', date: 'วันนี้', langs: L3 },
-    { title: 'เกี่ยวกับเรา', status: 'เผยแพร่', statusK: 'pub', cat: 'หน้าหลัก', date: '3 วัน', langs: L3 },
-    { title: 'ติดต่อเรา', status: 'เผยแพร่', statusK: 'pub', cat: 'หน้าหลัก', date: '3 วัน', langs: L2 },
-    { title: 'บริการของเรา', status: 'ร่าง', statusK: 'draft', cat: 'หน้าหลัก', date: '1 สัปดาห์', langs: L1 },
-    { title: 'นโยบายความเป็นส่วนตัว', status: 'เผยแพร่', statusK: 'pub', cat: 'กฎหมาย', date: '1 เดือน', langs: L3 },
-  ],
-  articles: [
-    { title: 'ทำไมทำเลใกล้ท่าเรือจึงสำคัญต่อธุรกิจนำเข้า-ส่งออก', status: 'ร่าง', statusK: 'draft', cat: 'EEC & โลจิสติกส์', date: 'วันนี้', langs: L1 },
-    { title: 'ขั้นตอนขอใบ ร.ง.4 ฉบับเข้าใจง่าย', status: 'เผยแพร่', statusK: 'pub', cat: 'ใบอนุญาต', date: '2 วัน', langs: L3 },
-    { title: 'เช่า vs ซื้อโรงงาน แบบไหนคุ้มกว่า', status: 'เผยแพร่', statusK: 'pub', cat: 'การลงทุน', date: '5 วัน', langs: L2 },
-    { title: 'สิทธิประโยชน์ BOI ในเขต EEC 2026', status: 'เผยแพร่', statusK: 'pub', cat: 'EEC & โลจิสติกส์', date: '1 สัปดาห์', langs: L3 },
-    { title: 'เช็คลิสต์ก่อนเซ็นสัญญาเช่าโกดัง', status: 'ร่าง', statusK: 'draft', cat: 'สัญญา', date: '1 สัปดาห์', langs: L1 },
-    { title: 'ระบบไฟฟ้า 3 เฟสสำคัญอย่างไรกับโรงงาน', status: 'เผยแพร่', statusK: 'pub', cat: 'เทคนิค', date: '2 สัปดาห์', langs: L2 },
-  ],
-  faq: [
-    { title: 'เช่าโรงงานขั้นต่ำกี่ปี?', status: 'เผยแพร่', statusK: 'pub', cat: 'การเช่า', date: '2 วัน', langs: L3 },
-    { title: 'ขอใบ ร.ง.4 ใช้เวลานานไหม?', status: 'เผยแพร่', statusK: 'pub', cat: 'ใบอนุญาต', date: '4 วัน', langs: L3 },
-    { title: 'ค่ามัดจำ/เงินประกันเท่าไหร่?', status: 'เผยแพร่', statusK: 'pub', cat: 'การเงิน', date: '1 สัปดาห์', langs: L2 },
-    { title: 'ต่างชาติเช่า/ซื้อได้ไหม?', status: 'ร่าง', statusK: 'draft', cat: 'กฎหมาย', date: '1 สัปดาห์', langs: L1 },
-  ],
-  certs: [
-    { title: 'ใบอนุญาตนายหน้า (DBD)', status: 'เผยแพร่', statusK: 'pub', cat: 'ใบรับรอง', date: '1 เดือน', langs: L3 },
-    { title: 'สมาชิกสมาคมนายหน้าอสังหาฯ', status: 'เผยแพร่', statusK: 'pub', cat: 'ใบรับรอง', date: '1 เดือน', langs: L3 },
-    { title: 'ISO 9001 ระบบคุณภาพ', status: 'ร่าง', statusK: 'draft', cat: 'ใบรับรอง', date: '2 เดือน', langs: L1 },
-  ],
-};
+/* ไม่มีบทความสาธิตแล้ว รายการนี้เคยโชว์หน้าและบทความที่แต่งขึ้น (หน้าแรก,
+   เกี่ยวกับเรา, นโยบายความเป็นส่วนตัว พร้อมสถานะและวันที่) จนกว่า API จะตอบ —
+   และถ้าอ่านไม่ได้ก็ค้างอยู่แบบนั้น คนแก้เนื้อหาจึงอาจกดแก้สิ่งที่ไม่มีอยู่ */
 
 const flagTh = '<svg width="18" height="18" viewBox="0 0 24 24"><rect width="24" height="24" fill="#F4F5F8"></rect><rect width="24" height="4.8" fill="#241B54"></rect><rect y="4.8" width="24" height="2.8" fill="#F4F5F8"></rect><rect y="7.6" width="24" height="8.8" fill="#A51931"></rect><rect y="16.4" width="24" height="2.8" fill="#F4F5F8"></rect><rect y="19.2" width="24" height="4.8" fill="#241B54"></rect></svg>';
 const flagEn = '<svg width="18" height="18" viewBox="0 0 24 24"><rect width="24" height="24" fill="#012169"></rect><path d="M0 0L24 24M24 0L0 24" stroke="#fff" stroke-width="3"></path><path d="M12 0V24M0 12H24" stroke="#fff" stroke-width="5"></path><path d="M12 0V24M0 12H24" stroke="#C8102E" stroke-width="2.4"></path></svg>';
@@ -345,8 +320,12 @@ export function CMSBody() {
     }
   };
 
-  const artData = apiItems ? apiItems.map(apiToArticle) : (DATA_BY_TYPE[type] || DATA_BY_TYPE.articles);
-  const cur = artData[selected] || artData[0];
+  const artData = apiItems ? apiItems.map(apiToArticle) : [];
+  /* หมวดที่ยังไม่มีเนื้อหาเป็นสถานะจริง — ทุกอย่างข้างล่างอ่านจาก cur จึงต้องมี
+     ตัวยืนแทนที่ว่างเปล่า ไม่ใช่ปล่อยให้หน้าพัง */
+  const BLANK_ART: Article = { title: '', status: 'ร่าง', statusK: 'draft', cat: '', date: '', langs: L1 };
+  const cur = artData[selected] ?? artData[0] ?? BLANK_ART;
+  const hasArticles = artData.length > 0;
 
   /* search filters the rendered rows but selection still indexes the full
      list, so filtering never silently edits a different record */
@@ -372,6 +351,9 @@ export function CMSBody() {
   const visible = artData
     .map((a, i) => ({ a, i }))
     .filter(({ a }) => !q || a.title.toLowerCase().includes(q) || a.cat.toLowerCase().includes(q));
+  /* หน้านี้มีข้อความสำหรับ "ค้นแล้วไม่เจอ" อยู่แล้ว ตรงนี้จึงรับเฉพาะสองกรณีที่
+     เคยไม่มีใครพูดถึง: หมวดที่ยังไม่มีเนื้อหา และตอนที่ยังอ่านข้อมูลไม่เสร็จ */
+  const emptyNote = hasArticles ? '' : (apiItems ? 'ยังไม่มีเนื้อหาในหมวดนี้ — กด “สร้างใหม่” เพื่อเริ่ม' : 'กำลังโหลด…');
 
   const langDefs = [
     { k: 'th', name: 'ไทย', flag: flagTh, done: true },
@@ -440,7 +422,7 @@ export function CMSBody() {
             >
               <span dangerouslySetInnerHTML={{ __html: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="' + (on ? '#fff' : '#5F5A52') + '" stroke-width="1.9" style="margin-right:2px;">' + t.icon + '</svg>' }} />
               {t.label}
-              <span style={{ height: 19, minWidth: 19, padding: '0 6px', borderRadius: 9999, background: on ? 'rgba(255,255,255,.18)' : 'var(--bg)', color: on ? '#fff' : 'var(--muted2)', fontSize: '10.5px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{counts[t.key] ?? t.count}</span>
+              <span style={{ height: 19, minWidth: 19, padding: '0 6px', borderRadius: 9999, background: on ? 'rgba(255,255,255,.18)' : 'var(--bg)', color: on ? '#fff' : 'var(--muted2)', fontSize: '10.5px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{counts[t.key] ?? '—'}</span>
             </div>
           );
         })}
@@ -470,9 +452,13 @@ export function CMSBody() {
             </div>
           </div>
           <div className="a-scroll" style={{ maxHeight: 640, overflowY: 'auto' }}>
+            {emptyNote && (
+              <div id="cms-empty" style={{ padding: '28px 16px', textAlign: 'center', fontSize: 13, color: 'var(--muted3)' }}>{emptyNote}</div>
+            )}
             {visible.map(({ a, i }) => (
               <div
                 key={i}
+                data-cms-row
                 onClick={() => setSelected(i)}
                 style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background .15s', background: i === selected ? 'var(--tint)' : 'transparent', borderLeft: '3px solid ' + (i === selected ? '#0D6C3B' : 'transparent') }}
               >
