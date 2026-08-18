@@ -110,3 +110,43 @@ test.describe('หน้าแผนเข้าชมเมื่อยัง�
     await expect(page.getByText('ยังไม่มีแผนเข้าชม')).toBeVisible();
   });
 });
+
+/* หน้าดีลเป็นแบบเดียวกับหน้าแผนเข้าชม: ป้ายสถานะกับแถบขั้นตอนวาดไว้ตายตัว
+   ไม่เคยอ่านสถานะจริงของดีล และปุ่ม Close deal ก็รายงานว่าปิดแล้วทั้งที่ระบบ
+   ยังไม่มีดีลสักใบ */
+test.describe('หน้าดีลเมื่อยังไม่มีดีล', () => {
+  test('ไม่ประกาศสถานะของดีลที่ไม่มีอยู่ และไม่มีปุ่มปิดให้กด', async ({ page }) => {
+    await signIn(page);
+    await page.route('**/api/deals*', (r) =>
+      r.request().method() === 'GET'
+        ? r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [] }) })
+        : r.continue());
+
+    await page.goto('/admin/deals');
+    await page.waitForTimeout(900);
+    const body = await page.locator('body').innerText();
+    expect(body.includes('contract_review'), 'สถานะที่วาดไว้ตายตัว').toBe(false);
+    expect(body).toContain('ยังไม่มีดีล');
+    await expect(page.locator('#deal-close-btn'), 'ปุ่มปิดดีลขึ้นทั้งที่ไม่มีดีล').toHaveCount(0);
+  });
+
+  test('แถบขั้นตอนสะท้อนดีลจริง ไม่ใช่ติ๊กสามขั้นแรกให้เสมอ', async ({ page, request }) => {
+    await signIn(page);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    const made = await (await request.post('/api/deals', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { title: `ดีลทดสอบขั้นตอน ${Date.now().toString(36)}`, amount: 100000 },
+    })).json();
+
+    try {
+      await page.goto(`/admin/deals/${made.id}`);
+      await page.waitForTimeout(1200);
+      /* ดีลที่เพิ่งเปิด ยังไม่มีข้อเสนอและเอกสาร — ขั้น Offer/Counter ต้องยังไม่เสร็จ
+         เดิมทั้งสองขั้นติ๊กเขียวตั้งแต่วินาทีแรก */
+      const done = await page.locator('[data-stage-done]').count();
+      expect(done, 'ขั้นที่ติ๊กว่าเสร็จบนดีลที่เพิ่งเปิด').toBe(0);
+    } finally {
+      await request.delete(`/api/deals/${made.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+});

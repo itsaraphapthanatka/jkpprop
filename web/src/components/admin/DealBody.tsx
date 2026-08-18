@@ -126,8 +126,8 @@ export function DealProvider({ children, dealId: fixedId }: { children: React.Re
     closeDialog: () => setCloseDialogOpen(false),
     confirmClose: (outcome, note, leaseEndDate) => {
       setCloseDialogOpen(false);
+      if (!dealId) return; // ไม่มีดีล = ไม่มีอะไรให้ปิด (เดิมขึ้นว่าปิดแล้ว)
       setClosed(true); // optimistic; the server locks the financials
-      if (!dealId) return;
       /* a won rental with an end date opens the lease, so the expiry bell has
          something true to count down to without anyone typing it again */
       apiPatch(`/api/deals/${dealId}`, { status: outcome === 'ไม่สำเร็จ' ? 'lost' : 'won', note, leaseEndDate })
@@ -161,22 +161,29 @@ export function DealProvider({ children, dealId: fixedId }: { children: React.Re
 }
 
 /* ---- Topbar title (h1 content): DEAL-089 + dynamic status badge ---- */
+/* ป้ายสถานะเคยเป็น closed ? 'closed · won' : 'contract_review' — ไม่เคยอ่าน
+   deal.status เลยสักครั้ง ดีลที่แพ้ (lost) ก็ยังขึ้นว่ากำลังตรวจสัญญา และตอนที่
+   ระบบไม่มีดีลสักใบ หัวเรื่องก็ยังประกาศสถานะของดีลที่ไม่มีอยู่ */
+const DEAL_STATUS: Record<string, string> = { negotiating: 'กำลังเจรจา', won: 'ปิดได้ (won)', lost: 'ไม่สำเร็จ (lost)' };
+
 export function DealTitle() {
-  const { closed, dealId } = useDeal();
-  const statusLabel = closed ? 'closed · won' : 'contract_review';
-  const statusBadge: React.CSSProperties = closed
+  const { closed, dealId, deal } = useDeal();
+  const statusLabel = deal ? (DEAL_STATUS[deal.status] ?? deal.status) : 'ยังไม่มีดีล';
+  const statusBadge: React.CSSProperties = closed || deal?.status === 'won'
     ? { fontSize: 12, fontWeight: 700, color: '#fff', background: '#0D6C3B', padding: '2px 8px', borderRadius: 6 }
     : { fontSize: 12, fontWeight: 700, color: '#034956', background: '#EEF4F3', padding: '2px 8px', borderRadius: 6 };
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-      {dealId ? `DEAL-${dealId.slice(-6).toUpperCase()}` : 'DEAL'} <code style={statusBadge}>{statusLabel}</code>
+      {dealId ? `DEAL-${dealId.slice(-6).toUpperCase()}` : 'ดีล'} <code style={statusBadge}>{statusLabel}</code>
     </span>
   );
 }
 
 /* ---- Topbar right cluster: Close deal (open) / Unlock (closed) ---- */
 export function DealActions() {
-  const { closed, openClose, openUnlock } = useDeal();
+  const { closed, openClose, openUnlock, dealId } = useDeal();
+  // เดิมกดได้เสมอ และ confirmClose ก็ตั้ง closed = true ก่อนดูว่ามีดีลไหม
+  if (!dealId) return <div id="deal-actions" />;
   return (
     <div id="deal-actions" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       {!closed && (
@@ -245,9 +252,21 @@ export default function DealBody() {
   const [closeNote, setCloseNote] = useState('');
   const [leaseEnd, setLeaseEnd] = useState('');
 
-  const stages: Stage[] = closed
-    ? [doneStage('Open', '1'), doneStage('Offer', '2'), doneStage('Counter', '3'), doneStage('Documentation', '4'), doneStage('Contract', '5'), doneStage('Closed won', '6')]
-    : [doneStage('Open', '1'), doneStage('Offer', '2'), doneStage('Counter', '3'), currStage('Documentation', '4'), pendStage('Contract', '5'), pendStage('Closed', '6', true)];
+  /* แถบขั้นตอนเคยตายตัว: Open / Offer / Counter ติ๊กเสร็จเสมอ และ Documentation
+     เป็นขั้นปัจจุบันเสมอ ไม่ว่าดีลใบนั้นจะอยู่ตรงไหน — ดีลที่เพิ่งเปิดเมื่อกี้ก็
+     ดูเหมือนเดินมาครึ่งทางแล้ว และตอนที่ยังไม่มีดีลสักใบก็ยังวาดให้ดู
+     ตอนนี้ขั้นที่เสร็จนับจากของจริง: มีข้อเสนอกี่ครั้ง แนบเอกสารหรือยัง ปิดหรือยัง */
+  const stageIndex = !deal ? -1
+    : deal.status === 'won' || deal.status === 'lost' ? 5
+      : docs.length ? 3
+        : apiOffers.length > 1 ? 2
+          : apiOffers.length ? 1
+            : 0;
+  const STAGE_LABELS: [string, string][] = [['Open', '1'], ['Offer', '2'], ['Counter', '3'], ['Documentation', '4'], ['Contract', '5'], [closed || deal?.status === 'won' ? 'Closed won' : 'Closed', '6']];
+  const stages: Stage[] = STAGE_LABELS.map(([label, num], i) =>
+    i < stageIndex ? doneStage(label, num)
+      : i === stageIndex ? (i === 5 ? doneStage(label, num) : currStage(label, num))
+        : pendStage(label, num, i === 5));
 
   /* The four rounds that used to sit here were invented, and real offers were
      appended after them — one timeline mixing a fiction with the record. */
@@ -307,7 +326,7 @@ export default function DealBody() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', overflowX: 'auto' }}>
           {stages.map((s, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+            <div key={i} data-stage={s.label} {...(s.done ? { 'data-stage-done': '' } : {})} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                 <div style={s.circle}>
                   {s.done && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg>}
