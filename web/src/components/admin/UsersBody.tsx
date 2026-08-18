@@ -22,15 +22,11 @@ type UserRow = {
   lastLogin: string; active: boolean;
 };
 
-const SEED: UserRow[] = [
-  { name: 'กิตติพงษ์ พรหมทอง', email: 'kittipong@jkp.co', initial: 'ก', avBg: '#273c33', avFg: '#2DFB91', role: 'owner', scope: 'all', privs: initialPrivs('owner'), lastLogin: 'ออนไลน์', active: true },
-  { name: 'วีรพล ตั้งมั่น', email: 'weerapol@jkp.co', initial: 'ว', avBg: '#E8F3EC', avFg: '#0D6C3B', role: 'manager', scope: 'all', privs: initialPrivs('manager'), lastLogin: '1 ชม.ที่แล้ว', active: true },
-  { name: 'อารยา สุขสวัสดิ์', email: 'araya@jkp.co', initial: 'อ', avBg: '#EEF4F3', avFg: '#034956', role: 'agent', scope: 'own', privs: initialPrivs('agent'), lastLogin: '5 นาทีที่แล้ว', active: true },
-  { name: 'ธนกฤต (Co-agent)', email: 'thanakrit@partner.co', initial: 'ธ', avBg: '#FBF3E1', avFg: '#9A741C', role: 'co_agent', scope: 'own', privs: [], expires: '2026-12-31', lastLogin: 'เมื่อวาน', active: true },
-  { name: 'สมชาย ทรัพย์เจริญ', email: 'somchai@jkp.co', initial: 'ส', avBg: '#EAF3F6', avFg: '#1E5AA8', role: 'ops', scope: 'all', privs: initialPrivs('ops'), lastLogin: 'วันนี้ 08:20', active: true },
-  { name: 'ณัฐพร (คอนเทนต์)', email: 'natthaporn@jkp.co', initial: 'ณ', avBg: '#F0ECF9', avFg: '#7A3FB0', role: 'marketing', scope: 'all', privs: initialPrivs('marketing'), lastLogin: '1 สัปดาห์ก่อน', active: false },
-  { name: 'Lin Wei (แปลจีน)', email: 'linwei@jkp.co', initial: 'L', avBg: '#F0EEE9', avFg: '#5F5A52', role: 'translator', scope: 'all', privs: [], lastLogin: '2 วันก่อน', active: true },
-];
+/* No seeded people here on purpose. This page listed seven invented staff —
+   kittipong@jkp.co, araya@jkp.co, a co-agent expiring in 2026 — and only
+   replaced them once GET /api/users answered, which it does for an owner and
+   nobody else. Every other role, and any hiccup, showed a staff directory of
+   people who do not exist, with roles and privileges beside their names. */
 
 /* ---- matrix cell rendering ---- */
 const CELL: Record<Cell, { node: React.ReactNode; title: string }> = {
@@ -64,7 +60,9 @@ const AV_COLORS: [string, string][] = [['#273c33', '#2DFB91'], ['#E8F3EC', '#0D6
 
 export function UsersBody() {
   const [view, setView] = React.useState<'users' | 'roles'>('users');
-  const [users, setUsers] = React.useState<UserRow[]>(SEED);
+  const [users, setUsers] = React.useState<UserRow[]>([]);
+  const [loaded, setLoaded] = React.useState(false);
+  const [loadErr, setLoadErr] = React.useState('');
   const [editing, setEditing] = React.useState<string | null>(null); // email
   const [draft, setDraft] = React.useState<{ role: RoleKey; scope: Scope; privs: PrivKey[]; expires: string }>({ role: 'agent', scope: 'own', privs: [], expires: '' });
   const [inviteOpen, setInviteOpen] = React.useState(false);
@@ -78,7 +76,7 @@ export function UsersBody() {
   const reload = React.useCallback(async () => {
     try {
       const r = await apiGet<{ items: ApiUser[] }>('/api/users');
-      if (!Array.isArray(r.items) || !r.items.length) return;
+      if (!Array.isArray(r.items)) return;
       setIdByEmail(Object.fromEntries(r.items.map((u) => [u.email, u.id])));
       setUsers(r.items.map((u, i) => {
         const [avBg, avFg] = AV_COLORS[i % AV_COLORS.length];
@@ -90,7 +88,11 @@ export function UsersBody() {
           lastLogin: '—', active: u.active,
         };
       }));
-    } catch { /* not owner / offline → keep demo rows (§2.2) */ }
+    } catch (e) {
+      /* เดิมตกไปแสดงรายชื่อพนักงานสมมุติ — หน้าที่บอกว่าใครมีสิทธิ์ทำอะไรได้
+         ต้องบอกว่าอ่านไม่ได้ ดีกว่าบอกชื่อคนที่ไม่มีตัวตน */
+      setLoadErr(e instanceof ApiClientError ? e.message : 'อ่านรายชื่อผู้ใช้ไม่ได้');
+    } finally { setLoaded(true); }
   }, []);
   React.useEffect(() => { void reload(); }, [reload]);
 
@@ -226,6 +228,13 @@ export function UsersBody() {
                   </tr>
                 </thead>
                 <tbody>
+                  {loaded && !users.length && (
+                    <tr><td colSpan={7} style={{ padding: '30px 16px', textAlign: 'center', fontSize: 13, color: 'var(--muted3)', lineHeight: 1.7 }}>
+                      {loadErr
+                        ? <>{loadErr} — หน้านี้เปิดได้เฉพาะเจ้าของระบบ (owner)</>
+                        : <>ยังไม่มีผู้ใช้ในระบบ — กด “เชิญผู้ใช้” เพื่อเพิ่มคนแรก</>}
+                    </td></tr>
+                  )}
                   {users.map((u) => {
                     const r = roleOf(u.role);
                     return (

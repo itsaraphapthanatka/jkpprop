@@ -93,3 +93,32 @@ test.describe('มอบหมาย lead', () => {
     }
   });
 });
+
+/* The page that manages who can be assigned had the same problem as the menu:
+   seven invented staff — kittipong@jkp.co, araya@jkp.co, a co-agent expiring
+   in 2026 — shown to anyone whose GET /api/users did not answer, which is
+   every role except owner. A directory of people who do not exist, with roles
+   and privileges printed next to their names. */
+test.describe('หน้าผู้ใช้ที่คุมรายชื่อผู้รับมอบหมาย', () => {
+  test('แสดงเฉพาะผู้ใช้จริง และตรงกับรายชื่อในเมนูมอบหมาย', async ({ page, request }) => {
+    await signIn(page);
+    const cookie = await cookieOf(page);
+    const real = (await (await request.get('/api/users', { headers: { cookie } })).json()).items as { name: string; email: string; role: string }[];
+    const assignable = (await (await request.get('/api/users/assignable', { headers: { cookie } })).json()).items as { name: string }[];
+
+    await page.goto('/admin/users');
+    await expect(page.getByText(real[0].name).first()).toBeVisible();
+
+    for (const ghost of ['kittipong@jkp.co', 'araya@jkp.co', 'thanakrit@partner.co', 'linwei@jkp.co']) {
+      if (real.some((u) => u.email === ghost)) continue;
+      await expect(page.getByText(ghost), `${ghost} ไม่มีตัวตนในระบบ`).toHaveCount(0);
+    }
+
+    /* เมนูมอบหมายต้องเป็นชุดย่อยของผู้ใช้จริง — บทบาทที่ไม่ควรถือ lead
+       (translator / co_agent) ต้องไม่หลุดเข้าไป */
+    const emails = new Set(real.map((u) => u.name));
+    for (const a of assignable) expect(emails.has(a.name), `${a.name} ไม่อยู่ในทะเบียนผู้ใช้`).toBe(true);
+    const shouldNot = real.filter((u) => ['translator', 'co_agent'].includes(u.role)).map((u) => u.name);
+    for (const n of shouldNot) expect(assignable.some((a) => a.name === n), `${n} ไม่ควรรับมอบหมาย lead`).toBe(false);
+  });
+});
