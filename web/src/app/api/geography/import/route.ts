@@ -15,13 +15,13 @@ import { requireUser, requireRole } from '@/lib/server/auth';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
 import { inventoryCounts, subdistrictParents, bareName } from '@/lib/server/geoCounts';
-import { provinceLabel, canonicalProvince } from '@/i18n/places';
+import { canonicalProvince, builtinLabels } from '@/i18n/places';
 
 export const runtime = 'nodejs';
 
 /* A province's 3-letter code becomes part of every property code it issues
    (JKPBKK1255), so it is derived once and never guessed twice. */
-const codeFor = (th: string) => (provinceLabel(th, 'en') || th).replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
+const codeFor = (th: string) => (builtinLabels('province', th).en || th).replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
 
 export const POST = handler(async (req: Request) => {
   const user = await requireUser();
@@ -50,7 +50,7 @@ export const POST = handler(async (req: Request) => {
     const row = dry
       ? { id: `dry-${name}`, orgId, kind: 'province', name, code: null, meta: null, parentId: null }
       : await db.geoItem.create({
-        data: { orgId, kind: 'province', name, code: codeFor(name) || null, meta: { en: provinceLabel(name, 'en') } },
+        data: { orgId, kind: 'province', name, code: codeFor(name) || null, meta: builtinLabels('province', name) },
       });
     existing.push(row);
   }
@@ -74,7 +74,7 @@ export const POST = handler(async (req: Request) => {
     added.dist.push(name);
     const row = dry
       ? { id: `dry-${name}`, orgId, kind: 'district', name, code: null, meta: null, parentId: prov.id }
-      : await db.geoItem.create({ data: { orgId, kind: 'district', name, parentId: prov.id } });
+      : await db.geoItem.create({ data: { orgId, kind: 'district', name, parentId: prov.id, meta: builtinLabels('district', name) } });
     existing.push(row);
   }
 
@@ -86,8 +86,24 @@ export const POST = handler(async (req: Request) => {
     added.sub.push(name);
     const row = dry
       ? { id: `dry-${name}`, orgId, kind: 'subdistrict', name, code: null, meta: null, parentId: dist.id }
-      : await db.geoItem.create({ data: { orgId, kind: 'subdistrict', name, parentId: dist.id } });
+      : await db.geoItem.create({ data: { orgId, kind: 'subdistrict', name, parentId: dist.id, meta: builtinLabels('subdistrict', name) } });
     existing.push(row);
+  }
+
+  /* Rows that already existed before the tree carried three languages have no
+     English or Chinese at all. Topping up an empty field is not an overwrite,
+     and it is the difference between the claim on the page and the truth. */
+  let filled = 0;
+  for (const row of existing) {
+    if (row.id.startsWith('dry-')) continue;
+    if (!['province', 'district', 'subdistrict'].includes(row.kind)) continue;
+    const meta = (row.meta ?? {}) as { en?: string; zh?: string };
+    if (meta.en?.trim() && meta.zh?.trim()) continue;
+    const built = builtinLabels(row.kind as 'province' | 'district' | 'subdistrict', row.name);
+    const next = { ...meta, en: meta.en?.trim() || built.en, zh: meta.zh?.trim() || built.zh };
+    if (next.en === (meta.en ?? '') && next.zh === (meta.zh ?? '')) continue;
+    filled++;
+    if (!dry) await db.geoItem.update({ where: { id: row.id }, data: { meta: next } });
   }
 
   if (!dry && (added.prov.length || added.dist.length || added.sub.length)) {
@@ -97,5 +113,5 @@ export const POST = handler(async (req: Request) => {
     });
   }
 
-  return ok({ added, skipped, dry });
+  return ok({ added, skipped, filled, dry });
 });

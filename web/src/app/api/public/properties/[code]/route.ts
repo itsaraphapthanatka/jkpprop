@@ -6,6 +6,7 @@
 import { ok, handler, ApiError } from '@/lib/server/api';
 import { db } from '@/lib/server/db';
 import { watermarkVersion, withVersionAll } from '@/lib/server/photoUrl';
+import { loadGeoLabels } from '@/lib/server/geoLabels';
 import { stripInternal, displayArea, displayLocation } from '@/lib/server/propertyDto';
 import { propertyType } from '@/lib/propertySchema';
 import { loadFieldOverride } from '@/lib/server/fieldOverride';
@@ -37,13 +38,15 @@ export const GET = handler(async (req: Request, ctx: { params: Promise<{ code: s
      answers in its own, which is Thai */
   const rawLocale = new URL(req.url).searchParams.get('locale') ?? '';
   const locale = isLocale(rawLocale) ? rawLocale : DEFAULT_LOCALE;
+  // ชื่อพื้นที่ EN/ZH ที่ทีมตั้งไว้เอง ชนะตารางในโค้ด
+  const geo = await loadGeoLabels(p.orgId);
   return ok({
     code: p.publicCode,
-    title: localTitleFor(p, values, locale),
+    title: localTitleFor(p, values, locale, geo),
     description: localDescription(p, locale),
     typeKey: p.typeKey,
     typeLabel: propertyType(p.typeKey).label,
-    location: displayLocation(values, locale),
+    location: displayLocation(values, locale, geo),
     area: displayArea(values),
     dealType: String(values.deal_type ?? ''),
     priceRent: typeof values.price_rent === 'number' ? values.price_rent : null,

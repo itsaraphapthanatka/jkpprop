@@ -12,7 +12,7 @@
  * renders a short page, which is the honest outcome.
  */
 import { enumLabel } from '@/i18n/enums';
-import { provinceLabel, districtLabel, subdistrictLabel } from '@/i18n/places';
+import { provinceLabel, districtLabel, subdistrictLabel, type GeoOverrides } from '@/i18n/places';
 import type { Locale } from '@/i18n/config';
 import type { FieldDef } from '@/lib/propertySchema';
 
@@ -90,17 +90,17 @@ const TH_UNIT_WORD: Record<string, Record<Locale, string>> = {
 /* Place names are not enum options, so enumLabel never had a row for them and
    the table printed the stored Thai to an English reader — "กรุงเทพ" under
    Province, "ลาดกระบัง" under District. They have their own tables. */
-const PLACE_LABEL: Record<string, (v: unknown, l: Locale) => string> = {
+const PLACE_LABEL: Record<string, (v: unknown, l: Locale, o?: GeoOverrides) => string> = {
   province: provinceLabel,
   district: districtLabel, amphoe: districtLabel,
   subdistrict: subdistrictLabel, tambon: subdistrictLabel,
 };
 
 /** Render one stored value for display, or null when there is nothing to show. */
-function format(key: string, v: unknown, locale: Locale): string | null {
+function format(key: string, v: unknown, locale: Locale, over?: GeoOverrides): string | null {
   if (v === null || v === undefined || v === '') return null;
   const place = PLACE_LABEL[key];
-  if (place && typeof v === 'string') return place(v, locale) || null;
+  if (place && typeof v === 'string') return place(v, locale, over) || null;
   if (Array.isArray(v)) {
     const parts = v.map((x) => enumLabel(String(x), locale)).filter(Boolean);
     return parts.length ? parts.join(', ') : null;
@@ -143,14 +143,14 @@ const TABLE_ORDER = [
 /* the four tiles above the table — first four of these that have a value */
 const QUICK_ORDER = ['usable_area', 'clear_height', 'floor_loading', 'power_system', 'land_area', 'doors'];
 
-function rowsFor(keys: string[], values: Vals, locale: Locale, off: Set<string>): SpecRow[] {
+function rowsFor(keys: string[], values: Vals, locale: Locale, off: Set<string>, over?: GeoOverrides): SpecRow[] {
   const seen = new Set<string>();
   const out: SpecRow[] = [];
   for (const key of keys) {
     if (off.has(key)) continue; // switched off in the Field Builder
     const label = LABELS[key]?.[locale];
     if (!label || seen.has(label)) continue; // district/amphoe are the same row
-    const value = format(key, values[key], locale);
+    const value = format(key, values[key], locale, over);
     if (value === null) continue;
     seen.add(label);
     out.push({ key, label, value });
@@ -176,7 +176,7 @@ function customRows(extra: FieldDef[], values: Vals, locale: Locale, off: Set<st
 /** What the Field Builder says about this property's type, if anything. */
 export type SpecSchema = { disabled?: string[]; extra?: FieldDef[] };
 
-export function buildSpecs(values: Vals, locale: Locale, schema: SpecSchema = {}) {
+export function buildSpecs(values: Vals, locale: Locale, schema: SpecSchema = {}, over?: GeoOverrides) {
   /* Turning a field off used to hide it from the admin form only: the public
      page kept printing whatever was already stored, so a field switched off
      on purpose stayed on the website. */
@@ -192,11 +192,11 @@ export function buildSpecs(values: Vals, locale: Locale, schema: SpecSchema = {}
       : [];
 
   return {
-    quick: rowsFor(QUICK_ORDER, values, locale, off).slice(0, 4),
+    quick: rowsFor(QUICK_ORDER, values, locale, off, over).slice(0, 4),
     /* custom fields come after the built-in ones, in the order the Field
        Builder lists them — the table's own order is a reading order for
        tenants (place, size, power, price) and stays as it is */
-    rows: [...rowsFor(TABLE_ORDER, values, locale, off), ...customRows(schema.extra ?? [], values, locale, off)],
+    rows: [...rowsFor(TABLE_ORDER, values, locale, off, over), ...customRows(schema.extra ?? [], values, locale, off)],
     features,
     nearby,
   };

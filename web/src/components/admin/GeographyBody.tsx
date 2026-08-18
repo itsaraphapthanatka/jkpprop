@@ -13,10 +13,10 @@ import { apiGet, apiPost, apiPatch, apiDelete, ApiClientError } from '@/lib/apiC
 /* A node the page can act on: an id to send back, and how many properties
    actually sit in it. The page used to render names only, so nothing on it
    could be renamed, removed, or checked against the inventory. */
-type GeoNode = { id: string; name: string; count: number };
-type ProvData = { id: string; th: string; en: string; code: string; count: number; districts: GeoNode[] };
-type ZoneData = { id: string; name: string; type: string; province: string; count: number; active: boolean };
-type Missing = { prov: GeoNode[]; dist: GeoNode[]; sub: GeoNode[] };
+type GeoNode = { id: string; name: string; en: string; zh: string; count: number };
+type ProvData = { id: string; th: string; en: string; zh: string; code: string; count: number; districts: GeoNode[] };
+type ZoneData = { id: string; name: string; en: string; zh: string; type: string; province: string; count: number; active: boolean };
+type Missing = { prov: { name: string; count: number }[]; dist: { name: string; count: number }[]; sub: { name: string; count: number }[] };
 type Lvl = 'prov' | 'dist' | 'sub';
 
 /* No demo tree here on purpose. This page shipped with six invented provinces,
@@ -63,6 +63,14 @@ const gSelect: React.CSSProperties = { ...gInput, cursor: 'pointer' };
 const rowBtn: React.CSSProperties = { width: 26, height: 26, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, padding: 0 };
 const pill = (n: number): React.CSSProperties => ({ height: 20, minWidth: 24, padding: '0 7px', borderRadius: 9999, fontSize: 11, fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: n ? 'var(--tint)' : 'transparent', color: n ? '#0D6C3B' : 'var(--muted3)', border: '1px solid ' + (n ? 'transparent' : 'var(--border)') });
 const EMPTY: React.CSSProperties = { padding: '22px 16px', fontSize: 12.5, color: 'var(--muted3)', lineHeight: 1.7 };
+/* บรรทัดใต้ชื่อไทย บอกว่ามี EN/ZH แล้วหรือยัง — หน้านี้เคยบอกว่ามีสามภาษา
+   ต่อระดับ โดยไม่มีอะไรให้ดูเลยว่าระดับไหนแปลแล้วบ้าง */
+const langLine = (n: { en?: string; zh?: string }, fallback = '') => {
+  const parts = [n.en?.trim() || '', n.zh?.trim() || ''].filter(Boolean);
+  if (parts.length === 2) return parts.join(' · ');
+  if (parts.length === 1) return <>{parts[0]} · <span style={{ color: '#C0392B' }}>{n.en?.trim() ? 'ยังไม่มี 中文' : 'ยังไม่มี EN'}</span></>;
+  return <span style={{ color: '#C0392B' }}>{fallback ? 'ยังไม่มี EN / 中文' : 'ยังไม่มี EN / 中文'}</span>;
+};
 const PencilIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" /></svg>;
 const TrashIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" /></svg>;
 
@@ -118,18 +126,27 @@ export function GeographyBody() {
     } finally { setBusy(''); }
   };
 
-  const rename = async (node: { id: string; name: string }, what: string) => {
-    const next = window.prompt(`แก้ชื่อ${what}`, node.name);
-    if (next === null || !next.trim() || next.trim() === node.name) return;
-    setBusy(node.id);
+  /* หน้านี้เขียนไว้เองว่า "แต่ละระดับมี 3 ภาษา (TH/EN/ZH)" แต่มีช่องอังกฤษ
+     ช่องเดียว เฉพาะตอนเพิ่มจังหวัด และไม่มีอะไรอ่านค่านั้นเลย กล่องนี้คือที่ที่
+     คำโฆษณานั้นกลายเป็นของจริง — แก้แล้วหน้า /en กับ /zh เปลี่ยนตาม */
+  type EditTarget = { id: string; th: string; en: string; zh: string; code?: string; what: string };
+  const [edit, setEdit] = React.useState<EditTarget | null>(null);
+
+  const saveEdit = async () => {
+    if (!edit || saving) return;
+    setSaving(true);
     setNotice('');
     try {
-      await apiPatch(`/api/geography/${node.id}`, { th: next.trim() });
+      await apiPatch(`/api/geography/${edit.id}`, {
+        th: edit.th.trim(), en: edit.en.trim(), zh: edit.zh.trim(),
+        ...(edit.code !== undefined ? { code: edit.code.trim() } : {}),
+      });
       await reload();
-      setNotice(`เปลี่ยนชื่อเป็น "${next.trim()}" แล้ว — ที่อยู่ของทรัพย์ที่บันทึกไว้ยังเป็นชื่อเดิม`);
+      setEdit(null);
+      setNotice(`บันทึก "${edit.th.trim()}" แล้ว — ชื่อ EN/ZH นี้จะขึ้นบนหน้าเว็บภาษานั้นทันที`);
     } catch (e) {
-      setNotice(e instanceof ApiClientError ? e.message : 'เปลี่ยนชื่อไม่สำเร็จ');
-    } finally { setBusy(''); }
+      setNotice(e instanceof ApiClientError ? e.message : 'บันทึกไม่สำเร็จ');
+    } finally { setSaving(false); }
   };
 
   const remove = async (node: { id: string; name: string; count?: number }, what: string) => {
@@ -157,7 +174,7 @@ export function GeographyBody() {
   };
 
   // add-area / add-zone modal
-  const emptyForm = { th: '', en: '', code: '', zname: '', ztype: 'นิคมฯ', zprov: '', zcount: '' };
+  const emptyForm = { th: '', en: '', zh: '', code: '', zname: '', ztype: 'นิคมฯ', zprov: '', zcount: '' };
   const [addOpen, setAddOpen] = React.useState(false);
   const [level, setLevel] = React.useState<Lvl>('prov');
   const [form, setForm] = React.useState(emptyForm);
@@ -260,7 +277,7 @@ export function GeographyBody() {
           )}
           <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.9"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
-            ลำดับชั้น 3 ระดับ: จังหวัด → อำเภอ → ตำบล · แต่ละระดับมี 3 ภาษา (TH/EN/ZH) · ใช้ cascade ในทุกฟอร์ม
+            ลำดับชั้น 3 ระดับ: จังหวัด → เขต/อำเภอ → แขวง/ตำบล · แต่ละระดับตั้งชื่อได้ 3 ภาษา (TH/EN/中文) และชื่อที่ตั้งไว้ขึ้นบนหน้าเว็บภาษานั้นจริง · รายการนี้เป็นตัวช่วยเติมในฟอร์มทรัพย์
           </p>
           <div id="geo-cols" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, alignItems: 'start' }}>
             {/* Provinces */}
@@ -273,10 +290,10 @@ export function GeographyBody() {
                     <div key={p.id} data-geo-prov={p.th} onClick={() => { setProv(i); setDist(0); }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background .15s', background: active ? 'var(--tint)' : 'transparent', borderLeft: '3px solid ' + (active ? '#0D6C3B' : 'transparent') }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{p.th}</div>
-                        <div style={{ fontSize: 11, color: 'var(--muted3)' }}>{p.en}{p.code ? <> · <code style={{ color: '#0D6C3B' }}>{p.code}</code></> : null}</div>
+                        <div style={{ fontSize: 11, color: 'var(--muted3)' }}>{langLine(p, p.th)}{p.code ? <> · <code style={{ color: '#0D6C3B' }}>{p.code}</code></> : null}</div>
                       </div>
                       <span title={`ทรัพย์ในจังหวัดนี้ ${p.count} รายการ`} style={pill(p.count)}>{p.count}</span>
-                      <button type="button" title="แก้ชื่อ" data-geo-edit={p.th} onClick={(e) => { e.stopPropagation(); void rename({ id: p.id, name: p.th }, 'จังหวัด'); }} style={rowBtn}><PencilIcon /></button>
+                      <button type="button" title="แก้ชื่อ" data-geo-edit={p.th} onClick={(e) => { e.stopPropagation(); setEdit({ id: p.id, th: p.th, en: p.en, zh: p.zh, code: p.code, what: 'จังหวัด' }); }} style={rowBtn}><PencilIcon /></button>
                       <button type="button" title="ลบ" data-geo-del={p.th} onClick={(e) => { e.stopPropagation(); void remove({ id: p.id, name: p.th, count: p.count }, 'จังหวัด'); }} style={{ ...rowBtn, color: '#C0392B' }}><TrashIcon /></button>
                     </div>
                   );
@@ -297,9 +314,12 @@ export function GeographyBody() {
                   const active = i === dist;
                   return (
                     <div key={d.id} data-geo-dist={d.name} onClick={() => setDist(i)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background .15s', background: active ? 'var(--tint)' : 'transparent', borderLeft: '3px solid ' + (active ? '#0D6C3B' : 'transparent') }}>
-                      <div style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{d.name}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{d.name}</div>
+                        <div style={{ fontSize: 11, color: 'var(--muted3)' }}>{langLine(d)}</div>
+                      </div>
                       <span title={`ทรัพย์ในเขต/อำเภอนี้ ${d.count} รายการ`} style={pill(d.count)}>{d.count}</span>
-                      <button type="button" title="แก้ชื่อ" onClick={(e) => { e.stopPropagation(); void rename(d, 'เขต/อำเภอ'); }} style={rowBtn}><PencilIcon /></button>
+                      <button type="button" title="แก้ชื่อ" onClick={(e) => { e.stopPropagation(); setEdit({ id: d.id, th: d.name, en: d.en, zh: d.zh, what: 'เขต/อำเภอ' }); }} style={rowBtn}><PencilIcon /></button>
                       <button type="button" title="ลบ" onClick={(e) => { e.stopPropagation(); void remove(d, 'เขต/อำเภอ'); }} style={{ ...rowBtn, color: '#C0392B' }}><TrashIcon /></button>
                     </div>
                   );
@@ -315,9 +335,12 @@ export function GeographyBody() {
               <div className="a-scroll" style={{ maxHeight: 560, overflowY: 'auto' }}>
                 {subList.map((sd) => (
                   <div key={sd.id} data-geo-sub={sd.name} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
-                    <div style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{sd.name}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{sd.name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted3)' }}>{langLine(sd)}</div>
+                    </div>
                     <span title={`ทรัพย์ในแขวง/ตำบลนี้ ${sd.count} รายการ`} style={pill(sd.count)}>{sd.count}</span>
-                    <button type="button" title="แก้ชื่อ" onClick={() => void rename(sd, 'แขวง/ตำบล')} style={rowBtn}><PencilIcon /></button>
+                    <button type="button" title="แก้ชื่อ" onClick={() => setEdit({ id: sd.id, th: sd.name, en: sd.en, zh: sd.zh, what: 'แขวง/ตำบล' })} style={rowBtn}><PencilIcon /></button>
                     <button type="button" title="ลบ" onClick={() => void remove(sd, 'แขวง/ตำบล')} style={{ ...rowBtn, color: '#C0392B' }}><TrashIcon /></button>
                   </div>
                 ))}
@@ -385,6 +408,48 @@ export function GeographyBody() {
         </div>
       )}
 
+      {/* EDIT MODAL — ชื่อสามภาษาต่อหนึ่งพื้นที่ */}
+      {edit && (
+        <div id="geo-edit-overlay" onClick={() => setEdit(null)} style={{ position: 'fixed', inset: 0, zIndex: 810, background: 'rgba(2,14,8,.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 460, background: 'var(--surface)', borderRadius: 20, boxShadow: '0 40px 80px rgba(0,0,0,.4)' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>แก้ไข{edit.what}</div>
+              <div style={{ fontSize: 12, color: 'var(--muted2)', marginTop: 2 }}>ชื่อ EN / 中文 ที่ใส่ตรงนี้ จะขึ้นบนหน้าเว็บภาษานั้นแทนคำแปลอัตโนมัติ</div>
+            </div>
+            <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={gLabel}>ชื่อไทย *</label>
+                <input data-geo-edit-th value={edit.th} onChange={(e) => setEdit({ ...edit, th: e.target.value })} style={gInput} autoFocus />
+              </div>
+              <div>
+                <label style={gLabel}>English</label>
+                <input data-geo-edit-en value={edit.en} onChange={(e) => setEdit({ ...edit, en: e.target.value })} placeholder="e.g. Bang Phli" style={gInput} />
+              </div>
+              <div>
+                <label style={gLabel}>中文</label>
+                <input data-geo-edit-zh value={edit.zh} onChange={(e) => setEdit({ ...edit, zh: e.target.value })} placeholder="เช่น 北榄 · เว้นว่างได้ ระบบจะใช้ชื่อโรมันแทน" style={gInput} />
+              </div>
+              {edit.code !== undefined && (
+                <div>
+                  <label style={gLabel}>รหัสจังหวัด (ใช้ในรหัสทรัพย์)</label>
+                  <input value={edit.code} onChange={(e) => setEdit({ ...edit, code: e.target.value })} maxLength={4} style={{ ...gInput, textTransform: 'uppercase' }} />
+                </div>
+              )}
+              <div style={{ fontSize: 11.5, color: 'var(--muted3)', lineHeight: 1.6 }}>
+                เปลี่ยนชื่อไทยไม่ได้ไปแก้ที่อยู่ของทรัพย์ที่บันทึกไว้แล้ว — ทรัพย์เก่ายังเก็บชื่อเดิมของมันเอง
+              </div>
+            </div>
+            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+              <button type="button" onClick={() => setEdit(null)} style={{ height: 44, padding: '0 22px', borderRadius: 9999, border: '1.5px solid var(--border)', background: 'var(--surface)', fontFamily: 'inherit', fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', cursor: 'pointer' }}>ยกเลิก</button>
+              <button type="button" id="geo-edit-save" onClick={() => void saveEdit()} disabled={saving || !edit.th.trim()}
+                style={{ height: 44, padding: '0 26px', borderRadius: 9999, border: 0, background: edit.th.trim() && !saving ? '#0D6C3B' : 'var(--border)', color: edit.th.trim() && !saving ? '#fff' : 'var(--muted3)', fontFamily: 'inherit', fontSize: '13.5px', fontWeight: 700, cursor: edit.th.trim() && !saving ? 'pointer' : 'default' }}>
+                {saving ? 'กำลังบันทึก…' : 'บันทึก'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ADD AREA / ZONE MODAL — centered popup */}
       {addOpen && (
         <div onClick={() => setAddOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 800, background: 'rgba(2,14,8,.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
@@ -419,12 +484,14 @@ export function GeographyBody() {
                     <label style={gLabel}>{level === 'prov' ? 'ชื่อจังหวัด (ไทย)' : level === 'dist' ? 'ชื่ออำเภอ (ไทย)' : 'ชื่อตำบล (ไทย)'} *</label>
                     <input value={form.th} onChange={(e) => setF('th', e.target.value)} placeholder={level === 'prov' ? 'เช่น สมุทรสาคร' : level === 'dist' ? 'เช่น กระทุ่มแบน' : 'เช่น ท่าทราย'} style={gInput} autoFocus />
                   </div>
-                  {level === 'prov' && (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12 }}>
-                      <div><label style={gLabel}>ชื่ออังกฤษ (EN)</label><input value={form.en} onChange={(e) => setF('en', e.target.value)} placeholder="e.g. Samut Sakhon" style={gInput} /></div>
+                  {/* ทุกระดับใส่ได้ครบสามภาษา ตามที่หัวหน้าเพจเขียนไว้ตั้งแต่แรก */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12 }}>
+                    <div><label style={gLabel}>English</label><input value={form.en} onChange={(e) => setF('en', e.target.value)} placeholder="e.g. Samut Sakhon" style={gInput} /></div>
+                    <div><label style={gLabel}>中文</label><input value={form.zh} onChange={(e) => setF('zh', e.target.value)} placeholder="เว้นว่างได้" style={gInput} /></div>
+                    {level === 'prov' && (
                       <div><label style={gLabel}>รหัส (Code)</label><input value={form.code} onChange={(e) => setF('code', e.target.value)} placeholder="เช่น SKN" maxLength={4} style={{ ...gInput, textTransform: 'uppercase' }} /></div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </>
               ) : (
                 <>

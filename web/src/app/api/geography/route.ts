@@ -23,25 +23,29 @@ export const GET = handler(async () => {
     inventoryCounts(user.orgId),
   ]);
 
-  const provinces = items.filter((i) => i.kind === 'province').map((p) => {
-    const meta = (p.meta ?? {}) as { en?: string };
-    return {
-      id: p.id,
-      th: p.name,
-      en: meta.en ?? '',
-      code: p.code ?? '',
-      count: countFor(counts.prov, p.name),
-      districts: items
-        .filter((d) => d.kind === 'district' && d.parentId === p.id)
-        .map((d) => ({ id: d.id, name: d.name, count: countFor(counts.dist, d.name) })),
-    };
-  });
+  /* Every level carries all three languages — the page has always said so in
+     its own subtitle while storing English on provinces alone. */
+  const lang = (x: { meta: unknown }) => {
+    const m = (x.meta ?? {}) as { en?: string; zh?: string };
+    return { en: m.en ?? '', zh: m.zh ?? '' };
+  };
+
+  const provinces = items.filter((i) => i.kind === 'province').map((p) => ({
+    id: p.id,
+    th: p.name,
+    ...lang(p),
+    code: p.code ?? '',
+    count: countFor(counts.prov, p.name),
+    districts: items
+      .filter((d) => d.kind === 'district' && d.parentId === p.id)
+      .map((d) => ({ id: d.id, name: d.name, ...lang(d), count: countFor(counts.dist, d.name) })),
+  }));
 
   const subMap: Record<string, { id: string; name: string; count: number }[]> = {};
   for (const d of items.filter((i) => i.kind === 'district')) {
     const subs = items
       .filter((s) => s.kind === 'subdistrict' && s.parentId === d.id)
-      .map((s) => ({ id: s.id, name: s.name, count: countFor(counts.sub, s.name) }));
+      .map((s) => ({ id: s.id, name: s.name, ...lang(s), count: countFor(counts.sub, s.name) }));
     if (subs.length) subMap[d.name] = subs;
   }
 
@@ -51,6 +55,7 @@ export const GET = handler(async () => {
     return {
       id: z.id,
       name: z.name,
+      ...lang(z),
       type: meta.type ?? 'นิคมอุตสาหกรรม',
       province: prov?.name ?? '',
       /* was a number typed into the form and shown as if it meant something.
@@ -81,7 +86,7 @@ export const POST = handler(async (req: Request) => {
   requireRole(user, 'owner', 'ops');
 
   const body = (await req.json().catch(() => null)) as
-    | { level?: string; th?: string; en?: string; code?: string; parent?: string; type?: string }
+    | { level?: string; th?: string; en?: string; zh?: string; code?: string; parent?: string; type?: string }
     | null;
   const name = String(body?.th || '').trim();
   if (!body || !name) throw new ApiError('VALIDATION', 'กรุณากรอกชื่อ', 400, { th: 'กรุณากรอกชื่อ' });
@@ -103,20 +108,20 @@ export const POST = handler(async (req: Request) => {
   if (body.level === 'prov') {
     await mustBeNew('province', null);
     created = await db.geoItem.create({
-      data: { orgId, kind: 'province', name, code: (body.code || '').toUpperCase().slice(0, 3) || null, meta: { en: body.en || '' } },
+      data: { orgId, kind: 'province', name, code: (body.code || '').toUpperCase().slice(0, 3) || null, meta: { en: body.en || '', zh: body.zh || '' } },
     });
   } else if (body.level === 'dist') {
     const p = await findParent('province', String(body.parent || ''));
     await mustBeNew('district', p.id);
-    created = await db.geoItem.create({ data: { orgId, kind: 'district', name, parentId: p.id } });
+    created = await db.geoItem.create({ data: { orgId, kind: 'district', name, parentId: p.id, meta: { en: body.en || '', zh: body.zh || '' } } });
   } else if (body.level === 'sub') {
     const p = await findParent('district', String(body.parent || ''));
     await mustBeNew('subdistrict', p.id);
-    created = await db.geoItem.create({ data: { orgId, kind: 'subdistrict', name, parentId: p.id } });
+    created = await db.geoItem.create({ data: { orgId, kind: 'subdistrict', name, parentId: p.id, meta: { en: body.en || '', zh: body.zh || '' } } });
   } else if (body.level === 'zone') {
     const p = await findParent('province', String(body.parent || ''));
     await mustBeNew('estate', p.id);
-    created = await db.geoItem.create({ data: { orgId, kind: 'estate', name, parentId: p.id, meta: { type: body.type || 'นิคมอุตสาหกรรม', active: true } } });
+    created = await db.geoItem.create({ data: { orgId, kind: 'estate', name, parentId: p.id, meta: { type: body.type || 'นิคมอุตสาหกรรม', active: true, en: body.en || '', zh: body.zh || '' } } });
   } else {
     throw new ApiError('VALIDATION', 'ระดับพื้นที่ไม่ถูกต้อง', 400);
   }

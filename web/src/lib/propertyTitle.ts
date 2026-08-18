@@ -20,7 +20,7 @@
    writes one, still wins — this is the floor, not the ceiling.
    ============================================================ */
 import { enumLabel } from '@/i18n/enums';
-import { provinceLabel, districtLabel, subdistrictLabel } from '@/i18n/places';
+import { provinceLabel, districtLabel, subdistrictLabel, type GeoOverrides } from '@/i18n/places';
 import { getDictionary } from '@/i18n/dictionaries';
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/config';
 
@@ -34,7 +34,7 @@ export type TitleParts = {
 const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 
 /** "Factory for rent, 5,040 sqm — Lam Prathio, Lat Krabang, Bangkok (JKPBKK1255)" */
-export function composeTitle({ typeLabel, values, area, code }: TitleParts, locale: Locale): string {
+export function composeTitle({ typeLabel, values, area, code }: TitleParts, locale: Locale, over?: GeoOverrides): string {
   const d = getDictionary(locale);
   const loc = (values.location ?? {}) as Record<string, unknown>;
 
@@ -45,9 +45,9 @@ export function composeTitle({ typeLabel, values, area, code }: TitleParts, loca
     : '';
 
   const where = [
-    subdistrictLabel(values.subdistrict ?? loc.tambon, locale),
-    districtLabel(values.district ?? loc.amphoe, locale),
-    provinceLabel(values.province ?? loc.province, locale),
+    subdistrictLabel(values.subdistrict ?? loc.tambon, locale, over),
+    districtLabel(values.district ?? loc.amphoe, locale, over),
+    provinceLabel(values.province ?? loc.province, locale, over),
   ].map(str).filter(Boolean).join(', ');
 
   /* Chinese sets type and deal without a connector; English wants the comma.
@@ -76,8 +76,9 @@ export function displayTitle(
   translated: string | undefined,
   parts: TitleParts,
   locale: Locale,
+  over?: GeoOverrides,
 ): string {
   if (locale === DEFAULT_LOCALE) return thaiTitle;
   if (translated) return translated;
-  return canCompose(parts) ? composeTitle(parts, locale) : thaiTitle;
+  return canCompose(parts) ? composeTitle(parts, locale, over) : thaiTitle;
 }

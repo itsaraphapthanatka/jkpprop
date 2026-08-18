@@ -215,3 +215,90 @@ test.describe('ต้นไม้พื้นที่ ถูกใช้จร�
     await expect(provInput).toHaveValue('จังหวัดที่ยังไม่เคยมี');
   });
 });
+
+/* หน้านี้เขียนไว้เองว่า "แต่ละระดับมี 3 ภาษา (TH/EN/ZH)" ความจริงคือมีช่อง
+   อังกฤษช่องเดียว เฉพาะตอนเพิ่มจังหวัด และไม่มีอะไรอ่านค่านั้นเลย — หน้าเว็บ
+   ภาษาอังกฤษแปลชื่อพื้นที่จากตารางในโค้ดล้วน ๆ */
+test.describe('ชื่อพื้นที่สามภาษา', () => {
+  test('ทุกระดับเก็บ EN และ 中文 ได้ ไม่ใช่แค่จังหวัด', async ({ page, request }) => {
+    await signIn(page);
+    const cookie = await cookieOf(page);
+    const g = await (await request.get('/api/geography', { headers: { cookie } })).json();
+    const prov = (g.provinces as { id: string; en: string; zh: string; districts: { id: string; en: string; zh: string }[] }[])
+      .find((p) => p.districts.length);
+    test.skip(!prov, 'ต้นไม้ยังไม่มีเขต/อำเภอ');
+
+    // ฟิลด์มีอยู่จริงในทุกระดับ (ไม่ใช่ undefined)
+    expect(typeof prov!.en, 'จังหวัดต้องมีช่อง en').toBe('string');
+    expect(typeof prov!.zh, 'จังหวัดต้องมีช่อง zh').toBe('string');
+    expect(typeof prov!.districts[0].en, 'เขต/อำเภอต้องมีช่อง en').toBe('string');
+    expect(typeof prov!.districts[0].zh, 'เขต/อำเภอต้องมีช่อง zh').toBe('string');
+    const sub = (Object.values(g.subMap) as { en: string; zh: string }[][]).flat()[0];
+    if (sub) {
+      expect(typeof sub.en, 'แขวง/ตำบลต้องมีช่อง en').toBe('string');
+      expect(typeof sub.zh, 'แขวง/ตำบลต้องมีช่อง zh').toBe('string');
+    }
+  });
+
+  test('ชื่อที่ตั้งเองในหลังบ้าน ขึ้นบนหน้าเว็บภาษานั้นจริง', async ({ page, request }) => {
+    await signIn(page);
+    const cookie = await cookieOf(page);
+    const g = await (await request.get('/api/geography', { headers: { cookie } })).json();
+    /* ต้องเป็นเขตที่มีทรัพย์อยู่จริง ไม่งั้นต่อให้ตั้งชื่อไว้ก็ไม่มีหน้าไหนแสดง */
+    const prov = (g.provinces as { th: string; districts: { id: string; name: string; en: string; zh: string; count: number }[] }[])
+      .find((p) => p.districts.some((d) => d.count > 0));
+    const dist = prov?.districts.find((d) => d.count > 0);
+    test.skip(!dist, 'ยังไม่มีเขต/อำเภอที่มีทรัพย์');
+
+    const before = { en: dist!.en, zh: dist!.zh };
+    const mark = Date.now().toString(36).slice(-5);
+    const myEn = `Testville ${mark}`;
+    const myZh = `测试区${mark}`;
+    try {
+      await page.goto('/admin/geography');
+      // แก้ผ่านหน้าจอจริง ไม่ใช่ยิง API อย่างเดียว
+      await page.locator(`[data-geo-prov="${prov!.th}"]`).click();
+      const row = page.locator(`[data-geo-dist="${dist!.name}"]`);
+      await expect(row).toBeVisible();
+      await row.locator('button[title="แก้ชื่อ"]').click();
+      await page.locator('[data-geo-edit-en]').fill(myEn);
+      await page.locator('[data-geo-edit-zh]').fill(myZh);
+      await page.locator('#geo-edit-save').click();
+      await expect(page.locator('#geo-notice')).toContainText('บันทึก', { timeout: 15000 });
+
+      // หน้าเว็บสาธารณะต้องใช้ชื่อนี้ ทั้งใน API และใน HTML ที่คนอ่านจริง
+      const listing = await (await request.get(`/api/public/listings?locale=en&province=${encodeURIComponent(prov!.th)}&limit=500`)).json();
+      const hit = (listing.items as { loc: string }[]).find((i) => i.loc.includes(myEn));
+      expect(hit, `ไม่พบ "${myEn}" ในที่อยู่บนการ์ดภาษาอังกฤษ`).toBeTruthy();
+
+      const zhList = await (await request.get(`/api/public/listings?locale=zh&province=${encodeURIComponent(prov!.th)}&limit=500`)).json();
+      expect((zhList.items as { loc: string }[]).some((i) => i.loc.includes(myZh)), `ไม่พบ "${myZh}" ในหน้าเว็บภาษาจีน`).toBe(true);
+
+      // และภาษาไทยต้องไม่โดนแตะ
+      const thList = await (await request.get(`/api/public/listings?locale=th&province=${encodeURIComponent(prov!.th)}&limit=500`)).json();
+      expect((thList.items as { loc: string }[]).some((i) => i.loc.includes(myEn))).toBe(false);
+      expect((thList.items as { loc: string }[]).some((i) => i.loc.includes(dist!.name))).toBe(true);
+    } finally {
+      await request.patch(`/api/geography/${dist!.id}`, { headers: { cookie }, data: { en: before.en, zh: before.zh } }).catch(() => null);
+    }
+  });
+
+  test('ดึงจากทรัพย์ เติมชื่ออังกฤษให้พื้นที่ที่ยังว่าง', async ({ request, page }) => {
+    await signIn(page);
+    const cookie = await cookieOf(page);
+    // ล้างคำแปลของเขตหนึ่งก่อน แล้วดูว่าการดึงข้อมูลเติมกลับให้ไหม
+    const g = await (await request.get('/api/geography', { headers: { cookie } })).json();
+    const dist = (g.provinces as { districts: { id: string; name: string; en: string }[] }[])
+      .flatMap((p) => p.districts).find((d) => d.en);
+    test.skip(!dist, 'ยังไม่มีเขต/อำเภอที่มีชื่ออังกฤษ');
+
+    await request.patch(`/api/geography/${dist!.id}`, { headers: { cookie }, data: { en: '', zh: '' } });
+    const res = await (await request.post('/api/geography/import', { headers: { cookie }, data: {} })).json();
+    expect(res.filled, 'ต้องรายงานว่าเติมคำแปลให้กี่รายการ').toBeGreaterThan(0);
+
+    const after = await (await request.get('/api/geography', { headers: { cookie } })).json();
+    const back = (after.provinces as { districts: { id: string; en: string }[] }[])
+      .flatMap((p) => p.districts).find((d) => d.id === dist!.id);
+    expect(back!.en, 'ชื่ออังกฤษต้องถูกเติมกลับ').toBe(dist!.en);
+  });
+});

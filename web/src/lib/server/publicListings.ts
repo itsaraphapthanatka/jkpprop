@@ -17,6 +17,7 @@ import { stripInternal, displayArea, displayLocation, displayProvince } from './
 import { localTitleFor } from './propertyI18n';
 import { provinceLabel, canonicalProvince, sameProvince } from '@/i18n/places';
 import { watermarkVersion, withVersion } from './photoUrl';
+import { loadGeoLabels } from './geoLabels';
 
 const PRIVATE_KEYS = ['location_map', 'lessor_name', 'lessor_phone', 'lessor_company', 'lessor_status'];
 
@@ -87,8 +88,12 @@ export async function loadPublicListings(q: ListingQuery = {}): Promise<PublicLi
      the unstamped copy. ?v=<settings version> makes it a different URL. One
      lookup per org, not per row. */
   const wmv = new Map<string, number>();
+  /* ชื่อ EN/ZH ของพื้นที่ที่ทีมตั้งไว้ใน /admin/geography — โหลดครั้งเดียว
+     ต่อ org เหมือนกัน ไม่ใช่ต่อรายการ */
+  const geo = new Map<string, Awaited<ReturnType<typeof loadGeoLabels>>>();
   for (const orgId of new Set(rows.map((r) => r.orgId))) {
     wmv.set(orgId, await watermarkVersion(orgId));
+    geo.set(orgId, await loadGeoLabels(orgId));
   }
 
   return rows.flatMap((p) => {
@@ -124,11 +129,12 @@ export async function loadPublicListings(q: ListingQuery = {}): Promise<PublicLi
     return [{
       code: p.publicCode,
       // the Thai title is the record's own; en/zh come from the translation tab
-      title: localTitleFor(p, values, q.locale ?? DEFAULT_LOCALE),
+      title: localTitleFor(p, values, q.locale ?? DEFAULT_LOCALE, geo.get(p.orgId)),
       /* stays Thai on purpose: this is the enum key. Both the badge
          (enumLabel) and the listing page's rent/sale filter match on it. */
       deal: isRent ? 'ให้เช่า' : 'ขาย',
-      loc: displayLocation(values, q.locale ?? DEFAULT_LOCALE) || provinceLabel(province, q.locale ?? DEFAULT_LOCALE) || '—',
+      loc: displayLocation(values, q.locale ?? DEFAULT_LOCALE, geo.get(p.orgId))
+        || provinceLabel(province, q.locale ?? DEFAULT_LOCALE, geo.get(p.orgId)) || '—',
       price,
       priceValue: shown?.baht ?? 0,
       area,

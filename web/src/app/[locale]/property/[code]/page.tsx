@@ -17,6 +17,7 @@ import { loadPublicListings } from '@/lib/server/publicListings';
 import { loadCompany } from '@/lib/server/company';
 import { listCmsPages } from '@/lib/server/cmsPages';
 import { watermarkVersion, withVersionAll } from '@/lib/server/photoUrl';
+import { loadGeoLabels } from '@/lib/server/geoLabels';
 
 /* Public property detail. Read straight from the database in the server
    component — no client fetch, so the page is indexable.
@@ -83,6 +84,8 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
       photos: r.photos, type: propertyType(r.typeKey).label, area: r.areaLabel,
     }));
 
+  // ชื่อพื้นที่ตามที่ทีมตั้งไว้ใน /admin/geography ชนะตารางในโค้ด
+  const geo = await loadGeoLabels(p.orgId);
   const zoningRaw = String(values.zoning_color ?? '').trim();
   // ?v= so a browser holding last week's copy of a photo picks up the watermark
   const photos = withVersionAll(
@@ -92,16 +95,16 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
 
   const property = {
     code: p.publicCode,
-    title: localTitleFor(p, values, locale),
+    title: localTitleFor(p, values, locale, geo),
     description: localDescription(p, locale),
     typeLabel: enumLabel(propertyType(p.typeKey).label, locale),
-    location: displayLocation(values, locale),
+    location: displayLocation(values, locale, geo),
     area: displayArea(values),
     dealType: enumLabel(String(values.deal_type ?? ''), locale),
     priceRent: typeof values.price_rent === 'number' ? values.price_rent : null,
     priceSale: typeof values.price_sale === 'number' ? values.price_sale : (typeof values.price === 'number' ? values.price : null),
     updatedAt: fmtDate(p.updatedAt, locale),
-    specs: buildSpecs(values, locale, found.schema),
+    specs: buildSpecs(values, locale, found.schema, geo),
     zoning: zoningRaw ? enumLabel(zoningRaw, locale) : null,
     photos,
     related,

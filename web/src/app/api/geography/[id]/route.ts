@@ -30,7 +30,7 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
   const row = await load(id, user.orgId);
 
   const body = (await req.json().catch(() => null)) as
-    | { th?: string; en?: string; code?: string; type?: string; active?: boolean }
+    | { th?: string; en?: string; zh?: string; code?: string; type?: string; active?: boolean }
     | null;
   if (!body) throw new ApiError('VALIDATION', 'ข้อมูลไม่ถูกต้อง', 400);
 
@@ -45,6 +45,7 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
 
   const meta: Record<string, string | boolean> = { ...((row.meta ?? {}) as Record<string, string | boolean>) };
   if (body.en !== undefined) meta.en = String(body.en).trim();
+  if (body.zh !== undefined) meta.zh = String(body.zh).trim();
   if (body.type !== undefined) meta.type = String(body.type).trim();
   if (body.active !== undefined) meta.active = !!body.active;
 

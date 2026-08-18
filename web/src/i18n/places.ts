@@ -152,26 +152,63 @@ export const sameProvince = (a: unknown, b: unknown): boolean => {
   return !!x && !!y && (x === y || x.includes(y) || y.includes(x));
 };
 
+/* What the team typed in /admin/geography, when they typed anything.
+   The tables below are a starting point, not the last word: a district this
+   agency lists in every week may have a name the team prefers, and until this
+   existed the page promised "3 ภาษา ต่อระดับ" while offering one box for one
+   language on one level. An entry with no override falls straight through. */
+export type GeoOverride = Map<string, { en?: string; zh?: string }>;
+export type GeoOverrides = { province?: GeoOverride; district?: GeoOverride; subdistrict?: GeoOverride };
+
+/** the prefix the team types varies ("แขวง คันนายาว" / "แขวงคันนายาว") */
+export const geoKey = (v: unknown) =>
+  clean(v).replace(/^(แขวง|ตำบล|ต\.|เขต|อำเภอ|อ\.)\s*/, '').replace(/\s+/g, ' ');
+
+const pick = (o: GeoOverride | undefined, key: string, locale: Locale) => {
+  const row = o?.get(key);
+  const v = locale === 'zh' ? row?.zh : row?.en;
+  return v && v.trim() ? v.trim() : '';
+};
+
 /** The province in the reader's language: Chinese name, romanisation, or Thai. */
-export function provinceLabel(name: unknown, locale: Locale): string {
+export function provinceLabel(name: unknown, locale: Locale, over?: GeoOverrides): string {
   const th = canonicalProvince(name);
   if (!th || locale === DEFAULT_LOCALE) return th;
+  const own = pick(over?.province, geoKey(th), locale);
+  if (own) return own;
   if (locale === 'zh') return PROVINCE_ZH[th] ?? PROVINCE_EN[th] ?? th;
   return PROVINCE_EN[th] ?? th;
 }
 
 /** The district, romanised where we know it. Chinese uses the same Latin form. */
-export function districtLabel(name: unknown, locale: Locale): string {
+export function districtLabel(name: unknown, locale: Locale, over?: GeoOverrides): string {
   const raw = clean(name);
   if (!raw || locale === DEFAULT_LOCALE) return raw;
+  const own = pick(over?.district, geoKey(raw), locale);
+  if (own) return own;
   // the prefix is only stripped to look the name up; an unknown place is
   // handed back exactly as stored rather than half-trimmed
   return DISTRICT_EN[raw.replace(/^(เขต|อำเภอ|อ\.)\s*/, '')] ?? raw;
 }
 
 /** The subdistrict, romanised where we know it. The stored prefix is dropped. */
-export function subdistrictLabel(name: unknown, locale: Locale): string {
+export function subdistrictLabel(name: unknown, locale: Locale, over?: GeoOverrides): string {
   const raw = clean(name);
   if (!raw || locale === DEFAULT_LOCALE) return raw;
+  const own = pick(over?.subdistrict, geoKey(raw), locale);
+  if (own) return own;
   return SUBDISTRICT_EN[raw.replace(/^(แขวง|ตำบล|ต\.)\s*/, '')] ?? raw;
 }
+
+/** The English/Chinese this file knows, used to prefill a fresh tree. */
+export const builtinLabels = (kind: 'province' | 'district' | 'subdistrict', th: string) => {
+  const key = geoKey(th);
+  if (kind === 'province') {
+    const p = canonicalProvince(th);
+    return { en: PROVINCE_EN[p] ?? '', zh: PROVINCE_ZH[p] ?? '' };
+  }
+  const table = kind === 'district' ? DISTRICT_EN : SUBDISTRICT_EN;
+  // Chinese has no established name for a Thai district, so the romanisation
+  // stands in — inventing one would be worse than a Latin name (see above)
+  return { en: table[key] ?? '', zh: '' };
+};

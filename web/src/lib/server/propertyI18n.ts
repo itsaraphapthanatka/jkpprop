@@ -9,6 +9,7 @@
  */
 import { DEFAULT_LOCALE, LOCALES, type Locale } from '@/i18n/config';
 import { displayTitle } from '@/lib/propertyTitle';
+import type { GeoOverrides } from '@/i18n/places';
 import { propertyType } from '@/lib/propertySchema';
 import { displayArea } from './propertyDto';
 
@@ -54,6 +55,7 @@ export function localTitleFor(
   p: Rec & { typeKey: string; publicCode: string },
   values: Record<string, unknown>,
   locale: Locale,
+  over?: GeoOverrides,
 ): string {
   if (locale === DEFAULT_LOCALE) return p.title;
   return displayTitle(
@@ -66,6 +68,7 @@ export function localTitleFor(
       code: p.publicCode,
     },
     locale,
+    over,
   );
 }
 
