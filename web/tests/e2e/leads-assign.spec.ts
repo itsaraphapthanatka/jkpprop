@@ -122,3 +122,56 @@ test.describe('หน้าผู้ใช้ที่คุมรายชื�
     for (const n of shouldNot) expect(assignable.some((a) => a.name === n), `${n} ไม่ควรรับมอบหมาย lead`).toBe(false);
   });
 });
+
+/* ชื่อสมมุติชุดเดียวกันนี้ยังฝังอยู่อีกสามที่หลังแก้เมนูมอบหมายรอบแรก — ฟอร์ม
+   เพิ่ม lead, บันทึกการใช้งาน (audit) และค่าคอมมิชชันในหน้า Deal */
+test.describe('ชื่อสมมุติที่ยังหลงเหลือในหน้าอื่น', () => {
+  test('ฟอร์มเพิ่ม lead เลือกผู้รับผิดชอบจากคนจริง และบันทึกจริง', async ({ page, request }) => {
+    await signIn(page);
+    const cookie = await cookieOf(page);
+    const team = (await (await request.get('/api/users/assignable', { headers: { cookie } })).json()).items as { id: string; name: string }[];
+
+    await page.goto('/admin/leads');
+    await page.locator('#lead-addbtn').click();
+    const select = page.locator('select').filter({ hasText: 'ยังไม่มอบหมาย' }).first();
+    const opts = await select.locator('option').allInnerTexts();
+    expect(opts.filter((o) => ['อารยา', 'วีรพล', 'สมชาย'].includes(o.trim())), 'ชื่อสมมุติในฟอร์ม').toEqual([]);
+    for (const m of team) expect(opts.some((o) => o.trim() === m.name), `${m.name} ต้องเลือกได้`).toBe(true);
+
+    const name = `ทดสอบฟอร์มมอบหมาย ${Date.now().toString(36)}`;
+    await page.getByPlaceholder('เช่น บ. ไทยโลจิสติกส์').fill(name);
+    await select.selectOption(team[0].id);
+    await page.locator('#lead-create-save').click();
+
+    await expect.poll(async () => {
+      const list = await (await request.get('/api/leads', { headers: { cookie } })).json();
+      return (list.items as { name: string; assigneeId: string | null }[]).find((l) => l.name === name)?.assigneeId;
+    }, { message: 'lead ที่สร้างจากฟอร์มต้องถูกมอบหมายให้คนที่เลือก', timeout: 10_000 }).toBe(team[0].id);
+
+    const list = await (await request.get('/api/leads', { headers: { cookie } })).json();
+    const made = (list.items as { id: string; name: string }[]).find((l) => l.name === name);
+    if (made) await request.delete(`/api/leads/${made.id}`, { headers: { cookie } }).catch(() => null);
+  });
+
+  test('บันทึกการใช้งาน ไม่มีรายการที่แต่งขึ้น', async ({ page }) => {
+    await signIn(page);
+    await page.goto('/admin/audit');
+    await page.waitForTimeout(1200);
+    const body = await page.locator('body').innerText();
+    for (const ghost of ['สมชาย', 'อารยา', 'วีรพล', 'ณัฐพร']) {
+      expect(body.includes(ghost), `บันทึกการใช้งานมีชื่อ ${ghost} ที่ไม่มีบัญชี`).toBe(false);
+    }
+    // ต้องไม่มี IP กับ before/after ที่แต่งขึ้นด้วย
+    expect(body).not.toContain('203.150.x.x');
+    expect(body).not.toContain('฿42,000/ด.');
+  });
+
+  test('หน้า Deal ไม่โชว์ค่าคอมมิชชันที่ไม่มีที่มา', async ({ page }) => {
+    await signIn(page);
+    await page.goto('/admin/deals');
+    await page.waitForTimeout(1200);
+    const body = await page.locator('body').innerText();
+    expect(body).not.toContain('฿138,600');
+    expect(body.includes('อารยา'), 'ชื่อผู้รับคอมมิชชันที่แต่งขึ้น').toBe(false);
+  });
+});

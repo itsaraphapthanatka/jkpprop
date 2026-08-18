@@ -481,17 +481,14 @@ export default function DealBody() {
           </div>
 
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 22px' }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', marginBottom: 14 }}>ค่าคอมมิชชัน</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, background: 'var(--bg)' }}>
-              <div style={{ width: 38, height: 38, borderRadius: 9999, background: '#273c33', color: '#2DFB91', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>อ</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>อารยา (agent)</div>
-                <div style={{ fontSize: '11.5px', color: 'var(--muted3)' }}>3% ของค่าเช่าปีแรก</div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 14, fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: '#034956' }}>฿138,600</div>
-                <span style={{ height: 19, padding: '0 8px', borderRadius: 9999, background: '#FBF3E1', color: '#9A741C', fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>รอจ่าย</span>
-              </div>
+            {/* เคยแสดง "อารยา (agent) · 3% ของค่าเช่าปีแรก · ฿138,600 · รอจ่าย"
+                เหมือนกันทุกดีล ทั้งชื่อ อัตรา ยอดเงิน และสถานะการจ่ายพิมพ์ไว้ในไฟล์
+                ไม่ได้คำนวณจากดีลตรงหน้า และระบบยังไม่มีที่เก็บข้อมูลคอมมิชชันสักช่อง
+                — ตัวเลขเงินที่ไม่มีที่มา อันตรายกว่าการไม่มีตัวเลข */}
+            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', marginBottom: 8 }}>ค่าคอมมิชชัน</div>
+            <div style={{ fontSize: 12.5, color: 'var(--muted3)', lineHeight: 1.7 }}>
+              ระบบยังไม่ได้เก็บข้อมูลค่าคอมมิชชัน — ยังไม่มีทั้งอัตรา ผู้รับ และสถานะการจ่าย
+              ถ้าต้องการให้คิดและติดตามในระบบ แจ้งเงื่อนไขการแบ่งมาได้
             </div>
           </div>
         </div>

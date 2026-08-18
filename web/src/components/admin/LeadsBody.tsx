@@ -115,7 +115,6 @@ const COUNTRY_NAMES: Record<string, string> = { TH: 'ไทย', CN: 'จีน'
 const COUNTRY_OPTS: [string, string][] = [['TH', 'ไทย (TH)'], ['CN', 'จีน (CN)'], ['JP', 'ญี่ปุ่น (JP)'], ['US', 'สหรัฐฯ (US)'], ['SG', 'สิงคโปร์ (SG)'], ['OTHER', 'อื่นๆ']];
 const SOURCE_OPTS = ['requirement form', 'contact form', 'inquiry', 'referral'];
 const STATUS_CREATE_OPTS: [string, string][] = [['new', 'New'], ['qualified', 'Qualified'], ['requirements_confirmed', 'Req. confirmed'], ['negotiating', 'Negotiating'], ['shortlisted', 'Shortlisted'], ['won', 'Won']];
-const AGENT_OPTS = ['อารยา', 'วีรพล', 'สมชาย', 'ยังไม่มอบหมาย'];
 const fLabel: React.CSSProperties = { display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 700, color: 'var(--muted)' };
 const fInput: React.CSSProperties = { width: '100%', height: 44, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontFamily: 'inherit', fontSize: '13.5px', background: 'var(--surface)', color: 'var(--text)', outline: 'none' };
 const fSelect: React.CSSProperties = { ...fInput, cursor: 'pointer' };
@@ -181,7 +180,7 @@ export function LeadsBody() {
   }, []);
   const [createOpen, setCreateOpen] = React.useState(false);
   const [creating, setCreating] = React.useState(false);
-  const emptyForm = { name: '', contact: '', country: 'TH', phone: '', email: '', source: 'contact form', statusK: 'new', agent: 'อารยา' };
+  const emptyForm = { name: '', contact: '', country: 'TH', phone: '', email: '', source: 'contact form', statusK: 'new', agent: '' };
   const [form, setForm] = React.useState(emptyForm);
   const setF = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
   const canCreate = form.name.trim().length > 0;
@@ -456,6 +455,8 @@ export function LeadsBody() {
         email: form.email.trim(),
         source: form.source,
         status: form.statusK,
+        // ช่อง "มอบหมายให้" ในฟอร์มนี้เคยส่งชื่อที่พิมพ์ไว้ในโค้ดไปเปล่า ๆ
+        assigneeId: form.agent || null,
       });
       apiId = typeof created.id === 'string' ? created.id : undefined;
       piiMasked = !!created.piiMasked;
@@ -478,14 +479,14 @@ export function LeadsBody() {
       source: form.source,
       phone: form.phone.trim() || '—',
       email: form.email.trim() || '—',
-      agent: 'มอบหมาย: ' + form.agent,
+      agent: 'มอบหมาย: ' + (team.find((m) => m.id === form.agent)?.name ?? 'ยังไม่มอบหมาย'),
       apiId,
       piiMasked,
     };
     setRows((r) => [nl, ...r]);
     setSelected(0);
     setStatusVal(statusLabelMap[form.statusK] || 'New');
-    setAgentVal(form.agent);
+    setAgentVal(team.find((m) => m.id === form.agent)?.name ?? 'ยังไม่มอบหมาย');
     setCreateOpen(false);
     setForm(emptyForm);
     setCreating(false);
@@ -526,12 +527,15 @@ export function LeadsBody() {
               </div>
               <div>
                 <label style={fLabel}>มอบหมายให้</label>
-                <select value={form.agent} onChange={(e) => setF('agent', e.target.value)} style={fSelect}>{AGENT_OPTS.map((a) => <option key={a} value={a}>{a}</option>)}</select>
+                <select value={form.agent} onChange={(e) => setF('agent', e.target.value)} style={fSelect}>
+                  <option value="">ยังไม่มอบหมาย</option>
+                  {team.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                </select>
               </div>
             </div>
             <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
               <div onClick={() => setCreateOpen(false)} style={{ height: 44, padding: '0 22px', borderRadius: 9999, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', cursor: 'pointer' }}>ยกเลิก</div>
-              <div onClick={addLead} style={{ height: 44, padding: '0 26px', borderRadius: 9999, background: canCreate ? '#0D6C3B' : 'var(--border)', color: canCreate ? '#fff' : 'var(--muted3)', display: 'flex', alignItems: 'center', gap: 7, fontSize: '13.5px', fontWeight: 700, cursor: canCreate ? 'pointer' : 'default' }}>
+              <div id="lead-create-save" onClick={addLead} style={{ height: 44, padding: '0 26px', borderRadius: 9999, background: canCreate ? '#0D6C3B' : 'var(--border)', color: canCreate ? '#fff' : 'var(--muted3)', display: 'flex', alignItems: 'center', gap: 7, fontSize: '13.5px', fontWeight: 700, cursor: canCreate ? 'pointer' : 'default' }}>
                 เพิ่ม Lead
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
               </div>

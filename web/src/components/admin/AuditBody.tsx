@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { apiGet } from '@/lib/apiClient';
+import { apiGet, ApiClientError } from '@/lib/apiClient';
 
 /* Ported verbatim from AdminAudit.dc.html — audit log filter bar
    (action / entity / date-range dropdowns), before/after diff log
@@ -46,16 +46,11 @@ type LogEntry = {
   after?: string;
 };
 
-const LOGS: LogEntry[] = [
-  { user: 'สมชาย', action: 'แก้ราคาเช่า', tag: 'UPDATE', tagStyle: tag(UPDATE.bg, UPDATE.fg), entity: 'listing/JKP-CBI0007', time: '18 ก.ค. 11:15', ip: '203.150.x.x', ago: '2 นาที', dotBg: '#EEF4F3', icon: li('<path d="M12 1v22M5 8h14M5 16h14"></path>', '#034956'), hasDiff: true, before: '฿42,000/ด.', after: '฿45,000/ด.' },
-  { user: 'สมชาย', action: 'เผยแพร่ประกาศ', tag: 'PUBLISH', tagStyle: tag(PUBLISH.bg, PUBLISH.fg), entity: 'listing/JKP-SPK0042', time: '18 ก.ค. 09:20', ip: '203.150.x.x', ago: '2 ชม.', dotBg: '#FBF3E1', icon: li('<path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"></path>', '#9A741C'), hasDiff: true, before: 'draft', after: 'published' },
-  { user: 'อารยา', action: 'ปิดดีลสำเร็จ', tag: 'UPDATE', tagStyle: tag(UPDATE.bg, UPDATE.fg), entity: 'deal/DEAL-089', time: '18 ก.ค. 08:40', ip: '171.96.x.x', ago: '3 ชม.', dotBg: '#E8F3EC', icon: li('<path d="M20 6L9 17l-5-5"></path>', '#0D6C3B'), hasDiff: true, before: 'signed', after: 'closed · won' },
-  { user: 'กิตติพงษ์', action: 'ปลดล็อกฟิลด์การเงิน (override)', tag: 'SECURITY', tagStyle: tag(SEC.bg, SEC.fg), entity: 'deal/DEAL-071', time: '17 ก.ค. 16:30', ip: '203.150.x.x', ago: 'เมื่อวาน', dotBg: '#F0ECF9', icon: li('<rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 019.9-1"></path>', '#7A3FB0'), hasDiff: false },
-  { user: 'วีรพล', action: 'เพิ่มทรัพย์ใหม่', tag: 'CREATE', tagStyle: tag(CREATE.bg, CREATE.fg), entity: 'property/JKP-RYG2081', time: '17 ก.ค. 14:05', ip: '171.96.x.x', ago: 'เมื่อวาน', dotBg: '#E8F3EC', icon: li('<path d="M12 5v14M5 12h14"></path>', '#0D6C3B'), hasDiff: false },
-  { user: 'ณัฐพร', action: 'แก้บทความ (TH)', tag: 'UPDATE', tagStyle: tag(UPDATE.bg, UPDATE.fg), entity: 'article/why-port-location', time: '17 ก.ค. 10:20', ip: '184.22.x.x', ago: 'เมื่อวาน', dotBg: '#EEF4F3', icon: li('<path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"></path>', '#034956'), hasDiff: false },
-  { user: 'กิตติพงษ์', action: 'ปิดใช้งานผู้ใช้', tag: 'SECURITY', tagStyle: tag(SEC.bg, SEC.fg), entity: 'user/natthaporn@jkp.co', time: '16 ก.ค. 17:50', ip: '203.150.x.x', ago: '2 วัน', dotBg: '#F0ECF9', icon: li('<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 11l-3 3M19 11l3 3"></path>', '#7A3FB0'), hasDiff: true, before: 'active', after: 'disabled' },
-  { user: 'อารยา', action: 'ลบ media', tag: 'DELETE', tagStyle: tag(DELETE.bg, DELETE.fg), entity: 'media/old-hero-3.jpg', time: '16 ก.ค. 13:10', ip: '171.96.x.x', ago: '2 วัน', dotBg: '#F9E4E1', icon: li('<path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"></path>', '#C0392B'), hasDiff: false },
-];
+/* No sample entries. An audit trail is the page somebody opens to settle an
+   argument about who changed what — filling it with invented rows (สมชาย
+   แก้ราคาเช่า, อารยา ปิดดีลสำเร็จ, complete with IP addresses and before/after
+   values) is worse than showing nothing, and they appeared for anyone without
+   the 'audit' privilege, which is when the API 403s. */
 
 type FilterKey = 'action' | 'entity' | 'dateR';
 
@@ -149,7 +144,9 @@ export function AuditBody() {
 
   /* real audit trail — needs the 'audit' privilege; without it the API 403s
      and the porting-era sample rows stay on screen */
-  const [logs, setLogs] = React.useState<LogEntry[]>(LOGS);
+  const [logs, setLogs] = React.useState<LogEntry[]>([]);
+  const [loaded, setLoaded] = React.useState(false);
+  const [denied, setDenied] = React.useState(false);
   const [total, setTotal] = React.useState<number | null>(null);
   React.useEffect(() => {
     const params = new URLSearchParams();
@@ -161,7 +158,8 @@ export function AuditBody() {
         setLogs(rows.map(apiToEntry));
         setTotal(rows.length);
       })
-      .catch(() => { /* no audit privilege → keep the sample rows */ });
+      .catch((e) => { setDenied(e instanceof ApiClientError ? e.status === 403 : false); })
+      .finally(() => setLoaded(true));
   }, [entity, action]);
 
   const anyFilterOpen = openFilter !== null;
@@ -261,6 +259,13 @@ export function AuditBody() {
           <span style={{ fontSize: 12, color: 'var(--muted2)' }}>เก็บ before/after JSON ทุก mutation</span>
         </div>
         <div className="a-scroll">
+          {loaded && !logs.length && (
+            <div id="audit-empty" style={{ padding: '34px 18px', textAlign: 'center', fontSize: 13, color: 'var(--muted3)', lineHeight: 1.7 }}>
+              {denied
+                ? 'บัญชีนี้ไม่มีสิทธิ์ดูบันทึกการใช้งาน — ขอสิทธิ์ audit จากเจ้าของระบบ'
+                : 'ยังไม่มีบันทึกการใช้งานในช่วงที่เลือก'}
+            </div>
+          )}
           {logs.slice(0, shown).map((l, i) => (
             <div key={i} style={{ display: 'flex', gap: 14, padding: '15px 18px', borderBottom: '1px solid var(--border)' }}>
               <div style={{ width: 36, height: 36, borderRadius: 9999, background: l.dotBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} dangerouslySetInnerHTML={l.icon} />
