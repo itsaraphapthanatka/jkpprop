@@ -8,6 +8,7 @@
  * separate copy with its own watermark run.
  */
 import * as React from 'react';
+import { thumb } from '@/lib/mediaThumb';
 import { apiGet, ApiClientError } from '@/lib/apiClient';
 
 export type MediaItem = { id: string; name: string; mime: string; src: string; createdAt: number };
@@ -75,7 +76,7 @@ export function MediaLibraryPicker({ attached, onAttach, onClose }: {
                 >
                   {isImage(m) ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
-                    <img src={m.src} alt={m.name} style={{ width: '100%', height: 84, objectFit: 'cover', display: 'block' }} />
+                    <img src={thumb(m.src, 160)} alt={m.name} loading="lazy" decoding="async" style={{ width: '100%', height: 84, objectFit: 'cover', display: 'block' }} />
                   ) : (
                     <div style={{ height: 84, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted2)' }}>
                       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><path d="M14 2v6h6" /></svg>

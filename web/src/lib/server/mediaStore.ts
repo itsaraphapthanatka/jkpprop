@@ -47,7 +47,16 @@ export function mediaIdFromSrc(src: string): string | null {
   return file ? file[1] : null;
 }
 
-/** legacy name kept so existing imports keep working */
+/* Thumbnails. Opening /admin/media pulled 412 full-size photos — 114 MB and
+   26 seconds — to fill a grid of 150px boxes. The width is part of the key so
+   one size cannot serve another, and the watermark version rides along so a
+   settings change turns these over with everything else. */
+export const THUMB_WIDTHS = [160, 320, 640] as const;
+export type ThumbWidth = (typeof THUMB_WIDTHS)[number];
+export const isThumbWidth = (n: number): n is ThumbWidth => (THUMB_WIDTHS as readonly number[]).includes(n);
+export const thumbKey = (id: string, mime: string, width: number, version: number) =>
+  `${id}-w${width}${version ? `v${version}` : ''}.${EXT_BY_MIME[mime] ?? 'bin'}`;
+
 export const diskPathFor = (id: string, mime: string) => path.join(UPLOAD_DIR, objectKey(id, mime));
 
 /* ---- S3 config (all four must be set to switch drivers) ---- */

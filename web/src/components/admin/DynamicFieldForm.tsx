@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { thumb } from '@/lib/mediaThumb';
 import { resolveFields, propertyType, type FieldDef } from '@/lib/propertySchema';
 import { useSchemaSync } from '@/lib/schemaSync';
 import { buildSummary } from '@/lib/summaryTemplate';
@@ -98,7 +99,7 @@ function MediaField({ f, lbl, value, onChange }: {
             <span key={src + i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 6px 0 4px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)' }}>
               {src.startsWith('/api/media/') && !src.endsWith('.pdf') ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={src} alt="" style={{ width: 22, height: 22, borderRadius: 5, objectFit: 'cover' }} />
+                <img src={thumb(src, 160)} alt="" loading="lazy" decoding="async" style={{ width: 22, height: 22, borderRadius: 5, objectFit: 'cover' }} />
               ) : (
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><path d="M14 2v6h6" /></svg>
               )}

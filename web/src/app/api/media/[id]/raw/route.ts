@@ -13,7 +13,7 @@
 import { handler, ApiError } from '@/lib/server/api';
 import { currentUser } from '@/lib/server/auth';
 import { db } from '@/lib/server/db';
-import { getObject, putObject, originalKey, watermarkedKey, mediaIdFromSrc } from '@/lib/server/mediaStore';
+import { getObject, putObject, originalKey, watermarkedKey, thumbKey, isThumbWidth, mediaIdFromSrc } from '@/lib/server/mediaStore';
 import { applyImageWatermark, canWatermark } from '@/lib/server/watermark';
 import { normalizeWatermark, type WatermarkConfig } from '@/lib/watermarkConfig';
 
@@ -78,6 +78,36 @@ export const GET = handler(async (req: Request, ctx: { params: Promise<{ id: str
         }
       }
     }
+  }
+
+  /* A grid of 150px boxes was being filled with 1600px originals: opening
+     /admin/media pulled 412 photos, 114 MB, twenty-six seconds. ?w= serves a
+     resized copy of the same (watermarked) image, cached like the rest. */
+  const wanted = Number(new URL(req.url).searchParams.get('w') ?? 0);
+  if (!wantsOriginal && wanted && isThumbWidth(wanted) && canWatermark(asset.mime)) {
+    const wm = await watermarkFor(asset.orgId);
+    const key = thumbKey(asset.id, asset.mime, wanted, wm?.version ?? 0);
+    const cached = await getObject(asset.id, asset.mime, key);
+    if (cached) {
+      buf = cached;
+    } else {
+      const sharp = (await import('sharp')).default;
+      // withoutEnlargement: a small upload stays its own size rather than
+      // being blown up into a bigger file than the original
+      const small = await sharp(buf).resize({ width: wanted, withoutEnlargement: true })
+        .jpeg({ quality: 72 }).toBuffer().catch(() => null);
+      if (small) {
+        buf = small;
+        await putObject(asset.id, asset.mime, small, key).catch(() => {});
+      }
+    }
+    return new Response(new Uint8Array(buf), {
+      headers: {
+        'Content-Type': 'image/jpeg',
+        'Content-Length': String(buf.length),
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    });
   }
 
   return new Response(new Uint8Array(buf), {

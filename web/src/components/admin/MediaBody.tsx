@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { thumb } from '@/lib/mediaThumb';
 import { apiGet, apiDelete, apiFetch, ApiClientError } from '@/lib/apiClient';
 
 /* Ported from AdminMedia.dc.html <main> — Media Manager with folder
@@ -177,7 +178,7 @@ export function MediaBody() {
                     </div>
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={m.src} alt={m.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    <img src={thumb(m.src, 320)} alt={m.name} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                   )}
                   {on && (
                     <div style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 9999, background: '#0D6C3B', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,.3)' }}>

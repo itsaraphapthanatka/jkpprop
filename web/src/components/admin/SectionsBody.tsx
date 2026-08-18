@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { thumb } from '@/lib/mediaThumb';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { apiGet, apiPut, ApiClientError } from '@/lib/apiClient';
 import { SECTION_CATALOG, sectionDef, type SectionField } from '@/lib/sectionCatalog';
@@ -105,8 +106,10 @@ function MediaPicker({ items, current, onPick }: { items: { id: string; src: str
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
               key={m.id}
-              src={m.src}
+              src={thumb(m.src, 160)}
               alt={m.name}
+              loading="lazy"
+              decoding="async"
               onClick={() => onPick(m.src)}
               style={{ width: '100%', height: 64, objectFit: 'cover', borderRadius: 8, cursor: 'pointer', border: current === m.src ? '2px solid #0D6C3B' : '1px solid var(--border)' }}
             />
