@@ -254,6 +254,16 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
     setTypeSel([]);
     setSizeSel(null);
     setPriceSel(null);
+    /* "บันทึกไว้" มาจาก ?saved=1 ไม่ได้อยู่ในกลุ่มตัวกรองที่ถูกล้าง — คนที่กด
+       หัวใจในแถบบนโดยยังไม่ได้บันทึกอะไรเลยจะเจอ "พบ 0 รายการ" กับปุ่มล้างค่า
+       ที่กดแล้วไม่มีอะไรเกิดขึ้น เพราะตัวกรองที่ทำให้ว่างคือตัวเดียวที่ปุ่มนี้
+       ไม่ได้แตะ และชิปสำหรับปิดมันก็ไม่ขึ้นเมื่อยังไม่มีรายการที่บันทึกไว้ */
+    setOnlyFavs(false);
+    if (typeof window !== 'undefined' && window.location.search.includes('saved=')) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('saved');
+      window.history.replaceState(null, '', url.pathname + (url.search || '') + url.hash);
+    }
   };
   const toggleSort = () => setSortOpen((v) => !v);
 
@@ -406,18 +416,20 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
         {/* GRID */}
         {pageItems.length === 0 ? (
           <div id="listing-empty" style={{ padding: '72px 24px', textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 18, background: 'var(--surface)' }}>
+            {/* "ยังไม่มีทรัพย์ที่บันทึกไว้" คนละเรื่องกับ "ไม่พบทรัพย์ตามเงื่อนไข" —
+                เดิมพูดถึงตัวกรองทั้งที่ผู้อ่านไม่ได้เลือกตัวกรองอะไรเลย */}
             <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)' }}>
-              {all.length === 0 ? d.listing.emptyTitle : d.listing.empty}
+              {all.length === 0 ? d.listing.emptyTitle : onlyFavs && !favs.codes.length ? d.listing.noSavedTitle : d.listing.empty}
             </div>
             <p style={{ margin: '10px 0 0', fontSize: 14, color: 'var(--muted2)' }}>
               {all.length === 0
                 ? d.listing.emptyBody
-                : d.listing.emptyHint}
+                : onlyFavs && !favs.codes.length ? d.listing.noSavedBody : d.listing.emptyHint}
             </p>
             {all.length > 0 && (
-              <div onClick={clearAll} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginTop: 18, height: 42, padding: '0 22px', borderRadius: 9999, border: '1.5px solid var(--pine)', color: 'var(--pine)', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>
-                {d.listing.clear}
-              </div>
+              <button type="button" id="listing-clear" onClick={clearAll} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginTop: 18, height: 42, padding: '0 22px', borderRadius: 9999, border: '1.5px solid var(--pine)', background: 'transparent', fontFamily: 'inherit', color: 'var(--pine)', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>
+                {onlyFavs && !favs.codes.length ? d.listing.showAll : d.listing.clear}
+              </button>
             )}
           </div>
         ) : (

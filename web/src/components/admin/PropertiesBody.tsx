@@ -367,19 +367,56 @@ export function PropertiesBody() {
     { label: 'แปลไม่ครบ 3 ภาษา', value: summary ? String(summary.transIncomplete) : SUMMARY[3].value, color: '#C0392B' },
   ];
 
+  /* การ์ด "แปลไม่ครบ 3 ภาษา" บอกจำนวนได้อย่างเดียว มาตลอด — คนอ่านรู้ว่ามี 393
+     รายการที่ยังไม่มีคำแปล แต่ทำอะไรกับมันไม่ได้นอกจากเปิดทีละรายการแล้วพิมพ์เอง
+     ปุ่มนี้เขียนหัวเรื่อง EN/中文 ที่ประกอบจากข้อมูลของทรัพย์เองลงไปให้ก่อน
+     ทีมจะได้มีข้อความตั้งต้นให้แก้ ไม่ใช่ช่องว่าง */
+  const [translating, setTranslating] = React.useState(false);
+  const [transMsg, setTransMsg] = React.useState('');
+  const fillTranslations = async () => {
+    if (translating) return;
+    setTranslating(true);
+    setTransMsg('');
+    try {
+      const r = await apiPost<{ written: number; skipped: string[] }>('/api/properties/translate', {});
+      await reload(filterVals, q);
+      setTransMsg(
+        r.written
+          ? `เติมหัวเรื่อง EN / 中文 ให้ ${r.written} รายการแล้ว` +
+            (r.skipped.length ? ` · ข้าม ${r.skipped.length} รายการที่ข้อมูลไม่พอจะประกอบหัวเรื่อง` : '') +
+            ' — แก้ข้อความรายตัวได้ที่แท็บ "การแปลภาษา" ของแต่ละทรัพย์'
+          : 'ทุกรายการมีหัวเรื่องครบทั้งสามภาษาแล้ว',
+      );
+    } catch (e) {
+      setTransMsg(e instanceof ApiClientError ? e.message : 'เติมคำแปลไม่สำเร็จ');
+    } finally { setTranslating(false); }
+  };
+
   const stopP = (e: React.MouseEvent) => e.stopPropagation();
 
   return (
     <>
       {/* SUMMARY STRIP */}
       <div style={{ display: 'flex', gap: 14, marginBottom: 18, flexWrap: 'wrap' }}>
-        {summaryCards.map((s) => (
-          <div key={s.label} style={{ flex: 1, minWidth: 160, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px' }}>
-            <div style={{ fontSize: 12, color: 'var(--muted)' }}>{s.label}</div>
-            <div style={{ marginTop: 4, fontSize: 24, fontWeight: 800, letterSpacing: '-.02em', color: s.color }}>{s.value}</div>
-          </div>
-        ))}
+        {summaryCards.map((s) => {
+          const isTrans = s.label.startsWith('แปลไม่ครบ');
+          return (
+            <div key={s.label} style={{ flex: 1, minWidth: 160, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px' }}>
+              <div style={{ fontSize: 12, color: 'var(--muted)' }}>{s.label}</div>
+              <div style={{ marginTop: 4, fontSize: 24, fontWeight: 800, letterSpacing: '-.02em', color: s.color }}>{s.value}</div>
+              {isTrans && s.value !== '0' && (
+                <button type="button" id="fill-translations" onClick={() => void fillTranslations()} disabled={translating}
+                  style={{ marginTop: 8, height: 28, padding: '0 11px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700, color: 'var(--text)', cursor: translating ? 'default' : 'pointer', opacity: translating ? 0.6 : 1 }}>
+                  {translating ? 'กำลังเติม…' : 'เติมหัวเรื่อง EN / 中文 ให้'}
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
+      {transMsg && (
+        <div id="trans-msg" role="status" style={{ margin: '-6px 0 16px', padding: '10px 14px', borderRadius: 12, background: 'var(--tint)', border: '1px solid var(--border)', fontSize: 12.5, color: 'var(--text)', lineHeight: 1.6 }}>{transMsg}</div>
+      )}
 
       {/* FILTER BAR */}
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '14px 16px', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>

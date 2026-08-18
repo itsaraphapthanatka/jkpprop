@@ -2788,3 +2788,76 @@ test.describe('the visit criteria gate (FR-VIS-07)', () => {
     }
   });
 });
+
+/* "แปลไม่ครบ 3 ภาษา · 393" reported a problem and offered nothing to do about
+   it. The website was already showing composed English and Chinese headlines,
+   but the records themselves were empty, so the team had no text to correct —
+   only a blank box, 393 times. */
+test.describe('เติมคำแปลให้ทรัพย์ทั้งชุด', () => {
+  test('ปุ่มเดียวทำให้ตัวเลข "แปลไม่ครบ" ลดลงจริง และหัวเรื่องที่ได้เป็นภาษานั้น', async ({ page, request }) => {
+    test.slow();
+    await signIn(page, OWNER);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    // ทรัพย์ที่ยังไม่มีคำแปล — สร้างเองเพื่อไม่ต้องพึ่งสภาพของฐานข้อมูล
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: {
+        typeKey: 'warehouse', title: 'โกดังรอคำแปล', status: 'active',
+        values: { province: 'สมุทรปราการ', district: 'บางพลี', deal_type: 'เช่า', building_area_total: 1200 },
+      },
+    })).json();
+
+    try {
+      const before = (await (await request.get('/api/properties', { headers: { cookie } })).json()).summary.transIncomplete;
+      expect(before, 'ต้องมีรายการที่ยังไม่ได้แปลอยู่').toBeGreaterThan(0);
+
+      await page.goto('/admin/properties');
+      await page.locator('#fill-translations').click();
+      await expect(page.locator('#trans-msg')).toContainText('เติมหัวเรื่อง', { timeout: 60_000 });
+
+      const after = (await (await request.get('/api/properties', { headers: { cookie } })).json()).summary.transIncomplete;
+      expect(after, `เดิม ${before} ตอนนี้ ${after}`).toBeLessThan(before);
+
+      // ข้อความที่เขียนลงไปต้องเป็นภาษานั้นจริง ไม่ใช่ก๊อปหัวข้อไทยมาใส่
+      const row = await (await request.get(`/api/properties?q=${made.publicCode}`, { headers: { cookie } })).json();
+      const rec = (row.items as { publicCode: string; i18n?: Record<string, { title?: string }> }[])
+        .find((r) => r.publicCode === made.publicCode);
+      const en = rec?.i18n?.en?.title ?? '';
+      const zh = rec?.i18n?.zh?.title ?? '';
+      expect(en, 'หัวเรื่องอังกฤษ').toMatch(/Warehouse for rent/);
+      expect(en, 'อังกฤษต้องไม่มีอักษรไทย').not.toMatch(/[ก-฾เ-๛]/);
+      expect(zh, 'หัวเรื่องจีน').toMatch(/仓库出租/);
+
+      // รันซ้ำต้องไม่เขียนทับของที่มีอยู่แล้ว
+      const again = await (await request.post('/api/properties/translate', { headers: { cookie }, data: {} })).json();
+      expect(again.written, 'รันซ้ำแล้วต้องไม่มีอะไรให้เขียนอีก').toBe(0);
+    } finally {
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+
+  test('คำแปลที่คนเขียนไว้เอง ไม่ถูกทับ', async ({ request, page }) => {
+    await signIn(page, OWNER);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: {
+        typeKey: 'warehouse', title: 'โกดังที่คนแปลเอง', status: 'active',
+        values: { province: 'สมุทรปราการ', district: 'บางพลี', deal_type: 'เช่า' },
+        i18n: { en: { title: 'A headline a person wrote', description: '' } },
+      },
+    })).json();
+
+    try {
+      await request.post('/api/properties/translate', { headers: { cookie }, data: {} });
+      const row = await (await request.get(`/api/properties?q=${made.publicCode}`, { headers: { cookie } })).json();
+      const rec = (row.items as { publicCode: string; i18n?: Record<string, { title?: string }> }[])
+        .find((r) => r.publicCode === made.publicCode);
+      expect(rec?.i18n?.en?.title, 'ของที่คนเขียนต้องอยู่เหมือนเดิม').toBe('A headline a person wrote');
+      expect(rec?.i18n?.zh?.title, 'ภาษาที่ยังว่างต้องถูกเติมให้').toBeTruthy();
+    } finally {
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+});

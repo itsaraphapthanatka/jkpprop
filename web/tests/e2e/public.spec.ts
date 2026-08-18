@@ -1061,3 +1061,42 @@ test.describe('เปลี่ยนภาษาแล้วเนื้อห�
     });
   }
 });
+
+/* Opening the heart in the masthead with nothing saved landed the visitor on
+   /listing?saved=1: "พบ 0 รายการ", a filter panel with nothing ticked, and a
+   ล้างค่า button that did nothing at all — because the one filter emptying the
+   page was the one that button did not touch, and the chip that turns it off
+   only appears once something has been saved. A dead end with a button in it. */
+test.describe('เปิดรายการที่บันทึกไว้ทั้งที่ยังไม่ได้บันทึกอะไร', () => {
+  test('บอกตรง ๆ ว่ายังไม่มีของที่บันทึก ไม่ใช่โทษตัวกรอง', async ({ page }) => {
+    await page.goto('/th/listing?saved=1');
+    const empty = page.locator('#listing-empty');
+    await expect(empty).toBeVisible();
+    await expect(empty).toContainText('ยังไม่มีทรัพย์ที่บันทึกไว้');
+    await expect(empty).not.toContainText('ลองปรับตัวกรอง');
+  });
+
+  test('ปุ่มในกล่องนั้นกดแล้วได้ทรัพย์กลับมาจริง', async ({ page, request }) => {
+    const total = ((await (await request.get('/api/public/listings?locale=th&limit=500')).json()).items as unknown[]).length;
+    test.skip(!total, 'ยังไม่มีทรัพย์ที่เผยแพร่');
+
+    await page.goto('/th/listing?saved=1');
+    await expect(page.locator('[data-card]')).toHaveCount(0);
+    await page.locator('#listing-clear').click();
+
+    await expect(page.locator('[data-card]').first()).toBeVisible();
+    // และ ?saved=1 ต้องหลุดออกจาก URL ไม่งั้นกด refresh แล้วกลับไปตัน
+    expect(new URL(page.url()).searchParams.get('saved'), 'saved=1 ยังค้างอยู่ใน URL').toBeNull();
+  });
+
+  test('ถ้ามีของที่บันทึกไว้ ตัวกรองก็ยังทำงานเหมือนเดิม', async ({ page, request }) => {
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=500')).json()).items as { code: string }[];
+    test.skip(items.length < 2, 'ทรัพย์ไม่พอ');
+
+    await page.goto('/th/listing');
+    await page.locator(`[data-card="${items[0].code}"] [data-fav]`).click();
+    await page.goto('/th/listing?saved=1');
+    await expect(page.locator('[data-card]')).toHaveCount(1);
+    await expect(page.locator(`[data-card="${items[0].code}"]`)).toBeVisible();
+  });
+});

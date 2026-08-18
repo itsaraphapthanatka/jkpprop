@@ -752,6 +752,13 @@ export const openapi = {
         responses: { 200: okRes('บันทึกแล้ว'), ...AUTH_ERRORS },
       },
     },
+    '/api/properties/translate': {
+      post: {
+        tags: ['Properties'], summary: 'เติมหัวเรื่อง EN/中文 ให้ทรัพย์ที่ยังไม่มีคำแปล',
+        description: 'ประกอบหัวเรื่องจากฟิลด์ของทรัพย์เอง เขียนเฉพาะภาษาที่ยังว่าง ไม่ทับของที่คนเขียนไว้ · ?dry=1 เพื่อดูผลโดยไม่เขียน',
+        responses: { 200: okRes('ผลการเติมคำแปล'), ...AUTH_ERRORS },
+      },
+    },
     '/api/geography': {
       get: { tags: ['Config'], summary: 'จังหวัด / อำเภอ / ตำบล / นิคม', responses: { 200: okRes('ผังพื้นที่'), ...AUTH_ERRORS } },
       post: {
