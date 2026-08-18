@@ -22,7 +22,8 @@
     "faq:seed": "tsx scripts/seed-faq.mts",
     "faq:translate": "tsx scripts/translate-faq.mts",
     "requirements:backfill": "tsx scripts/backfill-requirements.mts",
-    "import:xlsx": "tsx scripts/import-xlsx.mts"
+    "import:xlsx": "tsx scripts/import-xlsx.mts",
+    "faq:sync": "tsx scripts/sync-faq.mts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

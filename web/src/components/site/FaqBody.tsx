@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from '@/i18n/LocaleLink';
 import { useDict } from '@/i18n/useDict';
-import { FALLBACK_CATS } from '@/lib/faqDefaults';
+import { getFaq } from '@/i18n/faq';
+import { useLocale } from '@/i18n/LocaleLink';
 import type { SectionCopy } from '@/lib/server/sectionCopy';
 import type { FaqCategory } from '@/lib/server/faqCopy';
 import { ShareMenu } from '@/components/site/ShareMenu';
@@ -18,13 +19,20 @@ import { ShareMenu } from '@/components/site/ShareMenu';
 
 
 /* Built-in set — only for a database with no FAQ rows at all. Once seeded
-   (npm run faq:seed) every language reads the same rows from the CMS. */
+   (npm run faq:seed) every language reads the same rows from the CMS.
+
+   The old built-in set was Thai only, so an empty database served the English
+   and Chinese pages a Thai FAQ. i18n/faq.ts carries all three languages, and
+   the same content is what the seeder writes into the CMS. */
+const builtIn = (locale: Parameters<typeof getFaq>[0]): FaqCategory[] =>
+  getFaq(locale).map((c) => ({ key: c.key, title: c.title, qs: c.qs.map(({ q, a }) => [q, a] as [string, string]) }));
 
 
 export function FaqBody({ cats, copy }: { cats?: FaqCategory[]; copy: SectionCopy }) {
   const d = useDict();
   const pick = (v: string, fallback: string) => v || fallback;
-  const CATS = cats && cats.length ? cats : FALLBACK_CATS;
+  const locale = useLocale();
+  const CATS = cats && cats.length ? cats : builtIn(locale);
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
   /* read after mount — the server has no window, and a share link has to carry
      the address the reader is actually on */
