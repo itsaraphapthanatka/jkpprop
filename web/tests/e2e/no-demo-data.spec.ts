@@ -71,3 +71,42 @@ test.describe('ไม่มีข้อมูลสาธิตหลงเห�
     expect(found, 'ข้อมูลที่แต่งขึ้นตอน API ล่ม').toEqual([]);
   });
 });
+
+/* หน้าแผนเข้าชมประกาศรหัส 'VP-064 · confirming' และ breadcrumb 'SL-208' ไว้ตายตัว
+   ทั้งที่ในระบบไม่มีแผนเข้าชมสักแผน และปุ่ม 'ปิด plan' กับ 'ยืนยันไม่เปลี่ยน'
+   เปลี่ยนสถานะบนหน้าจอให้ดูเหมือนสำเร็จ ทั้งที่ไม่มีอะไรถูกบันทึก */
+test.describe('หน้าแผนเข้าชมเมื่อยังไม่มีแผน', () => {
+  test('ไม่ประกาศรหัสแผนที่ไม่มีอยู่', async ({ page, request }) => {
+    await signIn(page);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    const visits = (await (await request.get('/api/visits', { headers: { cookie } })).json()).items as unknown[];
+
+    await page.goto('/admin/visits');
+    await page.waitForTimeout(900);
+    const body = await page.locator('body').innerText();
+    expect(body.includes('VP-064'), 'รหัสแผนจากไฟล์ออกแบบ').toBe(false);
+    expect(body.includes('SL-208'), 'รหัส shortlist จากไฟล์ออกแบบ').toBe(false);
+    if (!visits.length) {
+      expect(body).toContain('ยังไม่มีแผนเข้าชม');
+      // ด่านยืนยันเกณฑ์ต้องไม่ขึ้นเมื่อไม่มีแผนให้ยืนยัน
+      expect(body.includes('FR-VIS-07'), 'ด่านยืนยันขึ้นทั้งที่ไม่มีแผน').toBe(false);
+    }
+  });
+
+  test('ปุ่มปิดแผนไม่บอกว่าสำเร็จเมื่อไม่มีแผนให้ปิด', async ({ page }) => {
+    await signIn(page);
+    /* บังคับให้ระบบไม่มีแผนเข้าชม แทนที่จะข้ามเทสต์เมื่อฐานข้อมูลมีแผนอยู่ —
+       production ไม่มีแผนสักแผน ซึ่งเป็นสภาพที่ต้องคุมให้ได้ */
+    await page.route('**/api/visits*', (r) =>
+      r.request().method() === 'GET'
+        ? r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [] }) })
+        : r.continue());
+
+    await page.goto('/admin/visits');
+    await page.waitForTimeout(700);
+    await page.getByText('ปิด plan (completed)').click();
+    await page.waitForTimeout(600);
+    await expect(page.getByText('ปิด plan แล้ว'), 'ปุ่มบอกว่าปิดแล้วทั้งที่ไม่มีแผน').toHaveCount(0);
+    await expect(page.getByText('ยังไม่มีแผนเข้าชม')).toBeVisible();
+  });
+});

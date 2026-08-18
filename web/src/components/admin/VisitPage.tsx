@@ -1,7 +1,7 @@
 'use client';
 
 import { AdminShell } from '@/components/admin/AdminShell';
-import { VisitActions, VisitBody, setPinnedVisit } from '@/components/admin/VisitBody';
+import { VisitActions, VisitBody, VisitTitle, setPinnedVisit } from '@/components/admin/VisitBody';
 import { RecordPicker } from '@/components/admin/RecordPicker';
 import Link from 'next/link';
 
@@ -25,13 +25,7 @@ const visitCss = `
 /* Topbar eyebrow (breadcrumb) + title (with a status code badge) contain rich
    markup; AdminShell types them as string, so cast the nodes through unknown. */
 const eyebrowNode = (
-  <><Link href="/admin/shortlists" style={{ color: 'var(--muted2)' }}>SL-208</Link> / Visit Plan</>
-);
-
-const titleNode = (
-  <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-    VP-064 <code style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 12, fontWeight: 700, color: '#034956', background: '#EEF4F3', padding: '2px 8px', borderRadius: 6 }}>confirming</code>
-  </span>
+  <><Link href="/admin/shortlists" style={{ color: 'var(--muted2)' }}>Shortlists</Link> / แผนเข้าชม</>
 );
 
 export function VisitPage({ visitId }: { visitId?: string }) {
@@ -41,7 +35,7 @@ export function VisitPage({ visitId }: { visitId?: string }) {
     <AdminShell
       active="visits"
       eyebrow={eyebrowNode as unknown as string}
-      title={titleNode as unknown as string}
+      title={<VisitTitle /> as unknown as string}
       actions={<><RecordPicker base="visits" endpoint="/api/visits" currentId={visitId} toRow={(v) => ({ id: String(v.id), label: `นัดชม ${new Date(Number(v.date)).toLocaleDateString('th-TH')}`, meta: `${(v.stops as unknown[] | undefined)?.length ?? 0} ทรัพย์ · ${v.status}` })} /><VisitActions /></>}
       css={visitCss}
     >

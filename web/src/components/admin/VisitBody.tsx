@@ -86,6 +86,24 @@ function useLatestVisit(): ApiVisit | null {
   return visit;
 }
 
+/* หัวเรื่องของหน้านี้เคยเป็นข้อความคงที่ 'VP-064 · confirming' และ breadcrumb
+   'SL-208' ซึ่งเป็นรหัสจากไฟล์ออกแบบ ขึ้นเหมือนกันทุกครั้งแม้ในระบบจะไม่มีแผน
+   เข้าชมสักแผน — หน้าจึงประกาศรหัสของสิ่งที่ไม่มีอยู่ */
+export function VisitTitle() {
+  const visit = useLatestVisit();
+  if (!visit) return <span>แผนเข้าชม</span>;
+  const when = new Date(Number(visit.date)).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' });
+  const label: Record<string, string> = { scheduled: 'นัดไว้', done: 'ปิดแผนแล้ว', cancelled: 'ยกเลิก' };
+  return (
+    <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      นัดชม {when}
+      <code style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 12, fontWeight: 700, color: '#034956', background: '#EEF4F3', padding: '2px 8px', borderRadius: 6 }}>
+        {label[visit.status] ?? visit.status}
+      </code>
+    </span>
+  );
+}
+
 export function VisitActions() {
   const visit = useLatestVisit();
   const [completed, setCompleted] = React.useState(false);
@@ -93,7 +111,8 @@ export function VisitActions() {
 
   // the server refuses to close a plan whose availability gate is still open
   const complete = () => {
-    if (!visit) { setCompleted(true); return; }
+    // เดิม: ไม่มีแผนก็ยังเปลี่ยนปุ่มเป็น "ปิด plan แล้ว" ทั้งที่ไม่ได้บันทึกอะไรเลย
+    if (!visit) return;
     apiPatch(`/api/visits/${visit.id}`, { status: 'done' })
       .then(() => { setCompleted(true); if (visitCache) visitCache.status = 'done'; })
       .catch((e) => window.alert(e instanceof ApiClientError ? e.message : 'ปิดแผนไม่สำเร็จ'));
@@ -104,7 +123,8 @@ export function VisitActions() {
       <div onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9"><path d="M9 17H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v7a2 2 0 01-2 2h-2" /><path d="M9 13h6M9 17h6" /></svg>พิมพ์ route sheet
       </div>
-      <div onClick={complete} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 18px', borderRadius: 9999, background: completed ? '#273c33' : '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+      <div onClick={complete} title={visit ? undefined : 'ยังไม่มีแผนเข้าชมให้ปิด'}
+        style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 18px', borderRadius: 9999, background: !visit ? 'var(--border)' : completed ? '#273c33' : '#0D6C3B', color: visit ? '#fff' : 'var(--muted3)', fontSize: 13, fontWeight: 700, cursor: visit ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M20 6L9 17l-5-5" /></svg>{completed ? 'ปิด plan แล้ว' : 'ปิด plan (completed)'}
       </div>
     </div>
@@ -118,8 +138,9 @@ export function VisitBody() {
   React.useEffect(() => { if (visit?.gateConfirmed) setGateConfirmed(true); }, [visit]);
 
   const confirmGate = () => {
-    setGateConfirmed(true); // optimistic — it only unlocks a link
+    // ไม่มีแผน = ไม่มีอะไรให้ยืนยัน เดิมกดแล้วขึ้นว่ายืนยันแล้วเฉย ๆ
     if (!visit) return;
+    setGateConfirmed(true); // optimistic — it only unlocks a link
     apiPatch(`/api/visits/${visit.id}`, { gateConfirmed: true })
       .then(() => { if (visitCache) visitCache.gateConfirmed = true; })
       .catch((e) => {
@@ -188,6 +209,9 @@ export function VisitBody() {
   return (
     <>
       {/* CRITERIA GATE (Flow C) */}
+      {/* ด่านยืนยันเกณฑ์เป็นเรื่องของแผนที่มีอยู่จริง — ไม่มีแผนก็ไม่มีอะไรให้ยืนยัน
+          เดิมกล่องนี้ขึ้นเสมอ พร้อมปุ่มที่กดแล้วขึ้นว่า "ยืนยันแล้ว" เฉย ๆ */}
+      {visit && (
       <div style={{ background: gateConfirmed ? '#E8F3EC' : 'var(--surface)', border: '1px solid ' + (gateConfirmed ? '#B6E0C4' : '#EAD9A8'), borderRadius: 16, padding: '18px 22px', boxShadow: gateConfirmed ? undefined : '0 4px 16px rgba(217,166,43,.08)' }}>
         <div id="visit-gate-row" style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
           <div style={{ width: 40, height: 40, borderRadius: 11, background: gateConfirmed ? '#0D6C3B' : '#FBF3E1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -212,6 +236,7 @@ export function VisitBody() {
           )}
         </div>
       </div>
+      )}
 
       <div id="visit-split" style={{ marginTop: 20, display: 'grid', gridTemplateColumns: '1fr 320px', gap: 20, alignItems: 'start' }}>
         {/* LEFT: plan + appointments */}
@@ -220,12 +245,12 @@ export function VisitBody() {
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 22 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>แผนการเข้าชม</div>
-              <span style={{ height: 26, padding: '0 12px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center' }}>เต็มวัน</span>
+              {/* ป้าย "เต็มวัน" เป็นข้อความคงที่ ไม่มีข้อมูลครึ่งวัน/เต็มวันในระบบให้อ้างอิง */}
             </div>
             <div id="visit-plan-meta" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
               <div style={{ background: 'var(--bg)', borderRadius: 12, padding: '13px 15px' }}><div style={{ fontSize: '11.5px', color: 'var(--muted2)' }}>วันที่นัด</div><div style={{ marginTop: 3, fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{visit ? fmtDate(visit.date) : '—'}</div></div>
               <div style={{ background: 'var(--bg)', borderRadius: 12, padding: '13px 15px' }}><div style={{ fontSize: '11.5px', color: 'var(--muted2)' }}>ทรัพย์ที่จะดู</div><div style={{ marginTop: 3, fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{stops.length} แห่ง</div></div>
-              <div style={{ background: 'var(--bg)', borderRadius: 12, padding: '13px 15px' }}><div style={{ fontSize: '11.5px', color: 'var(--muted2)' }}>สถานะ</div><div style={{ marginTop: 3, fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{visit?.status === 'done' ? 'ปิดแล้ว' : visit?.status === 'cancelled' ? 'ยกเลิก' : 'นัดไว้'}</div></div>
+              <div style={{ background: 'var(--bg)', borderRadius: 12, padding: '13px 15px' }}><div style={{ fontSize: '11.5px', color: 'var(--muted2)' }}>สถานะ</div><div style={{ marginTop: 3, fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{!visit ? '—' : visit.status === 'done' ? 'ปิดแล้ว' : visit.status === 'cancelled' ? 'ยกเลิก' : 'นัดไว้'}</div></div>
             </div>
           </div>
 
