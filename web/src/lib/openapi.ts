@@ -760,6 +760,27 @@ export const openapi = {
         responses: { 200: okRes('เพิ่มแล้ว', obj({ id: STR })), ...AUTH_ERRORS },
       },
     },
+    '/api/geography/{id}': {
+      patch: {
+        tags: ['Config'], summary: 'แก้ชื่อพื้นที่ / สถานะนิคม (owner / ops)',
+        parameters: [pathParam('id', 'id ของพื้นที่')],
+        requestBody: body(obj({ th: STR, en: STR, code: STR, type: STR, active: BOOL }, [])),
+        responses: { 200: okRes('บันทึกแล้ว', obj({ id: STR })), 404: errRes('ไม่พบพื้นที่นี้'), ...AUTH_ERRORS },
+      },
+      delete: {
+        tags: ['Config'], summary: 'ลบพื้นที่ (owner / ops)',
+        description: 'ปฏิเสธเมื่อยังมีพื้นที่ย่อย หรือมีทรัพย์อยู่ในพื้นที่นั้น — ส่ง ?force=1 เพื่อยืนยันลบทั้งที่มีทรัพย์',
+        parameters: [pathParam('id', 'id ของพื้นที่')],
+        responses: { 200: okRes('ลบแล้ว', obj({ id: STR, used: INT })), 404: errRes('ไม่พบพื้นที่นี้'), ...AUTH_ERRORS },
+      },
+    },
+    '/api/geography/import': {
+      post: {
+        tags: ['Config'], summary: 'สร้างผังพื้นที่จากที่อยู่ของทรัพย์ที่มีอยู่ (owner / ops)',
+        description: 'เพิ่มเฉพาะพื้นที่ที่ยังไม่มี ไม่แก้ชื่อและไม่ลบของเดิม · ?dry=1 เพื่อดูผลโดยไม่เขียน',
+        responses: { 200: okRes('ผลการดึงข้อมูล'), ...AUTH_ERRORS },
+      },
+    },
     '/api/social': {
       get: { tags: ['Config'], summary: 'ช่องทางลงประกาศ + สถานะรายประกาศ', responses: { 200: okRes('สถานะ social'), ...AUTH_ERRORS } },
     },

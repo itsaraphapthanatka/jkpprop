@@ -5,7 +5,7 @@ import { resolveFields, propertyType, type FieldDef } from '@/lib/propertySchema
 import { useSchemaSync } from '@/lib/schemaSync';
 import { buildSummary } from '@/lib/summaryTemplate';
 import { MapPicker } from './MapPicker';
-import { apiFetch, ApiClientError } from '@/lib/apiClient';
+import { apiFetch, apiGet, ApiClientError } from '@/lib/apiClient';
 import { MediaLibraryPicker } from './MediaLibraryPicker';
 
 /* Renders the enabled fields for a property type (from the Field Builder
@@ -135,6 +135,39 @@ export function DynamicFieldForm({ typeKey, code, initialValues, onValuesChange 
   const onChangeRef = React.useRef(onValuesChange);
   onChangeRef.current = onValuesChange;
   React.useEffect(() => { onChangeRef.current?.(vals); }, [vals]);
+
+  /* จังหวัด/เขต/แขวง เคยเป็นช่องพิมพ์เปล่า ๆ ทั้งสามช่อง ข้อมูลจริง 393 รายการ
+     จึงมีทั้งพิมพ์ตก ("กิ่แก้ว") เว้นวรรคไม่เหมือนกัน ("แขวงคันนายาว" กับ
+     "แขวง คันนายาว") และชื่อจังหวัดคนละแบบ ("กรุงเทพ" กับ "กรุงเทพมหานคร")
+     ซึ่งไปโผล่เป็นตัวกรองที่หาไม่เจอบนหน้าเว็บ ตอนนี้ดึงรายการจริงจาก
+     /admin/geography มาช่วยเติม — ยังพิมพ์เองได้ ชื่อใหม่จึงไม่ถูกปิดกั้น */
+  const [geo, setGeo] = React.useState<{
+    provinces: { th: string; districts: { name: string }[] }[];
+    subMap: Record<string, { name: string }[]>;
+  }>({ provinces: [], subMap: {} });
+  React.useEffect(() => {
+    let alive = true;
+    apiGet<{ provinces: { th: string; districts: { name: string }[] }[]; subMap: Record<string, { name: string }[]> }>('/api/geography')
+      .then((g) => { if (alive) setGeo({ provinces: g.provinces ?? [], subMap: g.subMap ?? {} }); })
+      .catch(() => { /* ไม่มีรายการช่วยเติมก็ยังพิมพ์เองได้ */ });
+    return () => { alive = false; };
+  }, []);
+
+  const bare = (v: string) => v.replace(/^(แขวง|ตำบล|ต\.|เขต|อำเภอ|อ\.)\s*/, '').trim();
+  const geoOptions = (key: string, provIn?: string, distIn?: string): string[] => {
+    if (key === 'province') return geo.provinces.map((p) => p.th);
+    if (key === 'district' || key === 'amphoe') {
+      const chosen = provIn ?? str('province');
+      const p = geo.provinces.find((x) => bare(x.th) === bare(chosen));
+      return (p ? p.districts : geo.provinces.flatMap((x) => x.districts)).map((d) => d.name);
+    }
+    const d = distIn ?? (str('district') || str('amphoe'));
+    if (d) {
+      const hit = Object.keys(geo.subMap).find((k) => bare(k) === bare(d));
+      if (hit) return geo.subMap[hit].map((x) => x.name);
+    }
+    return Object.values(geo.subMap).flat().map((x) => x.name);
+  };
 
   // Re-resolve the field list AND clear answers on type change — several keys
   // (bathrooms, kitchen, common_area, appliances, furniture…) exist on more than
@@ -269,12 +302,23 @@ export function DynamicFieldForm({ typeKey, code, initialValues, onValuesChange 
           <div>
             {lbl(f)}
             <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 14, background: 'var(--bg)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 10 }}>
-              {(f.sub || []).map((s) => (
-                <div key={s.key} style={s.key === 'map' ? { gridColumn: '1 / -1' } : undefined}>
-                  <label style={{ ...labelStyle, fontSize: 11, marginBottom: 4 }}>{s.label}</label>
-                  <input value={sub(f.key, s.key)} onChange={(e) => setSub(f.key, s.key, e.target.value)} placeholder={s.key === 'map' ? 'เช่น 13.6900, 100.6100 หรือลิงก์ Google Map' : ''} style={{ ...inputStyle, height: 40 }} />
-                </div>
-              ))}
+              {(f.sub || []).map((s) => {
+                /* บ้าน/คอนโด/ที่ดิน เก็บที่อยู่เป็นฟิลด์ย่อยในกลุ่มนี้ ไม่ใช่ฟิลด์
+                   ระดับบนเหมือนโรงงาน/โกดัง — ถ้าไม่ต่อรายการช่วยเติมตรงนี้ด้วย
+                   ครึ่งหนึ่งของประเภททรัพย์ก็ยังพิมพ์มือล้วนอยู่ดี */
+                const opts = ['province', 'amphoe', 'tambon'].includes(s.key) ? geoOptions(s.key, sub(f.key, 'province'), sub(f.key, 'amphoe')) : [];
+                const listId = `geo-sub-${f.key}-${s.key}`;
+                return (
+                  <div key={s.key} style={s.key === 'map' ? { gridColumn: '1 / -1' } : undefined}>
+                    <label style={{ ...labelStyle, fontSize: 11, marginBottom: 4 }}>{s.label}</label>
+                    <input list={opts.length ? listId : undefined} data-geo-input={opts.length ? s.key : undefined}
+                      value={sub(f.key, s.key)} onChange={(e) => setSub(f.key, s.key, e.target.value)}
+                      placeholder={s.key === 'map' ? 'เช่น 13.6900, 100.6100 หรือลิงก์ Google Map' : (opts.length ? 'พิมพ์หรือเลือกจากรายการ' : '')}
+                      style={{ ...inputStyle, height: 40 }} />
+                    {opts.length > 0 && <datalist id={listId}>{[...new Set(opts)].map((o) => <option key={o} value={o} />)}</datalist>}
+                  </div>
+                );
+              })}
             </div>
           </div>
         );
@@ -360,8 +404,26 @@ export function DynamicFieldForm({ typeKey, code, initialValues, onValuesChange 
       case 'price':
       case 'number':
         return (<div>{lbl(f)}<input value={str(f.key)} onChange={(e) => setV(f.key, e.target.value)} inputMode="numeric" placeholder="0" style={inputStyle} />{note(f)}</div>);
-      default: // text
+      default: { // text
+        const GEO_KEYS = ['province', 'district', 'amphoe', 'subdistrict', 'tambon'];
+        if (GEO_KEYS.includes(f.key)) {
+          const opts = geoOptions(f.key);
+          const listId = `geo-list-${f.key}`;
+          return (
+            <div>
+              {lbl(f)}
+              <input list={opts.length ? listId : undefined} data-geo-input={f.key} value={str(f.key)}
+                onChange={(e) => setV(f.key, e.target.value)}
+                placeholder={f.placeholder || (opts.length ? 'พิมพ์หรือเลือกจากรายการ' : '')} style={inputStyle} />
+              {opts.length > 0 && (
+                <datalist id={listId}>{[...new Set(opts)].map((o) => <option key={o} value={o} />)}</datalist>
+              )}
+              {note(f)}
+            </div>
+          );
+        }
         return (<div>{lbl(f)}<input value={str(f.key)} onChange={(e) => setV(f.key, e.target.value)} placeholder={f.placeholder || ''} style={inputStyle} />{note(f)}</div>);
+      }
     }
   };
 

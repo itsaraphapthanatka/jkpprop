@@ -141,20 +141,58 @@ test.describe('FAQ answers from the CMS', () => {
   /* The editor stores rich text, so an answer is markup. The page printed it
      as text and visitors read "<p>ขอใบ ร.ง.4 …</p>" tags and all. Rendering it
      as HTML fixes that but makes the CMS body an injection point on a public
-     page, so it is sanitised server-side — both halves are checked here. */
-  const RG4 = 'ขอใบ ร.ง.4 ต้องเตรียมอะไรบ้าง';
+     page, so it is sanitised server-side — both halves are checked here.
+
+     The row is created by the test rather than borrowed from the seeded FAQ:
+     these tests used to assert on one bold word inside one seeded answer, so
+     rewriting that answer broke three tests that were not about it. */
+  const MARK = `เทสต์ลายเซ็น-${Date.now().toString(36)}`;
+  const QUESTION = `คำถามสำหรับเทสต์ ${MARK}`;
+  let cookie = '';
+  let rowId = '';
+
+  test.beforeAll(async ({ browser }) => {
+    const page = await browser.newPage();
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    // POST สร้างแถวเปล่า ๆ ส่วนเนื้อหาและสถานะเผยแพร่ใส่ทีหลังด้วย PUT
+    const made = await page.request.post('/api/cms', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { kind: 'faq', title: QUESTION, slug: `e2e-faq-${MARK}`, category: 'เทสต์' },
+    });
+    expect(made.status(), 'สร้างแถว FAQ สำหรับเทสต์ไม่ได้').toBeLessThan(300);
+    const madeJson = await made.json();
+    rowId = madeJson.id ?? madeJson.data?.id ?? '';
+    expect(rowId, 'ไม่ได้ id ของแถวที่สร้าง').toBeTruthy();
+
+    const filled = await page.request.put(`/api/cms/${rowId}`, {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: {
+        lang: 'th', title: QUESTION, category: 'เทสต์', status: 'published',
+        // ตัวหนาต้องกลายเป็นตัวหนาจริง ส่วนสคริปต์ต้องถูกตัดทิ้งที่เซิร์ฟเวอร์
+        body: `<p>คำตอบมี<strong>${MARK}</strong>อยู่ข้างใน</p><script>alert('xss')</script>`,
+      },
+    });
+    expect(filled.status(), 'ใส่เนื้อหาให้แถวเทสต์ไม่ได้').toBeLessThan(300);
+    await page.close();
+  });
+
+  test.afterAll(async ({ request }) => {
+    if (rowId) await request.delete(`/api/cms/${rowId}`, { headers: { cookie } }).catch(() => null);
+  });
 
   test('renders formatting instead of showing the tags, and drops scripts', async ({ page }) => {
     const errors: string[] = [];
     page.on('dialog', (d) => { errors.push('alert fired'); void d.dismiss(); });
 
     await page.goto('/th/faq');
-    const q = page.getByText(RG4).first();
-    if (!(await q.count())) test.skip(true, 'no FAQ row seeded in this database');
-
-    await q.click();
-    const answer = page.locator('#faq-layout strong', { hasText: 'สำเนาโฉนด' });
-    await expect(answer).toBeVisible();
+    await page.getByText(QUESTION).first().click();
+    await expect(page.locator('#faq-layout strong', { hasText: MARK })).toBeVisible();
 
     // the literal tags must not appear as words on the page
     await expect(page.locator('body')).not.toContainText('<p>');
@@ -168,11 +206,12 @@ test.describe('FAQ answers from the CMS', () => {
   test('answers are in the server HTML, not only after a click', async ({ request }) => {
     const html = await (await request.get('/th/faq')).text();
     const withoutScripts = html.replace(/<script(?![^>]*ld\+json)[\s\S]*?<\/script>/g, '');
-    if (!withoutScripts.includes(RG4)) test.skip(true, 'no FAQ row seeded in this database');
 
-    expect(withoutScripts, 'the answer never reaches a crawler').toContain('สำเนาโฉนด');
+    expect(withoutScripts, 'the answer never reaches a crawler').toContain(MARK);
     // present but collapsed until opened
     expect(withoutScripts).toMatch(/hidden=""/);
+    // และสคริปต์ที่ฝังมากับเนื้อหา ต้องไม่หลุดออกไปกับหน้าเว็บ
+    expect(html).not.toContain("alert('xss')");
   });
 
   test('the page declares FAQPage structured data', async ({ request }) => {
@@ -195,14 +234,12 @@ test.describe('FAQ answers from the CMS', () => {
 
   test('the accordion is operable by keyboard and announces its state', async ({ page }) => {
     await page.goto('/th/faq');
-    const q = page.getByRole('button', { name: new RegExp(RG4) });
-    if (!(await q.count())) test.skip(true, 'no FAQ row seeded in this database');
-
+    const q = page.getByRole('button', { name: new RegExp(MARK) });
     await expect(q).toHaveAttribute('aria-expanded', 'false');
     await q.focus();
     await page.keyboard.press('Enter');
     await expect(q).toHaveAttribute('aria-expanded', 'true');
-    await expect(page.locator('#faq-layout strong', { hasText: 'สำเนาโฉนด' })).toBeVisible();
+    await expect(page.locator('#faq-layout strong', { hasText: MARK })).toBeVisible();
   });
 });
 
