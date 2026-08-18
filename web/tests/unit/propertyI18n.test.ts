@@ -67,13 +67,16 @@ describe('the "แปลไม่ครบ" count', () => {
 });
 
 describe('place names', () => {
-  test('the province is translated, the district romanised', async () => {
+  /* Districts used to hand a Chinese reader the romanisation, on the grounds
+     that a made-up Chinese name is worse than a Latin one. Transliteration is
+     not making one up — it is how Chinese has always written Thai places, and
+     how Chinese-language media in Thailand write these same districts. */
+  test('the province and the district both read in Chinese', async () => {
     const { provinceLabel, districtLabel } = await import('../../src/i18n/places.ts');
     assert.equal(provinceLabel('ชลบุรี', 'en'), 'Chonburi');
     assert.equal(provinceLabel('ชลบุรี', 'zh'), '春武里');
     assert.equal(districtLabel('ศรีราชา', 'en'), 'Si Racha');
-    // Chinese takes the same Latin form rather than an invented Chinese name
-    assert.equal(districtLabel('ศรีราชา', 'zh'), 'Si Racha');
+    assert.equal(districtLabel('ศรีราชา', 'zh'), '是拉差');
   });
 
   test('Thai readers keep the address exactly as the team typed it', async () => {
@@ -91,12 +94,12 @@ describe('place names', () => {
     assert.equal(provinceLabel(null, 'en'), '');
   });
 
-  /* Chinese has established names for perhaps a third of the provinces; the
-     rest fall back to the romanisation, which a Chinese reader can at least
-     match against a map — unlike Thai script. */
-  test('a province with no Chinese name falls back to the romanisation', async () => {
+  /* Every province now has a Chinese name — the ones without an established
+     rendering get a transliteration, which beats a Latin string sitting in the
+     middle of a Chinese sentence. */
+  test('even a province off the industrial belt reads in Chinese', async () => {
     const { provinceLabel } = await import('../../src/i18n/places.ts');
-    assert.equal(provinceLabel('บึงกาฬ', 'zh'), 'Bueng Kan');
+    assert.equal(provinceLabel('บึงกาฬ', 'zh'), '汶干');
     assert.equal(provinceLabel('บึงกาฬ', 'en'), 'Bueng Kan');
   });
 
@@ -105,6 +108,7 @@ describe('place names', () => {
     const values = { district: 'บางพลี', province: 'สมุทรปราการ' };
     assert.equal(displayLocation(values), 'บางพลี, สมุทรปราการ');
     assert.equal(displayLocation(values, 'en'), 'Bang Phli, Samut Prakan');
-    assert.equal(displayLocation(values, 'zh'), 'Bang Phli, 北榄');
+    // ทั้งเขตและจังหวัดอ่านเป็นจีน ไม่ใช่จีนครึ่งโรมันครึ่ง
+    assert.equal(displayLocation(values, 'zh'), '挽披, 北榄');
   });
 });

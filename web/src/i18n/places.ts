@@ -5,13 +5,10 @@
  * tells an English reader nothing, and a Chinese reader cannot even sound it
  * out. So the province is translated and the district romanised (RTGS).
  *
- * Two deliberate limits:
- *  - Chinese names exist only for the provinces that have an established one.
- *    Everything else falls back to the romanisation rather than to a name
- *    invented here — a made-up Chinese name for a Thai district is worse than
- *    a Latin one, because it cannot be matched against a map or a contract.
- *  - Districts are covered for the industrial belt this agency actually lists
- *    in. An unknown district stays exactly as stored.
+ * Coverage: every province, and every district and subdistrict this agency's
+ * inventory actually uses, in English and Chinese. A place nobody has listed
+ * in yet keeps its Thai name rather than being guessed at, and anything the
+ * team spells differently can be overridden per-place in /admin/geography.
  */
 import { DEFAULT_LOCALE, type Locale } from './config';
 
@@ -40,7 +37,8 @@ const PROVINCE_EN: Record<string, string> = {
   อุทัยธานี: 'Uthai Thani', อุบลราชธานี: 'Ubon Ratchathani',
 };
 
-/** provinces with an established Chinese name — the rest use the romanisation */
+/** every province in Chinese: the established name where one is in use,
+    a transliteration for the rest — the same rule the districts follow */
 const PROVINCE_ZH: Record<string, string> = {
   กรุงเทพมหานคร: '曼谷', 'กรุงเทพฯ': '曼谷',
   ชลบุรี: '春武里', ระยอง: '罗勇', ฉะเชิงเทรา: '北柳', สมุทรปราการ: '北榄', สมุทรสาคร: '龙仔厝',
@@ -50,6 +48,15 @@ const PROVINCE_ZH: Record<string, string> = {
   ภูเก็ต: '普吉', สงขลา: '宋卡', สุราษฎร์ธานี: '素叻他尼', นครราชสีมา: '呵叻', ขอนแก่น: '孔敬',
   อุดรธานี: '乌隆', อุบลราชธานี: '乌汶', ลพบุรี: '华富里', นครสวรรค์: '北榄坡', พิษณุโลก: '彭世洛',
   สุพรรณบุรี: '素攀', อ่างทอง: '红统', สิงห์บุรี: '信武里', นครนายก: '那空那育', สระแก้ว: '沙缴',
+  กระบี่: '甲米', กาฬสินธุ์: '加拉信', กำแพงเพชร: '甘烹碧', ชัยนาท: '猜纳', ชัยภูมิ: '猜也奔',
+  ชุมพร: '春蓬', ตรัง: '董里', ตาก: '来兴', นครพนม: '那空拍侬', นครศรีธรรมราช: '洛坤',
+  นราธิวาส: '陶公', 'น่าน': '难府', บึงกาฬ: '汶干', บุรีรัมย์: '武里南', ปัตตานี: '北大年',
+  พะเยา: '帕尧', พังงา: '攀牙', พัทลุง: '博他仑', พิจิตร: '披集', เพชรบูรณ์: '碧差汶',
+  'แพร่': '帕', มหาสารคาม: '玛哈沙拉堪', มุกดาหาร: '莫达汉', 'แม่ฮ่องสอน': '夜丰颂',
+  ยโสธร: '益梭通', ยะลา: '惹拉', ร้อยเอ็ด: '黎逸', ระนอง: '拉廊', ลำปาง: '南邦', ลำพูน: '南奔',
+  เลย: '黎府', ศรีสะเกษ: '四色菊', สกลนคร: '沙功那空', สตูล: '沙墩', สมุทรสงคราม: '夜功',
+  สุโขทัย: '素可泰', สุรินทร์: '素林', หนองคาย: '廊开', หนองบัวลำภู: '农磨兰普',
+  อำนาจเจริญ: '安纳乍能', อุตรดิตถ์: '程逸', อุทัยธานี: '乌泰他尼',
 };
 
 /* Districts of the industrial belt — Bangkok's factory districts, the EEC and
@@ -123,6 +130,81 @@ const SUBDISTRICT_EN: Record<string, string> = {
   ศีรษะจรเข้ใหญ่: 'Sisa Chorakhe Yai', ศรีสาจรเข้ใหญ่: 'Sisa Chorakhe Yai',
 };
 
+
+/* Chinese for districts and subdistricts.
+ *
+ * This file used to say Chinese existed for provinces only, on the grounds
+ * that inventing a Chinese name for a Thai district is worse than leaving a
+ * Latin one. That reasoning holds for a name pulled out of thin air; it does
+ * not hold for transliteration, which is how Chinese has always written Thai
+ * places and how Chinese-language media in Thailand write these exact
+ * districts (拉甲挽 for ลาดกระบัง, 是拉差 for ศรีราชา, 惠康 for ห้วยขวาง).
+ *
+ * So: established renderings where the Thai-Chinese community has one,
+ * consistent transliteration where it does not — and every one of them is
+ * editable in /admin/geography, which is where a correction belongs. A
+ * Chinese reader now gets an address they can say out loud to a taxi driver
+ * instead of a Latin string in the middle of a Chinese sentence. */
+const DISTRICT_ZH: Record<string, string> = {
+  // Bangkok
+  บางนา: '挽那', ลาดกระบัง: '拉甲挽', ประเวศ: '巴威', บางขุนเทียน: '挽坤天',
+  หนองแขม: '廊仟', มีนบุรี: '民武里', คลองสามวา: '空三华', บางบอน: '挽汶',
+  จตุจักร: '乍都乍', พระโขนง: '帕卡农', สวนหลวง: '素銮', ราษฎร์บูรณะ: '叻武拉那',
+  ทุ่งครุ: '通克鲁', บางแค: '挽卡', ตลิ่งชัน: '汀清',
+  บางกะปิ: '挽甲必', คันนายาว: '甘那尧', สะพานสูง: '沙潘颂', บางเขน: '挽鉴',
+  บึงกุ่ม: '汶昆', วังทองหลาง: '旺通朗', ห้วยขวาง: '惠康', สายไหม: '塞迈',
+  หนองจอก: '廊卓', ลาดพร้าว: '拉抛', บางซื่อ: '挽是', คลองเตย: '空堤',
+  ปทุมวัน: '巴吞旺', ดินแดง: '汀丹', บางพลัด: '挽帕', ทวีวัฒนา: '他威瓦他那',
+  วัฒนา: '瓦他那',
+  // Samut Prakan
+  บางพลี: '挽披', บางบ่อ: '挽波', บางเสาธง: '挽绍通', พระประแดง: '帕巴登',
+  พระสมุทรเจดีย์: '帕沙木哲迪', เมืองสมุทรปราการ: '北榄市',
+  // Chonburi
+  ศรีราชา: '是拉差', บางละมุง: '挽拉蒙', พานทอง: '潘通', พนัสนิคม: '帕那尼空',
+  สัตหีบ: '梭桃邑', บ้านบึง: '班汶', เมืองชลบุรี: '春武里市', หนองใหญ่: '廊亚',
+  // Rayong
+  ปลวกแดง: '巴楼丹', นิคมพัฒนา: '尼空帕他那', บ้านค่าย: '班盖',
+  เมืองระยอง: '罗勇市', แกลง: '格朗', บ้านฉาง: '班昌',
+  // Chachoengsao
+  บางปะกง: '挽巴功', แปลงยาว: '平尧', บ้านโพธิ์: '班坡', เมืองฉะเชิงเทรา: '北柳市',
+  // Samut Sakhon
+  เมืองสมุทรสาคร: '龙仔厝市', กระทุ่มแบน: '甲统万', บ้านแพ้ว: '班沛',
+  // Ayutthaya
+  วังน้อย: '旺莱', บางปะอิน: '挽巴茵', อุทัย: '乌泰', นครหลวง: '那空銮',
+  // Pathum Thani · Nonthaburi
+  คลองหลวง: '空銮', ลำลูกกา: '兰卢卡', ธัญบุรี: '探武里',
+  เมืองปทุมธานี: '巴吞他尼市', สามโคก: '三谷', ลาดหลุมแก้ว: '拉伦交',
+  ปากเกร็ด: '巴革',
+  // Saraburi / Prachinburi
+  หนองแค: '廊卡', แก่งคอย: '甘蔻', ศรีมหาโพธิ: '西玛哈坡', กบินทร์บุรี: '甲民武里',
+};
+
+const SUBDISTRICT_ZH: Record<string, string> = {
+  // Bangkok
+  คลองกุ่ม: '空昆', คลองจั่น: '空展', คลองเจ้าคุณสิงห์: '空昭坤信',
+  คลองเตย: '空堤', คลองสองต้นนุ่น: '空松吞嫩', คลองสามประเวศ: '空三巴威',
+  คันนายาว: '甘那尧', คู้ฝั่งเหนือ: '库枫勒', จระเข้บัว: '乍拉客布阿',
+  จันทร์เกษม: '占卡宋', ดอกไม้: '多迈', ดินแดง: '汀丹', ทรายกองดิน: '赛贡丁',
+  ทับช้าง: '塔昌', ทับยาว: '塔尧', ท่าแร้ง: '塔亮', นวมินทร์: '那瓦明',
+  นวลจันทร์: '暖占', บางกะปิ: '挽甲必', บางจาก: '挽乍', บางชัน: '挽产',
+  บางซื่อ: '挽是', บางนาใต้: '南挽那', บางนาเหนือ: '北挽那', บางอ้อ: '挽奥',
+  ประเวศ: '巴威', พระโขนง: '帕卡农', พลับพลา: '帕帕拉', พัฒนาการ: '帕他那干',
+  มีนบุรี: '民武里', รามอินทรา: '拉玛因他拉', ราษฎร์พัฒนา: '叻帕他那',
+  ลาดกระบัง: '拉甲挽', ลาดพร้าว: '拉抛', ลำผักชี: '兰帕奇',
+  ลำปลาทิว: '兰帕拉提奥', ลำประทิว: '兰巴提奥',
+  วงศ์สว่าง: '翁沙旺', วังใหม่: '旺迈', ศาลาธรรมสพน์: '沙拉探玛索',
+  สวนหลวง: '素銮', สามวาตะวันออก: '东三华', สามเสนนอก: '外三盛',
+  สายไหม: '塞迈', แสนแสบ: '盛撒', หนองบอน: '廊崩', ห้วยขวาง: '惠康',
+  หัวหมาก: '华马', อนุสาวรีย์: '阿努沙里', ออเงิน: '奥能',
+  // Samut Prakan · Pathum Thani · Nonthaburi
+  บางแก้ว: '挽交', บางโฉลง: '挽乍隆', บางปลา: '挽帕拉', บางปูใหม่: '新挽普',
+  บางพลีใหญ่: '大挽披', บางเพรียง: '挽普良', บางเสาธง: '挽绍通',
+  บ้านระกาศ: '班拉甲', แพรกษาใหม่: '新帕叻沙', ราชาเทวะ: '拉差贴瓦',
+  เทพารักษ์: '贴帕叻', สำโรง: '三隆', สำโรงใต้: '南三隆', สำโรงเหนือ: '北三隆',
+  คลองหนึ่ง: '空能', ลาดสวาย: '拉沙外', บ้านใหม่: '班迈',
+  ศีรษะจรเข้ใหญ่: '西沙乍拉客亚', ศรีสาจรเข้ใหญ่: '西沙乍拉客亚',
+};
+
 const clean = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 
 /* คนกรอกข้อมูลเขียนชื่อจังหวัดกันคนละแบบ และแผนที่ก็ใช้ชื่อทางการ:
@@ -188,7 +270,9 @@ export function districtLabel(name: unknown, locale: Locale, over?: GeoOverrides
   if (own) return own;
   // the prefix is only stripped to look the name up; an unknown place is
   // handed back exactly as stored rather than half-trimmed
-  return DISTRICT_EN[raw.replace(/^(เขต|อำเภอ|อ\.)\s*/, '')] ?? raw;
+  const bare = raw.replace(/^(เขต|อำเภอ|อ\.)\s*/, '');
+  if (locale === 'zh') return DISTRICT_ZH[bare] ?? DISTRICT_EN[bare] ?? raw;
+  return DISTRICT_EN[bare] ?? raw;
 }
 
 /** The subdistrict, romanised where we know it. The stored prefix is dropped. */
@@ -197,18 +281,26 @@ export function subdistrictLabel(name: unknown, locale: Locale, over?: GeoOverri
   if (!raw || locale === DEFAULT_LOCALE) return raw;
   const own = pick(over?.subdistrict, geoKey(raw), locale);
   if (own) return own;
-  return SUBDISTRICT_EN[raw.replace(/^(แขวง|ตำบล|ต\.)\s*/, '')] ?? raw;
+  const bare = raw.replace(/^(แขวง|ตำบล|ต\.)\s*/, '');
+  if (locale === 'zh') return SUBDISTRICT_ZH[bare] ?? SUBDISTRICT_EN[bare] ?? raw;
+  return SUBDISTRICT_EN[bare] ?? raw;
 }
 
 /** The English/Chinese this file knows, used to prefill a fresh tree. */
+/** every place name this file knows, for the test that keeps the set complete */
+export const KNOWN_PLACES = {
+  province: () => Object.keys(PROVINCE_EN),
+  district: () => Object.keys(DISTRICT_EN),
+  subdistrict: () => Object.keys(SUBDISTRICT_EN),
+};
+
 export const builtinLabels = (kind: 'province' | 'district' | 'subdistrict', th: string) => {
   const key = geoKey(th);
   if (kind === 'province') {
     const p = canonicalProvince(th);
     return { en: PROVINCE_EN[p] ?? '', zh: PROVINCE_ZH[p] ?? '' };
   }
-  const table = kind === 'district' ? DISTRICT_EN : SUBDISTRICT_EN;
-  // Chinese has no established name for a Thai district, so the romanisation
-  // stands in — inventing one would be worse than a Latin name (see above)
-  return { en: table[key] ?? '', zh: '' };
+  const en = kind === 'district' ? DISTRICT_EN : SUBDISTRICT_EN;
+  const zh = kind === 'district' ? DISTRICT_ZH : SUBDISTRICT_ZH;
+  return { en: en[key] ?? '', zh: zh[key] ?? '' };
 };

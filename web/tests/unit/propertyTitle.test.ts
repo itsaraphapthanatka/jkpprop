@@ -8,7 +8,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { composeTitle, canCompose, displayTitle } from '../../src/lib/propertyTitle.ts';
-import { districtLabel, subdistrictLabel, provinceLabel } from '../../src/i18n/places.ts';
+import { districtLabel, subdistrictLabel, provinceLabel, builtinLabels, KNOWN_PLACES } from '../../src/i18n/places.ts';
 import { enumLabel, untranslated } from '../../src/i18n/enums.ts';
 
 const warehouse = {
@@ -109,5 +109,40 @@ describe('ค่าตัวเลือกที่ทรัพย์จริ�
 
   test('ค่าที่ไม่รู้จักตกกลับเป็นไทย ไม่ใช่ว่างเปล่า', () => {
     assert.equal(enumLabel('อะไรสักอย่างที่ยังไม่มีในตาราง', 'en'), 'อะไรสักอย่างที่ยังไม่มีในตาราง');
+  });
+});
+
+/* หน้า /admin/geography โฆษณาว่า "แต่ละระดับมี 3 ภาษา" มาตลอด ความจริงคือ
+   จังหวัดมีอังกฤษ ที่เหลือไม่มีอะไรเลย เทสต์นี้กันไม่ให้ตารางกลับไปมีรูโหว่:
+   ชื่อไหนที่บอกเป็นอังกฤษได้ ต้องบอกเป็นจีนได้ด้วย */
+describe('ชื่อสถานที่ต้องครบทั้งสามภาษา', () => {
+  for (const kind of ['province', 'district', 'subdistrict'] as const) {
+    test(`${kind}: ทุกชื่อมีทั้ง EN และ 中文`, () => {
+      const missing: string[] = [];
+      for (const th of KNOWN_PLACES[kind]()) {
+        const { en, zh } = builtinLabels(kind, th);
+        if (!en.trim() || !zh.trim()) missing.push(`${th} (en=${en || '—'} zh=${zh || '—'})`);
+      }
+      assert.deepEqual(missing, [], `ยังขาดคำแปล ${missing.length} รายการ`);
+    });
+  }
+
+  test('ภาษาจีนของเขต/แขวง ไม่ใช่ชื่อโรมันที่ปล่อยผ่านมา', () => {
+    for (const [name, expected] of [['ลาดกระบัง', '拉甲挽'], ['ห้วยขวาง', '惠康'], ['ศรีราชา', '是拉差']] as const) {
+      const zh = districtLabel(name, 'zh');
+      assert.equal(zh, expected);
+      assert.ok(!/[A-Za-z]/.test(zh), `${name} ยังเป็นอักษรโรมันในภาษาจีน`);
+    }
+    assert.equal(subdistrictLabel('ตำบล ราชาเทวะ', 'zh'), '拉差贴瓦');
+  });
+
+  test('ที่ยังไม่รู้จัก คงชื่อไทยไว้ ไม่เดาให้', () => {
+    assert.equal(districtLabel('เขตที่ไม่มีในตาราง', 'zh'), 'เขตที่ไม่มีในตาราง');
+  });
+
+  test('ทุกจังหวัดมีชื่อจีน ไม่มีตัวไหนตกไปเป็นอักษรโรมัน', () => {
+    const roman = KNOWN_PLACES.province().filter((th) => /[A-Za-z]/.test(provinceLabel(th, 'zh')));
+    assert.deepEqual(roman, [], 'จังหวัดที่ยังได้ชื่อโรมันในภาษาจีน');
+    assert.equal(provinceLabel('กระบี่', 'zh'), '甲米');
   });
 });
