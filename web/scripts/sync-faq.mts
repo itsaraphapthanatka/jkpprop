@@ -84,6 +84,16 @@ for (const cat of FAQ.th) {
       .every((l) => !norm(stored[l]?.body) || known.includes(norm(stored[l]?.body)));
     if (!isScriptText && !force) {
       edited.push(`${slug} — ${row.title.slice(0, 44)}`);
+      /* Their words stay theirs — but a heading nobody ever wrote is not an
+         edit to protect. An empty category label left the English page with a
+         Thai heading sitting over an English answer. */
+      const missing = (['th', 'en', 'zh'] as const).filter((l) => !stored[l]?.category?.trim());
+      if (missing.length) {
+        const filled = { ...stored };
+        for (const l of missing) filled[l] = { ...(stored[l] ?? {}), category: content[l].category };
+        console.log(`  \u21b3 เติมชื่อหมวดที่ยังว่างให้ ${slug} (${missing.join(', ')})`);
+        if (commit) await db.cmsPage.update({ where: { id: row.id }, data: { content: filled } });
+      }
       continue;
     }
 
