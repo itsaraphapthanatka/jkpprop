@@ -15,7 +15,7 @@ import { requireUser, requireRole } from '@/lib/server/auth';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
 import { inventoryCounts, subdistrictParents, bareName } from '@/lib/server/geoCounts';
-import { provinceLabel } from '@/i18n/places';
+import { provinceLabel, canonicalProvince } from '@/i18n/places';
 
 export const runtime = 'nodejs';
 
@@ -36,8 +36,10 @@ export const POST = handler(async (req: Request) => {
   ]);
 
   const byKind = (kind: string) => existing.filter((e) => e.kind === kind);
+  const key = (kind: string, name: string) =>
+    kind === 'province' ? canonicalProvince(name) : bareName(name);
   const findBy = (kind: string, name: string) =>
-    byKind(kind).find((e) => bareName(e.name) === bareName(name));
+    byKind(kind).find((e) => key(kind, e.name) === key(kind, name));
 
   const added = { prov: [] as string[], dist: [] as string[], sub: [] as string[] };
 
@@ -45,12 +47,12 @@ export const POST = handler(async (req: Request) => {
   for (const [name] of counts.prov) {
     if (findBy('province', name)) continue;
     added.prov.push(name);
-    if (!dry) {
-      const row = await db.geoItem.create({
+    const row = dry
+      ? { id: `dry-${name}`, orgId, kind: 'province', name, code: null, meta: null, parentId: null }
+      : await db.geoItem.create({
         data: { orgId, kind: 'province', name, code: codeFor(name) || null, meta: { en: provinceLabel(name, 'en') } },
       });
-      existing.push(row);
-    }
+    existing.push(row);
   }
 
   /* a district is only placed under the province its properties are in */
@@ -70,10 +72,10 @@ export const POST = handler(async (req: Request) => {
     const prov = provName ? findBy('province', provName) : undefined;
     if (!prov) { skipped.push(name); continue; }
     added.dist.push(name);
-    if (!dry) {
-      const row = await db.geoItem.create({ data: { orgId, kind: 'district', name, parentId: prov.id } });
-      existing.push(row);
-    }
+    const row = dry
+      ? { id: `dry-${name}`, orgId, kind: 'district', name, code: null, meta: null, parentId: prov.id }
+      : await db.geoItem.create({ data: { orgId, kind: 'district', name, parentId: prov.id } });
+    existing.push(row);
   }
 
   for (const [name] of counts.sub) {
@@ -82,10 +84,10 @@ export const POST = handler(async (req: Request) => {
     const dist = distName ? findBy('district', distName) : undefined;
     if (!dist) { skipped.push(name); continue; }
     added.sub.push(name);
-    if (!dry) {
-      const row = await db.geoItem.create({ data: { orgId, kind: 'subdistrict', name, parentId: dist.id } });
-      existing.push(row);
-    }
+    const row = dry
+      ? { id: `dry-${name}`, orgId, kind: 'subdistrict', name, code: null, meta: null, parentId: dist.id }
+      : await db.geoItem.create({ data: { orgId, kind: 'subdistrict', name, parentId: dist.id } });
+    existing.push(row);
   }
 
   if (!dry && (added.prov.length || added.dist.length || added.sub.length)) {

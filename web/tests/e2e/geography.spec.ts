@@ -65,10 +65,13 @@ test.describe('พื้นที่ & นิคมอุตสาหกรร�
     await expect(page.locator('#geo-notice')).toContainText('ดึงจากทรัพย์แล้ว', { timeout: 15000 });
 
     const after = await (await request.get('/api/geography', { headers: { cookie } })).json();
-    // สิ่งที่ทรัพย์ใช้อยู่ ต้องไม่เหลือค้างในรายการ "ยังไม่มีในระบบ" อีก
+    /* สิ่งที่ทรัพย์ใช้อยู่ ต้องไม่เหลือค้าง ยกเว้นตัวที่รายงานว่าข้าม (ไม่รู้ว่า
+       อยู่ใต้พื้นที่ไหน) — ถ้าปล่อยให้เป็น "น้อยลงก็พอ" การข้ามเงียบ ๆ ก็ผ่าน */
+    const res = await (await request.post('/api/geography/import?dry=1', { headers: { cookie }, data: {} })).json();
+    const left = after.missing.prov.length + after.missing.dist.length + after.missing.sub.length;
+    expect(left, `เหลือค้าง ${left} · ระบบบอกว่าข้าม ${res.skipped.length}`).toBe(res.skipped.length);
     expect(after.missing.prov, 'จังหวัดที่ยังไม่มีในระบบ').toEqual([]);
-    expect(after.missing.dist.length, 'เขต/อำเภอที่ยังไม่มีในระบบ').toBeLessThanOrEqual(before.missing.dist.length);
-    expect(await page.locator('#geo-missing').count()).toBe(0);
+    if (!left) expect(await page.locator('#geo-missing').count()).toBe(0);
   });
 
   test('ตัวเลขข้างชื่อพื้นที่ ตรงกับจำนวนทรัพย์จริงในพื้นที่นั้น', async ({ page, request }) => {
