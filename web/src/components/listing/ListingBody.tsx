@@ -438,34 +438,49 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
           used to be decorative and the tail always read "… 86". */}
       {pageCount > 1 && (
         <div id="pagination-row" style={{ maxWidth: '1320px', margin: '-40px auto 0', padding: '0 24px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
-          <div
+          {/* ตัวเลขหน้าเคยเป็น <div> ล้วน ๆ กดด้วยเมาส์ได้อย่างเดียว คนที่ใช้
+              คีย์บอร์ดหรือโปรแกรมอ่านหน้าจอไปหน้า 2 ไม่ได้เลย */}
+          <button
+            type="button"
+            aria-label={d.listing.prevPage}
+            disabled={page === 1}
             onClick={() => setActivePage((p) => Math.max(1, p - 1))}
-            style={{ width: 38, height: 38, borderRadius: 9999, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: page === 1 ? 'var(--muted3)' : 'var(--text)', cursor: page === 1 ? 'default' : 'pointer' }}
+            style={{ width: 38, height: 38, borderRadius: 9999, border: '1px solid var(--border)', background: 'transparent', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', color: page === 1 ? 'var(--muted3)' : 'var(--text)', cursor: page === 1 ? 'default' : 'pointer' }}
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
               <path d="M15 6l-6 6 6 6" />
             </svg>
-          </div>
+          </button>
           {pageNumbers(pageCount, page).map((n, i) => {
             const isActive = n === page;
             return (
-              <div
-                key={`${n}-${i}`}
-                onClick={n === '...' ? undefined : () => setActivePage(n)}
-                style={{ minWidth: 38, height: 38, padding: '0 6px', borderRadius: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13.5px', fontWeight: 700, cursor: n === '...' ? 'default' : 'pointer', background: isActive ? 'var(--accent)' : 'transparent', color: isActive ? '#fff' : n === '...' ? 'var(--muted3)' : 'var(--text)' }}
-              >
-                {n}
-              </div>
+              n === '...' ? (
+                <span key={`${n}-${i}`} aria-hidden style={{ minWidth: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13.5px', fontWeight: 700, color: 'var(--muted3)' }}>{n}</span>
+              ) : (
+                <button
+                  type="button"
+                  key={`${n}-${i}`}
+                  aria-label={`${d.listing.pageN} ${n}`}
+                  aria-current={isActive ? 'page' : undefined}
+                  onClick={() => setActivePage(n)}
+                  style={{ minWidth: 38, height: 38, padding: '0 6px', borderRadius: 9999, border: 0, fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', background: isActive ? 'var(--accent)' : 'transparent', color: isActive ? '#fff' : 'var(--text)' }}
+                >
+                  {n}
+                </button>
+              )
             );
           })}
-          <div
+          <button
+            type="button"
+            aria-label={d.listing.nextPage}
+            disabled={page === pageCount}
             onClick={() => setActivePage((p) => Math.min(pageCount, p + 1))}
-            style={{ width: 38, height: 38, borderRadius: 9999, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: page === pageCount ? 'var(--muted3)' : 'var(--text)', cursor: page === pageCount ? 'default' : 'pointer' }}
+            style={{ width: 38, height: 38, borderRadius: 9999, border: '1px solid var(--border)', background: 'transparent', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', color: page === pageCount ? 'var(--muted3)' : 'var(--text)', cursor: page === pageCount ? 'default' : 'pointer' }}
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
               <path d="M9 6l6 6-6 6" />
             </svg>
-          </div>
+          </button>
         </div>
       )}
 

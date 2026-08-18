@@ -72,3 +72,70 @@ test.describe('น้ำหนักของหน้าคลังสื่�
     expect(mb, `หน้านี้ดึงรูปรวม ${mb.toFixed(1)} MB`).toBeLessThan(8);
   });
 });
+
+/* The grid drew every asset in the library, so the page got heavier with each
+   upload and the search filtered a list the browser had already paid for. */
+test.describe('คลังสื่อแบ่งหน้า', () => {
+  test('เปิดมาแล้วเห็นทีละหน้า ไม่ใช่ทั้งคลัง', async ({ page, request }) => {
+    await signIn(page);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    const all = await (await request.get('/api/media?limit=200', { headers: { cookie } })).json();
+    test.skip((all.total ?? 0) < 2, 'คลังสื่อยังมีไฟล์น้อยเกินกว่าจะแบ่งหน้า');
+
+    await page.goto('/admin/media');
+    await expect(page.locator('img[src*="/api/media/"], [data-media-card]').first()).toBeVisible();
+    const cards = await page.locator('img[src*="/api/media/"]').count();
+    expect(cards, `หน้าเดียวไม่ควรวาดครบทั้ง ${all.total} ไฟล์`).toBeLessThanOrEqual(60);
+
+    // ตัวเลขพื้นที่ใช้งานยังนับทั้งคลัง ไม่ใช่แค่หน้านี้
+    await expect(page.locator('#media-layout')).toContainText(`${all.totalFiles} ไฟล์`);
+  });
+
+  test('กดถัดไปแล้วได้ไฟล์คนละชุด', async ({ page, request }) => {
+    await signIn(page);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    const all = await (await request.get('/api/media?limit=200', { headers: { cookie } })).json();
+    test.skip((all.total ?? 0) <= 60, `มี ${all.total} ไฟล์ ยังไม่ถึงสองหน้า`);
+
+    /* สองหน้าต้องไม่ซ้ำกัน — อ่านจาก API ในจังหวะเดียวกัน เพราะถ้าเทียบจากหน้าจอ
+       สองครั้งคนละเวลา เทสต์ตัวอื่นที่อัปโหลดไฟล์คั่นกลางจะดันของจากหน้า 1 ไป
+       หน้า 2 แล้วกลายเป็น "ซ้ำ" ทั้งที่การแบ่งหน้าถูกต้อง */
+    const [p1, p2] = await Promise.all([
+      (await request.get('/api/media?page=1&limit=60', { headers: { cookie } })).json(),
+      (await request.get('/api/media?page=2&limit=60', { headers: { cookie } })).json(),
+    ]);
+    const ids1 = (p1.items as { id: string }[]).map((m) => m.id);
+    const ids2 = (p2.items as { id: string }[]).map((m) => m.id);
+    expect(ids2.some((id) => ids1.includes(id)), 'หน้า 2 ต้องไม่ซ้ำหน้า 1').toBe(false);
+    expect(ids1.length).toBe(60);
+
+    // และปุ่มบนหน้าจอต้องพาไปหน้า 2 จริง ๆ ไม่ใช่แค่เลขเปลี่ยน
+    await page.goto('/admin/media');
+    const firstName = await page.locator('[data-media-name]').first().innerText();
+    await page.locator('[data-media-next]').click();
+    await expect(page.locator('#media-pager')).toContainText('2 /');
+    await expect(page.locator('[data-media-name]').first()).not.toHaveText(firstName);
+  });
+
+  test('ค้นหาถามเซิร์ฟเวอร์ ไม่ใช่กรองรายการที่โหลดมาแล้ว', async ({ page, request }) => {
+    await signIn(page);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    const all = await (await request.get('/api/media?limit=200', { headers: { cookie } })).json();
+    const sample = (all.items as { name: string }[])[0];
+    test.skip(!sample, 'คลังสื่อยังไม่มีไฟล์');
+    const needle = sample.name.slice(0, 6);
+
+    const asked: string[] = [];
+    page.on('request', (r) => { if (r.url().includes('/api/media?')) asked.push(r.url()); });
+    await page.goto('/admin/media');
+    /* รอคำขอที่มีคำค้นจริง ๆ — การ์ดใบแรกอาจมีคำนั้นอยู่แล้วตั้งแต่ก่อนค้น
+       ทำให้เช็คจากหน้าจออย่างเดียวผ่านได้ทั้งที่ยังไม่ได้ยิงอะไรเลย */
+    const hit = page.waitForRequest((r) => r.url().includes(`q=${encodeURIComponent(needle)}`), { timeout: 10000 });
+    await page.getByPlaceholder(/ค้นหา/).first().fill(needle);
+    await hit;
+    await expect(page.locator('[data-media-name]').first()).toContainText(needle, { timeout: 10000 });
+    expect(asked.some((u) => u.includes(`q=${encodeURIComponent(needle)}`)), 'คำค้นต้องถูกส่งไปที่เซิร์ฟเวอร์').toBe(true);
+    const names = await page.locator('[data-media-name]').allInnerTexts();
+    expect(names.every((n) => n.toLowerCase().includes(needle.toLowerCase())), 'ผลลัพธ์ต้องตรงคำค้นทุกใบ').toBe(true);
+  });
+});

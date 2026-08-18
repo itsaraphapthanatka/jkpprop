@@ -37,6 +37,14 @@ export function MediaBody() {
   // real uploads from the API — shown ahead of the porting-era demo grid
   const [uploads, setUploads] = React.useState<ApiMedia[]>([]);
   const [totalBytes, setTotalBytes] = React.useState(0);
+  /* One page at a time. The library handed over all 412 rows and the grid drew
+     all 412 cards; searching then filtered that same full list in the browser,
+     so a search still cost the whole library. */
+  const PER_PAGE = 60;
+  const [page, setPage] = React.useState(1);
+  const [total, setTotal] = React.useState(0);
+  const [totalFiles, setTotalFiles] = React.useState(0);
+  const [loading, setLoading] = React.useState(true);
   const [busy, setBusy] = React.useState('');
   const [error, setError] = React.useState('');
   // FR-ADM-09: the style is chosen at upload time and baked into the file
@@ -45,13 +53,26 @@ export function MediaBody() {
   const fileInput = React.useRef<HTMLInputElement | null>(null);
 
   const reload = React.useCallback(async () => {
+    setLoading(true);
     try {
-      const r = await apiGet<{ items: ApiMedia[]; totalBytes: number }>('/api/media');
+      const qs = new URLSearchParams({ page: String(page), limit: String(PER_PAGE) });
+      if (q.trim()) qs.set('q', q.trim());
+      const r = await apiGet<{ items: ApiMedia[]; totalBytes: number; total: number; totalFiles: number }>(`/api/media?${qs}`);
       setUploads(Array.isArray(r.items) ? r.items : []);
       setTotalBytes(r.totalBytes || 0);
+      setTotal(r.total ?? 0);
+      setTotalFiles(r.totalFiles ?? 0);
     } catch { /* keep current state (§2.2) */ }
-  }, []);
-  React.useEffect(() => { void reload(); }, [reload]);
+    finally { setLoading(false); }
+  }, [page, q]);
+
+  /* พิมพ์ค้นหาแล้วรอให้หยุดพิมพ์ก่อนค่อยยิง — ไม่ใช่ยิงทุกตัวอักษร */
+  React.useEffect(() => {
+    const t = window.setTimeout(() => { void reload(); }, q ? 300 : 0);
+    return () => window.clearTimeout(t);
+  }, [reload, q]);
+  // เปลี่ยนคำค้นแล้วต้องกลับไปหน้าแรก ไม่งั้นค้างอยู่หน้า 5 ของผลลัพธ์ที่มี 2 หน้า
+  React.useEffect(() => { setPage(1); }, [q]);
 
   const uploadFiles = async (files: FileList | File[]) => {
     setError('');
@@ -71,7 +92,7 @@ export function MediaBody() {
   };
 
   const removeSelected = async () => {
-    const ids = uploads.filter((u) => sel[u.id]).map((u) => u.id);
+    const ids = Object.keys(sel).filter((id) => sel[id]);
     if (!ids.length || busy) return;
     setBusy('กำลังลบ…');
     setError('');
@@ -86,8 +107,10 @@ export function MediaBody() {
     await reload();
   };
 
-  const shown = q.trim() ? uploads.filter((u) => u.name.toLowerCase().includes(q.trim().toLowerCase())) : uploads;
-  const selCount = uploads.filter((u) => sel[u.id]).length;
+  // the server already applied the search; the grid shows what it sent back
+  const shown = uploads;
+  const selCount = Object.values(sel).filter(Boolean).length;
+  const pageCount = Math.max(1, Math.ceil(total / PER_PAGE));
 
   return (
     <div id="media-layout" style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 20, alignItems: 'start' }}>
@@ -99,7 +122,7 @@ export function MediaBody() {
             {/* was hard-coded to 42% whatever the real usage */}
             <div style={{ height: '100%', width: `${Math.min(100, (totalBytes / QUOTA_BYTES) * 100).toFixed(1)}%`, background: '#0D6C3B', borderRadius: 9999 }} />
           </div>
-          <div style={{ marginTop: 8, fontSize: '11.5px', color: 'var(--muted2)' }}>{(totalBytes / 1073741824).toFixed(2)} GB / 10 GB · {uploads.length} ไฟล์</div>
+          <div style={{ marginTop: 8, fontSize: '11.5px', color: 'var(--muted2)' }}>{(totalBytes / 1073741824).toFixed(2)} GB / 10 GB · {totalFiles} ไฟล์</div>
         </div>
       </div>
 
@@ -187,14 +210,45 @@ export function MediaBody() {
                   )}
                 </div>
                 <div style={{ padding: '9px 11px' }}>
-                  <div style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.name}</div>
+                  <div data-media-name style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.name}</div>
                   <div style={{ fontSize: 10, color: 'var(--muted3)' }}>{fmtSize(m.size)}</div>
                 </div>
               </div>
             );
           })}
         </div>
+
+        {loading && !shown.length && (
+          <div style={{ padding: '30px 0', textAlign: 'center', fontSize: 13, color: 'var(--muted3)' }}>กำลังโหลด…</div>
+        )}
+        {!loading && !shown.length && (
+          <div style={{ padding: '30px 0', textAlign: 'center', fontSize: 13, color: 'var(--muted3)' }}>
+            {q.trim() ? <>ไม่พบไฟล์ที่ชื่อมีคำว่า “{q.trim()}”</> : 'ยังไม่มีไฟล์ในคลังสื่อ'}
+          </div>
+        )}
+
+        {/* pager — the grid used to draw every asset in the library at once */}
+        {pageCount > 1 && (
+          <div id="media-pager" style={{ marginTop: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 12, color: 'var(--muted2)' }}>
+              แสดง {(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, total)} จาก {total} ไฟล์
+              {q.trim() ? ' ที่ตรงกับคำค้น' : ''}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button type="button" data-media-prev disabled={page <= 1 || loading} onClick={() => setPage((p) => Math.max(1, p - 1))} style={pagerBtn(page <= 1 || loading)}>ก่อนหน้า</button>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', padding: '0 6px', fontFamily: "'JetBrains Mono',monospace" }}>{page} / {pageCount}</span>
+              <button type="button" data-media-next disabled={page >= pageCount || loading} onClick={() => setPage((p) => Math.min(pageCount, p + 1))} style={pagerBtn(page >= pageCount || loading)}>ถัดไป</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
+const pagerBtn = (off: boolean): React.CSSProperties => ({
+  height: 34, padding: '0 14px', borderRadius: 9999, fontFamily: 'inherit',
+  border: '1px solid var(--border)', background: 'var(--surface)',
+  color: off ? 'var(--muted3)' : 'var(--text)', fontSize: 12.5, fontWeight: 700,
+  cursor: off ? 'default' : 'pointer', opacity: off ? 0.6 : 1,
+});

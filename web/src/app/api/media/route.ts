@@ -11,9 +11,31 @@ import { applyWatermark, isWatermarkType, canWatermark } from '@/lib/server/wate
 
 export const runtime = 'nodejs';
 
-export const GET = handler(async () => {
+/* The library returned every row, and the page rendered every row: 412 cards
+   on open, and every one of them a card nobody asked for. Searching happened
+   in the browser over the same full list, so a search still cost the whole
+   library. Both now happen here. `totalBytes` stays the whole library's,
+   because the storage meter is about the library, not about this page. */
+const PAGE_MAX = 200;
+
+export const GET = handler(async (req: Request) => {
   const user = await requireUser();
-  const rows = await db.mediaAsset.findMany({ where: { orgId: user.orgId }, orderBy: { createdAt: 'desc' } });
+  const url = new URL(req.url);
+  const q = (url.searchParams.get('q') ?? '').trim();
+  const limit = Math.min(PAGE_MAX, Math.max(1, Number(url.searchParams.get('limit') ?? 60)));
+  const page = Math.max(1, Number(url.searchParams.get('page') ?? 1));
+
+  const where = {
+    orgId: user.orgId,
+    ...(q ? { filename: { contains: q, mode: 'insensitive' as const } } : {}),
+  };
+
+  const [rows, total, all] = await Promise.all([
+    db.mediaAsset.findMany({ where, orderBy: { createdAt: 'desc' }, skip: (page - 1) * limit, take: limit }),
+    db.mediaAsset.count({ where }),
+    db.mediaAsset.aggregate({ where: { orgId: user.orgId }, _sum: { size: true }, _count: true }),
+  ]);
+
   return ok({
     items: rows.map((m) => ({
       id: m.id,
@@ -25,7 +47,13 @@ export const GET = handler(async () => {
       watermarkType: m.watermarkType,
       createdAt: m.createdAt.getTime(),
     })),
-    totalBytes: rows.reduce((s, m) => s + m.size, 0),
+    page,
+    limit,
+    /** how many rows match the search — what the pager counts */
+    total,
+    /** the whole library, whatever this page is showing */
+    totalBytes: all._sum.size ?? 0,
+    totalFiles: all._count,
   });
 });
 

@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 import { test, expect } from './fixtures';
 
 /* The admin app, driven through the browser.
@@ -445,18 +446,31 @@ test.describe('file uploads reach the server', () => {
      every upload failed with "ไม่พบไฟล์ที่อัปโหลด". Driving the real file
      input is the only way this class of bug shows up. */
 
+  /* This test used to upload jkp-logo-green.png and leave it there, then open
+     with "the library must not contain jkp-logo-green.png" — so it poisoned
+     its own next run and had been failing intermittently for exactly as long
+     as it had been passing. It now uses a name of its own and removes it. */
   test('an image uploads into the media library', async ({ page }) => {
     await signIn(page, OWNER);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    const name = `e2e-upload-${Date.now().toString(36)}.png`;
     await page.goto('/admin/media');
 
     /* Count by filename, not by card: the grid is empty for a moment while
        /api/media loads, so a total taken too early is always wrong. */
-    const card = page.locator('#media-grid > div', { hasText: 'jkp-logo-green.png' });
+    const card = page.locator('#media-grid > div', { hasText: name });
     await expect(page.locator('#media-grid')).toBeVisible();
     await expect(card).toHaveCount(0);
 
-    await page.locator('#media-file-input').setInputFiles('public/assets/jkp-logo-green.png');
+    await page.locator('#media-file-input').setInputFiles({
+      name, mimeType: 'image/png', buffer: readFileSync('public/assets/jkp-logo-green.png'),
+    });
     await expect(card).toHaveCount(1, { timeout: 20_000 });
+
+    // เก็บกวาดของตัวเอง ไม่งั้นรอบหน้าจะเจอไฟล์ของรอบนี้ค้างอยู่
+    const list = await (await page.request.get('/api/media?limit=200', { headers: { cookie } })).json();
+    const mine = (list.items as { id: string; name: string }[]).find((m) => m.name === name);
+    if (mine) await page.request.delete(`/api/media/${mine.id}`, { headers: { cookie } });
   });
 
   test('llms.txt uploads on the SEO page', async ({ page }) => {

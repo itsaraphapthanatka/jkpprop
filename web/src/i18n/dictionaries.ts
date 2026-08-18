@@ -79,6 +79,7 @@ export type Dictionary = {
     zone: string; type: string; size: string; price: string; clear: string; search: string;
     newest: string; priceAsc: string; priceDesc: string; sizeAsc: string; sizeDesc: string;
     copyLink: string; email: string;
+    prevPage: string; nextPage: string; pageN: string;
     empty: string; emptyHint: string; emptyTitle: string; emptyBody: string;
   };
   property: {
@@ -270,6 +271,7 @@ const th: Dictionary = {
     newest: 'ใหม่ล่าสุด', priceAsc: 'ราคา (น้อย → มาก)', priceDesc: 'ราคา (มาก → น้อย)',
     sizeAsc: 'ขนาด (เล็ก → ใหญ่)', sizeDesc: 'ขนาด (ใหญ่ → เล็ก)',
     copyLink: 'คัดลอกลิงก์', email: 'อีเมล',
+    prevPage: 'หน้าก่อนหน้า', nextPage: 'หน้าถัดไป', pageN: 'หน้า',
     empty: 'ไม่พบทรัพย์ตามเงื่อนไขที่เลือก', emptyHint: 'ลองปรับตัวกรอง หรือกด "ล้างค่า" เพื่อดูทั้งหมด',
     emptyTitle: 'ยังไม่มีทรัพย์ที่เผยแพร่', emptyBody: 'ทรัพย์ที่ทีมงานเผยแพร่แล้วจะแสดงที่นี่',
   },
@@ -490,6 +492,7 @@ const en: Dictionary = {
     newest: 'Newest first', priceAsc: 'Price (low → high)', priceDesc: 'Price (high → low)',
     sizeAsc: 'Size (small → large)', sizeDesc: 'Size (large → small)',
     copyLink: 'Copy link', email: 'Email',
+    prevPage: 'Previous page', nextPage: 'Next page', pageN: 'Page',
     empty: 'No properties match these filters', emptyHint: 'Adjust the filters, or press "Clear" to see everything.',
     emptyTitle: 'No properties published yet', emptyBody: 'Published listings appear here.',
   },
@@ -710,6 +713,7 @@ const zh: Dictionary = {
     newest: '最新优先', priceAsc: '价格（低 → 高）', priceDesc: '价格（高 → 低）',
     sizeAsc: '面积（小 → 大）', sizeDesc: '面积（大 → 小）',
     copyLink: '复制链接', email: '电子邮件',
+    prevPage: '上一页', nextPage: '下一页', pageN: '第',
     empty: '没有符合条件的房源', emptyHint: '请调整筛选条件，或点击“清除”查看全部。',
     emptyTitle: '暂无已发布房源', emptyBody: '已发布的房源会显示在这里。',
   },

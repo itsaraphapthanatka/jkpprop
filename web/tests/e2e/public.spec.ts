@@ -636,7 +636,9 @@ test.describe('figures the site can stand behind', () => {
      catalogue of three. Anything typed into the CMS still wins; these are what
      stands there until then. */
   test('the home KPIs and the about stats match the published inventory', async ({ page, request }) => {
-    const listings = (await (await request.get('/api/public/listings?locale=th&limit=60')).json()).items as { province: string }[];
+    /* ต้องถามด้วยเพดานเดียวกับที่หน้าเว็บใช้ ไม่งั้นพอทรัพย์เกิน 60 รายการ
+       เทสต์จะเทียบ 60 กับจำนวนจริงแล้วแดง ทั้งที่หน้าเว็บถูกต้อง */
+    const listings = (await (await request.get('/api/public/listings?locale=th&limit=500')).json()).items as { province: string }[];
     const published = listings.length;
     const provinces = new Set(listings.map((l) => l.province).filter(Boolean)).size;
     test.skip(!published, 'nothing published');
@@ -744,7 +746,9 @@ test.describe('the location finder map', () => {
      has to earn the gesture: say what the place is, count what is actually
      published in its province, and go there when clicked. */
   test('a pin under the cursor says what it is, and counts what is there', async ({ page, request }) => {
-    const items = (await (await request.get('/api/public/listings?locale=th&limit=60')).json()).items as { province: string }[];
+    /* ต้องนับจากคลังทั้งหมด เหมือนที่การ์ดบนแผนที่นับ — ถามด้วยเพดาน 60
+       แล้วทรัพย์ชลบุรีไปอยู่แถวที่ 61 เทสต์ก็จะบอกว่าการ์ดโกหกทั้งที่ถูก */
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=500')).json()).items as { province: string }[];
     const inChonburi = items.filter((it) => it.province.includes('ชลบุรี')).length;
 
     await page.goto('/th');
