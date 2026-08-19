@@ -88,6 +88,9 @@ const LOC_HOME: FieldDef = {
 };
 
 /** the same picker warehouses have had all along */
+/** ค่าน้ำ/ไฟ/ส่วนกลาง จ่ายกับใคร — ลูกค้ายืนยันว่ามีสองตัวเลือกนี้เท่านั้น */
+const BILL_PAYERS = ['เจ้าของ', 'รัฐ'];
+
 const MAP_FIELD: FieldDef = { key: 'location_map', label: 'ตำแหน่งบนแผนที่', kind: 'map' };
 const LOC_CONDO: FieldDef = { ...LOC_HOME, label: 'ตำแหน่งโครงการ', sub: [{ key: 'project', label: 'ชื่อโครงการ', kind: 'text' }, ...LOC_HOME.sub!.slice(1)] };
 const LOC_LAND: FieldDef = {
@@ -237,18 +240,28 @@ const WAREHOUSE_FIELDS: FieldDef[] = [
   { key: 'floor_loading', label: 'น้ำหนักที่พื้นรับได้', kind: 'text', section: 'สเปคอาคาร', placeholder: 'เช่น 3 ตัน/ตร.ม.' },
   { key: 'cold_storage', label: 'ห้องเย็น / ควบคุมอุณหภูมิ', kind: 'boolean', section: 'สเปคอาคาร' },
 
-  // 5 · ราคาและค่าใช้จ่าย — ภาษี/ค่าธรรมเนียมโผล่ตาม "ประเภทประกาศ"
-  { key: 'price_rent', label: 'ราคาเช่า / เดือน', kind: 'price', unit: 'บาท/เดือน', section: 'ราคาและค่าใช้จ่าย', showWhen: WHEN_RENT },
-  { key: 'price_per_sqm', label: 'ราคา / ตร.ม.', kind: 'number', unit: 'บาท/ตร.ม.', section: 'ราคาและค่าใช้จ่าย' },
-  { key: 'price_sale', label: 'ราคาขาย', kind: 'price', unit: 'บาท', section: 'ราคาและค่าใช้จ่าย', showWhen: WHEN_SALE },
-  { key: 'land_tax', label: 'ภาษีที่ดิน', kind: 'group', section: 'ราคาและค่าใช้จ่าย', showWhen: WHEN_RENT, sub: payerAmount(['เจ้าของ', 'ผู้เช่า']) },
-  { key: 'withholding_tax', label: 'หัก ณ ที่จ่าย', kind: 'group', section: 'ราคาและค่าใช้จ่าย', showWhen: WHEN_RENT, sub: payerAmount(['เจ้าของ', 'ผู้เช่า']) },
-  { key: 'vat', label: 'VAT', kind: 'select', options: ['รวม', 'ไม่รวม', 'ไม่มี'], section: 'ราคาและค่าใช้จ่าย', showWhen: WHEN_RENT },
-  { key: 'stamp_duty', label: 'อากรแสตมป์', kind: 'group', section: 'ราคาและค่าใช้จ่าย', note: 'เก็บทั้งกรณีเช่าและกรณีขาย', sub: payerAmount(['เจ้าของ', 'ผู้เช่า']) },
-  { key: 'transfer_fee_resp', label: 'ค่าใช้จ่ายวันโอนกรรมสิทธิ์', kind: 'select', options: ['ผู้ขาย รับผิดชอบ 100%', 'ผู้ขายและผู้ซื้อ รับผิดชอบ 50/50', 'ผู้ซื้อ รับผิดชอบ 100%'], section: 'ราคาและค่าใช้จ่าย', showWhen: WHEN_SALE },
-  { key: 'common_fee', label: 'ค่าส่วนกลาง', kind: 'number', unit: 'บาท/เดือน', section: 'ราคาและค่าใช้จ่าย' },
-  { key: 'elec_rate', label: 'ค่าไฟ', kind: 'number', unit: 'บาท/หน่วย', section: 'ราคาและค่าใช้จ่าย' },
-  { key: 'water_rate', label: 'ค่าน้ำ', kind: 'number', unit: 'บาท/หน่วย', section: 'ราคาและค่าใช้จ่าย' },
+  /* 5 · แยกเป็นสามหมวดตามที่ลูกค้าร่างมาในสไลด์ 21: ราคา / ค่าสาธารณูปโภค /
+     ภาษี — เดิมอยู่กองเดียวกันหมด 10 ช่องเรียงกันโดยไม่มีหัวข้อคั่น ทำให้
+     "ค่าไฟ 4 บาท/หน่วย" อ่านต่อจาก "อากรแสตมป์" เหมือนเป็นเรื่องเดียวกัน */
+  { key: 'price_rent', label: 'ราคาเช่า / เดือน', kind: 'price', unit: 'บาท/เดือน', section: 'ราคา', showWhen: WHEN_RENT },
+  { key: 'price_per_sqm', label: 'ราคา / ตร.ม.', kind: 'number', unit: 'บาท/ตร.ม.', section: 'ราคา', note: 'เว้นว่างได้ — ระบบคำนวณจากราคากับพื้นที่ให้เอง' },
+  { key: 'price_sale', label: 'ราคาขาย', kind: 'price', unit: 'บาท', section: 'ราคา', showWhen: WHEN_SALE },
+
+  /* ค่าสาธารณูปโภค: ราคาต่อหน่วย คู่กับ "จ่ายกับใคร" — จ่ายกับเจ้าของอาคาร
+     (เจ้าของบวกกำไรได้) หรือจ่ายกับรัฐโดยตรง เป็นคนละต้นทุนกันสำหรับผู้เช่า */
+  { key: 'elec_rate', label: 'ค่าไฟ', kind: 'number', unit: 'บาท/หน่วย', section: 'ค่าสาธารณูปโภค' },
+  { key: 'elec_bill_pay', label: 'ค่าไฟ จ่ายกับ', kind: 'select', options: BILL_PAYERS, section: 'ค่าสาธารณูปโภค' },
+  { key: 'water_rate', label: 'ค่าน้ำ', kind: 'number', unit: 'บาท/หน่วย', section: 'ค่าสาธารณูปโภค' },
+  { key: 'water_bill_pay', label: 'ค่าน้ำ จ่ายกับ', kind: 'select', options: BILL_PAYERS, section: 'ค่าสาธารณูปโภค' },
+  { key: 'common_fee', label: 'ค่าส่วนกลาง', kind: 'number', unit: 'บาท/เดือน', section: 'ค่าสาธารณูปโภค' },
+  { key: 'common_bill_pay', label: 'ค่าส่วนกลาง จ่ายกับ', kind: 'select', options: BILL_PAYERS, section: 'ค่าสาธารณูปโภค' },
+
+  // ภาษีและค่าธรรมเนียม — ฝั่งเช่ากับฝั่งขายคนละชุด
+  { key: 'withholding_tax', label: 'ภาษีหัก ณ ที่จ่าย', kind: 'group', section: 'ภาษีและค่าธรรมเนียม', showWhen: WHEN_RENT, sub: payerAmount(['เจ้าของ', 'ผู้เช่า']) },
+  { key: 'land_tax', label: 'ภาษีที่ดิน', kind: 'group', section: 'ภาษีและค่าธรรมเนียม', showWhen: WHEN_RENT, sub: payerAmount(['เจ้าของ', 'ผู้เช่า']) },
+  { key: 'vat', label: 'VAT', kind: 'select', options: ['รวม', 'ไม่รวม', 'ไม่มี'], section: 'ภาษีและค่าธรรมเนียม', showWhen: WHEN_RENT },
+  { key: 'stamp_duty', label: 'อากรแสตมป์', kind: 'group', section: 'ภาษีและค่าธรรมเนียม', note: 'เก็บทั้งกรณีเช่าและกรณีขาย', sub: payerAmount(['เจ้าของ', 'ผู้เช่า']) },
+  { key: 'transfer_fee_resp', label: 'ค่าโอนกรรมสิทธิ์', kind: 'select', options: ['ผู้ขาย รับผิดชอบ 100%', 'ผู้ขายและผู้ซื้อ รับผิดชอบ 50/50', 'ผู้ซื้อ รับผิดชอบ 100%'], section: 'ภาษีและค่าธรรมเนียม', showWhen: WHEN_SALE },
 
   // 6 · เงื่อนไขสัญญา
   { key: 'lease_term', label: 'อายุสัญญาเช่า', kind: 'select', options: ['1 ปี', '1-3 ปี', '2 ปี', '3 ปี', '5 ปี', 'อื่นๆ'], section: 'เงื่อนไขสัญญา' },

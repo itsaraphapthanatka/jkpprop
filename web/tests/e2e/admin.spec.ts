@@ -1275,10 +1275,14 @@ test.describe('follow-up task deadlines', () => {
     expect(leadId).toBeTruthy();
   });
 
+  /* วันที่ต้องคิดตามเวลาท้องถิ่น ไม่ใช่ UTC — ไทยเร็วกว่า UTC 7 ชั่วโมง ระหว่าง
+     เที่ยงคืนถึงเจ็ดโมงเช้า toISOString() จึงยังให้วันของเมื่อวาน เทสต์ที่สร้าง
+     งาน "ครบกำหนดวันนี้" เลยได้งานที่เลยกำหนดมาแล้ว 1 วัน และแดงเฉพาะช่วงดึก */
   const iso = (offsetDays: number) => {
     const d = new Date();
     d.setDate(d.getDate() + offsetDays);
-    return d.toISOString().slice(0, 10);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   };
 
   test('a deadline entered on the form reaches the record', async ({ page, request }) => {

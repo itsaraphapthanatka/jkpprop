@@ -50,6 +50,16 @@ const LABELS: Record<string, Record<Locale, string>> = {
   water_rate:      { th: 'ค่าน้ำ',                  en: 'Water rate',           zh: '水费' },
   common_fee:      { th: 'ค่าส่วนกลาง',             en: 'Service charge',       zh: '物业费' },
   lease_term:      { th: 'อายุสัญญาเช่า',           en: 'Lease term',           zh: '租期' },
+  /* สไลด์ 21: ค่าน้ำ/ไฟ/ส่วนกลาง จ่ายกับเจ้าของอาคารหรือจ่ายกับรัฐ เป็นคนละ
+     ต้นทุนกันสำหรับผู้เช่า — เดิมหน้าเว็บบอกแต่ราคาต่อหน่วย */
+  elec_bill_pay:   { th: 'ค่าไฟ จ่ายกับ',           en: 'Electricity billed by', zh: '电费缴纳对象' },
+  water_bill_pay:  { th: 'ค่าน้ำ จ่ายกับ',           en: 'Water billed by',      zh: '水费缴纳对象' },
+  common_bill_pay: { th: 'ค่าส่วนกลาง จ่ายกับ',      en: 'Service charge billed by', zh: '物业费缴纳对象' },
+  withholding_tax: { th: 'ภาษีหัก ณ ที่จ่าย',        en: 'Withholding tax',      zh: '预扣税' },
+  land_tax:        { th: 'ภาษีที่ดิน',              en: 'Land tax',             zh: '土地税' },
+  stamp_duty:      { th: 'อากรแสตมป์',              en: 'Stamp duty',           zh: '印花税' },
+  vat:             { th: 'VAT',                    en: 'VAT',                  zh: '增值税' },
+  transfer_fee_resp: { th: 'ค่าโอนกรรมสิทธิ์',       en: 'Transfer fee',         zh: '过户费' },
 };
 
 /* units appended to a bare number, per locale */
@@ -107,6 +117,17 @@ function format(key: string, v: unknown, locale: Locale, over?: GeoOverrides): s
     return parts.length ? parts.join(', ') : null;
   }
   if (typeof v === 'boolean') return v ? YES[locale] : NO[locale];
+  /* ภาษีและค่าธรรมเนียมเก็บเป็นคู่ { payer, amount } — เดิมตกลงมาถึง String(v)
+     แล้วกลายเป็น "[object Object]" บนหน้าเว็บสาธารณะ */
+  if (typeof v === 'object') {
+    const g = v as { payer?: unknown; amount?: unknown };
+    const payer = typeof g.payer === 'string' ? enumLabel(g.payer.trim(), locale) : '';
+    const amt = typeof g.amount === 'number' && Number.isFinite(g.amount)
+      ? `฿${num(g.amount, locale)}`
+      : typeof g.amount === 'string' && g.amount.trim() ? `฿${g.amount.trim()}` : '';
+    const out = [payer, amt].filter(Boolean).join(' · ');
+    return out || null;
+  }
   if (typeof v === 'number') {
     if (!Number.isFinite(v)) return null;
     if (MONEY.has(key)) return `฿${num(v, locale)}`;
@@ -136,9 +157,12 @@ const TABLE_ORDER = [
   'usable_area', 'land_area', 'clear_height', 'building_height',
   'floor_loading', 'power_system', 'power_phase', 'doors', 'parking',
   'overhead_crane', 'cold_storage', 'factory_license', 'zoning_color', 'zone',
+  /* เรียงตามที่ลูกค้าร่างไว้: ราคา → ค่าสาธารณูปโภค (พร้อม "จ่ายกับใคร" ต่อท้าย
+     แต่ละรายการ) → ภาษีและค่าธรรมเนียม → เงื่อนไขสัญญา */
   'price_rent', 'price_sale', 'price_per_sqm',
-  'deposit_months', 'advance_months', 'common_fee', 'elec_rate', 'water_rate',
-  'lease_term',
+  'elec_rate', 'elec_bill_pay', 'water_rate', 'water_bill_pay', 'common_fee', 'common_bill_pay',
+  'withholding_tax', 'land_tax', 'vat', 'stamp_duty', 'transfer_fee_resp',
+  'deposit_months', 'advance_months', 'lease_term',
 ];
 
 /* the four tiles above the table — first four of these that have a value */

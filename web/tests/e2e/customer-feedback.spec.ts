@@ -164,3 +164,66 @@ test.describe('คอมเมนต์ลูกค้า · หลังบ้�
     expect(stamped.map((m) => m.name), 'ยังมีไฟล์ที่ฝังลายน้ำข้อความไว้ในตัวไฟล์').toEqual([]);
   });
 });
+
+/* สไลด์ 21 · "ราคา ค่าใช้จ่าย ภาษี แยกหมวดหมู่กัน" พร้อมช่อง "จ่ายกับ" ของ
+   ค่าน้ำ/ค่าไฟ/ค่าส่วนกลาง (เจ้าของ หรือ รัฐ) — ตามคอลัมน์ใน Master Sheet
+   (elec_bill_pay · Water_bill_pay · common_bill_pay) */
+test.describe('คอมเมนต์ลูกค้า · แยกหมวดราคา/ค่าใช้จ่าย/ภาษี', () => {
+  const admin = { email: 'owner@jkp.local', password: 'jkp12345' };
+  const signInAdmin = async (page: import('@playwright/test').Page) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill(admin.email);
+    await page.locator('#login-password').fill(admin.password);
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    return (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  };
+
+  test('ฟอร์มทรัพย์มีหัวข้อสามหมวดแยกกัน', async ({ page }) => {
+    await signInAdmin(page);
+    await page.goto('/admin/properties');
+    await page.getByText('เพิ่มทรัพย์ใหม่').first().click();
+    await page.locator('#np-type-picker button', { hasText: 'โกดัง' }).first().click();
+    await page.waitForTimeout(600);
+
+    const body = await page.locator('#np-modal').innerText();
+    for (const head of ['ราคา', 'ค่าสาธารณูปโภค', 'ภาษีและค่าธรรมเนียม']) {
+      expect(body.includes(head), `ไม่มีหมวด "${head}"`).toBe(true);
+    }
+    // ช่อง "จ่ายกับ" ของทั้งสามรายการ พร้อมตัวเลือกเจ้าของ/รัฐ
+    for (const label of ['ค่าไฟ จ่ายกับ', 'ค่าน้ำ จ่ายกับ', 'ค่าส่วนกลาง จ่ายกับ']) {
+      expect(body.includes(label), `ไม่มีช่อง "${label}"`).toBe(true);
+    }
+  });
+
+  test('เลือก "จ่ายกับ" แล้วขึ้นบนหน้าเว็บจริง', async ({ page, request }) => {
+    const cookie = await signInAdmin(page);
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: {
+        typeKey: 'warehouse', title: `ทดสอบหมวดค่าใช้จ่าย ${Date.now().toString(36)}`, status: 'active',
+        values: {
+          province: 'สมุทรปราการ', deal_type: 'เช่า', price_rent: 100000, building_area_total: 1000,
+          elec_rate: 5, elec_bill_pay: 'เจ้าของ', water_rate: 20, water_bill_pay: 'รัฐ',
+          common_fee: 3000, common_bill_pay: 'เจ้าของ',
+          withholding_tax: { payer: 'ผู้เช่า', amount: 5000 },
+        },
+      },
+    })).json();
+
+    try {
+      await page.goto(`/th/property/${made.publicCode}`);
+      const table = page.locator('#pd-specs, [data-spec-row]').first();
+      await expect(table).toBeVisible();
+      const rows = await page.locator('[data-spec-row]').allInnerTexts();
+      const text = rows.join(' | ');
+      expect(text, 'ค่าไฟ จ่ายกับ เจ้าของ').toContain('ค่าไฟ จ่ายกับ');
+      expect(text, 'ค่าน้ำ จ่ายกับ รัฐ').toContain('รัฐ');
+      /* ภาษีเก็บเป็นคู่ ผู้รับผิดชอบ+จำนวนเงิน — เดิมตกลงมาเป็น [object Object] */
+      expect(text).not.toContain('[object Object]');
+      expect(text).toContain('ผู้เช่า');
+    } finally {
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+});

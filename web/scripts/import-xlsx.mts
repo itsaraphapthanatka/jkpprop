@@ -182,6 +182,16 @@ const unknownValue = (field: string, value: string) => {
   unknown.set(field, m);
 };
 
+/* ชื่อคอลัมน์ใน Master Sheet ที่ไม่ตรงกับคีย์ในระบบ — ถ้าไม่จับคู่ไว้ ข้อมูล
+   ภาษีและ "จ่ายกับใคร" จะถูกข้ามเงียบ ๆ ทั้งคอลัมน์ */
+const COLUMN_ALIAS: Record<string, string> = {
+  'Water_bill_pay': 'water_bill_pay',
+  'water_bill_pay': 'water_bill_pay',
+  'ภาษีหัก ณ ที่จ่าย': 'withholding_tax',
+  'ภาษีที่ดิน': 'land_tax',
+  'อากรแสตมป์': 'stamp_duty',
+};
+
 const SKIP_COLUMNS = new Set(['รูป', 'รหัสทรัพย์', 'ประเภททรัพย์', 'public_code', 'title', 'status', 'listing_status', 'listing_date', 'photos', 'ละติจูด ลองติจูด']);
 
 ws.eachRow((row, line) => {
@@ -218,17 +228,29 @@ ws.eachRow((row, line) => {
   const schema = PROPERTY_TYPES.find((t) => t.key === typeKey)!;
   const known = new Set(schema.fields.map((f) => f.key));
   for (const [colIdx, name] of Object.entries(header)) {
-    if (SKIP_COLUMNS.has(name) || !known.has(name)) continue;
+    if (SKIP_COLUMNS.has(name)) continue;
+    const key = COLUMN_ALIAS[name] ?? name;
+    if (!known.has(key)) continue;
     const raw = text(row.getCell(Number(colIdx)).value);
     if (!raw) continue;
-    const field = schema.fields.find((f) => f.key === name)!;
+    const field = schema.fields.find((f) => f.key === key)!;
+
+    /* ภาษี/ค่าธรรมเนียมเก็บเป็นคู่ { payer, amount } ส่วนในชีตมีแค่ชื่อผู้จ่าย
+       ("เจ้าของ") — เก็บเป็นผู้รับผิดชอบ ปล่อยจำนวนเงินว่างไว้ให้ทีมเติม */
+    if (field.kind === 'group' && field.sub?.some((x) => x.key === 'payer')) {
+      const payers = field.sub.find((x) => x.key === 'payer')?.options ?? [];
+      const hit = payers.find((p) => loose(p) === loose(raw));
+      if (hit) values[key] = { payer: hit };
+      else note(`${name}: "${raw.slice(0, 20)}" ไม่อยู่ในตัวเลือกผู้รับผิดชอบ — ข้ามช่องนี้`);
+      continue;
+    }
 
     /* 'price' เก็บเป็นตัวเลขเหมือน 'number' — ถ้าปล่อยเป็นข้อความ หน้าเว็บจะ
        อ่านไม่ออกแล้วขึ้น "ติดต่อสอบถาม" ทั้งที่ในไฟล์มีราคาอยู่ */
     if (field.kind === 'number' || field.kind === 'price') {
       const n = num(raw);
       if (n === null) { note(`${name}: อ่านเป็นตัวเลขไม่ได้ ("${raw.slice(0, 20)}") — ข้ามช่องนี้`); continue; }
-      values[name] = n;
+      values[key] = n;
       continue;
     }
 
@@ -241,7 +263,7 @@ ws.eachRow((row, line) => {
         ?? field.options.find((o) => o === SYNONYM[key])
         ?? (name === 'power_phase' ? field.options.find((o) => o === phaseOf(raw)) : undefined);
       if (!hit) { unknownValue(name, raw); continue; }
-      values[name] = hit;
+      values[key] = hit;
       continue;
     }
 
@@ -251,11 +273,11 @@ ws.eachRow((row, line) => {
       const good = picked.map(canon).filter((p): p is string => !!p);
       const bad = picked.filter((p) => !canon(p));
       for (const b of bad) unknownValue(name, b);
-      if (good.length) values[name] = good;
+      if (good.length) values[key] = good;
       continue;
     }
 
-    values[name] = raw;
+    values[key] = raw;
   }
 
   const pin = coords(cell('ละติจูด ลองติจูด'));
