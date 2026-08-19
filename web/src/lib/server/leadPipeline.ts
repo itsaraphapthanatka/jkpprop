@@ -23,6 +23,19 @@ export const PIPELINE = [
 
 export type LeadStatus = (typeof PIPELINE)[number];
 
+/** ชื่อสถานะที่คนอ่านรู้เรื่อง สำหรับบันทึกลงไทม์ไลน์ของ lead */
+export const STATUS_LABEL: Record<string, string> = {
+  new: 'ใหม่',
+  qualified: 'คัดกรองแล้ว',
+  profile_received: 'ได้ข้อมูลลูกค้าแล้ว',
+  requirements_confirmed: 'ยืนยันความต้องการแล้ว',
+  shortlisted: 'ส่ง shortlist แล้ว',
+  visit_scheduled: 'นัดเข้าชมแล้ว',
+  negotiating: 'กำลังเจรจา',
+  won: 'ปิดดีลสำเร็จ',
+  lost: 'ไม่สำเร็จ',
+};
+
 /** 'lost' is an exit, not a later stage — nothing may auto-advance past it. */
 const TERMINAL = new Set<string>(['won', 'lost']);
 
@@ -58,6 +71,18 @@ export async function advanceLead(
     if (!isForward(lead.status, target)) return;
 
     await db.lead.update({ where: { id: leadId }, data: { status: target } });
+
+    /* ลูกค้าแจ้งว่า "ปิดดีลแล้วไม่ขึ้นประวัติใน Leads ภาพรวม" — เดิมเหตุการณ์นี้
+       ลงแค่ audit log ซึ่งเปิดดูได้เฉพาะเจ้าของระบบ ส่วนไทม์ไลน์ในหน้า Lead
+       อ่านจาก LeadNote อย่างเดียว คนดูแล lead จึงไม่เห็นว่าเกิดอะไรขึ้น */
+    await db.leadNote.create({
+      data: {
+        leadId,
+        userId: ctx.user.id,
+        text: `สถานะเปลี่ยนเป็น "${STATUS_LABEL[target] ?? target}" · ${ctx.reason}`,
+      },
+    }).catch(() => { /* ไทม์ไลน์เป็นของแถม ไม่ควรทำให้การเปลี่ยนสถานะล้ม */ });
+
     await audit({
       user: ctx.user,
       orgId: ctx.orgId,

@@ -172,7 +172,9 @@ export function LocationFinder({ counts = {}, provinceCounts = {}, copy }: { cou
       <section data-anim="1" style={{ maxWidth: '1200px', margin: '0 auto', padding: '88px 24px' }}>
         <div style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600, letterSpacing: '.06em', color: 'var(--accent)', textTransform: 'uppercase' }}>{pick(copy.eyebrow, d.locations.eyebrow)}</div>
         <h2 style={{ margin: '8px 0 40px', textAlign: 'center', fontSize: '30px', fontWeight: 700, color: 'var(--text)' }}>{pick(copy.headline, d.locations.heading)}</h2>
-        <div className="rs-split-l" style={{ display: 'grid', gridTemplateColumns: '0.86fr 1.14fr', gap: '32px', alignItems: 'stretch' }}>
+        {/* สไลด์ 5-6 ของลูกค้าเขียนว่า "ขยายให้ใหญ่ขึ้น" ทั้งสองหน้า — แผนที่คือ
+            สิ่งที่คนใช้เลือกทำเล แต่เดิมได้พื้นที่พอ ๆ กับคอลัมน์ตัวเลือก */}
+        <div className="rs-split-l" style={{ display: 'grid', gridTemplateColumns: '0.72fr 1.28fr', gap: '28px', alignItems: 'stretch' }}>
 
           {/* LEFT: factor selector */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -226,7 +228,7 @@ export function LocationFinder({ counts = {}, provinceCounts = {}, copy }: { cou
           <div
             onMouseEnter={() => setMapHover(true)}
             onMouseLeave={() => { setMapHover(false); setHoverPin(null); }}
-            style={{ position: 'relative', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden', minHeight: '560px', transform: mapHover ? 'translateY(-4px)' : 'none', boxShadow: mapHover ? '0 26px 60px rgba(var(--ink-rgb),.20), inset 0 0 0 1px rgba(255,255,255,.5)' : '0 18px 44px rgba(var(--ink-rgb),.12), inset 0 0 0 1px rgba(255,255,255,.4)', transition: 'transform .3s cubic-bezier(.2,.8,.3,1), box-shadow .3s' }}
+            style={{ position: 'relative', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden', minHeight: 'min(760px, 78vh)', transform: mapHover ? 'translateY(-4px)' : 'none', boxShadow: mapHover ? '0 26px 60px rgba(var(--ink-rgb),.20), inset 0 0 0 1px rgba(255,255,255,.5)' : '0 18px 44px rgba(var(--ink-rgb),.12), inset 0 0 0 1px rgba(255,255,255,.4)', transition: 'transform .3s cubic-bezier(.2,.8,.3,1), box-shadow .3s' }}
           >
             <BeltMap
               factor={shown}

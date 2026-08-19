@@ -5,7 +5,7 @@ import { ok, handler, ApiError } from '@/lib/server/api';
 import { requireUser } from '@/lib/server/auth';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
-import { rank } from '@/lib/server/leadPipeline';
+import { rank, STATUS_LABEL } from '@/lib/server/leadPipeline';
 import { leadDto } from '@/lib/server/leadDto';
 import type { Prisma } from '@prisma/client';
 
@@ -43,6 +43,19 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
 
   const before = { status: lead.status, assigneeId: lead.assigneeId };
   const updated = await db.lead.update({ where: { id }, data });
+
+  /* ไทม์ไลน์ของ lead อ่านจาก LeadNote อย่างเดียว การเปลี่ยนสถานะจึงเคยหายไป
+     ทั้งหมด — ทั้งที่กดเองในหน้าจอ และที่ระบบเลื่อนให้ตอนปิดดีล (ดู
+     lib/server/leadPipeline) คนดูแล lead เปิดมาก็ไม่เห็นว่าเกิดอะไรขึ้น */
+  if (data.status && data.status !== lead.status) {
+    await db.leadNote.create({
+      data: {
+        leadId: id,
+        userId: user.id,
+        text: `สถานะเปลี่ยนเป็น "${STATUS_LABEL[String(data.status)] ?? String(data.status)}"`,
+      },
+    }).catch(() => { /* ไทม์ไลน์เป็นของแถม ไม่ควรทำให้การบันทึกล้ม */ });
+  }
   await audit({
     user, orgId: user.orgId, action: 'lead.update', entity: 'lead', entityId: id,
     before, after: { status: updated.status, assigneeId: updated.assigneeId },

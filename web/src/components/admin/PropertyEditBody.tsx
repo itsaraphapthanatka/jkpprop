@@ -1,5 +1,7 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+
 import * as React from 'react';
 import { AdminShell } from './AdminShell';
 import { DynamicFieldForm } from './DynamicFieldForm';
@@ -92,6 +94,8 @@ export function PropertyEditBody() {
       .catch((e) => setNotice({ kind: 'err', text: e instanceof ApiClientError ? e.message : 'โหลดข้อมูลทรัพย์ไม่สำเร็จ' }));
   }, []);
 
+  const router = useRouter();
+
   const save = async () => {
     if (saving) return;
     if (!record) {
@@ -102,7 +106,11 @@ export function PropertyEditBody() {
     setNotice(null);
     try {
       await apiPatch(`/api/properties/${record.id}`, { title, values: valsRef.current, i18n });
-      setNotice({ kind: 'ok', text: 'บันทึกแล้ว' });
+      /* ลูกค้าแจ้งว่า "กดบันทึกแล้วไม่กลับไปหน้ารวม Property" — เดิมขึ้นแค่คำว่า
+         บันทึกแล้วค้างอยู่หน้าเดิม คนแก้ทรัพย์ทีละหลายรายการต้องกดย้อนเองทุกครั้ง */
+      setNotice({ kind: 'ok', text: 'บันทึกแล้ว — กำลังกลับไปหน้ารายการทรัพย์' });
+      setTimeout(() => router.push('/admin/properties'), 700);
+      return;
     } catch (e) {
       setNotice({ kind: 'err', text: e instanceof ApiClientError ? e.message : 'บันทึกไม่สำเร็จ กรุณาลองใหม่' });
     } finally {

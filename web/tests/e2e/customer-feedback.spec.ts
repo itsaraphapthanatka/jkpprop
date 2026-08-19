@@ -95,3 +95,72 @@ test.describe('คอมเมนต์ลูกค้า · หน้าเว�
     }
   });
 });
+
+/* คอมเมนต์ลูกค้า ชุดที่ 2 — หลังบ้าน
+   สไลด์ 22 · "กดบันทึกแล้วไม่กลับไปหน้ารวม Property"
+   สไลด์ 27 · "ทำลายน้ำตำแหน่งเดียวกัน"
+   สไลด์ 31 · "Shortlist ไม่ไปหน้าแสดงผลหรือปุ่มให้ไป"
+   สไลด์ 33 · "ปิดดีลแล้วไม่ขึ้นประวัติใน Leads ภาพรวม" */
+test.describe('คอมเมนต์ลูกค้า · หลังบ้าน', () => {
+  const admin = { email: 'owner@jkp.local', password: 'jkp12345' };
+  const signInAdmin = async (page: import('@playwright/test').Page) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill(admin.email);
+    await page.locator('#login-password').fill(admin.password);
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    return (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  };
+
+  test('บันทึกทรัพย์แล้วกลับไปหน้ารายการเอง', async ({ page, request }) => {
+    const cookie = await signInAdmin(page);
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { typeKey: 'warehouse', title: `ทดสอบบันทึกแล้วกลับ ${Date.now().toString(36)}`, status: 'draft', values: { province: 'สมุทรปราการ' } },
+    })).json();
+
+    try {
+      await page.goto(`/admin/property-edit?code=${made.publicCode}`);
+      await page.getByText('บันทึก', { exact: true }).first().click();
+      await expect(page, 'บันทึกแล้วต้องกลับไปหน้ารวมทรัพย์').toHaveURL(/\/admin\/properties$/, { timeout: 15000 });
+    } finally {
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+
+  test('หน้า Shortlist มีปุ่มเปิดหน้าที่ลูกค้าเห็น', async ({ page, request }) => {
+    const cookie = await signInAdmin(page);
+    const lists = await (await request.get('/api/shortlists', { headers: { cookie } })).json();
+    test.skip(!(lists.items ?? []).length, 'ยังไม่มี shortlist ในระบบ');
+
+    await page.goto(`/admin/shortlists/${lists.items[0].id}`);
+    const open = page.locator('#sl-open-client');
+    await expect(open, 'ไม่มีปุ่มเปิดหน้าที่ลูกค้าเห็น').toBeVisible();
+    const href = await open.getAttribute('href');
+    expect(href, 'ปุ่มต้องพาไปหน้า shortlist ฝั่งลูกค้า').toContain('/client-shortlist');
+  });
+
+  test('เปลี่ยนสถานะ lead แล้วขึ้นในไทม์ไลน์ ไม่ใช่แค่ใน audit', async ({ page, request }) => {
+    const cookie = await signInAdmin(page);
+    const lead = await (await request.post('/api/leads', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { name: `ทดสอบไทม์ไลน์ ${Date.now().toString(36)}`, phone: '0800000900', typeKey: 'warehouse', dealIntent: 'เช่า' },
+    })).json();
+
+    try {
+      await request.patch(`/api/leads/${lead.id}`, { headers: { cookie }, data: { status: 'qualified' } });
+      const detail = await (await request.get(`/api/leads/${lead.id}`, { headers: { cookie } })).json();
+      const notes = (detail.notes ?? []) as { text: string }[];
+      expect(notes.some((n) => n.text.includes('คัดกรองแล้ว')), 'ไทม์ไลน์ต้องบันทึกการเปลี่ยนสถานะ').toBe(true);
+    } finally {
+      await request.delete(`/api/leads/${lead.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+
+  test('รูปที่เสิร์ฟมีลายน้ำชั้นเดียว — ไม่ฝังข้อความซ้ำตอนอัปโหลด', async ({ page, request }) => {
+    const cookie = await signInAdmin(page);
+    const media = await (await request.get('/api/media?limit=200', { headers: { cookie } })).json();
+    const stamped = (media.items as { name: string; watermarkType: string }[]).filter((m) => m.watermarkType && m.watermarkType !== 'none');
+    expect(stamped.map((m) => m.name), 'ยังมีไฟล์ที่ฝังลายน้ำข้อความไว้ในตัวไฟล์').toEqual([]);
+  });
+});

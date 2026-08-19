@@ -49,7 +49,11 @@ export function MediaBody() {
   const [error, setError] = React.useState('');
   // FR-ADM-09: the style is chosen at upload time and baked into the file
   // that gets served publicly
-  const [watermark, setWatermark] = React.useState<'none' | 'corner' | 'tiled'>('corner');
+  /* ลูกค้าแจ้งว่า "ทำลายน้ำตำแหน่งเดียวกัน" — รูปหนึ่งใบเคยมีลายน้ำสองชั้น:
+     ข้อความที่ฝังตอนอัปโหลด (มุมล่างขวา หรือเรียงทั้งภาพ) กับโลโก้ที่ประทับตอน
+     เสิร์ฟตามที่ตั้งใน /admin/branding ซึ่งอยู่คนละที่ ค่าเริ่มต้นจึงเป็น "ไม่ใส่"
+     เพื่อให้เหลือลายน้ำเดียวที่คุมตำแหน่งจากที่เดียว */
+  const [watermark, setWatermark] = React.useState<'none' | 'corner' | 'tiled'>('none');
   const fileInput = React.useRef<HTMLInputElement | null>(null);
 
   const reload = React.useCallback(async () => {

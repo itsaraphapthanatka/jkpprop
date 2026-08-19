@@ -323,10 +323,24 @@ export function ShortlistProvider({ children, shortlistId }: { children: React.R
 
 /* Topbar right cluster: item count + "ส่งให้ลูกค้า" trigger. */
 export function ShortlistActions() {
-  const { itemCount, openSend, openVisit, sent } = useShortlist();
+  const { itemCount, openSend, openVisit, sent, shareUrl } = useShortlist();
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
       <span style={{ fontSize: '12.5px', color: 'var(--muted)' }}>{itemCount} รายการ</span>
+      {/* ลูกค้าแจ้งว่า "ไม่ไปหน้าแสดงผลหรือปุ่มให้ไป" — ลิงก์ที่ลูกค้าเปิดมีอยู่แล้ว
+          แต่ซ่อนอยู่ในกล่องส่ง และคัดลอกได้อย่างเดียว เปิดดูเองไม่ได้ */}
+      {shareUrl && (
+        <a
+          id="sl-open-client"
+          href={shareUrl}
+          target="_blank"
+          rel="noreferrer"
+          style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1.5px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', textDecoration: 'none' }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><path d="M15 3h6v6M10 14L21 3" /></svg>
+          เปิดหน้าที่ลูกค้าเห็น
+        </a>
+      )}
       {/* Flow C — offered once the customer has actually seen the list */}
       {sent && itemCount > 0 && (
         <div id="sl-book-visit" onClick={openVisit} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1.5px solid #0D6C3B', color: '#0D6C3B', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>

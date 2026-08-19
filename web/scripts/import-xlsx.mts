@@ -327,7 +327,6 @@ if (!commit) {
 /* ---------- เขียนจริง ------------------------------------------------------ */
 
 const { putObject, publicUrlFor, originalKey } = await import('../src/lib/server/mediaStore.ts');
-const { applyWatermark, canWatermark } = await import('../src/lib/server/watermark.ts');
 const sharp = (await import('sharp')).default;
 
 /* รูปในไฟล์ Excel เฉลี่ยเกือบ 1 MB ต่อใบ บางใบ 5 MB — ขนาดนั้นไม่มีประโยชน์
@@ -352,12 +351,14 @@ for (const r of ready) {
         mime,
         size: body.length,
         path: '',
-        watermarkType: canWatermark(mime) ? 'corner' : 'none',
+        // ลายน้ำมาจากการตั้งค่าใน /admin/branding ชั้นเดียว ไม่ฝังข้อความซ้ำตอนนำเข้า
+        watermarkType: 'none',
       },
     });
     // เก็บต้นฉบับไว้ เสิร์ฟเฉพาะตัวที่ใส่ลายน้ำแล้ว — เหมือนตอนอัปโหลดผ่านหน้าเว็บ
     await putObject(asset.id, mime, body, originalKey(asset.id, mime));
-    const shown = canWatermark(mime) ? await applyWatermark(body, mime, 'corner') : body;
+    // ไฟล์ที่เสิร์ฟ = ต้นฉบับ ลายน้ำโลโก้ประทับตอนอ่านตามค่าใน /admin/branding
+    const shown = body;
     await putObject(asset.id, mime, shown);
     const url = publicUrlFor(asset.id, mime);
     await db.mediaAsset.update({ where: { id: asset.id }, data: { path: url } });
