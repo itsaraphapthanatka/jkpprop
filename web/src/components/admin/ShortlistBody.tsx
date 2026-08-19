@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { thumb } from '@/lib/mediaThumb';
 import Link from 'next/link';
 import { apiGet, apiPatch, apiPost, ApiClientError } from '@/lib/apiClient';
 
@@ -38,6 +39,8 @@ type ApiItem = {
   id: string; code: string; title: string; size: string; price: string;
   note: string; owner: string; phone: string; available: boolean; sort: number;
   feedback: string | null; feedbackNote: string | null;
+  /** รูปแรกของทรัพย์ — ลูกค้าแจ้งว่า "ควรมีรูปภาพทรัพย์" */
+  img?: string | null;
 };
 
 const FEEDBACK_LABEL: Record<string, { label: string; bg: string; fg: string }> = {
@@ -59,7 +62,7 @@ type ApiProperty = { publicCode: string; title: string; status: string; location
 
 type Avail = 'available' | 'unavailable';
 
-type Row = { key: string; title: string; code: string; size: string; price: string; note: string; owner: string; phone: string; feedback: string | null; feedbackNote: string | null };
+type Row = { key: string; title: string; code: string; size: string; price: string; note: string; owner: string; phone: string; feedback: string | null; feedbackNote: string | null; img?: string | null };
 type CandidateVal = { id: string; title: string; code: string; size: string; price: string; owner: string; phone: string; blocked: boolean; canAdd: boolean; isAdded: boolean; dim: boolean; add: () => void };
 type ItemVal = Row & { rank: string; avail: Avail; remove: () => void };
 
@@ -195,6 +198,7 @@ export function ShortlistProvider({ children, shortlistId }: { children: React.R
     phone: it.phone,
     feedback: it.feedback,
     feedbackNote: it.feedbackNote,
+    img: it.img ?? null,
     rank: String(i + 1),
     // live, from the property's own status — not a local toggle
     avail: it.available ? 'available' : 'unavailable',
@@ -402,8 +406,11 @@ function ShortlistItem({ it }: { it: ItemVal }) {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="6" r="1" /><circle cx="15" cy="6" r="1" /><circle cx="9" cy="12" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="9" cy="18" r="1" /><circle cx="15" cy="18" r="1" /></svg>
         </div>
         <div style={{ width: 32, height: 32, borderRadius: 9, background: '#0D6C3B', color: '#fff', fontSize: 14, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{it.rank}</div>
-        <div className="sl-item-thumb" style={{ width: 52, height: 52, borderRadius: 11, background: 'var(--tint)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M3 21V8l9-5 9 5v13" /><path d="M3 21h18" /><path d="M7 21v-8h10v8" /></svg>
+        <div className="sl-item-thumb" data-sl-thumb style={{ width: 52, height: 52, borderRadius: 11, overflow: 'hidden', background: 'var(--tint)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          {it.img
+            /* eslint-disable-next-line @next/next/no-img-element */
+            ? <img src={thumb(it.img, 160)} alt={it.code} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            : <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M3 21V8l9-5 9 5v13" /><path d="M3 21h18" /><path d="M7 21v-8h10v8" /></svg>}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{it.title}</div>

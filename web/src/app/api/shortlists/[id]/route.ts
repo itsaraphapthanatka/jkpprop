@@ -48,6 +48,9 @@ async function itemsDto(items: { id: string; propertyId: string; note: string | 
       id: it.id,
       code: p.publicCode,
       title: p.title,
+      /* ลูกค้าแจ้งว่า "ควรมีรูปภาพทรัพย์" — แถวใน shortlist กับ requirement โชว์
+         ไอคอนบ้านเหมือนกันหมด ทีมจึงต้องเปิดทีละรายการเพื่อดูว่าเป็นทรัพย์ไหน */
+      img: (Array.isArray(values.photos) ? (values.photos as string[])[0] : null) ?? null,
       size: area !== null ? `${area.toLocaleString('th-TH')} ตร.ม.` : '—',
       price: Number.isFinite(rent) ? `${money(rent)}/ด.` : Number.isFinite(sale) ? money(sale) : '—',
       note: it.note ?? '',
