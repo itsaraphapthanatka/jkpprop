@@ -43,7 +43,8 @@ export const PROVINCE_CODES: Record<string, string> = {
 /** ทรัพย์ที่ยังไม่ได้ระบุจังหวัด — เห็นแล้วรู้ทันทีว่าต้องกลับมาเติม */
 export const UNKNOWN_PROVINCE_CODE = 'XXX';
 
-/** เลขเริ่มต้นของจังหวัดที่ยังไม่เคยมีทรัพย์ ให้ตรงกับชุดที่นำเข้ามา */
+/** เลขเริ่มของทุกจังหวัด — ชุดที่นำเข้ามาใช้ 1000 เป็นฐาน และรหัสที่ออกใหม่
+    ต้องอยู่ในชุดเดียวกันเสมอ ไม่ว่าจังหวัดนั้นจะเคยมีรหัสเลขต่ำกว่านี้หรือไม่ */
 export const FIRST_NUMBER = 1000;
 
 /** รหัสจังหวัดที่ทีมตั้งไว้เอง ชนะตารางสำรองในไฟล์นี้ */
@@ -65,15 +66,18 @@ async function provinceCode(orgId: string, provinceName?: string): Promise<strin
   return UNKNOWN_PROVINCE_CODE;
 }
 
-/** เลขถัดไปของ prefix นี้ นับต่อจากรหัสที่มีอยู่จริงในฐานข้อมูล */
+/** เลขถัดไปของ prefix นี้ — ต่อจากรหัสที่มีอยู่จริง แต่ไม่ต่ำกว่า 1000 เด็ดขาด
+ *
+ *  ถ้าจังหวัดหนึ่งเคยมีรหัสเลขต่ำ (เช่น JKPBKK0201 จากรูปแบบเก่า) การนับต่อ
+ *  ตรง ๆ จะได้ 202 ซึ่งหลุดออกจากชุด 1000+ ที่ทั้งระบบใช้อยู่ */
 async function seedFor(orgId: string, prefix: string): Promise<number> {
   const rows = await db.$queryRaw<{ max: number | null }[]>`
     select max((substring("publicCode" from '[0-9]+$'))::int) as max
     from "Property"
     where "orgId" = ${orgId} and "publicCode" ~ ${`^${prefix}[0-9]+$`}
   `;
-  const max = rows[0]?.max ?? null;
-  return max === null ? FIRST_NUMBER : max + 1;
+  const max = rows[0]?.max ?? 0;
+  return Math.max(FIRST_NUMBER, max + 1);
 }
 
 /** Next public_code for a property in a province — transaction-safe counter. */

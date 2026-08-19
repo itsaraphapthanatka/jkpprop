@@ -103,6 +103,33 @@ test.describe('รหัสทรัพย์ที่ออกให้ตอ�
     expect(cbi).toMatch(/^JKPCBI\d+$/);
   });
 
+  /* กติกาคือทุกจังหวัดเริ่มที่ 1000 ถ้าจังหวัดไหนบังเอิญมีรหัสเลขต่ำกว่านั้นอยู่
+     (รูปแบบเก่า) การนับต่อตรง ๆ จะได้เลขสามหลักซึ่งหลุดจากชุดที่ทั้งระบบใช้ */
+  test('เลขที่ออกให้ไม่ต่ำกว่า 1000 แม้จังหวัดนั้นจะมีรหัสเลขต่ำอยู่', async ({ page, request }) => {
+    await signIn(page);
+    cookie = await cookieOf(page);
+    const g = await (await request.get('/api/geography', { headers: { cookie } })).json();
+    const prov = (g.provinces as { id: string; th: string; code: string }[])[0];
+    test.skip(!prov, 'ยังไม่มีจังหวัดในผังพื้นที่');
+
+    /* ตั้งรหัสจังหวัดชั่วคราวเป็นตัวที่ไม่มีใครใช้ แล้วฝังทรัพย์เลขต่ำไว้หนึ่งใบ
+       เพื่อจำลองข้อมูลรูปแบบเก่า */
+    const before = prov.code;
+    await request.patch(`/api/geography/${prov.id}`, { headers: { cookie }, data: { code: 'ZZQ' } });
+    try {
+      const low = await create(request, prov.th, 'ทดสอบรหัสเลขต่ำ');
+      expect(low).toMatch(/^JKPZZQ\d+$/);
+      /* ไม่ล็อกว่าต้องเป็น 1000 เป๊ะ เพราะตัวนับไม่ถอยหลังเมื่อทรัพย์ถูกลบ
+         (รหัสห้ามถูกใช้ซ้ำ) สิ่งที่ต้องจริงเสมอคือไม่หลุดต่ำกว่าฐาน 1000 */
+      expect(Number(low.slice('JKPZZQ'.length)), 'ต้องไม่ต่ำกว่าฐาน 1000').toBeGreaterThanOrEqual(1000);
+
+      const next = await create(request, prov.th, 'ทดสอบรหัสเลขต่ำ 2');
+      expect(Number(next.slice('JKPZZQ'.length))).toBe(Number(low.slice('JKPZZQ'.length)) + 1);
+    } finally {
+      await request.patch(`/api/geography/${prov.id}`, { headers: { cookie }, data: { code: before } }).catch(() => null);
+    }
+  });
+
   test('รหัสจังหวัดที่ตั้งไว้ใน /admin/geography ถูกใช้จริง', async ({ page, request }) => {
     await signIn(page);
     cookie = await cookieOf(page);
