@@ -13,6 +13,7 @@
  */
 import { enumLabel } from '@/i18n/enums';
 import { provinceLabel, districtLabel, subdistrictLabel, type GeoOverrides } from '@/i18n/places';
+import { displayArea } from './propertyDto';
 import type { Locale } from '@/i18n/config';
 import type { FieldDef } from '@/lib/propertySchema';
 
@@ -177,6 +178,15 @@ function customRows(extra: FieldDef[], values: Vals, locale: Locale, off: Set<st
 export type SpecSchema = { disabled?: string[]; extra?: FieldDef[] };
 
 export function buildSpecs(values: Vals, locale: Locale, schema: SpecSchema = {}, over?: GeoOverrides) {
+  /* ลูกค้าแจ้งว่า "หน้าขายไม่แสดงราคาต่อ ตร.ม." — ช่องนี้มีอยู่ แต่จะขึ้นก็ต่อเมื่อ
+     มีคนพิมพ์ตัวเลขเข้าไปเอง ซึ่งไม่มีใครพิมพ์ ทั้งที่คำนวณได้จากราคาขายกับพื้นที่
+     ที่กรอกไว้แล้ว · ฝั่งเช่าคำนวณให้อยู่แล้วในหัวเรื่องราคา */
+  const asNumber = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+  const sale = asNumber(values.price_sale) ?? asNumber(values.price);
+  const area = displayArea(values);
+  if (values.price_per_sqm === undefined && sale && area) {
+    values = { ...values, price_per_sqm: Math.round(sale / area) };
+  }
   /* Turning a field off used to hide it from the admin form only: the public
      page kept printing whatever was already stored, so a field switched off
      on purpose stayed on the website. */

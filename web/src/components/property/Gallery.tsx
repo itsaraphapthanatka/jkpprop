@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { PhotoPlaceholder } from '@/components/common/PhotoPlaceholder';
 import { useDict } from '@/i18n/useDict';
 
@@ -30,6 +30,12 @@ const galleryCss = `
 
 const MAX_THUMBS = 3;
 
+const lbBtn: React.CSSProperties = {
+  position: 'absolute', borderRadius: 9999, border: '1px solid rgba(255,255,255,.35)',
+  background: 'rgba(255,255,255,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+  cursor: 'pointer', padding: 0,
+};
+
 export function Gallery({
   photos = [],
   dealLabel,
@@ -48,6 +54,31 @@ export function Gallery({
   const thumbs = photos.slice(1, 1 + MAX_THUMBS);
   const overflow = Math.max(0, photos.length - 1 - MAX_THUMBS);
 
+  /* ลูกค้าแจ้งว่า "คลิกดูรูปภาพไม่ได้ (ขยาย) · ดูรูปภาพและเลื่อนดูภาพทั้งหมด
+     ไม่ได้" — เดิมคลิกรูปย่อยได้แค่สลับรูปหลัก และรูปที่เกินช่องย่อย (+N)
+     ไม่มีทางเปิดดูเลย กล่องนี้เปิดเต็มจอ เลื่อนได้ทุกใบ ทั้งปุ่ม ลูกศร และปัดนิ้ว */
+  const [zoomAt, setZoomAt] = useState<number | null>(null);
+  const touchX = useRef(0);
+  const open = (src: string) => setZoomAt(Math.max(0, photos.indexOf(src)));
+  const close = useCallback(() => setZoomAt(null), []);
+  const step = useCallback((by: number) => {
+    setZoomAt((i) => (i === null ? i : (i + by + photos.length) % photos.length));
+  }, [photos.length]);
+
+  useEffect(() => {
+    if (zoomAt === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close();
+      if (e.key === 'ArrowRight') step(1);
+      if (e.key === 'ArrowLeft') step(-1);
+    };
+    window.addEventListener('keydown', onKey);
+    // กันหน้าเลื่อนอยู่ข้างหลังกล่อง
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = prev; };
+  }, [zoomAt, close, step]);
+
   return (
     <section style={{ maxWidth: '1320px', margin: '0 auto', padding: '16px 24px 0' }}>
       <style dangerouslySetInnerHTML={{ __html: galleryCss }} />
@@ -59,7 +90,11 @@ export function Gallery({
         <div id="pd-gallery-main" style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', background: 'var(--tint)' }}>
           {mainSrc
             ? /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={mainSrc} alt={d.property.code} style={fillImg} />
+              <img
+                src={mainSrc} alt={d.property.code} data-zoom-open
+                onClick={() => open(mainSrc)}
+                style={{ ...fillImg, cursor: 'zoom-in' }}
+              />
             : <PhotoPlaceholder label={d.property.noPhotos} />}
           <div style={{ position: 'absolute', top: 16, left: 16, display: 'flex', gap: 8 }}>
             {dealLabel && (
@@ -89,7 +124,7 @@ export function Gallery({
             {thumbs.map((src, i) => (
               <div
                 key={src}
-                onClick={() => setMainSrc(src)}
+                onClick={() => (i === thumbs.length - 1 && overflow > 0 ? open(src) : setMainSrc(src))}
                 style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', background: 'var(--tint)', minHeight: 0, cursor: 'pointer' }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -102,6 +137,46 @@ export function Gallery({
           </div>
         )}
       </div>
+
+      {/* ดูรูปเต็มจอ — เลื่อนได้ทุกใบ ปิดด้วย Esc หรือคลิกพื้นหลัง */}
+      {zoomAt !== null && photos[zoomAt] && (
+        <div
+          id="pd-lightbox"
+          onClick={close}
+          onTouchStart={(e) => { touchX.current = e.touches[0].clientX; }}
+          onTouchEnd={(e) => {
+            const dx = e.changedTouches[0].clientX - touchX.current;
+            if (Math.abs(dx) > 50) step(dx < 0 ? 1 : -1);
+          }}
+          style={{ position: 'fixed', inset: 0, zIndex: 900, background: 'rgba(2,14,8,.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={photos[zoomAt]} alt={d.property.code}
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8 }}
+          />
+          <button type="button" aria-label={d.listing.zoomClose} onClick={close}
+            style={{ ...lbBtn, top: 20, right: 20, width: 44, height: 44 }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+          {photos.length > 1 && (
+            <>
+              <button type="button" aria-label={d.listing.zoomPrev} data-zoom-prev onClick={(e) => { e.stopPropagation(); step(-1); }}
+                style={{ ...lbBtn, left: 20, top: '50%', transform: 'translateY(-50%)', width: 48, height: 48 }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2"><path d="M15 6l-6 6 6 6" /></svg>
+              </button>
+              <button type="button" aria-label={d.listing.zoomNext} data-zoom-next onClick={(e) => { e.stopPropagation(); step(1); }}
+                style={{ ...lbBtn, right: 20, top: '50%', transform: 'translateY(-50%)', width: 48, height: 48 }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2"><path d="M9 6l6 6-6 6" /></svg>
+              </button>
+              <div data-zoom-count style={{ position: 'absolute', bottom: 22, left: '50%', transform: 'translateX(-50%)', height: 32, padding: '0 14px', borderRadius: 9999, background: 'rgba(255,255,255,.14)', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center' }}>
+                {zoomAt + 1} / {photos.length}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </section>
   );
 }

@@ -120,12 +120,14 @@ const WECHAT: Social = {
 /* `code` identifies the property being asked about. It was a module-level
    constant, so an enquiry sent from any property page arrived naming
    JKP-SPK0042 — the sales team could not tell what the lead was about. */
-export function InquiryBox({ code = '', typeLabel = '', socials = [], wechatId = '', topOffset = 88, stacked = false }: {
+export function InquiryBox({ code = '', typeLabel = '', socials = [], wechatId = '', callNumber = '', topOffset = 88, stacked = false }: {
   code?: string;
   /** what kind of property is being asked about, for the lead record */
   typeLabel?: string;
   /** the company's own chat accounts — only the ones that are set are shown */
   socials?: { key: string; url: string }[];
+  /** เบอร์หลักของบริษัท — ลูกค้าแจ้งว่าหน้านี้ 'ไม่มีปุ่มโทร' */
+  callNumber?: string;
   /** WeChat has no link; the button copies the ID */
   wechatId?: string;
   topOffset?: number;
@@ -199,6 +201,21 @@ export function InquiryBox({ code = '', typeLabel = '', socials = [], wechatId =
             <div style={{ fontSize: 12, color: 'var(--muted)' }}>{d.inquiry.hours}</div>
           </div>
         </div>
+
+        {/* ปุ่มโทร — เดิมหน้านี้มีแต่ช่องแชตกับฟอร์ม คนที่อยากโทรต้องไปหาเบอร์
+            เองที่หน้าติดต่อ */}
+        {callNumber && (
+          <a
+            href={`tel:${callNumber.replace(/[^+\d]/g, '')}`}
+            data-call-btn
+            style={{ marginTop: 12, height: 46, borderRadius: 12, background: 'var(--pine)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9, fontSize: 14, fontWeight: 800, textDecoration: 'none' }}
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z" />
+            </svg>
+            {callNumber}
+          </a>
+        )}
 
         {/* socials */}
         {tiles > 0 && (

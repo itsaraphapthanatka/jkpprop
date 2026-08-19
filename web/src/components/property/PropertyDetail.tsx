@@ -118,6 +118,7 @@ export type PublicProperty = {
   related: RelatedProperty[];
   /** the company's chat accounts, so the buttons in the enquiry box go somewhere */
   socials: { key: string; url: string }[];
+  phone?: string;
   wechatId: string;
 };
 
@@ -299,7 +300,7 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
             to a single column at ≤980, the sidebar sits below a long left
             column, so stickiness is unset via the `stacked` prop instead of
             fighting the box's own layout with an extra CSS pass) */}
-        <InquiryBox code={code} typeLabel={property.typeLabel} socials={property.socials} wechatId={property.wechatId} stacked={w980} />
+        <InquiryBox code={code} typeLabel={property.typeLabel} socials={property.socials} wechatId={property.wechatId} callNumber={property.phone} stacked={w980} />
       </div>
 
       {/* RELATED — other published properties of the same type. Was three

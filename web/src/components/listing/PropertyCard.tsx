@@ -55,6 +55,15 @@ export function PropertyCard({ it, favFill, onToggleFav }: {
         transition: 'transform .28s cubic-bezier(.2,.7,.3,1),box-shadow .28s,border-color .28s',
       }}
     >
+      {/* ลูกค้าแจ้งว่า "คลิกที่รูปภาพ ข้อความ หรือการ์ด ต้องเข้าได้ ตอนนี้ต้องคลิก
+          ที่รายละเอียดอย่างเดียว" — ลิงก์ใบนี้คลุมทั้งการ์ดไว้ข้างหลัง ปุ่มหัวใจ
+          กับปุ่มดูรายละเอียดวางทับอยู่ด้านบนจึงยังกดแยกได้ตามเดิม */}
+      <Link
+        href={`/property/${encodeURIComponent(it.code)}`}
+        aria-label={it.title}
+        data-card-link
+        style={{ position: 'absolute', inset: 0, zIndex: 1 }}
+      />
       <div style={{ position: 'relative', height: 200, overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0, transition: 'transform .5s cubic-bezier(.2,.7,.3,1)', transform: hover ? 'scale(1.07)' : 'none' }}>
           {it.img
@@ -73,7 +82,7 @@ export function PropertyCard({ it, favFill, onToggleFav }: {
           onMouseLeave={() => setFavHover(false)}
           data-fav
           data-on={favFill === 'none' ? '0' : '1'}
-          style={{ position: 'absolute', top: 10, right: 10, width: 30, height: 30, borderRadius: 9999, background: 'var(--neon)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,.14)', transition: 'transform .2s', transform: favHover ? 'scale(1.12)' : 'none' }}
+          style={{ position: 'absolute', zIndex: 2, top: 10, right: 10, width: 30, height: 30, borderRadius: 9999, background: 'var(--neon)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,.14)', transition: 'transform .2s', transform: favHover ? 'scale(1.12)' : 'none' }}
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill={favFill} stroke="var(--ink)" strokeWidth="2">
             <path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z" />
@@ -115,7 +124,7 @@ export function PropertyCard({ it, favFill, onToggleFav }: {
             href={`/property/${encodeURIComponent(it.code)}`}
             onMouseEnter={() => setDetailHover(true)}
             onMouseLeave={() => setDetailHover(false)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 14px', borderRadius: 9999, background: detailHover ? 'var(--pine)' : 'var(--surface)', border: '1px solid var(--pine)', color: detailHover ? '#fff' : 'var(--pine)', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all .2s' }}
+            style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 14px', borderRadius: 9999, background: detailHover ? 'var(--pine)' : 'var(--surface)', border: '1px solid var(--pine)', color: detailHover ? '#fff' : 'var(--pine)', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all .2s' }}
           >
             {d.common.viewDetail}
           </Link>
