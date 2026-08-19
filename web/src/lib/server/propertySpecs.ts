@@ -184,7 +184,10 @@ export function buildSpecs(values: Vals, locale: Locale, schema: SpecSchema = {}
   const asNumber = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
   const sale = asNumber(values.price_sale) ?? asNumber(values.price);
   const area = displayArea(values);
-  if (values.price_per_sqm === undefined && sale && area) {
+  /* ข้อมูลที่นำเข้ามาเก็บช่องนี้เป็น null ไม่ใช่ไม่มีคีย์ — เช็คแค่ undefined
+     จึงไม่เคยเข้าเงื่อนไข และหน้าขายก็ยังไม่มีราคาต่อ ตร.ม. เหมือนเดิม */
+  const hasOwn = values.price_per_sqm !== undefined && values.price_per_sqm !== null && values.price_per_sqm !== '';
+  if (!hasOwn && sale && area) {
     values = { ...values, price_per_sqm: Math.round(sale / area) };
   }
   /* Turning a field off used to hide it from the admin form only: the public
