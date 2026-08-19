@@ -2679,12 +2679,12 @@ test.describe('the dashboard task list', () => {
 
   test('ticking a task closes it for good, not just on screen', async ({ page, request }) => {
     test.skip(!leadId, 'no lead');
-    /* dated in the past so it sorts to the top of the five the card shows —
-       otherwise the test depends on whatever else is open */
+    /* ต้องเก่ากว่าทุกงานที่ค้างอยู่ ไม่ใช่แค่ "เมื่อวาน" — การ์ดโชว์แค่ห้างานแรก
+       พอมีงานค้างจากรอบทดสอบก่อน ๆ งานของรอบนี้ก็ตกขอบและเทสต์ก็แดงทั้งที่โค้ดถูก */
     const title = `งานทดสอบ ${Date.now().toString(36)}`;
     const task = await (await request.post(`/api/leads/${leadId}/tasks`, {
       headers: { cookie, 'Content-Type': 'application/json' },
-      data: { title, due: new Date(Date.now() - 86400000).toISOString() },
+      data: { title, due: new Date('2000-01-01').toISOString() },
     })).json();
     madeTasks.push(task.id);
 

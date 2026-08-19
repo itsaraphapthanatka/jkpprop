@@ -681,7 +681,8 @@ export function PropertiesBody() {
                   {/* auto-code hint */}
                   <div style={{ background: 'var(--tint)', border: '1px dashed rgba(3,73,86,.3)', borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
-                    <span style={{ fontSize: '12.5px', color: 'var(--accent)' }}>รหัสตัวอย่าง: <code style={{ fontWeight: 700 }}>JKP-SPK0043</code> — ระบบสร้างให้อัตโนมัติเมื่อบันทึก</span>
+                    {/* เดิมโชว์ 'JKP-SPK0043' ซึ่งเป็นรูปแบบที่ระบบเลิกใช้แล้ว และไม่ใช่เลขถัดไปจริง */}
+                    <span style={{ fontSize: '12.5px', color: 'var(--accent)' }}>รหัสทรัพย์ออกให้อัตโนมัติเมื่อบันทึก — <code style={{ fontWeight: 700 }}>JKP + รหัสจังหวัด + เลขลำดับของจังหวัดนั้น</code> เช่น <code style={{ fontWeight: 700 }}>JKPSPK1132</code> · กรอกจังหวัดก่อน ไม่งั้นจะได้ <code style={{ fontWeight: 700 }}>JKPXXX…</code></span>
                   </div>
 
                   <div><label style={fieldLabel}>ชื่อทรัพย์ (ไทย) *</label><input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="เช่น บ้านเดี่ยว 2 ชั้น หมู่บ้านเดอะแกรนด์" style={drawerInput} /></div>
