@@ -156,11 +156,23 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
         /* Clicking used to leave the page at once. It picks the area out
            instead, and the card it opens is where the reader decides to go. */
         poly.on('click', () => select(p.key));
-        poly.on('mouseover', () => setHovered(p.key));
+        poly.on('mouseover', () => { closeCards(poly); setHovered(p.key); });
         poly.on('mouseout', () => setHovered(null));
         poly.getElement()?.setAttribute('data-province', p.key);
         layers.current[p.key] = poly;
       }
+
+      /* ลูกค้าเรียกอาการนี้ว่า "แผนที่เละ" — การ์ดของแต่ละจังหวัดค้างเปิดพร้อมกัน
+         เต็มจอ เพราะ Leaflet ปิด tooltip เมื่อได้ mouseout เท่านั้น พอเลื่อนเมาส์
+         เร็ว ๆ ข้ามหลายจังหวัด (หรือรูปหลายเหลี่ยมถูกวาดใหม่ตอนเปลี่ยนสี)
+         mouseout บางตัวไม่มาถึง การ์ดนั้นก็ค้างอยู่ตลอด ยิ่งแผนที่ใหญ่ยิ่งค้างเยอะ
+         ทุกครั้งที่เปิดการ์ดใหม่ จึงไล่ปิดของเดิมทั้งหมดก่อน */
+      const closeCards = (keep?: L.Layer) => {
+        m.eachLayer((l) => {
+          if (l !== keep && 'closeTooltip' in l) (l as L.Polygon).closeTooltip();
+        });
+      };
+      m.on('mouseout', () => closeCards());
 
       for (const pin of pins) {
         const mk = L.marker([pin.lat, pin.lng], {
@@ -184,7 +196,7 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
         mk.bindTooltip(cardHtml(base), { className: 'belt-card', direction: 'top', offset: [0, -20], opacity: 1 });
         mk.bindPopup(cardHtml({ ...base, go: provinceHint, href: prov ? hrefFor(prov) : undefined }),
           { className: 'belt-card-pop', closeButton: true, autoPan: false, offset: [0, -20] });
-        mk.on('mouseover', () => { cb.current.onPinHover(pin.name); setHovered(pin.province); });
+        mk.on('mouseover', () => { closeCards(mk); cb.current.onPinHover(pin.name); setHovered(pin.province); });
         mk.on('mouseout', () => { cb.current.onPinHover(null); setHovered(null); });
         mk.on('click', () => select(pin.province));
         mk.getElement()?.setAttribute('data-pin', pin.name);

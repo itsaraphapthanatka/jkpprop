@@ -19,6 +19,7 @@ export type FeaturedItem = {
   loc: string;
   price: string;
   areaLabel: string;
+  available: boolean;
   typeKey: string;
   img: string | null;
   photos: string;
@@ -35,6 +36,7 @@ type Listing = {
   area: string;
   img: string | null;
   type: string;
+  available: boolean;
 };
 
 const toListing = (it: FeaturedItem): Listing => ({
@@ -48,6 +50,7 @@ const toListing = (it: FeaturedItem): Listing => ({
   area: it.areaLabel || '—',
   img: it.img,
   type: it.typeKey === 'factory' ? 'โรงงาน' : 'โกดัง/คลังสินค้า',
+  available: it.available,
 });
 
 function NavArrow({ onClick, d }: { onClick: () => void; d: string }) {

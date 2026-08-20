@@ -25,6 +25,10 @@ import { PROPERTY_TYPES } from '../src/lib/propertySchema.ts';
 const args = process.argv.slice(2);
 const file = args.find((a) => !a.startsWith('--'));
 const commit = args.includes('--commit');
+/* --sql <ไฟล์> : ไม่แตะฐานข้อมูลนี้ แต่เขียนคำสั่ง SQL ออกมา สำหรับฐานข้อมูล
+   production ที่เครื่องนี้ต่อตรงไม่ได้ (อยู่หลัง firewall ในคอนเทนเนอร์)
+   อัปเดตเฉพาะช่องที่ชีตมีค่า ช่องอื่นในเรกคอร์ดไม่ถูกแตะ — รูปภาพไม่รวมด้วย */
+const sqlOut = args.includes('--sql') ? args[args.indexOf('--sql') + 1] : null;
 const limit = Number(args[args.indexOf('--limit') + 1]) || Infinity;
 const show = Number(args[args.indexOf('--show') + 1]) || 0;
 
@@ -39,11 +43,29 @@ const db = new PrismaClient();
 
 /* วันที่มาได้สามหน้า: เซลล์ที่จัดรูปแบบเป็นวันที่ exceljs คืนเป็น Date,
    เซลล์ที่เป็นตัวเลขดิบคืนเป็นเลขนับวันของ Excel, และบางแถวเป็นข้อความ */
+/* ชีตของทีมพิมพ์วันที่แบบไทยย่อ เช่น 29-เม.ย.-2024 — ตอนส่งออกเป็นข้อความ
+   จะไม่เหลือความเป็นวันที่ให้ exceljs อ่าน ต้องแกะเอง */
+const TH_MONTH: Record<string, number> = {
+  'ม.ค.': 1, 'ก.พ.': 2, 'มี.ค.': 3, 'เม.ย.': 4, 'พ.ค.': 5, 'มิ.ย.': 6,
+  'ก.ค.': 7, 'ส.ค.': 8, 'ก.ย.': 9, 'ต.ค.': 10, 'พ.ย.': 11, 'ธ.ค.': 12,
+};
+const thaiDate = (s: string): string | null => {
+  const m = /^(\d{1,2})-(.+?)-(\d{4})$/.exec(s);
+  if (!m) return null;
+  const mon = TH_MONTH[m[2]];
+  if (!mon) return null;
+  // ปีในชีตเป็น ค.ศ. อยู่แล้ว แต่กันไว้เผื่อมีแถวที่พิมพ์เป็น พ.ศ.
+  const year = Number(m[3]) > 2400 ? Number(m[3]) - 543 : Number(m[3]);
+  return `${year}-${String(mon).padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+};
+
 const excelDate = (v: unknown): string | null => {
   if (v instanceof Date) return v.toISOString().slice(0, 10);
   if (typeof v === 'object' && v && 'result' in v) return excelDate((v as { result: unknown }).result);
   const s = String(v ?? '').trim();
   if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  const th = thaiDate(s);
+  if (th) return th;
   const n = Number(s);
   // 25569 = วันที่ 1970-01-01 ในสเกลของ Excel
   if (Number.isFinite(n) && n > 20000) return new Date((n - 25569) * 86400000).toISOString().slice(0, 10);
@@ -190,6 +212,8 @@ const COLUMN_ALIAS: Record<string, string> = {
   'ภาษีหัก ณ ที่จ่าย': 'withholding_tax',
   'ภาษีที่ดิน': 'land_tax',
   'อากรแสตมป์': 'stamp_duty',
+  'PIC': 'pic',
+  'ทำสัญญาในนาม': 'contract_name',
 };
 
 const SKIP_COLUMNS = new Set(['รูป', 'รหัสทรัพย์', 'ประเภททรัพย์', 'public_code', 'title', 'status', 'listing_status', 'listing_date', 'photos', 'ละติจูด ลองติจูด']);
@@ -257,10 +281,12 @@ ws.eachRow((row, line) => {
     /* ฟิลด์ที่มีรายการตัวเลือก: ค่าที่ไม่อยู่ในรายการจะทำให้หน้าเว็บแสดงคำที่
        ระบบแปลไม่ได้ และตัวกรองก็กรองไม่เจอ — รายงานไว้ ไม่ยัดลงไป */
     if ((field.kind === 'select' || field.kind === 'dealtype') && field.options?.length) {
-      const key = loose(raw);
+      /* อย่าตั้งชื่อว่า key — จะบังคีย์ของฟิลด์ที่ประกาศไว้ข้างบน แล้วค่าจะถูก
+         เก็บใต้ชื่อที่เพี้ยนไป ทำให้ทุกฟิลด์แบบตัวเลือกหายทั้งคอลัมน์ */
+      const norm = loose(raw);
       const hit = field.options.find((o) => o === raw)
-        ?? field.options.find((o) => loose(o) === key)
-        ?? field.options.find((o) => o === SYNONYM[key])
+        ?? field.options.find((o) => loose(o) === norm)
+        ?? field.options.find((o) => o === SYNONYM[norm])
         ?? (name === 'power_phase' ? field.options.find((o) => o === phaseOf(raw)) : undefined);
       if (!hit) { unknownValue(name, raw); continue; }
       values[key] = hit;
@@ -338,6 +364,33 @@ if (show) {
     console.log(`  ${r.title}`);
     for (const [k, v] of Object.entries(r.values)) console.log(`    ${k.padEnd(22)} ${String(v).slice(0, 60)}`);
   }
+}
+
+if (sqlOut) {
+  const esc = (v: string) => v.replace(/'/g, "''");
+  const lines = ['begin;'];
+  let fields = 0;
+  for (const r of ready) {
+    /* รูปมาจากไฟล์ ไม่ใช่จากชีต — โหมดนี้อัปเดตเฉพาะค่าที่กรอกในชีต */
+    const patch = Object.fromEntries(Object.entries(r.values).filter(([k]) => k !== 'photos'));
+    if (!Object.keys(patch).length) continue;
+    fields += Object.keys(patch).length;
+    lines.push(
+      `update "Property" set values = values || '${esc(JSON.stringify(patch))}'::jsonb, "updatedAt" = now() ` +
+      `where "publicCode" = '${esc(r.code)}';`,
+    );
+    /* ว่าง/ไม่ว่าง จากชีต — เก็บที่ Listing.status เหมือนตอนนำเข้าปกติ */
+    lines.push(
+      `update "Listing" l set status = '${esc(r.listingStatus)}' from "Property" p ` +
+      `where l."propertyId" = p.id and p."publicCode" = '${esc(r.code)}';`,
+    );
+  }
+  lines.push('commit;');
+  const { writeFile } = await import('node:fs/promises');
+  await writeFile(sqlOut, lines.join('\n') + '\n', 'utf8');
+  console.log(`\nเขียน SQL ${lines.length - 2} คำสั่ง (${fields} ช่อง) ไปที่ ${sqlOut}`);
+  await db.$disconnect();
+  process.exit(0);
 }
 
 if (!commit) {

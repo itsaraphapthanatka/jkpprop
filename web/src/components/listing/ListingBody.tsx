@@ -44,6 +44,7 @@ export type ListingItem = {
   img: string | null;
   photos: string;
   province: string;
+  available: boolean;
 };
 
 type Listing = {
@@ -63,6 +64,7 @@ type Listing = {
      server: it used to be parsed back out of `price`, which broke the moment
      that string was translated (the parser looked for the Thai word ล้าน). */
   priceValue: number;
+  available: boolean;
 };
 
 const toListing = (it: ListingItem): Listing => ({
@@ -79,6 +81,7 @@ const toListing = (it: ListingItem): Listing => ({
   areaSqm: it.area,
   province: it.province,
   priceValue: it.priceValue,
+  available: it.available,
 });
 
 export type ListingFilterKey = 'factory-rent' | 'factory-sale' | 'warehouse-rent' | 'warehouse-sale';

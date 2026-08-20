@@ -102,6 +102,27 @@ const LOC_LAND: FieldDef = {
   ],
 };
 
+/* สีผังเมืองตามที่ทีมใช้จริงใน Master Sheet — เดิมมี 9 สี ทำให้ 46 แถวใน
+   ชีต (ชมพู/น้ำเงิน/เขียวลาย/เขียวอ่อน) นำเข้าไม่ได้ ตรงกับที่ลูกค้าคอมเมนต์
+   ไว้ว่าสีหาย ที่เหลือเติมจากผังเมืองรวมให้ครบชุด */
+export const ZONE_COLORS = [
+  'พื้นที่สีเขียว — ชนบท/เกษตรกรรม',
+  'พื้นที่สีเขียวลาย — อนุรักษ์ชนบท',
+  'พื้นที่สีเหลือง — ที่อยู่อาศัยหนาแน่นน้อย',
+  'พื้นที่สีส้ม — ที่อยู่อาศัยหนาแน่นปานกลาง',
+  'พื้นที่สีน้ำตาล — ที่อยู่อาศัยหนาแน่นมาก',
+  'พื้นที่สีแดง — พาณิชยกรรม',
+  'พื้นที่สีม่วง — อุตสาหกรรม',
+  'พื้นที่สีเม็ดมะปราง — อุตสาหกรรมเฉพาะกิจ',
+  'พื้นที่สีชมพู — คลังสินค้า',
+  'พื้นที่สีน้ำเงิน — ราชการ',
+  'พื้นที่สีเขียวอ่อน — อนุรักษ์สิ่งแวดล้อม/รับน้ำ',
+  'พื้นที่สีน้ำตาลอ่อน — อนุรักษ์ศิลปวัฒนธรรมไทย',
+  'พื้นที่สีเทาอ่อน — สถาบันศาสนา',
+  'พื้นที่สีเขียวมะกอก — สถานศึกษา',
+  'อื่นๆ',
+];
+
 const HOUSE: PropertyType = {
   key: 'house', label: 'บ้าน', icon: ICON_HOUSE,
   fields: [
@@ -164,7 +185,7 @@ const LAND: PropertyType = {
     LOC_LAND,
     MAP_FIELD,
     { key: 'land_size', label: 'ขนาดพื้นที่', kind: 'group', sub: [{ key: 'rai', label: 'ไร่', kind: 'number' }, { key: 'ngan', label: 'งาน', kind: 'number' }, { key: 'wa', label: 'ตารางวา', kind: 'number' }] },
-    { key: 'zoning_color', label: 'ผังเมืองสีอะไร', kind: 'select', options: ['เขียว', 'เหลือง', 'ส้ม', 'น้ำตาล', 'แดง', 'ชมพู', 'ม่วง', 'อื่นๆ'], note: 'ดูได้จากกฎหมายผังเมือง / LandsMaps' },
+    { key: 'zoning_color', label: 'ผังเมืองสีอะไร', kind: 'select', options: ZONE_COLORS, note: 'ดูได้จากกฎหมายผังเมือง / LandsMaps' },
     { key: 'land_use', label: 'ใช้ประโยชน์อะไรได้บ้าง', kind: 'text', note: 'ดูได้จากกฎหมายผังเมือง' },
     { key: 'far', label: 'FAR', kind: 'number', note: 'ดูได้จากกฎหมายผังเมือง' },
     { key: 'osr', label: 'OSR', kind: 'number', note: 'ดูได้จากกฎหมายผังเมือง' },
@@ -183,7 +204,6 @@ const LAND: PropertyType = {
 /* existing industrial types — now schema-driven too */
 
 /* Urban-planning zone colours (พื้นที่สี ผังเมือง) */
-const ZONE_COLORS = ['เขียว — ชนบท/เกษตรกรรม', 'เหลือง — ที่อยู่อาศัยหนาแน่นน้อย', 'ส้ม — ที่อยู่อาศัยหนาแน่นปานกลาง', 'น้ำตาล — ที่อยู่อาศัยหนาแน่นมาก', 'แดง — พาณิชยกรรม', 'ม่วง — อุตสาหกรรม', 'เม็ดมะปราง — คลังสินค้า', 'ขาว-เขียว — อนุรักษ์ชนบท', 'เขียวอ่อน — อนุรักษ์สิ่งแวดล้อม', 'อื่นๆ'];
 
 /* โกดัง / คลังสินค้า — full detail set ported from the ops import form
    (AppSheet "WUT Demo"), grouped into sections matching that layout. */
@@ -272,6 +292,12 @@ const WAREHOUSE_FIELDS: FieldDef[] = [
   { key: 'features', label: 'คุณสมบัติ', kind: 'multiselect', options: ['พื้นที่สูงโปร่ง', 'มีพื้นที่สำนักงาน', 'รถบรรทุกเข้าถึงได้', 'พื้นเทคอนกรีต', 'ใกล้ถนนหลัก', 'มีลานจอด / ลานเทรลเลอร์', 'อาคารเดี่ยว', 'ยกพื้นเทียบตู้ (Dock leveler)', 'มีที่จอดรถ', 'พื้นที่โครงการ', 'รถคอนเทนเนอร์เข้าได้', 'เครนเหนือศีรษะ'], section: 'คุณสมบัติและการใช้งาน' },
   { key: 'usage', label: 'การใช้งานที่เหมาะ', kind: 'multiselect', options: ['โกดัง', 'สตูดิโอ', 'โรงงาน', 'ศูนย์กระจายสินค้า', 'ครัวกลาง', 'โปรดักชั่น', 'ห้องเก็บของ', 'E-Commerce', 'โชว์รูม', 'ผลิต'], section: 'คุณสมบัติและการใช้งาน' },
 
+  /* 8 · ข้อมูลภายในทีม — สองช่องนี้อยู่ใน Master Sheet ทุกแถว (PIC 393 แถว,
+     ทำสัญญาในนาม 392 แถว) แต่ระบบยังไม่มีที่เก็บ ข้อมูลจึงตกหล่นตอนนำเข้า
+     ทั้งคู่เป็นเรื่องภายใน ไม่ออกหน้าเว็บ */
+  { key: 'pic', label: 'ผู้ดูแลทรัพย์ (PIC)', kind: 'text', section: 'หมายเหตุ', internalOnly: true, placeholder: 'ชื่อคนที่ดูแลทรัพย์นี้' },
+  { key: 'contract_name', label: 'ทำสัญญาในนาม', kind: 'select', options: ['บุคคล', 'บริษัท'], section: 'หมายเหตุ', internalOnly: true },
+
   // 8 · หมายเหตุ (โน้ตลับของทีม — ไม่ออกหน้าเว็บ ไม่เข้าข้อความโพสต์)
   { key: 'internal_note', label: 'หมายเหตุ', kind: 'textarea', section: 'หมายเหตุ', internalOnly: true, note: 'บันทึกภายในทีมเท่านั้น เช่น เงื่อนไขต่อรอง เบอร์คนเฝ้า ข้อควรระวัง — ไม่ถูกส่งไปหน้าเว็บและไม่รวมอยู่ในข้อความโพสต์', placeholder: 'เห็นเฉพาะทีมงานในระบบหลังบ้าน…' },
 
@@ -305,6 +331,7 @@ const WAREHOUSE: PropertyType = { key: 'warehouse', label: 'โกดัง / �
 /* ใช้ชุดฟิลด์เดียวกับโกดังทั้งหมด (คนละ typeKey จึงตั้งค่า Field Builder แยกกันได้) */
 const SHOWROOM: PropertyType = { key: 'showroom', label: 'โชว์รูมและเชิงพาณิชย์', icon: ICON_SHOWROOM, fields: WAREHOUSE_FIELDS };
 
+
 export const PROPERTY_TYPES: PropertyType[] = [HOUSE, CONDO, LAND, FACTORY, WAREHOUSE, SHOWROOM];
 export const propertyType = (key: string): PropertyType => PROPERTY_TYPES.find((t) => t.key === key) || PROPERTY_TYPES[0];
 
@@ -334,7 +361,7 @@ export const REQUIREMENT_FIELDS: Record<string, FieldDef[]> = {
   land: [
     DEAL_INTENT,
     { key: 'land_size', label: 'ขนาดที่ดินที่ต้องการ', kind: 'text', placeholder: 'เช่น 1–2 ไร่' },
-    { key: 'zoning_color', label: 'ผังเมืองสี (ถ้ามีข้อกำหนด)', kind: 'select', options: ['ไม่ระบุ', 'เขียว', 'เหลือง', 'ส้ม', 'แดง', 'ม่วง', 'เม็ดมะปราง'] },
+    { key: 'zoning_color', label: 'ผังเมืองสี (ถ้ามีข้อกำหนด)', kind: 'select', options: ZONE_COLORS },
     REQ_LOCATION,
     REQ_BUDGET,
   ],

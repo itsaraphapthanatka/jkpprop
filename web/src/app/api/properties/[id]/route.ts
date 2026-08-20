@@ -34,7 +34,8 @@ export const GET = handler(async (_req: Request, ctx: { params: Promise<{ id: st
   if (user.scope === 'own' && p.ownerId !== user.id) {
     throw new ApiError('FORBIDDEN', 'บัญชีของคุณเข้าถึงได้เฉพาะทรัพย์ของตัวเอง', 403);
   }
-  return ok(propertyDto(p, user));
+  const listing = await db.listing.findFirst({ where: { propertyId: p.id }, select: { status: true } });
+  return ok({ ...propertyDto(p, user), available: listing?.status !== 'unavailable' });
 });
 
 export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: string }> }) => {
@@ -44,7 +45,7 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
   const p = await findScoped(id, user);
 
   const body = (await req.json().catch(() => null)) as
-    | { title?: string; status?: string; values?: Record<string, unknown>; publicCode?: string; i18n?: unknown }
+    | { title?: string; status?: string; values?: Record<string, unknown>; publicCode?: string; i18n?: unknown; available?: boolean }
     | null;
   if (!body) throw new ApiError('VALIDATION', 'ข้อมูลไม่ถูกต้อง', 400);
   if (body.publicCode && body.publicCode !== p.publicCode) {
@@ -80,12 +81,22 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
   const before = { title: p.title, status: p.status, values: p.values, i18n: p.i18n };
   const updated = await db.property.update({ where: { id: p.id }, data });
 
+  /* ว่าง/ไม่ว่าง อยู่คนละตารางกับตัวทรัพย์ — นำเข้าครั้งแรกกรอกมาแล้ว 129
+     รายการ แต่ไม่มีที่ไหนให้ทีมแก้เมื่อทรัพย์ว่างอีกครั้ง */
+  if (typeof body.available === 'boolean') {
+    const status = body.available ? 'published' : 'unavailable';
+    const listing = await db.listing.findFirst({ where: { propertyId: p.id }, select: { id: true } });
+    if (listing) await db.listing.update({ where: { id: listing.id }, data: { status } });
+    else await db.listing.create({ data: { orgId: p.orgId, propertyId: p.id, status } });
+  }
+
   await audit({
     user, orgId: user.orgId, action: 'property.update', entity: 'property', entityId: p.id,
     before, after: { title: updated.title, status: updated.status, values: updated.values, i18n: updated.i18n },
   });
 
-  return ok(propertyDto(updated, user));
+  const after = await db.listing.findFirst({ where: { propertyId: p.id }, select: { status: true } });
+  return ok({ ...propertyDto(updated, user), available: after?.status !== 'unavailable' });
 });
 
 export const DELETE = handler(async (_req: Request, ctx: { params: Promise<{ id: string }> }) => {

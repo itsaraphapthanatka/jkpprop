@@ -22,6 +22,8 @@ type ApiProperty = {
   status: string;
   values: Record<string, unknown>;
   i18n?: Record<string, { title: string; description: string }>;
+  /** ว่าง/ไม่ว่าง — นำเข้ามา 129 รายการว่าไม่ว่าง แต่ไม่มีที่ให้ทีมแก้กลับ */
+  available?: boolean;
 };
 
 const editCss = `
@@ -71,6 +73,7 @@ export function PropertyEditBody() {
 
   /* the record being edited — loaded from ?code= via GET /api/properties/:code */
   const [record, setRecord] = React.useState<ApiProperty | null>(null);
+  const [available, setAvailable] = React.useState(true);
   const [title, setTitle] = React.useState('');
   const [i18n, setI18n] = React.useState<Record<string, { title: string; description: string }>>({});
   const tr = (k: 'en' | 'zh') => i18n[k] ?? { title: '', description: '' };
@@ -86,6 +89,7 @@ export function PropertyEditBody() {
     apiGet<ApiProperty>(`/api/properties/${encodeURIComponent(code)}`)
       .then((p) => {
         setRecord(p);
+        setAvailable(p.available !== false);
         setSelType(p.typeKey);
         setTitle(p.title);
         setI18n((p.i18n ?? {}) as Record<string, { title: string; description: string }>);
@@ -105,7 +109,7 @@ export function PropertyEditBody() {
     setSaving(true);
     setNotice(null);
     try {
-      await apiPatch(`/api/properties/${record.id}`, { title, values: valsRef.current, i18n });
+      await apiPatch(`/api/properties/${record.id}`, { title, values: valsRef.current, i18n, available });
       /* ลูกค้าแจ้งว่า "กดบันทึกแล้วไม่กลับไปหน้ารวม Property" — เดิมขึ้นแค่คำว่า
          บันทึกแล้วค้างอยู่หน้าเดิม คนแก้ทรัพย์ทีละหลายรายการต้องกดย้อนเองทุกครั้ง */
       setNotice({ kind: 'ok', text: 'บันทึกแล้ว — กำลังกลับไปหน้ารายการทรัพย์' });
@@ -166,6 +170,25 @@ export function PropertyEditBody() {
         {/* รายละเอียดทรัพย์ — schema-driven per property type */}
         {tab === 'main' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {/* ว่าง/ไม่ว่าง — ทีมกรอกมาในชีตแล้ว หน้าเว็บใช้ตัดสินว่าจะขึ้นป้าย
+                "ไม่ว่าง" และเรียงไว้ท้ายรายการหรือไม่ */}
+            <div>
+              <label style={labelStyle}>สถานะการปล่อย</label>
+              <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+                {([[true, 'ว่าง'], [false, 'ไม่ว่าง']] as [boolean, string][]).map(([v, label]) => (
+                  <div
+                    key={label}
+                    onClick={() => setAvailable(v)}
+                    data-avail={v ? 'yes' : 'no'}
+                    data-on={available === v ? '1' : '0'}
+                    style={{ height: 40, padding: '0 18px', borderRadius: 9999, cursor: 'pointer', display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 700, border: '1px solid ' + (available === v ? '#0D6C3B' : 'var(--border)'), background: available === v ? '#E8F3EC' : 'var(--surface)', color: available === v ? '#0D6C3B' : 'var(--muted)' }}
+                  >
+                    {label}
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* property-type selector — drives which field form is loaded */}
             <div>
               <label style={labelStyle}>ประเภททรัพย์ *</label>

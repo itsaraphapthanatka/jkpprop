@@ -24,6 +24,8 @@ export type CardListing = {
   img: string | null;
   type: string;
   area: string;
+  /** ปล่อยว่างไว้ได้ในการ์ดที่ยังไม่รู้สถานะ — ถือว่าว่างตามเดิม */
+  available?: boolean;
 };
 
 export function PropertyCard({ it, favFill, onToggleFav }: {
@@ -76,6 +78,15 @@ export function PropertyCard({ it, favFill, onToggleFav }: {
           <span style={{ width: 5, height: 5, borderRadius: 9999, background: '#fff' }} />
           {enumLabel(it.deal, locale)}
         </div>
+        {/* ทรัพย์ที่ทีมทำเครื่องหมายว่าไม่ว่าง — เดิมหน้าเว็บโฆษณาว่าว่างเหมือนกันหมด */}
+        {it.available === false && (
+          <div
+            data-taken
+            style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', height: 26, padding: '0 11px', borderRadius: 9999, background: 'rgba(var(--ink-rgb),.78)', color: '#fff', fontSize: '11.5px', fontWeight: 700, pointerEvents: 'none', backdropFilter: 'blur(6px)' }}
+          >
+            {d.listing.taken}
+          </div>
+        )}
         {onToggleFav && <div
           onClick={onToggleFav}
           onMouseEnter={() => setFavHover(true)}

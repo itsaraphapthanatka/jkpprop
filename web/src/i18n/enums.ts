@@ -33,6 +33,22 @@ const dict: Record<string, Row> = {
   'ที่ดิน': { en: 'Land', zh: '土地' },
 
   /* urban-planning zone colours — the legal terms, kept literal */
+  'พื้นที่สีเขียว — ชนบท/เกษตรกรรม': { en: 'Green — rural / agricultural', zh: '绿区 — 农业' },
+  'พื้นที่สีเขียวลาย — อนุรักษ์ชนบท': { en: 'Hatched green — rural conservation', zh: '斜纹绿区 — 乡村保护' },
+  'พื้นที่สีเหลือง — ที่อยู่อาศัยหนาแน่นน้อย': { en: 'Yellow — low-density residential', zh: '黄区 — 低密度住宅' },
+  'พื้นที่สีส้ม — ที่อยู่อาศัยหนาแน่นปานกลาง': { en: 'Orange — medium-density residential', zh: '橙区 — 中密度住宅' },
+  'พื้นที่สีน้ำตาล — ที่อยู่อาศัยหนาแน่นมาก': { en: 'Brown — high-density residential', zh: '棕区 — 高密度住宅' },
+  'พื้นที่สีแดง — พาณิชยกรรม': { en: 'Red — commercial', zh: '红区 — 商业' },
+  'พื้นที่สีม่วง — อุตสาหกรรม': { en: 'Purple — industrial', zh: '紫区 — 工业' },
+  'พื้นที่สีเม็ดมะปราง — อุตสาหกรรมเฉพาะกิจ': { en: 'Plum — special industry', zh: '梅红区 — 特定工业' },
+  'พื้นที่สีชมพู — คลังสินค้า': { en: 'Pink — warehousing', zh: '粉区 — 仓储' },
+  'พื้นที่สีน้ำเงิน — ราชการ': { en: 'Blue — government / utilities', zh: '蓝区 — 政府与公用事业' },
+  'พื้นที่สีเขียวอ่อน — อนุรักษ์สิ่งแวดล้อม/รับน้ำ': { en: 'Light green — environmental / flood retention', zh: '浅绿区 — 环境保护与滞洪' },
+  'พื้นที่สีน้ำตาลอ่อน — อนุรักษ์ศิลปวัฒนธรรมไทย': { en: 'Light brown — Thai cultural conservation', zh: '浅棕区 — 文化保护' },
+  'พื้นที่สีเทาอ่อน — สถาบันศาสนา': { en: 'Light grey — religious institutions', zh: '浅灰区 — 宗教机构' },
+  'พื้นที่สีเขียวมะกอก — สถานศึกษา': { en: 'Olive — educational institutions', zh: '橄榄区 — 教育机构' },
+
+  /* ค่าที่เคยบันทึกไว้ก่อนขยายรายการสี — ยังต้องแสดงผลได้ */
   'เขียว — ชนบท/เกษตรกรรม': { en: 'Green — rural / agricultural', zh: '绿区 — 农业' },
   'เหลือง — ที่อยู่อาศัยหนาแน่นน้อย': { en: 'Yellow — low-density residential', zh: '黄区 — 低密度住宅' },
   'ส้ม — ที่อยู่อาศัยหนาแน่นปานกลาง': { en: 'Orange — medium-density residential', zh: '橙区 — 中密度住宅' },

@@ -72,6 +72,8 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
   if (!found) notFound();
 
   const { p, values } = found;
+  // ว่าง/ไม่ว่าง ที่ทีมกรอกไว้ — เก็บอยู่ที่ Listing ไม่ใช่ในตัวทรัพย์
+  const availability = (await db.listing.findFirst({ where: { propertyId: p.id }, select: { status: true } }))?.status ?? 'published';
 
   /* other published properties of the same type — the "similar" row used to
      be three invented records baked into the component */
@@ -82,6 +84,7 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
       code: r.code, deal: r.deal, title: r.title, loc: r.loc, price: r.price, img: r.img,
       // the card shows these too; the old related card simply left them out
       photos: r.photos, type: propertyType(r.typeKey).label, area: r.areaLabel,
+      available: r.available,
     }));
 
   // ชื่อพื้นที่ตามที่ทีมตั้งไว้ใน /admin/geography ชนะตารางในโค้ด
@@ -104,6 +107,7 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
     priceRent: typeof values.price_rent === 'number' ? values.price_rent : null,
     priceSale: typeof values.price_sale === 'number' ? values.price_sale : (typeof values.price === 'number' ? values.price : null),
     updatedAt: fmtDate(p.updatedAt, locale),
+    available: availability !== 'unavailable',
     specs: buildSpecs(values, locale, found.schema, geo),
     zoning: zoningRaw ? enumLabel(zoningRaw, locale) : null,
     photos,

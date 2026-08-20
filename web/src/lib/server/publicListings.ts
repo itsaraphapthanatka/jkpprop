@@ -38,6 +38,9 @@ export type PublicListing = {
   /** province on its own, so the listing page can build its zone filter from
       real inventory instead of a hardcoded list */
   province: string;
+  /** ว่าง/ไม่ว่าง จากข้อมูลที่ทีมกรอก — เก็บมา 129 รายการแล้วแต่หน้าเว็บไม่เคย
+      อ่าน ทรัพย์ที่ปล่อยไปแล้วจึงยังโฆษณาว่าว่างอยู่ */
+  available: boolean;
 };
 
 export type ListingQuery = {
@@ -76,11 +79,21 @@ export async function loadPublicListings(q: ListingQuery = {}): Promise<PublicLi
     take: 1000,
   });
 
+  /* ว่าง/ไม่ว่าง อยู่ที่ Listing.status — คิวรีเดียวสำหรับทั้งหน้า ไม่ใช่ต่อแถว */
+  const taken = new Set(
+    (await db.listing.findMany({
+      where: { propertyId: { in: found.map((p) => p.id) }, status: 'unavailable' },
+      select: { propertyId: true },
+    })).map((l) => l.propertyId),
+  );
+
   /* The star Ops ticks on /admin/listings decides what leads the homepage
      strip; recency only breaks the tie. Sort is stable, so within each group
      the newest still comes first. */
   const rows = [...found].sort(
-    (a, b) => Number(isFeatured(b.values)) - Number(isFeatured(a.values)),
+    (a, b) => Number(isFeatured(b.values)) - Number(isFeatured(a.values))
+      // ทรัพย์ที่ไม่ว่างยังแสดงอยู่ แต่ไปต่อท้าย ไม่ไปเบียดของที่เช่าได้จริง
+      || Number(taken.has(a.id)) - Number(taken.has(b.id)),
   );
 
   /* Card images are served with a one-year immutable cache, so a browser that
@@ -143,6 +156,7 @@ export async function loadPublicListings(q: ListingQuery = {}): Promise<PublicLi
       img: photos[0] ? withVersion(photos[0], wmv.get(p.orgId) ?? 0) : null,
       photos: String(photos.length),
       province,
+      available: !taken.has(p.id),
     }];
   }).slice(0, limit);
 }

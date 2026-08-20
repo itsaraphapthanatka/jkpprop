@@ -197,7 +197,7 @@ describe('property rules', () => {
       method: 'POST',
       body: JSON.stringify({ typeKey: 'warehouse', title: 'ทดสอบ code gen', values: { province: 'ชลบุรี' } }),
     })).json() as { id: string; publicCode: string };
-    assert.match(created.publicCode, /^JKP-CBI\d{4}$/);
+    assert.match(created.publicCode, /^JKPCBI\d{4,}$/);
 
     const res = await call(`/api/properties/${created.id}`, jar.owner, {
       method: 'PATCH',
@@ -209,12 +209,12 @@ describe('property rules', () => {
     await call(`/api/properties/${created.id}`, jar.owner, { method: 'DELETE' });
   });
 
-  test('Bangkok properties get the un-suffixed prefix', { skip: skip() }, async () => {
+  test('Bangkok properties get the BKK prefix', { skip: skip() }, async () => {
     const created = await (await call('/api/properties', jar.owner, {
       method: 'POST',
       body: JSON.stringify({ typeKey: 'factory', title: 'ทดสอบ bkk', values: { province: 'กรุงเทพมหานคร' } }),
     })).json() as { id: string; publicCode: string };
-    assert.match(created.publicCode, /^JKP\d{4}$/);
+    assert.match(created.publicCode, /^JKPBKK\d{4,}$/);
     await call(`/api/properties/${created.id}`, jar.owner, { method: 'DELETE' });
   });
 
@@ -316,10 +316,19 @@ describe('watermarking (FR-ADM-09)', () => {
     await call(`/api/media/${asset.id}`, jar.owner, { method: 'DELETE' });
   });
 
-  test('none leaves the file alone', { skip: skip() }, async () => {
+  /* 'none' = ไม่ประทับข้อความตอนอัปโหลด — ไม่ได้แปลว่าไฟล์ที่เสิร์ฟจะเปล่า
+     เสมอไป เพราะลายน้ำโลโก้มาจาก /admin/branding ชั้นเดียวตอนอ่าน เทสต์เดิม
+     เทียบไบต์ตรง ๆ จึงพังทันทีที่ทีมตั้งโลโก้จริง */
+  test('none ไม่แตะไฟล์ต้นฉบับที่เก็บไว้', { skip: skip() }, async () => {
     const asset = await upload('none');
-    const shown = Buffer.from(await (await call(`/api/media/${asset.id}/raw`)).arrayBuffer());
-    assert.ok(shown.equals(tinyPng));
+    const original = Buffer.from(await (await call(`/api/media/${asset.id}/raw?original=1`, jar.owner)).arrayBuffer());
+    assert.ok(original.equals(tinyPng), 'ต้นฉบับต้องเป็นไฟล์เดิมที่อัปโหลดไป');
+
+    const branding = await (await call('/api/branding')).json() as { watermark?: { enabled?: boolean; src?: string | null } };
+    if (!branding.watermark?.enabled || !branding.watermark?.src) {
+      const shown = Buffer.from(await (await call(`/api/media/${asset.id}/raw`)).arrayBuffer());
+      assert.ok(shown.equals(tinyPng), 'ไม่มีโลโก้ตั้งไว้ ไฟล์ที่เสิร์ฟต้องเป็นตัวเดิม');
+    }
     await call(`/api/media/${asset.id}`, jar.owner, { method: 'DELETE' });
   });
 

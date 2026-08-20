@@ -110,6 +110,8 @@ export type PublicProperty = {
   description?: string;
   typeLabel: string; location: string;
   area: number | null; dealType: string; priceRent: number | null; priceSale: number | null;
+  /** ทีมกรอกไว้ว่าทรัพย์นี้ว่างหรือไม่ — เดิมหน้ารายละเอียดไม่เคยบอก */
+  available: boolean;
   updatedAt: string;
   specs: { quick: SpecRow[]; rows: SpecRow[]; features: string[]; nearby: string[] };
   zoning: string | null;
@@ -186,6 +188,16 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
                 <div style={{ fontSize: '12.5px', color: 'var(--muted)' }}>{priceUnit}</div>
               </div>
             </div>
+
+            {!property.available && (
+              <div
+                data-taken-note
+                style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 12, background: 'var(--tint)', border: '1px solid var(--border)' }}
+              >
+                <span style={{ flexShrink: 0, height: 22, padding: '0 10px', borderRadius: 9999, background: 'var(--ink)', color: '#fff', fontSize: 11.5, fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>{d.listing.taken}</span>
+                <span style={{ fontSize: '13.5px', color: 'var(--muted)' }}>{d.listing.takenNote}</span>
+              </div>
+            )}
 
             {property.description && (
               <p style={{ margin: '16px 0 0', fontSize: '14.5px', lineHeight: 1.8, color: 'var(--muted)', whiteSpace: 'pre-line' }}>{property.description}</p>

@@ -81,6 +81,8 @@ export type Dictionary = {
     copyLink: string; email: string;
     prevPage: string; nextPage: string; pageN: string;
     zoomClose: string; zoomPrev: string; zoomNext: string;
+    /** ทรัพย์ที่ทีมกรอกว่าไม่ว่างแล้ว */
+    taken: string; takenNote: string;
     noSavedTitle: string; noSavedBody: string; showAll: string;
     empty: string; emptyHint: string; emptyTitle: string; emptyBody: string;
   };
@@ -275,6 +277,7 @@ const th: Dictionary = {
     copyLink: 'คัดลอกลิงก์', email: 'อีเมล',
     prevPage: 'หน้าก่อนหน้า', nextPage: 'หน้าถัดไป', pageN: 'หน้า',
     zoomClose: 'ปิด', zoomPrev: 'รูปก่อนหน้า', zoomNext: 'รูปถัดไป',
+    taken: 'ไม่ว่าง', takenNote: 'ทรัพย์นี้มีผู้เช่า/ผู้ซื้อแล้ว ติดต่อเราเพื่อดูทรัพย์ที่ใกล้เคียงกัน', 
     noSavedTitle: 'ยังไม่มีทรัพย์ที่บันทึกไว้', noSavedBody: 'กดรูปหัวใจบนทรัพย์ที่สนใจ แล้วกลับมาที่นี่เพื่อดูรายการที่เก็บไว้', showAll: 'ดูทรัพย์ทั้งหมด',
     empty: 'ไม่พบทรัพย์ตามเงื่อนไขที่เลือก', emptyHint: 'ลองปรับตัวกรอง หรือกด "ล้างค่า" เพื่อดูทั้งหมด',
     emptyTitle: 'ยังไม่มีทรัพย์ที่เผยแพร่', emptyBody: 'ทรัพย์ที่ทีมงานเผยแพร่แล้วจะแสดงที่นี่',
@@ -498,6 +501,7 @@ const en: Dictionary = {
     copyLink: 'Copy link', email: 'Email',
     prevPage: 'Previous page', nextPage: 'Next page', pageN: 'Page',
     zoomClose: 'Close', zoomPrev: 'Previous photo', zoomNext: 'Next photo',
+    taken: 'Not available', takenNote: 'This property is already taken — contact us for similar ones.', 
     noSavedTitle: 'Nothing saved yet', noSavedBody: 'Tap the heart on a property you like, then come back here to find it again', showAll: 'Show all properties',
     empty: 'No properties match these filters', emptyHint: 'Adjust the filters, or press "Clear" to see everything.',
     emptyTitle: 'No properties published yet', emptyBody: 'Published listings appear here.',
@@ -721,6 +725,7 @@ const zh: Dictionary = {
     copyLink: '复制链接', email: '电子邮件',
     prevPage: '上一页', nextPage: '下一页', pageN: '第',
     zoomClose: '关闭', zoomPrev: '上一张', zoomNext: '下一张',
+    taken: '已租/已售', takenNote: '此房源已被承租或售出，欢迎联系我们查看同类房源。', 
     noSavedTitle: '还没有收藏的房源', noSavedBody: '点击房源上的爱心图标收藏，之后回到这里即可查看', showAll: '查看全部房源',
     empty: '没有符合条件的房源', emptyHint: '请调整筛选条件，或点击“清除”查看全部。',
     emptyTitle: '暂无已发布房源', emptyBody: '已发布的房源会显示在这里。',

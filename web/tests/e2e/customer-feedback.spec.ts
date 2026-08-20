@@ -8,17 +8,20 @@ import { test, expect } from '@playwright/test';
 
 test.describe('คอมเมนต์ลูกค้า · หน้าเว็บฝั่งลูกค้า', () => {
   test('การ์ดทรัพย์คลิกได้ทั้งใบ ไม่ใช่เฉพาะปุ่มรายละเอียด', async ({ page, request }) => {
-    const items = (await (await request.get('/api/public/listings?locale=th&limit=1')).json()).items as { code: string }[];
-    test.skip(!items.length, 'ยังไม่มีทรัพย์');
+    /* ต้องเลือกใบที่มีรูปจริง — ใบที่ไม่มีรูปวาด placeholder ไม่ใช่ <img>
+       และลำดับการ์ดก็เปลี่ยนได้ตามสถานะว่าง/ไม่ว่าง */
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=24')).json()).items as { code: string; img: string | null }[];
+    const withPhoto = items.find((i) => i.img);
+    test.skip(!withPhoto, 'ยังไม่มีทรัพย์ที่มีรูป');
 
     await page.goto('/th/listing');
-    const card = page.locator(`[data-card="${items[0].code}"]`);
+    const card = page.locator(`[data-card="${withPhoto!.code}"]`);
     await expect(card).toBeVisible();
 
     /* คลิกตรงรูป — ต้องใช้ force เพราะลิงก์ที่คลุมการ์ดอยู่ข้างบน ซึ่งก็คือสิ่งที่
        ต้องการพอดี: นิ้วผู้ใช้แตะตรงนั้นแล้วโดนลิงก์ ไม่ใช่โดนรูปเปล่า ๆ */
     await card.locator('img').first().click({ force: true });
-    await expect(page).toHaveURL(new RegExp(`/property/${items[0].code}`));
+    await expect(page).toHaveURL(new RegExp(`/property/${withPhoto!.code}`));
   });
 
   test('กดหัวใจบนการ์ด ยังเป็นการบันทึก ไม่ใช่เปิดหน้าทรัพย์', async ({ page, request }) => {
@@ -222,6 +225,91 @@ test.describe('คอมเมนต์ลูกค้า · แยกหมว�
       /* ภาษีเก็บเป็นคู่ ผู้รับผิดชอบ+จำนวนเงิน — เดิมตกลงมาเป็น [object Object] */
       expect(text).not.toContain('[object Object]');
       expect(text).toContain('ผู้เช่า');
+    } finally {
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+});
+
+/* สไลด์ 6 · "แผนที่เละ อาจจะเกี่ยวกับขนาด" — การ์ดของแต่ละจังหวัดค้างเปิด
+   พร้อมกันเต็มจอ เพราะ Leaflet ปิด tooltip เมื่อได้ mouseout เท่านั้น เลื่อนเมาส์
+   ข้ามหลายจังหวัดเร็ว ๆ แล้ว mouseout บางตัวไม่มาถึง */
+test.describe('คอมเมนต์ลูกค้า · แผนที่หน้าแรก', () => {
+  test('เลื่อนเมาส์ข้ามหลายจังหวัด แล้วการ์ดไม่ค้างซ้อนกัน', async ({ page }) => {
+    await page.goto('/th');
+    const plane = page.locator('#lf-map-plane');
+    await plane.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(1200);
+
+    const box = (await plane.boundingBox())!;
+    // ลากเมาส์พาดแผนที่เร็ว ๆ แบบที่คนใช้จริงทำ
+    let everOpened = 0;
+    for (let i = 0; i <= 12; i++) {
+      await page.mouse.move(box.x + (box.width * i) / 12, box.y + box.height * (0.35 + (i % 3) * 0.12));
+      everOpened = Math.max(everOpened, await page.locator('.belt-card').count());
+    }
+    /* ถ้าไม่มีการ์ดเปิดเลยระหว่างลาก เทสต์นี้ก็ไม่ได้ตรวจอะไร */
+    expect(everOpened, 'ลากผ่านแล้วต้องมีการ์ดขึ้นอย่างน้อยหนึ่งใบ').toBeGreaterThan(0);
+    await page.waitForTimeout(500);
+    const cards = await page.locator('.belt-card').count();
+    expect(cards, `การ์ดค้างบนแผนที่ ${cards} ใบ`).toBeLessThanOrEqual(1);
+  });
+});
+
+/* สไลด์ 30 · "ระบบเช็คให้ว่าว่างไม่ว่างหาย" — ทีมกรอก ว่าง/ไม่ว่าง มาใน Master
+   Sheet ครบทุกแถว (129 รายการเป็น "ไม่ว่าง") ข้อมูลเข้าฐานไปแล้วจริง แต่ไม่มี
+   หน้าไหนอ่านมันเลย ทรัพย์ที่ปล่อยไปแล้วจึงยังโฆษณาเหมือนว่างอยู่ และทีมก็ไม่มี
+   ที่ให้กดเปลี่ยนกลับเมื่อทรัพย์ว่างอีกครั้ง */
+test.describe('คอมเมนต์ลูกค้า · ว่าง/ไม่ว่าง', () => {
+  const signIn = async (page: import('@playwright/test').Page) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    return (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  };
+
+  test('กดไม่ว่างในหลังบ้าน แล้วหน้าเว็บขึ้นป้ายไม่ว่างจริง', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: {
+        typeKey: 'warehouse',
+        title: `ทดสอบว่างไม่ว่าง ${Date.now().toString(36)}`,
+        status: 'active',
+        values: { province: 'สมุทรปราการ', deal_type: 'เช่า', price_rent: 90000 },
+      },
+    })).json();
+
+    try {
+      // ตอนสร้างใหม่ต้องถือว่าว่าง — ไม่มีป้ายบนหน้ารายละเอียด
+      await page.goto(`/th/property/${made.publicCode}`);
+      await expect(page.locator('[data-taken-note]')).toHaveCount(0);
+
+      // ทีมกดว่า "ไม่ว่าง" ในหน้าแก้ไข แล้วบันทึก
+      await page.goto(`/admin/property-edit?code=${made.publicCode}`);
+      await page.locator('[data-avail="no"]').click();
+      await page.getByText('บันทึก', { exact: true }).first().click();
+      await expect(page).toHaveURL(/\/admin\/properties$/, { timeout: 15000 });
+
+      // ค่าที่กดต้องถูกบันทึกจริง ไม่ใช่แค่ปุ่มเปลี่ยนสี
+      const after = await (await request.get(`/api/properties/${made.id}`, { headers: { cookie } })).json();
+      expect(after.available, 'API ต้องรายงานว่าไม่ว่าง').toBe(false);
+
+      // และหน้าที่ลูกค้าเห็นต้องบอก ไม่ใช่ยังโฆษณาเหมือนเดิม
+      await page.goto(`/th/property/${made.publicCode}`);
+      await expect(page.locator('[data-taken-note]')).toBeVisible();
+      await expect(page.locator('[data-taken-note]')).toContainText('ไม่ว่าง');
+
+      // กดกลับเป็นว่างได้ด้วย — ไม่ใช่ทางเดียว
+      await page.goto(`/admin/property-edit?code=${made.publicCode}`);
+      await expect(page.locator('[data-avail="no"][data-on="1"]'), 'เปิดหน้ามาต้องจำค่าที่บันทึกไว้').toBeVisible();
+      await page.locator('[data-avail="yes"]').click();
+      await page.getByText('บันทึก', { exact: true }).first().click();
+      await expect(page).toHaveURL(/\/admin\/properties$/, { timeout: 15000 });
+      await page.goto(`/th/property/${made.publicCode}`);
+      await expect(page.locator('[data-taken-note]')).toHaveCount(0);
     } finally {
       await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
     }
