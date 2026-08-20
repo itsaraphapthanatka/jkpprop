@@ -54,7 +54,41 @@ const SPEC_ICON: Record<string, React.ReactNode> = {
 const SPEC_ICON_FALLBACK = qi(<><circle cx="12" cy="12" r="9" /><path d="M12 8v8M8 12h8" /></>);
 
 const featureIcon = fi(<path d="M20 6L9 17l-5-5" />);
-const nearbyIcon = ni(<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z" />);
+
+/* ไอคอนของคุณสมบัติและการใช้งาน — เดิมทุกใบใช้เครื่องหมายถูกอันเดียวกันหมด
+   (สไลด์ 12 "เพิ่ม Icon คุณสมบัติ") เก็บเป็นเส้น path ล้วน ไม่ใช่ JSX เพราะคีย์
+   เป็นคำไทยที่ใช้จับคู่ค่าในฐานข้อมูล ไม่ใช่ข้อความที่ผู้อ่านเห็น */
+const ICON_PATHS: Record<string, string[]> = {
+  'มีพื้นที่สำนักงาน': ['M3 4h18v16H3z', 'M7 8h4M7 12h4M7 16h4M15 8h2M15 12h2'],
+  'รถคอนเทนเนอร์เข้าได้': ['M1 8h13v9H1z', 'M14 11h4l3 3v3h-7z', 'M6 17.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3', 'M17 17.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3'],
+  'ใกล้ถนนหลัก': ['M4 21L9 3M20 21l-5-18', 'M12 5v3M12 12v3M12 19v2'],
+  'มีที่จอดรถ': ['M3 3h18v18H3z', 'M9 17V7h3.5a3 3 0 010 6H9'],
+  'อาคารเดี่ยว': ['M3 21h18M6 21V8l6-4 6 4v13', 'M10 21v-6h4v6'],
+  'พื้นที่โครงการ': ['M3 3h18v18H3z', 'M3 9h18M9 3v18'],
+  'ยกพื้นเทียบตู้ (Dock leveler)': ['M2 17h6l4-4h10', 'M2 21h20', 'M8 17V9h6'],
+  'เครนเหนือศีรษะ': ['M3 4h18M6 4v10M12 4v6', 'M9 14h6l-3 6z'],
+
+  'สตูดิโอ': ['M2 6h14v12H2z', 'M16 10l6-3v10l-6-3z'],
+  'โชว์รูม': ['M3 9l2-5h14l2 5', 'M4 9v11h16V9', 'M9 20v-6h6v6'],
+  'ศูนย์กระจายสินค้า': ['M3 21V9l9-5 9 5v12', 'M9 21v-7h6v7'],
+  'ครัวกลาง': ['M6 3v7a3 3 0 006 0V3M9 10v11', 'M18 3c-1.5 2-2 4-2 6h4c0-2-.5-4-2-6zM18 9v12'],
+  'โปรดักชั่น': ['M2 20h20V9l-6 4V9l-6 4V4H2z', 'M6 20v-4h4v4'],
+  'ห้องเก็บของ': ['M3 7h18v14H3z', 'M3 11h18M9 7V3h6v4'],
+  'E-Commerce': ['M2 3h3l2.6 11.4a2 2 0 002 1.6h7.8a2 2 0 002-1.6L21 7H6', 'M9 18.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3', 'M18 18.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3'],
+  'ผลิต': ['M2 20h20V9l-6 4V9l-6 4V4H2z', 'M6 20v-4h4v4'],
+  'โกดัง': ['M3 21V9l9-5 9 5v12', 'M9 21v-7h6v7'],
+  'โรงงาน': ['M2 20h20V9l-6 4V9l-6 4V4H2z', 'M6 20v-4h4v4'],
+};
+
+const chipIcon = (label: string): React.ReactNode => {
+  const paths = ICON_PATHS[label];
+  if (!paths) return featureIcon;
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      {paths.map((dPath) => <path key={dPath} d={dPath} />)}
+    </svg>
+  );
+};const nearbyIcon = ni(<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z" />);
 
 export type RelatedProperty = CardListing;
 
@@ -113,7 +147,7 @@ export type PublicProperty = {
   /** ทีมกรอกไว้ว่าทรัพย์นี้ว่างหรือไม่ — เดิมหน้ารายละเอียดไม่เคยบอก */
   available: boolean;
   updatedAt: string;
-  specs: { quick: SpecRow[]; rows: SpecRow[]; features: string[]; nearby: string[] };
+  specs: { quick: SpecRow[]; rows: SpecRow[]; features: string[]; usage: string[]; nearby: string[] };
   zoning: string | null;
   /** media src จาก /api/public/properties/:code — ใส่ลายน้ำแล้วตอนเสิร์ฟ */
   photos: string[];
@@ -254,9 +288,24 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
               {sectionHead(d.property.features)}
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 {specs.features.map((f) => (
-                  <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 9, height: 44, padding: '0 16px', borderRadius: 12, background: 'var(--bg)', border: '1px solid var(--border)' }}>
-                    <span style={{ color: 'var(--accent)', display: 'flex' }}>{featureIcon}</span>
+                  <div key={f} data-feature style={{ display: 'flex', alignItems: 'center', gap: 9, height: 44, padding: '0 16px', borderRadius: 12, background: 'var(--bg)', border: '1px solid var(--border)' }}>
+                    <span style={{ color: 'var(--accent)', display: 'flex' }}>{chipIcon(f)}</span>
                     <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{f}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* การใช้งานที่เหมาะ — ข้อมูลมีอยู่ทุกรายการแต่ไม่เคยถูกแสดง */}
+          {specs.usage.length > 0 && (
+            <div style={sectionCard}>
+              {sectionHead(d.property.usage)}
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                {specs.usage.map((u) => (
+                  <div key={u} data-usage style={{ display: 'flex', alignItems: 'center', gap: 9, height: 44, padding: '0 16px', borderRadius: 12, background: 'var(--tint)', border: '1px solid var(--border)' }}>
+                    <span style={{ color: 'var(--accent)', display: 'flex' }}>{chipIcon(u)}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{u}</span>
                   </div>
                 ))}
               </div>

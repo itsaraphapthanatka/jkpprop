@@ -23,11 +23,13 @@ type Vals = Record<string, unknown>;
     public page and the admin form call the same thing by the same name. */
 const LABELS: Record<string, Record<Locale, string>> = {
   usable_area:     { th: 'พื้นที่ใช้สอย',           en: 'Usable area',          zh: '使用面积' },
+  building_area_total: { th: 'พื้นที่อาคารรวม',    en: 'Total building area',  zh: '建筑总面积' },
+  building_area:   { th: 'พื้นที่คลัง / ผลิต',       en: 'Warehouse area',       zh: '仓库面积' },
   land_area:       { th: 'ขนาดที่ดิน',             en: 'Land area',            zh: '土地面积' },
   clear_height:    { th: 'ความสูงใต้อาคาร',        en: 'Clear height',         zh: '净高' },
   floor_loading:   { th: 'รับน้ำหนักพื้น',          en: 'Floor loading',        zh: '楼板承重' },
-  power_system:    { th: 'ระบบไฟฟ้า',              en: 'Power supply',         zh: '供电系统' },
-  power_phase:     { th: 'ระบบไฟ (เฟส)',           en: 'Power phase',          zh: '电相' },
+  power_system:    { th: 'ขนาดหม้อแปลงไฟฟ้า',       en: 'Transformer size',     zh: '变压器容量' },
+  power_phase:     { th: 'ระบบไฟ',                  en: 'Power supply',         zh: '供电系统' },
   factory_license: { th: 'ขอใบ ร.ง.4 ได้',         en: 'Factory licence (Rg.4)', zh: '可申请工厂许可证' },
   overhead_crane:  { th: 'เครนเหนือศีรษะ',         en: 'Overhead crane',       zh: '行车吊' },
   cold_storage:    { th: 'ห้องเย็น / ควบคุมอุณหภูมิ', en: 'Cold storage',        zh: '冷库' },
@@ -165,8 +167,15 @@ const TABLE_ORDER = [
   'deposit_months', 'advance_months', 'lease_term',
 ];
 
-/* the four tiles above the table — first four of these that have a value */
-const QUICK_ORDER = ['usable_area', 'clear_height', 'floor_loading', 'power_system', 'land_area', 'doors'];
+/* การ์ดสรุปสี่ใบเหนือตาราง — เอาคีย์แรก ๆ ที่มีค่า
+   ลูกค้าคอมเมนต์ไว้ว่า "รับน้ำหนัก ความสูงหาย" เพราะลำดับเดิมขึ้นต้นด้วย
+   usable_area / clear_height / power_system ซึ่งข้อมูลจริงไม่มีสักรายการ
+   (0 จาก 395) การ์ดจึงเหลือแค่สองใบท้าย ๆ ที่บังเอิญมีค่า */
+const QUICK_ORDER = [
+  'building_area_total', 'building_height', 'floor_loading', 'power_phase',
+  // คีย์สำรองสำหรับเรกคอร์ดที่กรอกคนละชุด — ใช้เมื่อสี่ตัวบนยังไม่ครบสี่ใบ
+  'usable_area', 'clear_height', 'power_system', 'land_area', 'doors', 'building_area',
+];
 
 function rowsFor(keys: string[], values: Vals, locale: Locale, off: Set<string>, over?: GeoOverrides): SpecRow[] {
   const seen = new Set<string>();
@@ -221,6 +230,11 @@ export function buildSpecs(values: Vals, locale: Locale, schema: SpecSchema = {}
   const features = Array.isArray(values.features)
     ? (values.features as unknown[]).map((f) => enumLabel(String(f), locale)).filter(Boolean)
     : [];
+  /* "การใช้งานที่เหมาะ" เก็บไว้ครบทั้ง 393 รายการ แต่ไม่มีหน้าไหนแสดงเลย
+     ลูกค้าเขียนรายการที่ต้องการไว้ในสไลด์ 13 */
+  const usage = Array.isArray(values.usage)
+    ? (values.usage as unknown[]).map((u) => enumLabel(String(u), locale)).filter(Boolean)
+    : [];
   const nearbyRaw = values.nearby;
   const nearby = Array.isArray(nearbyRaw)
     ? (nearbyRaw as unknown[]).map((n) => enumLabel(String(n), locale)).filter(Boolean)
@@ -235,6 +249,7 @@ export function buildSpecs(values: Vals, locale: Locale, schema: SpecSchema = {}
        tenants (place, size, power, price) and stays as it is */
     rows: [...rowsFor(TABLE_ORDER, values, locale, off, over), ...customRows(schema.extra ?? [], values, locale, off)],
     features,
+    usage,
     nearby,
   };
 }

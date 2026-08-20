@@ -95,28 +95,18 @@ const AVAILABILITY: Record<string, string> = {
 const loose = (s: string) =>
   s.normalize('NFC').replace(/[—–−-]/g, '-').replace(/\s+/g, '').replace(/^สี/, '').toLowerCase();
 
-/** คำที่ทีมใช้ ↔ ตัวเลือกที่ระบบมี — เติมได้เมื่อเจอคำใหม่ */
+/* คำที่ทีมใช้ ↔ ตัวเลือกที่ระบบมี — เติมได้เมื่อเจอคำใหม่
+   ระวัง: ตารางนี้เคยถูกใช้กลบข้อมูลที่ระบบยังไม่มีตัวเลือกรองรับ เช่นบังคับ
+   "ชมพู — คลังสินค้า" ให้เป็นเม็ดมะปราง และ "3 Phase 30/100 amp" ให้เหลือ
+   "3 เฟส" ซึ่งทำให้ค่าที่ทีมกรอกหายไปเงียบ ๆ ถ้าค่าที่ทีมใช้ไม่มีในระบบ
+   ให้เพิ่มตัวเลือกในระบบ อย่ามาบังคับให้เป็นค่าอื่นตรงนี้ */
 const SYNONYM: Record<string, string> = {
-  'เม็ดมะปราง-คลังสินค้า': 'เม็ดมะปราง — คลังสินค้า',
-  'ชมพู-คลังสินค้า': 'เม็ดมะปราง — คลังสินค้า',
-  'ขาวเขียว-อนุรักษ์ชนบท': 'ขาว-เขียว — อนุรักษ์ชนบท',
-  'เขียวลาย-อนุรักษ์ชนบท': 'ขาว-เขียว — อนุรักษ์ชนบท',
-  'เขียวอ่อน-อนุรักษ์สิ่งแวดล้อม/รับน้ำ': 'เขียวอ่อน — อนุรักษ์สิ่งแวดล้อม',
-  'น้ำเงิน-ราชการ': 'อื่นๆ',
-  '1เฟส': '1 เฟส',
-  '3เฟส': '3 เฟส',
-  'singlephase(upgradeable)': '1 เฟส',
-  'singlephase': '1 เฟส',
-  'threephase': '3 เฟส',
-  'เจ้าของ': 'เจ้าของเอง',
+  // สะกดต่างกันเล็กน้อยเท่านั้น ไม่ใช่การเปลี่ยนความหมาย
+  'เจ้าของเอง': 'เจ้าของ',
   '4ชั้น': 'มากกว่า 3 ชั้น',
   '5ชั้น': 'มากกว่า 3 ชั้น',
   'มากกว่า3ชั้น': 'มากกว่า 3 ชั้น',
 };
-
-/** "3 Phase 30/100 amp (Upgradeable)" บอกทั้งเฟสและแอมป์ — ระบบเก็บแค่เฟส */
-const phaseOf = (raw: string): string | null =>
-  /3\s*phase|3\s*เฟส/i.test(raw) ? '3 เฟส' : /single\s*phase|1\s*เฟส/i.test(raw) ? '1 เฟส' : null;
 
 const TYPE_BY_LABEL: Record<string, string> = {
   'โกดัง': 'warehouse',
@@ -287,7 +277,7 @@ ws.eachRow((row, line) => {
       const hit = field.options.find((o) => o === raw)
         ?? field.options.find((o) => loose(o) === norm)
         ?? field.options.find((o) => o === SYNONYM[norm])
-        ?? (name === 'power_phase' ? field.options.find((o) => o === phaseOf(raw)) : undefined);
+        ?? undefined;
       if (!hit) { unknownValue(name, raw); continue; }
       values[key] = hit;
       continue;

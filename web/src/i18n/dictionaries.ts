@@ -87,7 +87,7 @@ export type Dictionary = {
     empty: string; emptyHint: string; emptyTitle: string; emptyBody: string;
   };
   property: {
-    code: string; specs: string; features: string; zoneType: string; location: string;
+    code: string; specs: string; features: string; usage: string; zoneType: string; location: string;
     nearby: string; similar: string; openInMaps: string; areaLevelNote: string;
     priceRent: string; priceSale: string; updatedAt: string; notGuaranteed: string;
     noPhotos: string; photos: string;
@@ -283,7 +283,7 @@ const th: Dictionary = {
     emptyTitle: 'ยังไม่มีทรัพย์ที่เผยแพร่', emptyBody: 'ทรัพย์ที่ทีมงานเผยแพร่แล้วจะแสดงที่นี่',
   },
   property: {
-    code: 'รหัสทรัพย์', specs: 'รายละเอียดทรัพย์', features: 'คุณสมบัติของทรัพย์',
+    code: 'รหัสทรัพย์', specs: 'รายละเอียดทรัพย์', features: 'คุณสมบัติของทรัพย์', usage: 'การใช้งานที่เหมาะ',
     zoneType: 'ประเภทโซน', location: 'ตำแหน่งทรัพย์', nearby: 'สถานที่ใกล้เคียง',
     similar: 'อสังหาริมทรัพย์ที่คล้ายกัน', openInMaps: 'เปิดพื้นที่นี้ใน Google Maps',
     areaLevelNote: 'แสดงระดับพื้นที่เพื่อความเป็นส่วนตัว',
@@ -507,7 +507,7 @@ const en: Dictionary = {
     emptyTitle: 'No properties published yet', emptyBody: 'Published listings appear here.',
   },
   property: {
-    code: 'Property code', specs: 'Property details', features: 'Features',
+    code: 'Property code', specs: 'Property details', features: 'Features', usage: 'Suitable uses',
     zoneType: 'Zoning', location: 'Location', nearby: 'Nearby',
     similar: 'Similar properties', openInMaps: 'Open this area in Google Maps',
     areaLevelNote: 'Shown at area level for privacy',
@@ -731,7 +731,7 @@ const zh: Dictionary = {
     emptyTitle: '暂无已发布房源', emptyBody: '已发布的房源会显示在这里。',
   },
   property: {
-    code: '房源编号', specs: '房源详情', features: '设施特点',
+    code: '房源编号', specs: '房源详情', features: '设施特点', usage: '适用用途',
     zoneType: '城市规划分区', location: '位置', nearby: '周边设施',
     similar: '相似房源', openInMaps: '在 Google 地图中查看该区域',
     areaLevelNote: '出于隐私考虑仅显示到区域级别',

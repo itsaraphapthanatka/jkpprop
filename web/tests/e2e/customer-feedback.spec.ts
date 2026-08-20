@@ -315,3 +315,114 @@ test.describe('คอมเมนต์ลูกค้า · ว่าง/ไม
     }
   });
 });
+
+/* คอมเมนต์ลูกค้ากลุ่ม B — ช่องข้อมูลที่ทีมกรอกมาแล้วแต่ระบบทำหาย
+   สไลด์ 3  · "รับน้ำหนัก ความสูงหาย"
+   สไลด์ 4  · รายการพื้นที่สีที่ใช้จริง 12 สี
+   สไลด์ 12 · "เพิ่ม Icon คุณสมบัติ"
+   สไลด์ 13 · "การใช้งานที่เหมาะ" 8 รายการ รวม E-Commerce
+   สไลด์ 24 · สถานะผู้ติดต่อ เจ้าของ/นายหน้า
+   สไลด์ 26 · ระบบไฟ 4 ตัวเลือกพร้อมกระแสแอมป์ */
+test.describe('คอมเมนต์ลูกค้า · กลุ่ม B', () => {
+  const signIn = async (page: import('@playwright/test').Page) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    return (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  };
+
+  const VALUES = {
+    province: 'สมุทรปราการ',
+    deal_type: 'เช่า',
+    price_rent: 120000,
+    building_area_total: 1500,
+    building_height: 12,
+    floor_loading: '3 ตัน/ตร.ม.',
+    power_phase: '3 Phase 30/100 amp (Upgradeable)',
+    power_system: '250 kVA',
+    zoning_color: 'พื้นที่สีม่วงลาย — พัฒนาอุตสาหกรรม',
+    features: ['มีพื้นที่สำนักงาน', 'รถคอนเทนเนอร์เข้าได้', 'เครนเหนือศีรษะ'],
+    usage: ['E-Commerce', 'ศูนย์กระจายสินค้า', 'ครัวกลาง'],
+    lessor_status: 'นายหน้า',
+  };
+
+  test('การ์ดสรุปมี รับน้ำหนัก และ ความสูง ไม่ใช่ช่องที่ไม่มีใครกรอก', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { typeKey: 'warehouse', title: `ทดสอบการ์ดสรุป ${Date.now().toString(36)}`, status: 'active', values: VALUES },
+    })).json();
+    try {
+      await page.goto(`/th/property/${made.publicCode}`);
+      const tiles = await page.locator('#pd-specs > div').allInnerTexts();
+      const text = tiles.join(' | ');
+      expect(text, 'ความสูงอาคารต้องอยู่ในการ์ดสรุป').toContain('ความสูงอาคาร');
+      expect(text, 'รับน้ำหนักพื้นต้องอยู่ในการ์ดสรุป').toContain('รับน้ำหนักพื้น');
+      expect(tiles.length, 'ต้องได้การ์ดครบสี่ใบเมื่อข้อมูลครบ').toBe(4);
+    } finally {
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+
+  test('ระบบไฟเก็บกระแสแอมป์ไว้ ไม่ถูกย่อเหลือ 3 เฟส', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { typeKey: 'warehouse', title: `ทดสอบระบบไฟ ${Date.now().toString(36)}`, status: 'active', values: VALUES },
+    })).json();
+    try {
+      await page.goto(`/th/property/${made.publicCode}`);
+      const body = await page.locator('body').innerText();
+      expect(body).toContain('3 Phase 30/100 amp');
+      expect(body, 'ขนาดหม้อแปลงเป็นคนละช่องกับระบบไฟ').toContain('250 kVA');
+      // อังกฤษต้องแปลชื่อหัวข้อ ไม่ใช่ทิ้งภาษาไทยไว้
+      await page.goto(`/en/property/${made.publicCode}`);
+      const en = await page.locator('body').innerText();
+      expect(en).toContain('3 phase 30/100 A');
+      expect(en).not.toContain('ระบบไฟ');
+    } finally {
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+
+  test('คุณสมบัติมีไอคอนคนละแบบ และการใช้งานที่เหมาะขึ้นหน้าเว็บ', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { typeKey: 'warehouse', title: `ทดสอบไอคอน ${Date.now().toString(36)}`, status: 'active', values: VALUES },
+    })).json();
+    try {
+      await page.goto(`/th/property/${made.publicCode}`);
+      const usage = page.locator('[data-usage]');
+      await expect(usage, 'การใช้งานที่เหมาะต้องแสดงครบทุกข้อที่กรอก').toHaveCount(3);
+      await expect(page.getByText('E-Commerce')).toBeVisible();
+
+      /* ไอคอนต้องไม่ใช่รูปเดียวกันทุกใบ — เทียบเส้น path ของแต่ละอัน */
+      const paths = await page.locator('[data-feature] svg').evaluateAll(
+        (nodes) => nodes.map((n) => n.innerHTML),
+      );
+      expect(paths.length).toBe(3);
+      expect(new Set(paths).size, 'คุณสมบัติสามข้อต้องได้ไอคอนสามแบบ').toBe(3);
+    } finally {
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+
+  test('สีผังเมืองที่ลูกค้าเพิ่มมาใหม่ เลือกได้และแปลครบสามภาษา', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { typeKey: 'warehouse', title: `ทดสอบสีผังเมือง ${Date.now().toString(36)}`, status: 'active', values: VALUES },
+    })).json();
+    try {
+      for (const [locale, want] of [['th', 'พื้นที่สีม่วงลาย'], ['en', 'Hatched purple'], ['zh', '斜纹紫区']] as const) {
+        await page.goto(`/${locale}/property/${made.publicCode}`);
+        await expect(page.getByText(want).first(), `${locale} ต้องแปลสีผังเมือง`).toBeVisible();
+      }
+    } finally {
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+});

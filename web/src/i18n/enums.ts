@@ -40,13 +40,14 @@ const dict: Record<string, Row> = {
   'พื้นที่สีน้ำตาล — ที่อยู่อาศัยหนาแน่นมาก': { en: 'Brown — high-density residential', zh: '棕区 — 高密度住宅' },
   'พื้นที่สีแดง — พาณิชยกรรม': { en: 'Red — commercial', zh: '红区 — 商业' },
   'พื้นที่สีม่วง — อุตสาหกรรม': { en: 'Purple — industrial', zh: '紫区 — 工业' },
+  'พื้นที่สีม่วงลาย — พัฒนาอุตสาหกรรม': { en: 'Hatched purple — industrial development', zh: '斜纹紫区 — 工业发展' },
+  'พื้นที่สีส้มอ่อนมีจุดขาว — รองรับการพัฒนาเมือง': { en: 'Light orange with white dots — urban growth area', zh: '浅橙白点区 — 城市发展' },
+  /* ถอดออกจากรายการให้เลือกตามสไลด์ 4 ("ชมพู — คลังสินค้า แทนสีเม็ดมะปราง")
+     แต่ยังต้องแปลได้ เพราะมีข้อมูลเก่าที่บันทึกค่านี้ไว้ */
   'พื้นที่สีเม็ดมะปราง — อุตสาหกรรมเฉพาะกิจ': { en: 'Plum — special industry', zh: '梅红区 — 特定工业' },
   'พื้นที่สีชมพู — คลังสินค้า': { en: 'Pink — warehousing', zh: '粉区 — 仓储' },
   'พื้นที่สีน้ำเงิน — ราชการ': { en: 'Blue — government / utilities', zh: '蓝区 — 政府与公用事业' },
   'พื้นที่สีเขียวอ่อน — อนุรักษ์สิ่งแวดล้อม/รับน้ำ': { en: 'Light green — environmental / flood retention', zh: '浅绿区 — 环境保护与滞洪' },
-  'พื้นที่สีน้ำตาลอ่อน — อนุรักษ์ศิลปวัฒนธรรมไทย': { en: 'Light brown — Thai cultural conservation', zh: '浅棕区 — 文化保护' },
-  'พื้นที่สีเทาอ่อน — สถาบันศาสนา': { en: 'Light grey — religious institutions', zh: '浅灰区 — 宗教机构' },
-  'พื้นที่สีเขียวมะกอก — สถานศึกษา': { en: 'Olive — educational institutions', zh: '橄榄区 — 教育机构' },
 
   /* ค่าที่เคยบันทึกไว้ก่อนขยายรายการสี — ยังต้องแสดงผลได้ */
   'เขียว — ชนบท/เกษตรกรรม': { en: 'Green — rural / agricultural', zh: '绿区 — 农业' },
@@ -58,6 +59,12 @@ const dict: Record<string, Row> = {
   'เม็ดมะปราง — คลังสินค้า': { en: 'Plum — warehousing', zh: '梅红区 — 仓储' },
   'ขาว-เขียว — อนุรักษ์ชนบท': { en: 'White-green — rural conservation', zh: '白绿区 — 乡村保护' },
 
+  /* ระบบไฟ — ชื่อรุ่นตามที่การไฟฟ้าเรียก เก็บเป็นภาษาอังกฤษทุกภาษา
+     ต่างกันแค่คำว่า "อัปเกรดได้" ที่ต่อท้าย */
+  'Single Phase (Upgradeable)': { en: 'Single phase (upgradeable)', zh: '单相（可升级）' },
+  '3 Phase 15/45 amp (Upgradeable)': { en: '3 phase 15/45 A (upgradeable)', zh: '三相 15/45 A（可升级）' },
+  '3 Phase 30/100 amp (Upgradeable)': { en: '3 phase 30/100 A (upgradeable)', zh: '三相 30/100 A（可升级）' },
+  '3 Phase 50/150 amp (Upgradeable)': { en: '3 phase 50/150 A (upgradeable)', zh: '三相 50/150 A（可升级）' },
   /* zones */
   'ปลอดอากร (Free Zone)': { en: 'Free Zone', zh: '自由区' },
   'การนิคมอุตสาหกรรม (กนอ.)': { en: 'Industrial Estate (IEAT)', zh: '工业园区 (IEAT)' },
@@ -234,6 +241,7 @@ const dict: Record<string, Row> = {
   'ห้องเก็บของ': { en: 'Storage', zh: '仓储' },
   'สตูดิโอ': { en: 'Studio', zh: '摄影棚' },
   'โชว์รูม': { en: 'Showroom', zh: '展厅' },
+  'E-Commerce': { en: 'E-commerce fulfilment', zh: '电商仓配' },
 
   'เขียวอ่อน — อนุรักษ์สิ่งแวดล้อม': { en: 'Light green — conservation', zh: '浅绿区 — 环境保护' },
 };
