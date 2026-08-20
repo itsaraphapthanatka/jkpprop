@@ -77,8 +77,8 @@ export function ContactBody({ copy, company }: { copy: ContactCopy; company: Com
 
         {/* phones */}
         <div style={infoCard}>
-          <div style={iconCircle('var(--deep)')} {...iconHover('0 8px 18px rgba(var(--deep-rgb),.4)')}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z" /></svg>
+          <div style={iconCircle('var(--pine)')} {...iconHover('0 8px 18px rgba(var(--pine-rgb),.4)')}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--neon)" strokeWidth="2"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z" /></svg>
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>{d.contact.ourPhone}</div>
@@ -105,7 +105,7 @@ export function ContactBody({ copy, company }: { copy: ContactCopy; company: Com
 
         {/* emails */}
         <div style={infoCard}>
-          <div style={iconCircle('#04140C')} {...iconHover('0 8px 18px rgba(var(--neon-rgb),.35)')}>
+          <div style={iconCircle('var(--pine)')} {...iconHover('0 8px 18px rgba(var(--pine-rgb),.4)')}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--neon)" strokeWidth="2"><path d="M22 6l-10 7L2 6" /><rect x="2" y="4" width="20" height="16" rx="2" /></svg>
           </div>
           <div style={{ flex: 1 }}>

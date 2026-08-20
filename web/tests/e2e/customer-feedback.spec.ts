@@ -826,3 +826,29 @@ test.describe('คอมเมนต์ลูกค้า · แผนที่�
     expect(external, 'ยังไม่ได้รับความยินยอม แต่ยิงไปโหลดแผนที่แล้ว').toEqual([]);
   });
 });
+
+/* หน้าติดต่อมีการ์ดสามใบเรียงกัน แต่วงกลมไอคอนเป็นคนละสีทั้งสามใบ (เขียวเข้ม ·
+   ทอง · ดำอมเขียว) ลูกค้าชี้ว่า "ใช้สีเดียวกับข้างบน" */
+test.describe('คอมเมนต์ลูกค้า · ไอคอนหน้าติดต่อ', () => {
+  test('วงกลมไอคอนทั้งสามใบเป็นสีเดียวกัน', async ({ page }) => {
+    await page.goto('/th/contact');
+    /* อ่านสีพื้นหลังจริงของวงกลมที่ครอบไอคอนในการ์ดข้อมูลติดต่อ */
+    const colors = await page.evaluate(() => {
+      const out: string[] = [];
+      for (const svg of Array.from(document.querySelectorAll('svg'))) {
+        const box = svg.parentElement;
+        if (!box) continue;
+        const st = getComputedStyle(box);
+        // วงกลมไอคอน: กลม พื้นทึบ ขนาดราว 44–56px
+        if (st.borderRadius.startsWith('9999') || parseInt(st.borderRadius) > 20) {
+          const w = box.getBoundingClientRect().width;
+          if (w >= 40 && w <= 60 && st.backgroundColor !== 'rgba(0, 0, 0, 0)') out.push(st.backgroundColor);
+        }
+      }
+      return out;
+    });
+
+    expect(colors.length, 'ต้องเจอวงกลมไอคอนอย่างน้อยสามใบ').toBeGreaterThanOrEqual(3);
+    expect(new Set(colors).size, `ยังมี ${new Set(colors).size} สี: ${[...new Set(colors)].join(' · ')}`).toBe(1);
+  });
+});
