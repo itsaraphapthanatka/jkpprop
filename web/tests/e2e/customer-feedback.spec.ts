@@ -473,3 +473,65 @@ test.describe('คอมเมนต์ลูกค้า · กลุ่ม B',
     }
   });
 });
+
+/* สไลด์ 16 · "เพิ่ม ลูกค้า นายหน้า" — ต้องเลือกได้ว่าคนที่ติดต่อมาเป็นลูกค้า
+   หรือนายหน้า ฟอร์มแจ้งความต้องการถามอยู่แล้ว แต่กล่องสอบถามบนหน้าทรัพย์ส่งค่า
+   "ลูกค้า" ไปตายตัว และลีดที่เซลล์คีย์เองไม่มีช่องนี้เลย */
+test.describe('คอมเมนต์ลูกค้า · ลูกค้า/นายหน้า', () => {
+  test('เลือกนายหน้าในกล่องสอบถาม แล้วลีดบันทึกว่านายหน้า', async ({ page, request }) => {
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=1')).json()).items as { code: string }[];
+    test.skip(!items.length, 'ยังไม่มีทรัพย์');
+
+    const phone = `08${Date.now().toString().slice(-8)}`;
+    await page.goto(`/th/property/${items[0].code}`);
+    await page.locator('[data-who="agent"]').click();
+    await expect(page.locator('[data-who="agent"][data-on="1"]')).toBeVisible();
+    await page.locator('#pd-inquiry input').nth(0).fill('ทดสอบนายหน้า');
+    await page.locator('#pd-inquiry input').nth(2).fill(phone);
+    await page.locator('#pd-inquiry button[type="submit"]').click();
+    await expect(page.locator('#pd-inquiry')).toContainText(/ส่ง|ขอบคุณ/, { timeout: 15000 });
+
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const leads = (await (await request.get('/api/leads?limit=50', { headers: { cookie } })).json());
+    const rows = (Array.isArray(leads) ? leads : leads.items) as { id: string; phone: string; respondentType: string }[];
+    const mine = rows.find((l) => l.phone === phone);
+    expect(mine, 'ต้องเจอลีดที่เพิ่งส่ง').toBeTruthy();
+    expect(mine!.respondentType, 'ต้องบันทึกว่าเป็นนายหน้า ไม่ใช่ลูกค้า').toBe('นายหน้า');
+
+    await request.delete(`/api/leads/${mine!.id}`, { headers: { cookie } }).catch(() => null);
+  });
+
+  test('ลีดที่เซลล์คีย์เองก็เลือกลูกค้า/นายหน้าได้', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const name = `ทดสอบคีย์เอง ${Date.now().toString(36)}`;
+    await page.goto('/admin/leads');
+    await page.getByText('เพิ่ม Lead').first().click();
+    await page.locator('input').filter({ hasText: '' }).first().waitFor();
+    await page.getByPlaceholder('เช่น บ. ไทยโลจิสติกส์').fill(name);
+    await page.locator('[data-lead-who]').selectOption('นายหน้า');
+    await page.locator('#lead-create-save').click();
+
+    await expect.poll(async () => {
+      const res = await (await request.get('/api/leads?limit=50', { headers: { cookie } })).json();
+      const rows = (Array.isArray(res) ? res : res.items) as { name: string; respondentType: string }[];
+      return rows.find((l) => l.name === name)?.respondentType ?? null;
+    }, { timeout: 15000 }).toBe('นายหน้า');
+
+    const res = await (await request.get('/api/leads?limit=50', { headers: { cookie } })).json();
+    const rows = (Array.isArray(res) ? res : res.items) as { id: string; name: string }[];
+    const made = rows.find((l) => l.name === name);
+    if (made) await request.delete(`/api/leads/${made.id}`, { headers: { cookie } }).catch(() => null);
+  });
+});

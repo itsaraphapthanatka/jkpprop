@@ -25,7 +25,7 @@ test('a requirement submitted on the website reaches the Leads workspace', async
   await page.getByPlaceholder('เช่น บ. ไทยโลจิสติกส์').fill(company);
 
   // these three are required and are chip buttons, not selects (§8)
-  await page.getByRole('button', { name: 'เป็น ลูกค้า (ผู้เช่า)' }).click();
+  await page.getByRole('button', { name: 'ลูกค้า', exact: true }).click();
   await page.getByRole('button', { name: 'โกดัง / คลังสินค้า' }).click();
   await page.getByRole('button', { name: 'เช่า', exact: true }).click();
 
@@ -41,7 +41,7 @@ test('a requirement submitted on the website reaches the Leads workspace', async
 test('the form refuses to submit without the mandatory phone number', async ({ page }) => {
   await page.goto('/th/contact');
   await page.getByPlaceholder('กรอกชื่อของคุณ').fill('ไม่ใส่เบอร์');
-  await page.getByRole('button', { name: 'เป็น ลูกค้า (ผู้เช่า)' }).click();
+  await page.getByRole('button', { name: 'ลูกค้า', exact: true }).click();
   await page.getByRole('button', { name: 'ส่งความต้องการ' }).click();
   await expect(page.getByText('กรุณากรอกเบอร์โทรศัพท์')).toBeVisible();
   await expect(page.getByText('ส่งความต้องการแล้ว')).toHaveCount(0);

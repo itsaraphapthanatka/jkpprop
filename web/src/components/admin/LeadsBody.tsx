@@ -180,7 +180,9 @@ export function LeadsBody() {
   }, []);
   const [createOpen, setCreateOpen] = React.useState(false);
   const [creating, setCreating] = React.useState(false);
-  const emptyForm = { name: '', contact: '', country: 'TH', phone: '', email: '', source: 'contact form', statusK: 'new', agent: '' };
+  /* สไลด์ 16 · ลูกค้า/นายหน้า — ฟอร์มบนเว็บถามอยู่แล้ว แต่ลีดที่เซลล์คีย์เอง
+     ไม่เคยมีช่องนี้ เลยแยกไม่ออกว่าใครเป็นใคร */
+  const emptyForm = { name: '', contact: '', country: 'TH', phone: '', email: '', source: 'contact form', statusK: 'new', agent: '', who: 'ลูกค้า' };
   const [form, setForm] = React.useState(emptyForm);
   const setF = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
   const canCreate = form.name.trim().length > 0;
@@ -455,6 +457,7 @@ export function LeadsBody() {
         email: form.email.trim(),
         source: form.source,
         status: form.statusK,
+        respondentType: form.who,
         // ช่อง "มอบหมายให้" ในฟอร์มนี้เคยส่งชื่อที่พิมพ์ไว้ในโค้ดไปเปล่า ๆ
         assigneeId: form.agent || null,
       });
@@ -524,6 +527,16 @@ export function LeadsBody() {
               <div style={fGrid}>
                 <div><label style={fLabel}>แหล่งที่มา</label><select value={form.source} onChange={(e) => setF('source', e.target.value)} style={fSelect}>{SOURCE_OPTS.map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
                 <div><label style={fLabel}>สถานะ</label><select value={form.statusK} onChange={(e) => setF('statusK', e.target.value)} style={fSelect}>{STATUS_CREATE_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+              </div>
+              <div style={fGrid}>
+                <div>
+                  <label style={fLabel}>ติดต่อมาในฐานะ</label>
+                  <select value={form.who} onChange={(e) => setF('who', e.target.value)} style={fSelect} data-lead-who>
+                    <option value="ลูกค้า">ลูกค้า</option>
+                    <option value="นายหน้า">นายหน้า</option>
+                  </select>
+                </div>
+                <div />
               </div>
               <div>
                 <label style={fLabel}>มอบหมายให้</label>

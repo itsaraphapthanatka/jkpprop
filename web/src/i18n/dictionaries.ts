@@ -338,7 +338,7 @@ const th: Dictionary = {
   requirement: {
     heading: 'แจ้งความต้องการ',
     sub: 'เลือกประเภททรัพย์ที่สนใจ แล้วกรอกเฉพาะรายละเอียดที่จำเป็น — ทีมงานจะติดต่อกลับ',
-    respondentStatus: 'สถานะของผู้ตอบแบบสอบถาม', agent: 'เป็น Agent ตัวแทน', customer: 'เป็น ลูกค้า (ผู้เช่า)',
+    respondentStatus: 'คุณติดต่อมาในฐานะ', agent: 'นายหน้า', customer: 'ลูกค้า',
     choose: 'เลือก…', wanted: 'ต้องการ', notSpecified: 'ไม่ระบุ',
     company: 'ชื่อบริษัท / องค์กรของคุณ', companyPh: 'เช่น บ. ไทยโลจิสติกส์',
     namePh: 'กรอกชื่อของคุณ', details: 'รายละเอียดเพิ่มเติม',
@@ -562,7 +562,7 @@ const en: Dictionary = {
   requirement: {
     heading: 'Tell us what you need',
     sub: 'Pick the type of property, fill in only what matters — our team will get back to you.',
-    respondentStatus: 'You are', agent: 'An agent', customer: 'A client (tenant)',
+    respondentStatus: 'You are contacting us as', agent: 'An agent', customer: 'A client',
     choose: 'Select…', wanted: 'Required', notSpecified: 'Not specified',
     company: 'Company / organisation', companyPh: 'e.g. Thai Logistics Co.',
     namePh: 'Your name', details: 'Additional details',
@@ -786,7 +786,7 @@ const zh: Dictionary = {
   requirement: {
     heading: '提交需求',
     sub: '选择房源类型，只需填写必要信息 — 我们的团队会与您联系。',
-    respondentStatus: '您的身份', agent: '中介代理', customer: '客户（承租方）',
+    respondentStatus: '您的身份', agent: '中介代理', customer: '客户',
     choose: '请选择…', wanted: '需要', notSpecified: '不限',
     company: '公司 / 机构名称', companyPh: '例如：泰国物流有限公司',
     namePh: '您的姓名', details: '补充说明',

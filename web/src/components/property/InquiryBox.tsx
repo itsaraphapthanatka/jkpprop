@@ -138,6 +138,9 @@ export function InquiryBox({ code = '', typeLabel = '', socials = [], wechatId =
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState(`${d.inquiry.interestedIn} ${code}`.trim());
+  /* สไลด์ 16 · ต้องเลือกได้ว่าติดต่อมาในฐานะลูกค้าหรือนายหน้า — เดิมกล่องนี้
+     ส่งค่า "ลูกค้า" ไปตายตัว นายหน้าที่ถามมาจึงถูกบันทึกเป็นลูกค้าทุกราย */
+  const [who, setWho] = useState(d.requirement.customer);
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -158,8 +161,7 @@ export function InquiryBox({ code = '', typeLabel = '', socials = [], wechatId =
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name, phone, email, message,
-          // the API requires this; from a property page the sender is the customer
-          respondentType: 'เป็น ลูกค้า (ผู้เช่า)',
+          respondentType: who,
           typeLabel,
           req: [{ k: 'ทรัพย์ที่สนใจ', v: code }],
         }),
@@ -239,6 +241,27 @@ export function InquiryBox({ code = '', typeLabel = '', socials = [], wechatId =
         {/* form */}
         <form onSubmit={onSubmit}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>{d.requirement.respondentStatus}</div>
+              <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
+                {[d.requirement.customer, d.requirement.agent].map((opt) => {
+                  const on = who === opt;
+                  return (
+                    <button
+                      type="button"
+                      key={opt}
+                      data-who={opt === d.requirement.agent ? 'agent' : 'customer'}
+                      data-on={on ? '1' : '0'}
+                      aria-pressed={on}
+                      onClick={() => setWho(opt)}
+                      style={{ flex: 1, height: 40, borderRadius: 11, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', border: '1.5px solid ' + (on ? 'var(--deep)' : 'var(--border)'), background: on ? 'rgba(var(--deep-rgb),.06)' : 'var(--bg)', color: on ? 'var(--deep)' : 'var(--text)' }}
+                    >
+                      {opt}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <input placeholder={d.inquiry.namePh} value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
             <input placeholder={d.inquiry.emailPh} value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} />
             <input placeholder={d.inquiry.phonePh} value={phone} onChange={(e) => setPhone(e.target.value)} style={inputStyle} />

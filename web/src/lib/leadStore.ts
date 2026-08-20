@@ -14,7 +14,7 @@ export type StoredLead = {
   phone: string;
   email: string;
   company?: string; // ชื่อบริษัท / องค์กรของผู้ติดต่อ
-  respondentType?: string; // เป็น Agent ตัวแทน / เป็น ลูกค้า (ผู้เช่า)
+  respondentType?: string; // ลูกค้า / นายหน้า (ค่าที่บันทึกก่อนหน้าเขียนยาวกว่านี้)
   message: string;
   typeKey: string; // property type key (house/condo/land/factory/warehouse)
   typeLabel: string; // Thai label
