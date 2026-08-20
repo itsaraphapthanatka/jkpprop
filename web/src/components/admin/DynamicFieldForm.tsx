@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { groupDigits, numericValue } from '@/lib/numberFormat';
 import { thumb } from '@/lib/mediaThumb';
 import { resolveFields, propertyType, type FieldDef } from '@/lib/propertySchema';
 import { useSchemaSync } from '@/lib/schemaSync';
@@ -337,7 +338,13 @@ export function DynamicFieldForm({ typeKey, code, initialValues, onValuesChange 
                       {(s.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
                     </select>
                   ) : (
-                    <input value={sub(f.key, s.key)} onChange={(e) => setSub(f.key, s.key, e.target.value)} inputMode={s.kind === 'number' ? 'numeric' : undefined} placeholder={s.placeholder || (s.kind === 'number' ? '0' : '')} style={{ ...inputStyle, height: 40 }} />
+                    <input
+                      value={s.kind === 'number' ? groupDigits(sub(f.key, s.key)) : sub(f.key, s.key)}
+                      onChange={(e) => setSub(f.key, s.key, s.kind === 'number' ? numericValue(e.target.value) : e.target.value)}
+                      inputMode={s.kind === 'number' ? 'numeric' : undefined}
+                      placeholder={s.placeholder || (s.kind === 'number' ? '0' : '')}
+                      style={{ ...inputStyle, height: 40 }}
+                    />
                   )}
                 </div>
               ))}
@@ -404,7 +411,23 @@ export function DynamicFieldForm({ typeKey, code, initialValues, onValuesChange 
         );
       case 'price':
       case 'number':
-        return (<div>{lbl(f)}<input value={str(f.key)} onChange={(e) => setV(f.key, e.target.value)} inputMode="numeric" placeholder="0" style={inputStyle} />{note(f)}</div>);
+        /* สไลด์ 25 · "ช่องจำนวนเงินกับขนาดพื้นที่ ทุกช่องใส่ , ขั้นหน่วย"
+           ตัวเลขหกเจ็ดหลักไม่มีตัวคั่นอ่านผิดง่าย และคนกรอกก็เห็นไม่ได้ว่าพิมพ์
+           ศูนย์เกินไปตัวหรือเปล่า แสดงเป็นหลักพันแต่เก็บเป็นตัวเลขล้วน */
+        return (
+          <div>
+            {lbl(f)}
+            <input
+              value={groupDigits(str(f.key))}
+              onChange={(e) => setV(f.key, numericValue(e.target.value))}
+              inputMode="numeric"
+              data-num-input={f.key}
+              placeholder="0"
+              style={inputStyle}
+            />
+            {note(f)}
+          </div>
+        );
       default: { // text
         const GEO_KEYS = ['province', 'district', 'amphoe', 'subdistrict', 'tambon'];
         if (GEO_KEYS.includes(f.key)) {

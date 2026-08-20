@@ -1285,3 +1285,37 @@ test.describe('คอมเมนต์ลูกค้า · แผนเข้�
     }
   });
 });
+
+/* สไลด์ 25 · "ช่องจำนวนเงินกับขนาดพื้นที่ ทุกช่องใส่ , ขั้นหน่วย" */
+test.describe('คอมเมนต์ลูกค้า · ตัวคั่นหลักพันในฟอร์ม', () => {
+  test('พิมพ์เลขแล้วเห็นตัวคั่น แต่ค่าที่บันทึกเป็นตัวเลขล้วน', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { typeKey: 'warehouse', title: `ทดสอบตัวคั่น ${Date.now().toString(36)}`, status: 'draft', values: { province: 'สมุทรปราการ', deal_type: 'ให้เช่า' } },
+    })).json();
+
+    try {
+      await page.goto(`/admin/property-edit?code=${made.publicCode}`);
+      const rent = page.locator('[data-num-input="price_rent"]');
+      await expect(rent).toBeVisible({ timeout: 15000 });
+      await rent.fill('150000');
+      await expect(rent, 'ต้องเห็นตัวคั่นระหว่างพิมพ์').toHaveValue('150,000');
+
+      await page.getByText('บันทึก', { exact: true }).first().click();
+      await expect(page).toHaveURL(/\/admin\/properties$/, { timeout: 15000 });
+
+      /* ที่เก็บจริงต้องเป็นตัวเลข ไม่ใช่ข้อความที่มีลูกน้ำ */
+      const saved = await (await request.get(`/api/properties/${made.id}`, { headers: { cookie } })).json();
+      expect(saved.values.price_rent, 'ค่าที่บันทึกต้องเป็นตัวเลขล้วน').toBe(150000);
+    } finally {
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+});
