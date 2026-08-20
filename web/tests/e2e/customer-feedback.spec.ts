@@ -254,6 +254,36 @@ test.describe('คอมเมนต์ลูกค้า · แผนที่�
     const cards = await page.locator('.belt-card').count();
     expect(cards, `การ์ดค้างบนแผนที่ ${cards} ใบ`).toBeLessThanOrEqual(1);
   });
+
+  /* สไลด์ 6 · "ล็อคไม่ให้แผนที่เลื่อนได้" — แผนที่นี้เป็นตัวเลือกจังหวัด
+     ลากหลุดกรอบแล้วคนหาทางกลับไม่เจอ เพราะไม่มีปุ่มซูมหรือปุ่มรีเซ็ต */
+  test('ลากแผนที่แล้วมุมมองไม่ขยับ', async ({ page }) => {
+    await page.goto('/th');
+    const plane = page.locator('#lf-map-plane');
+    await plane.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(1200);
+
+    const box = (await plane.boundingBox())!;
+    const cx = box.x + box.width / 2;
+    const cy = box.y + box.height / 2;
+    /* จำตำแหน่งขอบเขตจังหวัดหนึ่งไว้ก่อนลาก แล้วเทียบหลังลาก */
+    const shape = page.locator('#lf-map-plane path').first();
+    const before = await shape.boundingBox();
+    expect(before, 'ต้องมีรูปจังหวัดบนแผนที่ก่อน จึงจะวัดได้ว่าขยับหรือไม่').not.toBeNull();
+
+    await page.mouse.move(cx, cy);
+    await page.mouse.down();
+    await page.mouse.move(cx - 220, cy - 160, { steps: 12 });
+    await page.mouse.up();
+    /* พาเมาส์ออกจากแผนที่ก่อนวัด — ตอนชี้ค้างอยู่ เส้นขอบจังหวัดจะหนาขึ้น
+       ทำให้กรอบของรูปโตขึ้นสองสามพิกเซล ซึ่งไม่ใช่การเลื่อนแผนที่ */
+    await page.mouse.move(2, 2);
+    await page.waitForTimeout(600);
+
+    const after = await shape.boundingBox();
+    expect(Math.abs(after!.x - before!.x), 'ลากแล้วแผนที่ต้องอยู่ที่เดิม').toBeLessThan(2);
+    expect(Math.abs(after!.y - before!.y), 'ลากแล้วแผนที่ต้องอยู่ที่เดิม').toBeLessThan(2);
+  });
 });
 
 /* สไลด์ 30 · "ระบบเช็คให้ว่าว่างไม่ว่างหาย" — ทีมกรอก ว่าง/ไม่ว่าง มาใน Master

@@ -115,19 +115,25 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
     if (!allowed || !host.current || map.current) return;
     let dead = false;
 
+    const cleanups: (() => void)[] = [];
     void (async () => {
       const L = (await import('leaflet')).default;
       if (dead || !host.current) return;
 
+      /* สไลด์ 6 · "ล็อคไม่ให้แผนที่เลื่อนได้" — แผนที่นี้เป็นตัวเลือกจังหวัด
+         ไม่ใช่แผนที่ให้สำรวจ พอลากหรือซูมได้ คนก็เลื่อนหลุดกรอบแล้วหาทางกลับ
+         ไม่เจอ ปิดทุกทางที่ทำให้มุมมองขยับ เหลือแค่ชี้แล้วคลิก */
       const m = L.map(host.current, {
         zoomControl: false,
         attributionControl: true,
         scrollWheelZoom: false,   // the page has to stay scrollable through it
-        dragging: true,
-        doubleClickZoom: true,
+        dragging: false,
+        doubleClickZoom: false,
+        touchZoom: false,
+        boxZoom: false,
+        keyboard: false,
       });
       m.fitBounds(BOUNDS, { padding: [8, 8] });
-      m.setMaxBounds([[10.5, 97], [17, 104.5]]);
 
       L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
@@ -220,11 +226,16 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
 
       map.current = m;
       setBuilt((n) => n + 1);   // now there is something to paint
-      // the panel animates in; leaflet needs telling once the box has settled
-      setTimeout(() => m.invalidateSize(), 250);
+      /* the panel animates in; leaflet needs telling once the box has settled
+         พอล็อกไม่ให้ลากแล้ว ต้องจัดกรอบใหม่ทุกครั้งที่ขนาดกล่องเปลี่ยน ไม่งั้น
+         ภาพจะค้างอยู่คนละที่โดยที่คนดูขยับกลับเองไม่ได้ */
+      const refit = () => { m.invalidateSize(); m.fitBounds(BOUNDS, { padding: [8, 8] }); };
+      setTimeout(refit, 250);
+      window.addEventListener('resize', refit);
+      cleanups.push(() => window.removeEventListener('resize', refit));
     })();
 
-    return () => { dead = true; };
+    return () => { dead = true; for (const c of cleanups) c(); };
   }, [allowed, locale, pins, provinceHint]);
 
   React.useEffect(() => () => { map.current?.remove(); map.current = null; }, []);
