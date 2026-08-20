@@ -1004,3 +1004,64 @@ test.describe('คอมเมนต์ลูกค้า · เพิ่ม Lea
     await request.delete(`/api/leads/${saved.id}`, { headers: { cookie } }).catch(() => null);
   });
 });
+
+/* หน้า Leads · "เพิ่มปุ่มแชร์ลิงก์หน้าให้ลูกค้ากรอกข้อมูล เพิ่ม lead แบบหน้า
+   contact" — ฟอร์มนั้นมีอยู่แล้วบน /contact แต่เซลล์ต้องไปก๊อป URL เอาเอง
+   และลูกค้าต่างชาติก็ต้องได้ลิงก์คนละภาษา */
+test.describe('คอมเมนต์ลูกค้า · ปุ่มแชร์ลิงก์ในหน้า Leads', () => {
+  const signIn = async (page: import('@playwright/test').Page) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+  };
+
+  test('ลิงก์ที่แชร์พาไปที่ฟอร์มจริง และเปลี่ยนภาษาได้', async ({ page }) => {
+    await signIn(page);
+    await page.goto('/admin/leads');
+    await page.locator('#lead-sharebtn').click();
+
+    const url = page.locator('[data-share-url]');
+    await expect(url).toContainText('/th/contact#lead-form');
+
+    await page.locator('[data-share-lang="zh"]').click();
+    await expect(url, 'ลูกค้าต่างชาติต้องได้ลิงก์ภาษาของเขา').toContainText('/zh/contact#lead-form');
+
+    /* ลิงก์ต้องเปิดได้จริงและมีฟอร์มอยู่ตรงนั้น ไม่ใช่พาไปหน้าเปล่า */
+    const href = await page.locator('#lead-share-open').getAttribute('href');
+    await page.goto(href!);
+    await expect(page.locator('#lead-form')).toBeVisible();
+    /* ลิงก์ที่กำลังทดสอบเป็นภาษาจีน จึงเช็คว่ามีฟอร์มให้กรอกจริง ไม่ใช่เช็คคำไทย */
+    expect(await page.locator('#lead-form input').count(), 'ต้องมีช่องให้กรอก').toBeGreaterThan(2);
+  });
+
+  test('ลูกค้ากรอกจากลิงก์นั้นแล้ว lead เข้าระบบจริง', async ({ page, request }) => {
+    await signIn(page);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    await page.goto('/admin/leads');
+    await page.locator('#lead-sharebtn').click();
+    const href = (await page.locator('#lead-share-open').getAttribute('href'))!;
+
+    // เดินตามลิงก์เหมือนลูกค้า แล้วกรอกฟอร์ม
+    const name = `ลูกค้าจากลิงก์ ${Date.now().toString(36)}`;
+    const phone = `08${Date.now().toString().slice(-8)}`;
+    await page.goto(href);
+    await page.locator('#lead-form').getByPlaceholder('กรอกชื่อของคุณ').fill(name);
+    await page.locator('#lead-form').getByPlaceholder('08x-xxx-xxxx').fill(phone);
+    await page.locator('#lead-form').getByRole('button', { name: 'ลูกค้า', exact: true }).click();
+    await page.locator('#lead-form').getByRole('button', { name: /ส่ง/ }).first().click();
+
+    await expect.poll(async () => {
+      const res = await (await request.get('/api/leads?limit=50', { headers: { cookie } })).json();
+      const rows = (Array.isArray(res) ? res : res.items) as { phone: string }[];
+      return rows.some((l) => l.phone === phone);
+    }, { timeout: 15000 }).toBe(true);
+
+    const res = await (await request.get('/api/leads?limit=50', { headers: { cookie } })).json();
+    const rows = (Array.isArray(res) ? res : res.items) as { id: string; phone: string }[];
+    const made = rows.find((l) => l.phone === phone);
+    if (made) await request.delete(`/api/leads/${made.id}`, { headers: { cookie } }).catch(() => null);
+  });
+});

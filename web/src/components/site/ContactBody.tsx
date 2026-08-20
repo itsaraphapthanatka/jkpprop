@@ -134,8 +134,10 @@ export function ContactBody({ copy, company }: { copy: ContactCopy; company: Com
       </div>
 
       {/* FORM + MAP */}
+      {/* จุดยึดสำหรับลิงก์ที่เซลล์ส่งให้ลูกค้ากรอก — เปิดมาแล้วเจอฟอร์มเลย
+          ไม่ต้องเลื่อนหาเอง */}
       <div id="info-form-grid" style={{ maxWidth: '1320px', margin: '0 auto', padding: '12px 24px 90px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'stretch' }}>
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, padding: '26px 28px' }}>
+        <div id="lead-form" style={{ scrollMarginTop: 90, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, padding: '26px 28px' }}>
           <RequirementForm />
         </div>
         {/* the switch in /admin/sections was drawn for this block but never

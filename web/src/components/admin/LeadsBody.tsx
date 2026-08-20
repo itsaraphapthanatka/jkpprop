@@ -193,6 +193,19 @@ export function LeadsBody() {
     typeKey: 'warehouse', dealIntent: 'เช่า', area: '', location: '', budget: '', message: '',
   };
   const [form, setForm] = React.useState(emptyForm);
+  /* ปุ่มแชร์ลิงก์ให้ลูกค้ากรอกเอง — ฟอร์มบนหน้าติดต่อทำหน้าที่นี้อยู่แล้ว แต่
+     เซลล์ต้องไปก๊อป URL เอาเองจากหน้าเว็บ ลูกค้าต่างชาติก็ต้องส่งลิงก์คนละภาษา */
+  const [shareOpen, setShareOpen] = React.useState(false);
+  const [shareLang, setShareLang] = React.useState<'th' | 'en' | 'zh'>('th');
+  const [shareCopied, setShareCopied] = React.useState(false);
+  const shareUrl = typeof window === 'undefined' ? '' : `${window.location.origin}/${shareLang}/contact#lead-form`;
+  const copyShare = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch { /* เบราว์เซอร์ไม่ให้คัดลอก — URL แสดงอยู่บนจอให้ลากเอาได้ */ }
+  };
   const setF = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
   const canCreate = form.name.trim().length > 0;
 
@@ -636,7 +649,48 @@ export function LeadsBody() {
             )}
           </div>
         ))}
-        <div id="lead-addbtn" onClick={openCreate} className="admin-primary-btn" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 7, height: 36, padding: '0 16px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' }}>
+        {/* แชร์ลิงก์ให้ลูกค้ากรอกเอง แล้วลีดเข้าระบบเหมือนที่กรอกจากหน้าเว็บ */}
+        <div style={{ marginLeft: 'auto', position: 'relative' }}>
+          <div
+            id="lead-sharebtn"
+            onClick={() => setShareOpen((v) => !v)}
+            style={{ display: 'flex', alignItems: 'center', gap: 7, height: 36, padding: '0 14px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" /></svg>
+            แชร์ลิงก์ให้ลูกค้ากรอก
+          </div>
+          {shareOpen && (
+            <>
+              <div onClick={() => setShareOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+              <div id="lead-share-panel" onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', top: 44, right: 0, zIndex: 41, width: 340, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, boxShadow: '0 18px 40px rgba(0,0,0,.16)', padding: 14 }}>
+                <div style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text)' }}>ลิงก์ให้ลูกค้ากรอกเอง</div>
+                <p style={{ margin: '4px 0 10px', fontSize: 11.5, color: 'var(--muted2)', lineHeight: 1.6 }}>
+                  ลูกค้ากรอกแล้วเข้ามาเป็น lead พร้อมใบงาน Requirement เหมือนกรอกจากหน้าเว็บ
+                </p>
+                <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                  {([['th', 'ไทย'], ['en', 'EN'], ['zh', '中文']] as const).map(([k, label]) => (
+                    <div
+                      key={k}
+                      data-share-lang={k}
+                      onClick={() => setShareLang(k)}
+                      style={{ flex: 1, height: 30, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, cursor: 'pointer', border: '1px solid ' + (shareLang === k ? '#0D6C3B' : 'var(--border)'), background: shareLang === k ? '#E8F3EC' : 'var(--bg)', color: shareLang === k ? '#0D6C3B' : 'var(--muted)' }}
+                    >
+                      {label}
+                    </div>
+                  ))}
+                </div>
+                <div data-share-url style={{ padding: '9px 11px', borderRadius: 9, background: 'var(--bg)', border: '1px solid var(--border)', fontSize: 11.5, color: 'var(--muted)', wordBreak: 'break-all' }}>{shareUrl}</div>
+                <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+                  <div id="lead-share-copy" onClick={() => void copyShare()} style={{ flex: 1, height: 36, borderRadius: 9, background: '#0D6C3B', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' }}>
+                    {shareCopied ? 'คัดลอกแล้ว' : 'คัดลอกลิงก์'}
+                  </div>
+                  <a id="lead-share-open" href={shareUrl} target="_blank" rel="noreferrer" style={{ height: 36, padding: '0 14px', borderRadius: 9, border: '1px solid var(--border)', color: 'var(--text)', display: 'flex', alignItems: 'center', fontSize: '12.5px', fontWeight: 700, textDecoration: 'none' }}>เปิดดู</a>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+        <div id="lead-addbtn" onClick={openCreate} className="admin-primary-btn" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 36, padding: '0 16px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M12 5v14M5 12h14"></path></svg>
           เพิ่ม Lead
         </div>
