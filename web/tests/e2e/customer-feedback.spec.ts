@@ -1398,3 +1398,60 @@ test.describe('คอมเมนต์ลูกค้า · แบ่งหน�
     });
   }
 });
+
+/* "ข้อความสำหรับโพสต์ แสดงไม่ครบ" — กล่องข้อความในหน้า Social Status ออกมาเป็น
+   โครงเปล่า "พื้นที่ใช้สอยรวม :" · "ออฟฟิศ :" · "ความสูง :" ว่างหมดทุกบรรทัด
+   เพราะหน้านี้ส่งเข้าไปแค่ ดีล · จังหวัด · ราคา ส่วนที่เหลืออยู่ใน values ของ
+   ทรัพย์ซึ่งไม่เคยถูกดึงมา */
+test.describe('คอมเมนต์ลูกค้า · ข้อความโพสต์ใน Social Status', () => {
+  test('ข้อความอัตโนมัติเติมค่าจากทรัพย์จริง ไม่ใช่โครงเปล่า', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    /* ทรัพย์ที่กรอกครบพอจะวัดได้ว่าข้อความเติมค่ามาจริง */
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: {
+        typeKey: 'warehouse', title: `ทดสอบข้อความโพสต์ ${Date.now().toString(36)}`, status: 'active',
+        values: {
+          province: 'สมุทรปราการ', district: 'บางพลี', subdistrict: 'ตำบล บางโฉลง',
+          deal_type: 'ให้เช่า', price_rent: 120000,
+          building_area_total: 1500, building_height: 12, floor_loading: '3 ตัน/ตร.ม.',
+          office_area_total: 200, power_phase: '3 Phase 30/100 amp (Upgradeable)',
+        },
+      },
+    })).json();
+
+    try {
+      await page.goto('/admin/social-status');
+      await page.locator('[data-filter-q]').fill(made.publicCode);
+      const row = page.locator('.soc-row', { hasText: made.publicCode });
+      await expect(row).toBeVisible({ timeout: 15000 });
+      await row.locator('.soc-open').click();
+
+      const box = page.locator('#soc-text');
+      await expect(box).toBeVisible();
+      /* รอให้ดึงรายละเอียดเสร็จ แล้วค่าต้องอยู่ในข้อความจริง */
+      await expect.poll(async () => (await box.inputValue()).includes('1,500') || (await box.inputValue()).includes('1500'), { timeout: 15000 }).toBe(true);
+
+      const text = await box.inputValue();
+      for (const [label, want] of [
+        ['พื้นที่ใช้สอยรวม', '1500'],
+        ['ความสูง', '12'],
+        ['พื้นรับน้ำหนัก', '3 ตัน'],
+        ['ออฟฟิศ', '200'],
+        ['ที่ตั้ง', 'บางพลี'],
+      ] as const) {
+        expect(text, `บรรทัด "${label}" ต้องมีค่า ไม่ใช่ว่างเปล่า`).toContain(want);
+      }
+      /* ไม่ควรเหลือบรรทัดที่ลงท้ายด้วย ":" เปล่า ๆ สำหรับช่องที่กรอกไว้แล้ว */
+      expect(text).not.toMatch(/- ความสูง :\s*$/m);
+    } finally {
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+});

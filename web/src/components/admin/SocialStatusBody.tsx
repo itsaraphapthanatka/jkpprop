@@ -18,7 +18,11 @@ const th: React.CSSProperties = { padding: '12px 16px', textAlign: 'left', fontS
 const inputStyle: React.CSSProperties = { width: '100%', height: 40, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', fontFamily: 'inherit', fontSize: '13px', background: 'var(--surface)', color: 'var(--text)', outline: 'none' };
 const label: React.CSSProperties = { display: 'block', marginBottom: 5, fontSize: 11, fontWeight: 700, color: 'var(--muted)' };
 
-/* the listing row carries only a few of the template's fields */
+/* แถวรายการพกมาแค่ไม่กี่ช่อง — ใช้เป็นตัวสำรองระหว่างรอโหลดของจริงเท่านั้น
+ *
+ * ข้อความโพสต์อัตโนมัติจึงเคยออกมาเป็นโครงเปล่า: "พื้นที่ใช้สอยรวม :" ·
+ * "ออฟฟิศ :" · "ความสูง :" ว่างหมดทุกบรรทัด เพราะค่าพวกนั้นอยู่ใน values ของ
+ * ทรัพย์ ซึ่งหน้านี้ไม่เคยดึงมา */
 const valuesFor = (r: ApiListing) => ({
   deal_type: r.deal,
   province: r.location,
@@ -42,6 +46,10 @@ export function SocialStatusBody() {
   const [inv, setInv] = React.useState<InventoryFilterState>(EMPTY_FILTERS);
   const [only, setOnly] = React.useState<'all' | 'todo' | 'done'>('all');
   const [openCode, setOpenCode] = React.useState<string | null>(null);
+  /* values ของทรัพย์ที่เปิดอยู่ — ดึงตอนเปิดกล่อง ไม่ใช่ดึงมาทั้ง 393 รายการ
+     ตั้งแต่โหลดหน้า */
+  const [openValues, setOpenValues] = React.useState<Record<string, unknown> | null>(null);
+  const [loadingValues, setLoadingValues] = React.useState(false);
   const [chOpen, setChOpen] = React.useState(false);
   const [newCh, setNewCh] = React.useState('');
   const [copied, setCopied] = React.useState(false);
@@ -81,11 +89,15 @@ export function SocialStatusBody() {
   };
   const channels = store.channels;
 
-  const generated = (code: string) => {
+  const generated = React.useCallback((code: string, vals?: Record<string, unknown> | null) => {
     const row = (listings ?? []).find((r) => r.code === code);
     if (!row) return '';
-    return buildSummary({ typeLabel: row.title, code: row.code, values: valuesFor(row) }).text;
-  };
+    return buildSummary({
+      typeLabel: row.title,
+      code: row.code,
+      values: vals ?? valuesFor(row),
+    }).text;
+  }, [listings]);
 
   const picOptions = Array.from(new Set((listings ?? []).map((r) => r.pic).filter(Boolean))).sort();
   const view = (r: ApiListing): InventoryRow => ({
@@ -117,7 +129,19 @@ export function SocialStatusBody() {
     setDraftText(rec.text ?? generated(code));
     setUseAuto(rec.text === undefined);
     setOpenCode(code);
+    setOpenValues(null);
     setCopied(false);
+
+    /* ดึงรายละเอียดทรัพย์จริงมาเติมข้อความ — ถ้าคนแก้ข้อความเองไว้แล้ว
+       ห้ามเขียนทับของเขา */
+    setLoadingValues(true);
+    apiGet<{ values: Record<string, unknown> }>(`/api/properties/${encodeURIComponent(code)}`)
+      .then((p) => {
+        setOpenValues(p.values ?? {});
+        if (rec.text === undefined) setDraftText(generated(code, p.values ?? {}));
+      })
+      .catch(() => { /* ใช้ข้อความจากข้อมูลเท่าที่มีในแถวไปก่อน */ })
+      .finally(() => setLoadingValues(false));
   };
   /* Writes to the social store ONLY. The property form keeps its own copy of
      the text and is never touched from here — editing a post caption must not
@@ -274,7 +298,7 @@ export function SocialStatusBody() {
                     </span>
                   </label>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button type="button" id="soc-reset" onClick={() => { setDraftText(generated(openCode)); setUseAuto(true); }} disabled={useAuto} style={{ height: 30, padding: '0 11px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: useAuto ? 'var(--muted3)' : 'var(--muted)', fontSize: 11.5, fontWeight: 700, cursor: useAuto ? 'default' : 'pointer', fontFamily: 'inherit', opacity: useAuto ? 0.55 : 1 }}>ใช้ข้อความอัตโนมัติ</button>
+                    <button type="button" id="soc-reset" onClick={() => { setDraftText(generated(openCode, openValues)); setUseAuto(true); }} disabled={useAuto} style={{ height: 30, padding: '0 11px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: useAuto ? 'var(--muted3)' : 'var(--muted)', fontSize: 11.5, fontWeight: 700, cursor: useAuto ? 'default' : 'pointer', fontFamily: 'inherit', opacity: useAuto ? 0.55 : 1 }}>ใช้ข้อความอัตโนมัติ</button>
                     <button type="button" id="soc-copy" onClick={copyText} style={{ display: 'flex', alignItems: 'center', gap: 6, height: 30, padding: '0 13px', borderRadius: 9999, border: 0, background: copied ? '#0D6C3B' : '#273c33', color: '#fff', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                       {copied
                         ? <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.8"><path d="M20 6L9 17l-5-5" /></svg>คัดลอกแล้ว</>
@@ -282,6 +306,9 @@ export function SocialStatusBody() {
                     </button>
                   </div>
                 </div>
+                {loadingValues && (
+                  <div data-soc-loading style={{ marginBottom: 6, fontSize: 11.5, color: 'var(--muted2)' }}>กำลังดึงรายละเอียดทรัพย์มาเติมข้อความ…</div>
+                )}
                 <textarea id="soc-text" value={draftText} onChange={(e) => { setDraftText(e.target.value); setUseAuto(false); }} style={{ width: '100%', height: 240, padding: '12px 14px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontFamily: 'inherit', fontSize: '13px', lineHeight: 1.7, outline: 'none', resize: 'vertical' }} />
                 <div style={{ marginTop: 6, fontSize: 11, lineHeight: 1.55, color: 'var(--muted3)' }}>
                   แก้ไขตรงนี้จะบันทึกเป็น<b> ข้อความโพสต์ของประกาศนี้เท่านั้น</b> — ไม่กระทบข้อความในหน้า <b>แก้ไขทรัพย์ → หมายเหตุ : รายละเอียดทรัพย์ (รวม)</b>
