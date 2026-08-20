@@ -759,3 +759,70 @@ test.describe('หน้าประเภทและทำเลต้อง�
     });
   }
 });
+
+/* กล่อง "ตำแหน่งทรัพย์" บนหน้าทรัพย์เป็นพื้นสีเทาเปล่า ๆ มีแต่ลิงก์ไป Google
+   Maps ทั้งที่หัวข้อเขียนว่า "แสดงระดับพื้นที่เพื่อความเป็นส่วนตัว" — คนดูไม่
+   เห็นเลยว่าทรัพย์อยู่แถวไหนจนกว่าจะกดออกจากเว็บ */
+test.describe('คอมเมนต์ลูกค้า · แผนที่ในหน้าทรัพย์', () => {
+  const signIn = async (page: import('@playwright/test').Page) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    return (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  };
+
+  test('มีแผนที่จริง และไม่บอกพิกัดที่แน่นอน', async ({ page, request, context }) => {
+    const cookie = await signIn(page);
+    const exact = { lat: 13.6394834985, lng: 100.5932590266 };
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: {
+        typeKey: 'warehouse', title: `ทดสอบแผนที่ ${Date.now().toString(36)}`, status: 'active',
+        values: { province: 'สมุทรปราการ', deal_type: 'ให้เช่า', location_map: exact },
+      },
+    })).json();
+
+    try {
+      // ยอมให้โหลดแผนที่จากภายนอกก่อน เหมือนคนที่กดยอมรับคุกกี้
+      await context.addInitScript(() => {
+        window.localStorage.setItem('jkp.consent.v1', JSON.stringify({ v: 1, ts: new Date().toISOString(), embeds: true }));
+      });
+      /* นับว่ามีการขอภาพแผนที่จริง — ไม่ผูกกับว่าเครื่องที่รันเทสต์ต่อเน็ตออก
+         ไปถึง CDN ได้หรือไม่ */
+      const tiles: string[] = [];
+      page.on('request', (r) => { if (/cartocdn/.test(r.url())) tiles.push(r.url()); });
+      await page.goto(`/th/property/${made.publicCode}`);
+
+      const map = page.locator('[data-area-map="on"]');
+      await expect(map, 'ต้องมีแผนที่จริง ไม่ใช่กล่องเปล่า').toBeVisible();
+      await expect(map, 'leaflet ต้องผูกกับกล่องนี้จริง').toHaveClass(/leaflet-container/, { timeout: 15000 });
+      // วาดเป็นพื้นที่ ไม่ใช่หมุดชี้จุด
+      await expect(map.locator('svg path').first(), 'ต้องวาดเป็นวงพื้นที่ ไม่ใช่หมุดชี้จุด').toBeVisible({ timeout: 15000 });
+      expect(tiles.length, 'ต้องขอภาพแผนที่จาก CDN จริง').toBeGreaterThan(0);
+
+      /* พิกัดจริงต้องไม่หลุดไปกับหน้าเว็บเลย แม้แต่ใน JSON ที่ฝังมากับ HTML */
+      const html = await page.content();
+      expect(html.includes('13.6394834985'), 'ละติจูดจริงหลุดออกไป').toBe(false);
+      expect(html.includes('100.5932590266'), 'ลองจิจูดจริงหลุดออกไป').toBe(false);
+    } finally {
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+
+  test('ยังไม่ยอมรับคุกกี้ ต้องไม่ยิงไปหาเซิร์ฟเวอร์แผนที่', async ({ page, context, request }) => {
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=1')).json()).items as { code: string }[];
+    test.skip(!items.length, 'ยังไม่มีทรัพย์');
+
+    /* ทั้งชุดเทสต์ตั้งค่าว่ายอมรับคุกกี้ไว้แล้วเหมือนคนที่เคยเข้ามา — เทสต์นี้
+       ต้องย้อนกลับไปเป็นคนที่ยังไม่ได้ตอบ */
+    await context.addInitScript(() => window.localStorage.removeItem('jkp.consent.v1'));
+
+    const external: string[] = [];
+    page.on('request', (r) => { if (/cartocdn|openstreetmap/.test(r.url())) external.push(r.url()); });
+    await page.goto(`/th/property/${items[0].code}`);
+    await page.waitForTimeout(1500);
+    expect(external, 'ยังไม่ได้รับความยินยอม แต่ยิงไปโหลดแผนที่แล้ว').toEqual([]);
+  });
+});

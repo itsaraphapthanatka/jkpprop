@@ -26,6 +26,19 @@ import { loadGeoLabels } from '@/lib/server/geoLabels';
    details and internalOnly fields never leave the server. */
 const PRIVATE_KEYS = ['location_map', 'lessor_name', 'lessor_phone', 'lessor_company', 'lessor_status'];
 
+/* แผนที่ระดับพื้นที่ (FR-LST-02): พิกัดจริงไม่ออกจากเซิร์ฟเวอร์ ปัดเหลือทศนิยม
+   สองตำแหน่ง (~1.1 กม.) แล้วส่งไปพร้อมรัศมีวงกลม หน้าเว็บวาดเป็นพื้นที่
+   ไม่ใช่หมุด — จากวงกลมย้อนกลับไปหาตำแหน่งจริงไม่ได้ */
+const AREA_RADIUS_M = 1500;
+const areaPin = (raw: unknown): { lat: number; lng: number; radius: number } | null => {
+  if (!raw || typeof raw !== 'object') return null;
+  const { lat, lng } = raw as { lat?: unknown; lng?: unknown };
+  if (typeof lat !== 'number' || typeof lng !== 'number') return null;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  const round = (n: number) => Math.round(n * 100) / 100;
+  return { lat: round(lat), lng: round(lng), radius: AREA_RADIUS_M };
+};
+
 /* the record's own updatedAt — the page used to print a fixed "18 ก.ค. 2026" */
 const fmtDate = (d: Date, locale: Locale) =>
   new Intl.DateTimeFormat(locale === 'th' ? 'th-TH' : locale === 'zh' ? 'zh-CN' : 'en-GB', {
@@ -35,12 +48,15 @@ const fmtDate = (d: Date, locale: Locale) =>
 async function load(code: string) {
   const p = await db.property.findFirst({ where: { publicCode: decodeURIComponent(code), status: 'active' } });
   if (!p) return null;
+  /* อ่านจากเรกคอร์ดโดยตรง เพราะ stripInternal ลบพิกัดทิ้งไปแล้วตามกติกา
+     ความเป็นส่วนตัว — ที่ส่งออกไปคือค่าที่ปัดหยาบแล้วเท่านั้น */
+  const pin = areaPin(((p.values ?? {}) as Record<string, unknown>).location_map);
   const values = stripInternal(p.typeKey, (p.values ?? {}) as Record<string, unknown>, null);
   for (const k of PRIVATE_KEYS) delete values[k];
   /* what this org's Field Builder says about the type — a field switched off
      there must not reach the page, whatever is stored on the record */
   const schema = await loadFieldOverride(p.orgId, p.typeKey);
-  return { p, values: stripDisabled(values, schema.disabled), schema };
+  return { p, values: stripDisabled(values, schema.disabled), schema, pin };
 }
 
 /* The search-result snippet, which is the whole point of rendering this on the
@@ -112,6 +128,8 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
     priceSale: typeof values.price_sale === 'number' ? values.price_sale : (typeof values.price === 'number' ? values.price : null),
     updatedAt: fmtDate(p.updatedAt, locale),
     available: availability !== 'unavailable',
+    // วงกลมพื้นที่ ไม่ใช่หมุดตำแหน่งจริง
+    areaPin: found.pin,
     specs: buildSpecs(values, locale, found.schema, geo),
     zoning: zoningRaw ? enumLabel(zoningRaw, locale) : null,
     // ค่าดิบไว้เทียบสี — ป้ายที่แปลแล้วใช้เป็นคีย์ไม่ได้

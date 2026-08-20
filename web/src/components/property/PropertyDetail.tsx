@@ -8,6 +8,7 @@ import type { SpecRow } from '@/lib/server/propertySpecs';
 import { useDict } from '@/i18n/useDict';
 import { PropertyCard, type CardListing } from '@/components/listing/PropertyCard';
 import { zoneSwatch } from '@/lib/zoneSwatch';
+import { AreaMap } from './AreaMap';
 import { useFavourites } from '@/lib/favourites';
 import { ShareMenu } from '@/components/site/ShareMenu';
 
@@ -147,6 +148,7 @@ export type PublicProperty = {
   area: number | null; dealType: string; priceRent: number | null; priceSale: number | null;
   /** ทีมกรอกไว้ว่าทรัพย์นี้ว่างหรือไม่ — เดิมหน้ารายละเอียดไม่เคยบอก */
   available: boolean;
+  areaPin: { lat: number; lng: number; radius: number } | null;
   updatedAt: string;
   specs: { quick: SpecRow[]; rows: SpecRow[]; features: string[]; usage: string[]; nearby: string[] };
   zoning: string | null;
@@ -375,15 +377,21 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
               {sectionHead(d.property.location, 8)}
               <p style={{ margin: '0 0 16px', fontSize: '12.5px', color: 'var(--muted2)' }}>{d.property.areaLevelNote} — {place}</p>
               <div id="pd-location-grid" style={{ display: 'grid', gridTemplateColumns: w640 || !specs.nearby.length ? '1fr' : '1.5fr 1fr', gap: 16 }}>
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ borderRadius: 16, height: 120, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, color: 'var(--accent)', fontSize: '13.5px', fontWeight: 700 }}
-                >
-                  {pin(18, 'var(--accent)')}
-                  {d.property.openInMaps}
-                </a>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {/* แผนที่จริงระดับพื้นที่ — เดิมกล่องนี้ว่างเปล่า มีแต่ลิงก์ */}
+                  {property.areaPin
+                    ? <AreaMap pin={property.areaPin} label={`${d.property.location} — ${place}`} />
+                    : null}
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ borderRadius: 16, height: property.areaPin ? 46 : 120, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, color: 'var(--accent)', fontSize: '13.5px', fontWeight: 700 }}
+                  >
+                    {pin(18, 'var(--accent)')}
+                    {d.property.openInMaps}
+                  </a>
+                </div>
                 {specs.nearby.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>{d.property.nearby}</div>
