@@ -100,6 +100,23 @@ jobs:
           # The migrate image is over a gigabyte; the pull runs silent for
           # minutes and the connection was dropped under it. Keepalives hold
           # the channel open while the far end says nothing.
+          # เก็บ output ไว้ตรวจ ไม่ใช่ปล่อยผ่านไปเฉย ๆ
+          #
+          # 20 ส.ค. 2026: deploy หยุดกลางทางเพราะดึง image ตัวหนึ่งไม่ผ่าน
+          # งานนี้ขึ้นสีแดงไว้ถูกต้องแล้ว แต่ไม่มีใครเปิดดู เซิร์ฟเวอร์จึงรัน
+          # เวอร์ชันเก่าต่อไปสามชั่วโมง กว่าจะรู้ก็ตอนลูกค้าถามว่าทำไมไม่เปลี่ยน
+          # สรุปท้ายงานจึงบอกให้ชัดว่า "รุ่นไหนกำลังรันอยู่จริง"
+          set -o pipefail
           ssh -i ~/.ssh/deploy -o BatchMode=yes -o IdentitiesOnly=yes \
             -o ServerAliveInterval=30 -o ServerAliveCountMax=40 \
-            "$USER@$HOST" "deploy ${{ github.sha }}"
+            "$USER@$HOST" "deploy ${{ github.sha }}" 2>&1 | tee /tmp/deploy.log
+
+          if grep -q "app ตอบ 200 แล้ว.*${{ github.sha }}" /tmp/deploy.log; then
+            echo "### ✅ ขึ้น production แล้ว — \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### ❌ deploy ไม่จบ — เซิร์ฟเวอร์ยังรันรุ่นเดิมอยู่" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            tail -20 /tmp/deploy.log >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi

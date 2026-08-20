@@ -36,9 +36,26 @@ MSG
   exit 2
 fi
 
+# ดึงซ้ำได้ ไม่ใช่ยอมแพ้ครั้งเดียว
+#
+# 20 ส.ค. 2026: image ของ app ดึงมาได้ แต่ตัว migrate ดึงไม่ผ่าน สคริปต์ที่ตั้ง
+# `set -e` ไว้จึงหยุดตรงนั้น ยังไม่ทันแก้ .env และไม่ทันสลับ container เซิร์ฟเวอร์
+# เลยรันเวอร์ชันเก่าต่อไปเงียบ ๆ อีกสามชั่วโมงกว่าจะมีคนสังเกต
+# (งานที่ GitHub ขึ้นสีแดงไว้ แต่ไม่มีใครเปิดดู)
+pull_retry() {
+  local ref="$1" i
+  for i in 1 2 3; do
+    if docker pull "$ref"; then return 0; fi
+    echo "  ดึงไม่สำเร็จ (ครั้งที่ $i/3) — รอ 15 วินาทีแล้วลองใหม่" >&2
+    sleep 15
+  done
+  echo "✗ ดึง $ref ไม่สำเร็จหลังลอง 3 ครั้ง" >&2
+  return 1
+}
+
 echo "→ ดึง $APP"
-docker pull "$APP"
-docker pull "$MIG"
+pull_retry "$APP"
+pull_retry "$MIG"
 
 # what compose reads; kept in .env so a rollback survives a re-run
 grep -q '^APP_IMAGE=' .env && sed -i "s|^APP_IMAGE=.*|APP_IMAGE=$APP|" .env || echo "APP_IMAGE=$APP" >> .env
@@ -60,6 +77,13 @@ $COMPOSE run --rm migrate
 
 echo "→ เปลี่ยน container ของ app"
 $COMPOSE up -d --force-recreate app
+
+# ต้องเป็นรุ่นที่สั่งจริง ๆ ไม่ใช่รุ่นเดิมที่ยังรันอยู่
+running=$(docker inspect -f '{{.Config.Image}}' jkpprop-app-1 2>/dev/null || echo '')
+if [ "$running" != "$APP" ]; then
+  echo "✗ สลับ image ไม่สำเร็จ — ที่รันอยู่คือ ${running:-ไม่มี} ไม่ใช่ $APP" >&2
+  exit 1
+fi
 
 # Prove it is actually serving before saying so. The container reports healthy
 # on its own healthcheck; this asks the way a visitor would.
