@@ -38,6 +38,8 @@ export type PublicListing = {
   /** province on its own, so the listing page can build its zone filter from
       real inventory instead of a hardcoded list */
   province: string;
+  /** พื้นที่สีตามผังเมือง — ค่าดิบ ใช้ทั้งกรองและทำแท็กที่กดได้ */
+  zoning: string;
   /** ว่าง/ไม่ว่าง จากข้อมูลที่ทีมกรอก — เก็บมา 129 รายการแล้วแต่หน้าเว็บไม่เคย
       อ่าน ทรัพย์ที่ปล่อยไปแล้วจึงยังโฆษณาว่าว่างอยู่ */
   available: boolean;
@@ -156,6 +158,7 @@ export async function loadPublicListings(q: ListingQuery = {}): Promise<PublicLi
       img: photos[0] ? withVersion(photos[0], wmv.get(p.orgId) ?? 0) : null,
       photos: String(photos.length),
       province,
+      zoning: String(values.zoning_color ?? ''),
       available: !taken.has(p.id),
     }];
   }).slice(0, limit);

@@ -76,7 +76,7 @@ export type Dictionary = {
   listing: {
     saved: string;
     totalArea: string; title: string; resultsFound: string; results: string; filters: string; sortBy: string;
-    zone: string; type: string; size: string; price: string; clear: string; search: string;
+    zone: string; zoneColor: string; type: string; size: string; price: string; clear: string; search: string;
     newest: string; priceAsc: string; priceDesc: string; sizeAsc: string; sizeDesc: string;
     copyLink: string; email: string;
     prevPage: string; nextPage: string; pageN: string;
@@ -270,7 +270,7 @@ const th: Dictionary = {
   listing: {
     saved: 'บันทึกไว้', totalArea: 'ขนาดพื้นที่รวม', title: 'อสังหาริมทรัพย์ทั้งหมด', resultsFound: 'พบ', results: 'รายการ',
     filters: 'ตัวกรองการค้นหา', sortBy: 'เรียงตาม:',
-    zone: 'ทำเล', type: 'ประเภทอสังหา', size: 'ขนาดพื้นที่', price: 'ช่วงราคา',
+    zone: 'ทำเล', zoneColor: 'พื้นที่สี (ผังเมือง)', type: 'ประเภทอสังหา', size: 'ขนาดพื้นที่', price: 'ช่วงราคา',
     clear: 'ล้างค่า', search: 'ค้นหา',
     newest: 'ใหม่ล่าสุด', priceAsc: 'ราคา (น้อย → มาก)', priceDesc: 'ราคา (มาก → น้อย)',
     sizeAsc: 'ขนาด (เล็ก → ใหญ่)', sizeDesc: 'ขนาด (ใหญ่ → เล็ก)',
@@ -494,7 +494,7 @@ const en: Dictionary = {
   listing: {
     saved: 'Saved', totalArea: 'Total area', title: 'All properties', resultsFound: 'Found', results: 'listings',
     filters: 'Search filters', sortBy: 'Sort by:',
-    zone: 'Location', type: 'Property type', size: 'Floor area', price: 'Price range',
+    zone: 'Location', zoneColor: 'Zoning colour', type: 'Property type', size: 'Floor area', price: 'Price range',
     clear: 'Clear', search: 'Search',
     newest: 'Newest first', priceAsc: 'Price (low → high)', priceDesc: 'Price (high → low)',
     sizeAsc: 'Size (small → large)', sizeDesc: 'Size (large → small)',
@@ -718,7 +718,7 @@ const zh: Dictionary = {
   listing: {
     saved: '已保存', totalArea: '总面积', title: '全部房源', resultsFound: '共找到', results: '个房源',
     filters: '搜索筛选', sortBy: '排序：',
-    zone: '地区', type: '房源类型', size: '建筑面积', price: '价格区间',
+    zone: '地区', zoneColor: '城市规划分区颜色', type: '房源类型', size: '建筑面积', price: '价格区间',
     clear: '清除', search: '搜索',
     newest: '最新优先', priceAsc: '价格（低 → 高）', priceDesc: '价格（高 → 低）',
     sizeAsc: '面积（小 → 大）', sizeDesc: '面积（大 → 小）',

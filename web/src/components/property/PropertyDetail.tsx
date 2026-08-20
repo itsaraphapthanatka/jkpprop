@@ -143,7 +143,7 @@ export type PublicProperty = {
   /** the team's own description in the reader's language; Thai records have
       none yet, so the block simply does not appear */
   description?: string;
-  typeLabel: string; location: string;
+  typeLabel: string; typeTag: string; provinceTag: string; dealTag: string; location: string;
   area: number | null; dealType: string; priceRent: number | null; priceSale: number | null;
   /** ทีมกรอกไว้ว่าทรัพย์นี้ว่างหรือไม่ — เดิมหน้ารายละเอียดไม่เคยบอก */
   available: boolean;
@@ -217,6 +217,25 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
                 <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '13.5px', color: 'var(--muted)' }}>{pin(15, 'var(--accent)')}{place}</span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted2)' }}>{d.property.code}: <code style={{ fontWeight: 700, color: 'var(--deep)' }}>{code}</code></span>
+                </div>
+
+                {/* แท็ก — สไลด์ 12 "กดแล้วไม่ไปตามแท็ค" หน้านี้เคยมีแต่ข้อความ
+                    เฉย ๆ กดไม่ได้สักอัน ตอนนี้ทุกอันพาไปหน้ารายการที่กรองไว้แล้ว */}
+                <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {([
+                    property.typeTag && { key: 'type', label: property.typeLabel, href: `/listing?type=${encodeURIComponent(property.typeTag)}` },
+                    property.dealTag && { key: 'deal', label: property.dealType, href: `/listing?deal=${property.dealTag.includes('ขาย') && !property.dealTag.includes('เช่า') ? 'sale' : 'rent'}` },
+                    property.provinceTag && { key: 'province', label: place.split(',').pop()?.trim() || property.provinceTag, href: `/listing?province=${encodeURIComponent(property.provinceTag)}` },
+                  ].filter(Boolean) as { key: string; label: string; href: string }[]).map((t) => (
+                    <Link
+                      key={t.key}
+                      href={t.href}
+                      data-tag={t.key}
+                      style={{ display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 13px', borderRadius: 9999, background: 'var(--bg)', border: '1px solid var(--border)', fontSize: '12.5px', fontWeight: 700, color: 'var(--text)', textDecoration: 'none' }}
+                    >
+                      {t.label}
+                    </Link>
+                  ))}
                 </div>
               </div>
               <div style={{ textAlign: w640 ? 'left' : 'right', flexShrink: 0 }}>
@@ -315,11 +334,17 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
             </div>
           )}
 
-          {/* ZONE */}
+          {/* พื้นที่สี — เดิมหัวข้อเขียนว่า "ประเภทโซน" ทั้งที่ข้างในเป็นสีผังเมือง
+              ส่วนโซนจริง (ปลอดอากร · กนอ. · DG) ไปนอนอยู่ในตารางข้างล่าง
+              ตรงกับคอมเมนต์สไลด์ 12 "โซนแสดงผลไม่ตรง" */}
           {zoning && (
             <div style={sectionCard}>
-              {sectionHead(d.property.zoneType)}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 46, padding: '0 18px', borderRadius: 12, background: 'var(--tint)', width: 'fit-content' }}>
+              {sectionHead(d.listing.zoneColor)}
+              <Link
+                href={`/listing?zone=${encodeURIComponent(zoningKey ?? '')}`}
+                data-tag="zoning"
+                style={{ display: 'flex', alignItems: 'center', gap: 10, height: 46, padding: '0 18px', borderRadius: 12, background: 'var(--tint)', width: 'fit-content', textDecoration: 'none' }}
+              >
                 {/* จุดสีจริงของผังเมือง — สไลด์ 12 "นำสีมาแสดงผล" */}
                 {swatch ? (
                   <span
@@ -337,7 +362,7 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
                   />
                 ) : pin(18, 'var(--accent)')}
                 <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--accent)' }}>{zoning}</span>
-              </div>
+              </Link>
             </div>
           )}
 

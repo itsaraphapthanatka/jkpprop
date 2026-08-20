@@ -582,3 +582,73 @@ test.describe('คอมเมนต์ลูกค้า · เมนูค้�
     await expect.poll(() => rows.count()).toBe(before);
   });
 });
+
+/* สไลด์ 11/12 · "ไม่มีแท็ค" · "กดแล้วไม่ไปตามแท็ค" · "โซนแสดงผลไม่ตรง" */
+test.describe('คอมเมนต์ลูกค้า · แท็ก', () => {
+  const signIn = async (page: import('@playwright/test').Page) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    return (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  };
+
+  test('แท็กบนหน้าทรัพย์กดแล้วไปหน้ารายการที่กรองไว้จริง', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: {
+        typeKey: 'warehouse',
+        title: `ทดสอบแท็ก ${Date.now().toString(36)}`,
+        status: 'active',
+        values: {
+          province: 'สมุทรปราการ', deal_type: 'ให้เช่า', price_rent: 150000,
+          zoning_color: 'พื้นที่สีม่วง — อุตสาหกรรม', building_area_total: 2000,
+        },
+      },
+    })).json();
+
+    try {
+      await page.goto(`/th/property/${made.publicCode}`);
+      for (const key of ['type', 'deal', 'province', 'zoning']) {
+        await expect(page.locator(`[data-tag="${key}"]`), `ขาดแท็ก ${key}`).toBeVisible();
+      }
+
+      /* กดแท็กพื้นที่สี — ต้องไปหน้ารายการ "และกรองให้แล้ว" ไม่ใช่ไปหน้าเปล่า */
+      await page.locator('[data-tag="zoning"]').click();
+      await expect(page).toHaveURL(/\/listing\?zone=/);
+      await expect(page.locator(`[data-card="${made.publicCode}"]`), 'ทรัพย์ที่กดมาต้องอยู่ในผลลัพธ์').toBeVisible();
+      const cards = await page.locator('[data-card]').count();
+      const total = (await (await request.get('/api/public/listings?locale=th&limit=500')).json()).items.length as number;
+      expect(cards, 'ถ้ากรองจริง ผลลัพธ์ต้องน้อยกว่าทั้งคลัง').toBeLessThan(total);
+    } finally {
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+
+  test('หัวข้อพื้นที่สีบอกว่าพื้นที่สี ไม่ใช่ประเภทโซน', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: {
+        typeKey: 'warehouse', title: `ทดสอบหัวข้อโซน ${Date.now().toString(36)}`, status: 'active',
+        values: { province: 'สมุทรปราการ', deal_type: 'ให้เช่า', zoning_color: 'พื้นที่สีม่วง — อุตสาหกรรม' },
+      },
+    })).json();
+    try {
+      await page.goto(`/th/property/${made.publicCode}`);
+      await expect(page.locator('[data-tag="zoning"]')).toBeVisible();
+      await expect(page.getByText('พื้นที่สี (ผังเมือง)').first()).toBeVisible();
+      await expect(page.getByText('ประเภทโซน'), 'หัวข้อเดิมเรียกผิด').toHaveCount(0);
+    } finally {
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+
+  test('หน้ารายการมีตัวกรองพื้นที่สีแยกจากทำเล', async ({ page }) => {
+    await page.goto('/th/listing');
+    await expect(page.getByText('พื้นที่สี (ผังเมือง)').first(), 'ต้องมีหมวดพื้นที่สี').toBeVisible();
+    await expect(page.getByText('ทำเล').first(), 'และหมวดทำเลแยกกัน').toBeVisible();
+  });
+});

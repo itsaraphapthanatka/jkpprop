@@ -101,6 +101,10 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
     title: localTitleFor(p, values, locale, geo),
     description: localDescription(p, locale),
     typeLabel: enumLabel(propertyType(p.typeKey).label, locale),
+    /* ค่าดิบสำหรับแท็กที่กดแล้วไปหน้ารายการที่กรองไว้ (สไลด์ 12) */
+    typeTag: propertyType(p.typeKey).label,
+    provinceTag: String(values.province ?? ''),
+    dealTag: String(values.deal_type ?? ''),
     location: displayLocation(values, locale, geo),
     area: displayArea(values),
     dealType: enumLabel(String(values.deal_type ?? ''), locale),

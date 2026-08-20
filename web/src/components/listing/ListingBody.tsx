@@ -7,6 +7,7 @@ import Link from '@/i18n/LocaleLink';
 import { PropertyCard } from './PropertyCard';
 import { ShareMenu } from '@/components/site/ShareMenu';
 import { useI18n } from '@/i18n/useDict';
+import { PROPERTY_TYPES, propertyType } from '@/lib/propertySchema';
 import { enumLabel } from '@/i18n/enums';
 
 /* ============================================================
@@ -20,10 +21,13 @@ import { enumLabel } from '@/i18n/enums';
 
 type SortKey = 'new' | 'price_asc' | 'price_desc' | 'size_asc' | 'size_desc';
 type Mode = 'rent' | 'sale';
-type SecKey = 'zone' | 'type' | 'size' | 'price';
+type SecKey = 'zone' | 'zoning' | 'type' | 'size' | 'price';
 
 /* zone options are derived from the inventory on the page, not listed here */
-const TYPE_ITEMS = ['โรงงาน', 'โกดัง/คลังสินค้า'];
+/* ตัวเลือกประเภทมาจาก schema ชุดเดียวกับหลังบ้าน — เดิมเป็นสองคำที่พิมพ์ไว้
+   ตรงนี้ และคำหนึ่งก็สะกดไม่ตรงกับที่การ์ดแสดง ("โกดัง/คลังสินค้า" ไม่มีเว้นวรรค)
+   ติ๊กแล้วจึงกรองไม่เจออะไรเลย */
+const TYPE_ITEMS = PROPERTY_TYPES.map((t) => t.label);
 
 
 /* One card's worth of published inventory, handed down from the server
@@ -44,6 +48,7 @@ export type ListingItem = {
   img: string | null;
   photos: string;
   province: string;
+  zoning: string;
   available: boolean;
 };
 
@@ -64,6 +69,7 @@ type Listing = {
      server: it used to be parsed back out of `price`, which broke the moment
      that string was translated (the parser looked for the Thai word ล้าน). */
   priceValue: number;
+  zoning: string;
   available: boolean;
 };
 
@@ -76,10 +82,11 @@ const toListing = (it: ListingItem): Listing => ({
   loc: it.loc,
   price: it.price,
   img: it.img,
-  type: it.typeKey === 'factory' ? 'โรงงาน' : 'โกดัง/คลังสินค้า',
+  type: propertyType(it.typeKey).label,
   area: it.areaLabel || '—',
   areaSqm: it.area,
   province: it.province,
+  zoning: it.zoning,
   priceValue: it.priceValue,
   available: it.available,
 });
@@ -99,6 +106,8 @@ export interface ListingPreset {
   q?: string;
   sizeSel?: string;
   priceSel?: string;
+  /** ?zone= — แท็กพื้นที่สีบนหน้ารายละเอียดลิงก์มาที่นี่ */
+  zoningSel?: string[];
   /** ?saved=1 — arriving from the heart in the masthead */
   onlyFavs?: boolean;
 }
@@ -185,8 +194,11 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
   /* null = both. /listing must not hide every property for sale just because
      the pills default to one of them; preset pages still pin their own. */
   const [listingMode, setListingMode] = useState<Mode | null>(preset.listingMode ?? null);
-  const [secOpen, setSecOpen] = useState<Record<SecKey, boolean>>({ zone: true, type: true, size: true, price: true });
+  const [secOpen, setSecOpen] = useState<Record<SecKey, boolean>>({ zone: true, zoning: true, type: true, size: true, price: true });
   const [zoneSel, setZoneSel] = useState<string[]>([]);
+  /* พื้นที่สีเป็นตัวกรองของตัวเอง — เดิมช่องที่ชื่อ "โซน" กลับไล่ชื่ออำเภอ
+     ซึ่งคือคอมเมนต์ "โซนแสดงผลไม่ตรง" ในสไลด์ 12 */
+  const [zoningSel, setZoningSel] = useState<string[]>(preset.zoningSel ?? []);
   const [typeSel, setTypeSel] = useState<string[]>(preset.typeSel ?? []);
   const [sizeSel, setSizeSel] = useState<string | null>(preset.sizeSel ?? null);
   const [priceSel, setPriceSel] = useState<string | null>(preset.priceSel ?? null);
@@ -221,6 +233,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
     if (listingMode === 'rent' && it.deal !== 'ให้เช่า') return false;
     if (listingMode === 'sale' && it.deal !== 'ขาย') return false;
     if (zoneSel.length && !zoneSel.includes(it.loc)) return false;
+    if (zoningSel.length && !zoningSel.includes(it.zoning)) return false;
     if (typeSel.length && !typeSel.includes(it.type)) return false;
     if (onlyFavs && !favs.has(it.code)) return false;
     if (sizeSel && !inSize(it.areaSqm, sizeSel)) return false;
@@ -246,6 +259,8 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
   /* zone options come from the inventory actually on the page, so the filter
      can never offer a location that returns nothing */
   const zoneItems = Array.from(new Set(all.map((it) => it.loc).filter((l) => l && l !== '—'))).sort();
+  // เช่นเดียวกัน — เอาเฉพาะสีที่มีทรัพย์จริง ไม่ใช่รายการสีทั้งหมด
+  const zoningItems = Array.from(new Set(all.map((it) => it.zoning).filter(Boolean))).sort();
 
   const toggleIn = (arr: string[], v: string) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
   const sortLabel = (SORT_DEFS.find((d) => d.key === sortKey) || SORT_DEFS[0]).label;
@@ -273,6 +288,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
   type Section = { key: SecKey; title: string; items: { label: string; checked: boolean; select: () => void }[] };
   const sections: Section[] = [
     { key: 'zone', title: d.listing.zone, items: zoneItems.map((label) => ({ label, checked: zoneSel.includes(label), select: () => setZoneSel((a) => toggleIn(a, label)) })) },
+    { key: 'zoning', title: d.listing.zoneColor, items: zoningItems.map((value) => ({ label: enumLabel(value, locale), checked: zoningSel.includes(value), select: () => setZoningSel((a) => toggleIn(a, value)) })) },
     { key: 'type', title: d.listing.type, items: TYPE_ITEMS.map((label) => ({ label, checked: typeSel.includes(label), select: () => setTypeSel((a) => toggleIn(a, label)) })) },
     { key: 'size', title: d.listing.size, items: SIZE_ITEMS.map((label) => ({ label, checked: sizeSel === label, select: () => setSizeSel((cur) => (cur === label ? null : label)) })) },
     { key: 'price', title: d.listing.price, items: PRICE_ITEMS.map((label) => ({ label, checked: priceSel === label, select: () => setPriceSel((cur) => (cur === label ? null : label)) })) },
