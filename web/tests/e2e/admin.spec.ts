@@ -1754,6 +1754,9 @@ test.describe('the properties screen', () => {
 
   test('Export downloads the rows that are on screen', async ({ page }) => {
     await page.goto('/admin/properties');
+    /* กด Export ก่อนตารางโหลดเสร็จ = ไม่มีแถวให้ export จริง ๆ หน้าจึงขึ้น
+       ข้อความบอกแทนที่จะดาวน์โหลดไฟล์เปล่า — รอให้มีของก่อน */
+    await expect(page.locator('tr.prop-row').first()).toBeVisible();
     const [download] = await Promise.all([
       page.waitForEvent('download'),
       page.locator('#prop-export').click(),

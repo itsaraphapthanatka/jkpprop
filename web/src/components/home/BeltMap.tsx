@@ -36,7 +36,11 @@ export type MapPin = {
 const BOUNDS: [[number, number], [number, number]] = [[12.35, 99.4], [14.75, 101.95]];
 
 const FILL_ON = '#0E7C86';
-const FILL_OFF = '#E8C98A';
+/* สไลด์ 6 · "สี — เปลี่ยนเป็นสีเทา" จังหวัดที่ยังไม่ได้เลือกเคยเป็นสีทราย
+   เหลือง ๆ ซึ่งไม่มีอยู่ในชุดสีของแบรนด์ และดูเหมือนถูกเน้นทั้งที่ไม่ได้เลือก
+   เทาอมเขียวจาง ๆ ทำให้จังหวัดที่เลือกอยู่เด่นขึ้นด้วย */
+const FILL_OFF = '#C7D2CE';
+const EDGE_OFF = '#9FB0AA';
 
 /* The same card twice: a quiet one that follows the cursor, and one that stays
    put when something is chosen and carries the link. The hovering one used to
@@ -96,7 +100,7 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
     if (selectedRef.current === key) return { fillColor: FILL_ON, fillOpacity: 0.72, color: '#022E38', weight: 3.4 };
     if (hoverRef.current === key) return { fillColor: FILL_ON, fillOpacity: 0.6, color: '#0B5F68', weight: 3 };
     if ((FACTOR_PROVINCES[factorRef.current] ?? []).includes(key)) return { fillColor: FILL_ON, fillOpacity: 0.5, color: '#0B5F68', weight: 2.2 };
-    return { fillColor: FILL_OFF, fillOpacity: 0.3, color: '#C9A055', weight: 1.2 };
+    return { fillColor: FILL_OFF, fillOpacity: 0.34, color: EDGE_OFF, weight: 1.2 };
   }, []);
 
   const repaint = React.useCallback(() => {
@@ -146,7 +150,7 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
         const latlngs = p.rings.map((r) => r.map(([lng, lat]) => [lat, lng] as [number, number]));
         const poly = L.polygon(latlngs, {
           weight: 1.4,
-          color: '#C08A2E',
+          color: EDGE_OFF,
           fillColor: FILL_OFF,
           fillOpacity: 0.42,
           className: `belt-prov belt-${p.key}`,

@@ -258,10 +258,10 @@ export function Header() {
                       padding: '8px 10px 10px',
                       fontSize: '12.5px',
                       fontWeight: 700,
-                      color: '#D9A62B',
+                      color: 'var(--accent)',
                     }}
                   >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#D9A62B" strokeWidth="1.8">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8">
                       <circle cx="12" cy="12" r="9" />
                       <path d="M3 12h18M12 3a13 13 0 010 18M12 3a13 13 0 000 18" />
                     </svg>

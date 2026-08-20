@@ -109,7 +109,7 @@ const chipDotStyle = (c: ChipDef): React.CSSProperties => ({ width: '8px', heigh
 const optionStyle = (on: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 15px', borderRadius: '12px', cursor: 'pointer', border: '1.5px solid ' + (on ? 'var(--pine)' : 'var(--border)'), background: on ? 'rgba(var(--pine-rgb),.05)' : 'transparent', color: on ? 'var(--pine)' : 'var(--text)' });
 const radioStyle = (on: boolean): React.CSSProperties => ({ width: '19px', height: '19px', borderRadius: '9999px', border: '1.5px solid ' + (on ? 'var(--pine)' : 'var(--border)'), background: on ? 'var(--pine)' : 'transparent', boxShadow: on ? 'inset 0 0 0 3px var(--surface)' : 'none' });
 
-const adviceFabStyle = (hov: boolean): React.CSSProperties => ({ position: 'absolute', bottom: '16px', right: '16px', zIndex: 850, display: 'flex', alignItems: 'center', gap: hov ? '10px' : '0', height: '46px', padding: hov ? '0 20px' : '0', width: hov ? 'auto' : '46px', borderRadius: '9999px', background: '#D9A62B', cursor: 'pointer', boxShadow: '0 10px 26px rgba(217,166,43,.4)', transition: 'all .3s cubic-bezier(.2,.8,.3,1)', justifyContent: 'center', overflow: 'hidden' });
+const adviceFabStyle = (hov: boolean): React.CSSProperties => ({ position: 'absolute', bottom: '16px', right: '16px', zIndex: 850, display: 'flex', alignItems: 'center', gap: hov ? '10px' : '0', height: '46px', padding: hov ? '0 20px' : '0', width: hov ? 'auto' : '46px', borderRadius: '9999px', background: 'var(--deep)', cursor: 'pointer', boxShadow: '0 10px 26px rgba(var(--deep-rgb),.35)', transition: 'all .3s cubic-bezier(.2,.8,.3,1)', justifyContent: 'center', overflow: 'hidden' });
 
 /* ---- icon helpers ---- */
 function factorIcon(key: Loc) {

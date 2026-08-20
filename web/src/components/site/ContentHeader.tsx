@@ -183,8 +183,8 @@ export function ContentHeader({ active }: { active?: 'about' | 'faq' }) {
                   onClick={(e) => e.stopPropagation()}
                   style={{ position: 'absolute', top: 'calc(100% + 10px)', right: 0, width: 200, background: 'var(--surface)', borderRadius: 16, boxShadow: '0 20px 50px rgba(0,0,0,.22)', padding: 8, zIndex: 50 }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px 10px', fontSize: '12.5px', fontWeight: 700, color: '#D9A62B' }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#D9A62B" strokeWidth="1.8">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px 10px', fontSize: '12.5px', fontWeight: 700, color: 'var(--accent)' }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8">
                       <circle cx="12" cy="12" r="9" />
                       <path d="M3 12h18M12 3a13 13 0 010 18M12 3a13 13 0 000 18" />
                     </svg>
