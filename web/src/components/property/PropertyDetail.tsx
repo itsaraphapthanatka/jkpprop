@@ -7,6 +7,7 @@ import Link from '@/i18n/LocaleLink';
 import type { SpecRow } from '@/lib/server/propertySpecs';
 import { useDict } from '@/i18n/useDict';
 import { PropertyCard, type CardListing } from '@/components/listing/PropertyCard';
+import { zoneSwatch } from '@/lib/zoneSwatch';
 import { useFavourites } from '@/lib/favourites';
 import { ShareMenu } from '@/components/site/ShareMenu';
 
@@ -149,6 +150,7 @@ export type PublicProperty = {
   updatedAt: string;
   specs: { quick: SpecRow[]; rows: SpecRow[]; features: string[]; usage: string[]; nearby: string[] };
   zoning: string | null;
+  zoningKey: string | null;
   /** media src จาก /api/public/properties/:code — ใส่ลายน้ำแล้วตอนเสิร์ฟ */
   photos: string[];
   related: RelatedProperty[];
@@ -174,7 +176,8 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
   const w980 = useMaxWidth(980);
   const w640 = useMaxWidth(640);
 
-  const { code, title: heading, specs, zoning, related } = property;
+  const { code, title: heading, specs, zoning, zoningKey, related } = property;
+  const swatch = zoningKey ? zoneSwatch(zoningKey) : null;
   const place = property.location;
   const isRent = property.priceRent !== null;
   const priceLabel = isRent ? d.property.priceRent : d.property.priceSale;
@@ -317,7 +320,22 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
             <div style={sectionCard}>
               {sectionHead(d.property.zoneType)}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 46, padding: '0 18px', borderRadius: 12, background: 'var(--tint)', width: 'fit-content' }}>
-                {pin(18, 'var(--accent)')}
+                {/* จุดสีจริงของผังเมือง — สไลด์ 12 "นำสีมาแสดงผล" */}
+                {swatch ? (
+                  <span
+                    data-zone-swatch
+                    aria-hidden
+                    style={{
+                      width: 18, height: 18, borderRadius: 5, flexShrink: 0,
+                      border: '1px solid rgba(var(--ink-rgb),.28)',
+                      background: swatch.hatch
+                        ? `repeating-linear-gradient(45deg, ${swatch.hatch} 0 3px, ${swatch.fill} 3px 6px)`
+                        : swatch.dots
+                          ? `radial-gradient(#fff 1.4px, ${swatch.fill} 1.5px) 0 0/6px 6px`
+                          : swatch.fill,
+                    }}
+                  />
+                ) : pin(18, 'var(--accent)')}
                 <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--accent)' }}>{zoning}</span>
               </div>
             </div>

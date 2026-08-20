@@ -110,6 +110,8 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
     available: availability !== 'unavailable',
     specs: buildSpecs(values, locale, found.schema, geo),
     zoning: zoningRaw ? enumLabel(zoningRaw, locale) : null,
+    // ค่าดิบไว้เทียบสี — ป้ายที่แปลแล้วใช้เป็นคีย์ไม่ได้
+    zoningKey: zoningRaw || null,
     photos,
     related,
     // only channels that are actually configured in /admin/company

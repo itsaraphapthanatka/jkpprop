@@ -410,6 +410,23 @@ test.describe('คอมเมนต์ลูกค้า · กลุ่ม B',
     }
   });
 
+  test('พื้นที่สีแสดงเป็นสีจริง ไม่ใช่แค่ชื่อสี', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { typeKey: 'warehouse', title: `ทดสอบจุดสี ${Date.now().toString(36)}`, status: 'active', values: { ...VALUES, zoning_color: 'พื้นที่สีแดง — พาณิชยกรรม' } },
+    })).json();
+    try {
+      await page.goto(`/th/property/${made.publicCode}`);
+      const sw = page.locator('[data-zone-swatch]');
+      await expect(sw).toBeVisible();
+      const bg = await sw.evaluate((el) => getComputedStyle(el).backgroundColor);
+      expect(bg, 'สีแดง — พาณิชยกรรม ต้องได้จุดสีแดง').toBe('rgb(213, 52, 43)');
+    } finally {
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+
   test('สีผังเมืองที่ลูกค้าเพิ่มมาใหม่ เลือกได้และแปลครบสามภาษา', async ({ page, request }) => {
     const cookie = await signIn(page);
     const made = await (await request.post('/api/properties', {
