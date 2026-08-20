@@ -140,3 +140,25 @@ describe('ช่องที่ลูกค้าขอเพิ่มในส�
     }
   });
 });
+
+
+/* สไลด์ 26 · ลูกศรชี้ให้สลับสองช่องในหมวดพื้นที่ — วัดกว้าง x ลึกก่อน แล้วค่อย
+   ได้พื้นที่ ซึ่งเป็นลำดับเดียวกับคู่ที่ดินที่อยู่เหนือขึ้นไป */
+describe('ลำดับช่องในหมวดพื้นที่ (สไลด์ 26)', () => {
+  const areaKeys = (typeKey: string) =>
+    propertyType(typeKey).fields.filter((f) => f.section === 'พื้นที่').map((f) => f.key);
+
+  for (const type of ['warehouse', 'factory', 'showroom']) {
+    test(`${type} · กว้าง x ลึก มาก่อนพื้นที่`, () => {
+      const keys = areaKeys(type);
+      const wh = keys.indexOf('building_wh');
+      const area = keys.indexOf('building_area');
+      assert.ok(wh >= 0 && area >= 0, 'ต้องมีทั้งสองช่อง');
+      assert.ok(wh < area, `กว้าง x ลึก ต้องอยู่ก่อนพื้นที่ — ตอนนี้ ${keys.join(' → ')}`);
+      /* คู่ที่ดินเรียงแบบเดียวกันอยู่แล้ว ทั้งสองคู่ต้องไม่สวนทางกัน */
+      const landWh = keys.indexOf('land_wh');
+      const landTotal = keys.indexOf('land_area_total');
+      if (landWh >= 0 && landTotal >= 0) assert.ok(landWh < landTotal, 'คู่ที่ดินต้องเรียงแบบเดียวกัน');
+    });
+  }
+});

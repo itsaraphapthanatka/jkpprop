@@ -250,8 +250,10 @@ const WAREHOUSE_FIELDS: FieldDef[] = [
   { key: 'land_area_total', label: 'ที่ดินรวม', kind: 'group', section: 'พื้นที่', sub: [
     { key: 'rai', label: 'ไร่', kind: 'number' }, { key: 'ngan', label: 'งาน', kind: 'number' }, { key: 'wa', label: 'ตร.ว.', kind: 'number' },
   ] },
-  { key: 'building_area', label: 'พื้นที่คลัง / ผลิต', kind: 'number', unit: 'ตร.ม.', section: 'พื้นที่' },
+  /* สไลด์ 26 · ลูกค้าชี้ลูกศรให้สลับสองช่องนี้ — วัดกว้าง x ลึกก่อน แล้วค่อย
+     ได้พื้นที่ เป็นลำดับเดียวกับคู่ที่ดินด้านบน */
   { key: 'building_wh', label: 'กว้าง x ลึก พื้นที่คลัง / ผลิต', kind: 'text', unit: 'ม.', section: 'พื้นที่', placeholder: 'เช่น 14 x 20' },
+  { key: 'building_area', label: 'พื้นที่คลัง / ผลิต', kind: 'number', unit: 'ตร.ม.', section: 'พื้นที่' },
   { key: 'office_floors', label: 'จำนวนชั้นออฟฟิศ', kind: 'select', options: ['ไม่มีออฟฟิศ', '1 ชั้น', '2 ชั้น', '3 ชั้น', 'มากกว่า 3 ชั้น'], section: 'พื้นที่' },
   { key: 'building_floors', label: 'จำนวนชั้นอาคาร', kind: 'select', options: ['1 ชั้น', '2 ชั้น', '3 ชั้น', '4 ชั้น', 'มากกว่า 4 ชั้น'], section: 'พื้นที่' },
   { key: 'office_area_f1', label: 'พื้นที่ออฟฟิศ ชั้น 1', kind: 'number', unit: 'ตร.ม.', section: 'พื้นที่' },
