@@ -59,6 +59,11 @@ export const GET = handler(async () => {
           .find((v) => typeof v === 'number') as number | undefined ?? null,
         available: !taken.has(p.id),
         pic: String(values.pic ?? ''),
+        /* รูปหน้าปก — ตารางเดิมไม่มีรูปเลย ทุกแถวหน้าตาเหมือนกันหมด */
+        img: (() => {
+          const ph = values.photos;
+          return Array.isArray(ph) && typeof ph[0] === 'string' ? (ph[0] as string) : null;
+        })(),
         deal: price.deal,
         dealK: price.dealK,
         price: price.text,

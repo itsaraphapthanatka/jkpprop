@@ -5,6 +5,7 @@ import { DynamicFieldForm } from './DynamicFieldForm';
 import { PROPERTY_TYPES, enabledPropertyTypes } from '@/lib/propertySchema';
 import { useSchemaSync } from '@/lib/schemaSync';
 import { InventoryFilters, EMPTY_FILTERS, matchesFilters, sortInventory, type InventoryFilterState, type InventoryRow } from './InventoryFilters';
+import { thumb } from '@/lib/mediaThumb';
 import { apiGet, apiPost, apiPatch, apiDelete, ApiClientError } from '@/lib/apiClient';
 import { placeMenu, type MenuBox } from '@/lib/menuPlacement';
 import { relTime } from '@/lib/leadStore';
@@ -497,7 +498,17 @@ export function PropertiesBody() {
                     </td>
                     <td style={{ padding: '14px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--tint)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }} dangerouslySetInnerHTML={{ __html: iconFor(r.typeKey) }} />
+                        {/* รูปหน้าปก — เดิมทุกแถวเป็นไอคอนประเภทเหมือนกันหมด
+                            ทั้งหน้าจึงดูเหมือนกันไปหมด และดูไม่ออกว่าแถวไหนคือ
+                            ทรัพย์ตัวไหน ทรัพย์ที่ยังไม่มีรูปถึงจะเห็นไอคอนเดิม */}
+                        {(() => {
+                          const photos = (r.values ?? {}).photos;
+                          const cover = Array.isArray(photos) && typeof photos[0] === 'string' ? thumb(photos[0] as string, 160) : null;
+                          return cover
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            ? <img src={cover} alt="" data-row-cover style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+                            : <div data-row-cover="none" style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--tint)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }} dangerouslySetInnerHTML={{ __html: iconFor(r.typeKey) }} />;
+                        })()}
                         <div>
                           <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', maxWidth: 280, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.title}</div>
                           <code style={{ fontSize: '11.5px', color: '#0D6C3B', fontWeight: 700 }}>{r.publicCode}</code>

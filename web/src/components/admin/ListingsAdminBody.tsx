@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { InventoryFilters, EMPTY_FILTERS, matchesFilters, sortInventory, type InventoryFilterState, type InventoryRow } from './InventoryFilters';
+import { thumb } from '@/lib/mediaThumb';
 import { apiGet, apiPost, apiPatch, apiDelete, ApiClientError } from '@/lib/apiClient';
 import { propertyType } from '@/lib/propertySchema';
 import { placeMenu, type MenuBox } from '@/lib/menuPlacement';
@@ -73,6 +74,7 @@ export type Row = {
   priceValue: number | null;
   available: boolean;
   pic: string;
+  img: string | null;
 };
 
 /* `act` is what the item does; `href` is where it goes. Every item used to
@@ -592,8 +594,20 @@ export function ListingsAdminBody() {
                       </div>
                     </td>
                     <td style={{ padding: '14px 16px' }}>
-                      <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', maxWidth: 300, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.title}</div>
-                      <code style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '11.5px', color: '#0D6C3B', fontWeight: 700 }}>{d.code}</code> <span style={{ fontSize: '11.5px', color: 'var(--muted3)' }}>· {d.location}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        {/* รูปหน้าปกเหมือนหน้า Properties — ทรัพย์ที่ยังไม่มีรูป
+                            เห็นเป็นกรอบว่าง จะได้รู้ว่ายังขาดรูป */}
+                        {d.img
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          ? <img src={thumb(d.img, 160)} alt="" data-row-cover style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+                          : <div data-row-cover="none" style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--tint)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted3)' }}>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="9" cy="11" r="2" /><path d="M21 15l-5-4-4 3" /></svg>
+                            </div>}
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', maxWidth: 300, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.title}</div>
+                          <code style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '11.5px', color: '#0D6C3B', fontWeight: 700 }}>{d.code}</code> <span style={{ fontSize: '11.5px', color: 'var(--muted3)' }}>· {d.location}</span>
+                        </div>
+                      </div>
                     </td>
                     <td style={{ padding: '14px 16px', textAlign: 'center' }}><span style={DEAL_MAP[d.dealK]}>{d.deal}</span></td>
                     <td style={{ padding: '14px 16px', textAlign: 'right', fontSize: '12.5px', fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: 'var(--text)' }}>{d.price}</td>

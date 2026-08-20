@@ -1319,3 +1319,36 @@ test.describe('คอมเมนต์ลูกค้า · ตัวคั่�
     }
   });
 });
+
+/* "ใส่รูปหน้าปก ทั้ง Property และ Listing" — สองตารางนี้วาดไอคอนประเภทเหมือนกัน
+   ทุกแถว ทั้งหน้าจึงดูเหมือนกันไปหมด แยกไม่ออกว่าแถวไหนคือทรัพย์ตัวไหน */
+test.describe('คอมเมนต์ลูกค้า · รูปหน้าปกในตารางหลังบ้าน', () => {
+  const signIn = async (page: import('@playwright/test').Page) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    return (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  };
+
+  for (const [path, api] of [['/admin/properties', '/api/properties'], ['/admin/listings', '/api/listings']] as const) {
+    test(`${path} แสดงรูปหน้าปกของทรัพย์ที่มีรูป`, async ({ page, request }) => {
+      const cookie = await signIn(page);
+      const items = (await (await request.get(api, { headers: { cookie } })).json()).items as
+        { values?: { photos?: unknown }; img?: string | null }[];
+      const withPhoto = items.filter((i) => (Array.isArray(i.values?.photos) && i.values!.photos!.length) || i.img).length;
+      test.skip(!withPhoto, 'ยังไม่มีทรัพย์ที่มีรูป');
+
+      await page.goto(path);
+      const covers = page.locator('[data-row-cover]:not([data-row-cover="none"])');
+      await expect(covers.first(), 'ต้องเห็นรูปหน้าปก ไม่ใช่ไอคอนอย่างเดียว').toBeVisible({ timeout: 15000 });
+
+      /* รูปต้องโหลดได้จริง ไม่ใช่กรอบว่างที่ src พัง */
+      const src = await covers.first().getAttribute('src');
+      expect(src, 'รูปหน้าปกต้องมี src').toBeTruthy();
+      const res = await request.get(src!, { headers: { cookie } });
+      expect(res.status(), `เปิดรูป ${src} ไม่ได้`).toBe(200);
+    });
+  }
+});
