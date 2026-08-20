@@ -1595,7 +1595,9 @@ test.describe('the chain from requirement to deal, clicked end to end', () => {
 
     // book the viewing from the shortlist screen
     await page.goto(`/admin/shortlists/${sl.id}`);
-    await page.locator('#sl-book-visit').click();
+    /* ปุ่มเดียวที่รู้ว่าอยู่ขั้นไหน — shortlist ที่ส่งแล้ว ขั้นถัดไปคือนัดเข้าชม */
+    await expect(page.locator('#sl-next')).toHaveAttribute('data-next-step', 'visit');
+    await page.locator('#sl-next').click();
     const when = new Date();
     when.setDate(when.getDate() + 2);
     await page.locator('#sl-visit-date').fill(when.toISOString().slice(0, 10));

@@ -345,15 +345,32 @@ export function ShortlistActions() {
           เปิดหน้าที่ลูกค้าเห็น
         </a>
       )}
-      {/* Flow C — offered once the customer has actually seen the list */}
-      {sent && itemCount > 0 && (
-        <div id="sl-book-visit" onClick={openVisit} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1.5px solid #0D6C3B', color: '#0D6C3B', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>นัดชมทรัพย์
+      {/* สไลด์ 39 · "3 ขั้นตอนนี้ ปุ่มไปต่อใช้งานแล้วงงมาก ไม่รู้เลยว่ากดอันไหน
+          เพื่อไปขั้นตอนถัดไป · Shortlist ควรรวมเป็นถัดไป เช่น ถัดไปครั้งที่ 1
+          เป็นส่งลิ้งให้ลูกค้า ถัดไปครั้งที่ 2 เป็นนัดเข้าชม"
+
+          เดิมมีปุ่มระดับเดียวกันสามปุ่มเรียงกัน — เปิดหน้าที่ลูกค้าเห็น ·
+          นัดชมทรัพย์ · ส่งให้ลูกค้า — โดยไม่มีอะไรบอกว่าอันไหนคือขั้นถัดไป
+          ตอนนี้เหลือปุ่มหลักปุ่มเดียวที่รู้ว่าตัวเองอยู่ขั้นไหน ส่วนการเปิดดู
+          หน้าลูกค้าเป็นปุ่มรองเพราะเป็นการดู ไม่ใช่ขั้นตอน */}
+      <div
+        id="sl-next"
+        data-next-step={sent ? 'visit' : 'send'}
+        onClick={sent ? openVisit : openSend}
+        style={{ display: 'flex', alignItems: 'center', gap: 8, height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'transform .2s,box-shadow .2s', whiteSpace: 'nowrap' }}
+      >
+        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, borderRadius: 9999, background: 'rgba(255,255,255,.22)', fontSize: 11, fontWeight: 800 }}>
+          {sent ? 2 : 1}
+        </span>
+        {sent ? 'ถัดไป: นัดเข้าชม' : 'ถัดไป: ส่งลิงก์ให้ลูกค้า'}
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+      </div>
+      {/* ส่งซ้ำได้ แต่ไม่ใช่ขั้นตอนถัดไปแล้ว จึงเป็นปุ่มรอง */}
+      {sent && (
+        <div id="sl-send-again" onClick={openSend} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 14px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--muted)', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          ส่งลิงก์อีกครั้ง
         </div>
       )}
-      <div onClick={openSend} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'transform .2s,box-shadow .2s' }}>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z" /></svg>ส่งให้ลูกค้า
-      </div>
     </div>
   );
 }

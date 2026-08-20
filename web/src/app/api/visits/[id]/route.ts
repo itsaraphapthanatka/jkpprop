@@ -29,7 +29,7 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
        whoever hit it went off to check whether the properties were still free
        instead of ringing the customer. */
     if (body.status === 'done' && !(body.gateConfirmed ?? visit.gateConfirmed)) {
-      throw new ApiError('GATE_REQUIRED', 'ต้องยืนยันเกณฑ์กับลูกค้าก่อน (FR-VIS-07) — กด "ยืนยันไม่เปลี่ยน" ที่หัวแผน หรือกลับไปแก้ requirement ถ้าลูกค้าเปลี่ยนเกณฑ์', 400);
+      throw new ApiError('GATE_REQUIRED', 'ต้องยืนยันเกณฑ์กับลูกค้าก่อน (FR-VIS-07) — กด "เกณฑ์เดิม — จัดนัดต่อ" ที่หัวแผน หรือกลับไปแก้ requirement ถ้าลูกค้าเปลี่ยนเกณฑ์', 400);
     }
     data.status = body.status;
   }

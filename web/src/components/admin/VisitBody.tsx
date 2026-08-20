@@ -220,8 +220,14 @@ export function VisitBody() {
             </svg>
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '14.5px', fontWeight: 800, color: gateConfirmed ? '#0D6C3B' : '#28251D' }}>ยืนยันเกณฑ์กับลูกค้าก่อนจัดนัด (FR-VIS-07)</div>
-            <div style={{ marginTop: 3, fontSize: '12.5px', color: gateConfirmed ? '#3E7A54' : '#9A741C' }}>{gateConfirmed ? 'ลูกค้ายืนยันว่าไม่เปลี่ยนเกณฑ์ — จัดนัดได้เลย' : 'ต้องยืนยันก่อนว่าลูกค้าไม่เปลี่ยน criteria — ถ้าเปลี่ยนให้กลับไปแก้ requirement (Flow B)'}</div>
+            {/* สไลด์ 39 · "ปุ่มนี้มีไว้ทำอะไรในเมื่อต้องกดยืนยันไม่เปลี่ยน" —
+                ปุ่มสองปุ่มวางเรียงกันโดยไม่มีอะไรบอกว่าเป็นคำตอบของคำถามเดียวกัน
+                ปุ่มหนึ่งจึงดูเหมือนไม่มีเหตุผลจะกด ตอนนี้ถามให้ชัดก่อน แล้วปุ่ม
+                คือคำตอบสองทาง */}
+            <div style={{ fontSize: '14.5px', fontWeight: 800, color: gateConfirmed ? '#0D6C3B' : '#28251D' }}>
+              {gateConfirmed ? 'ยืนยันเกณฑ์กับลูกค้าแล้ว (FR-VIS-07)' : 'ก่อนจัดนัด — ลูกค้ายังใช้เกณฑ์เดิมอยู่ไหม?'}
+            </div>
+            <div style={{ marginTop: 3, fontSize: '12.5px', color: gateConfirmed ? '#3E7A54' : '#9A741C' }}>{gateConfirmed ? 'ลูกค้ายืนยันว่าไม่เปลี่ยนเกณฑ์ — จัดนัดได้เลย' : 'ถ้ายังเหมือนเดิม กด "เกณฑ์เดิม" เพื่อเปิดเส้นทาง · ถ้าลูกค้าเปลี่ยนใจ ต้องกลับไปแก้ requirement ก่อน ไม่งั้นจะพาไปดูของที่ไม่ตรงแล้ว'}</div>
           </div>
           {gateConfirmed && (
             <span style={{ height: 28, padding: '0 13px', borderRadius: 9999, background: '#2DFB91', color: '#022310', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
@@ -230,8 +236,8 @@ export function VisitBody() {
           )}
           {gatePending && (
             <div id="visit-gate-btns" style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-              <Link id="visit-edit-criteria" href={visit?.requirementId ? `/admin/requirements/${visit.requirementId}` : '/admin/requirements'} title={visit?.requirementId ? 'เปิด requirement ของลูกค้ารายนี้' : 'ยังไม่มี requirement ผูกกับแผนนี้ — เปิดคิวทั้งหมด'} style={{ height: 38, padding: '0 14px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center' }}>แก้ criteria</Link>
-              <div onClick={confirmGate} style={{ height: 38, padding: '0 16px', borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>ยืนยันไม่เปลี่ยน</div>
+              <Link id="visit-edit-criteria" href={visit?.requirementId ? `/admin/requirements/${visit.requirementId}` : '/admin/requirements'} title={visit?.requirementId ? 'เปิด requirement ของลูกค้ารายนี้' : 'ยังไม่มี requirement ผูกกับแผนนี้ — เปิดคิวทั้งหมด'} style={{ height: 38, padding: '0 14px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center' }}>ลูกค้าเปลี่ยนเกณฑ์ →</Link>
+              <div id="visit-gate-confirm" onClick={confirmGate} style={{ height: 38, padding: '0 16px', borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>เกณฑ์เดิม — จัดนัดต่อ</div>
             </div>
           )}
         </div>
