@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { fetchListings, type ApiListing } from './ListingsAdminBody';
+import { InventoryFilters, EMPTY_FILTERS, matchesFilters, sortInventory, type InventoryFilterState, type InventoryRow } from './InventoryFilters';
 import { buildSummary } from '@/lib/summaryTemplate';
 import {
   loadSocial, saveSocial, recordOf, postOf, doneCount, channelKey, todayISO,
@@ -36,7 +37,9 @@ const tick = (on: boolean): React.CSSProperties => ({
 export function SocialStatusBody() {
   const [store, setStore] = React.useState<SocialStore>({ channels: [], records: {} });
   const [ready, setReady] = React.useState(false);
-  const [q, setQ] = React.useState('');
+  /* เมนูค้นหาชุดเดียวกับ Property และ Listings (สไลด์ 22) — เดิมหน้านี้มีแต่
+     ช่องค้นหาข้อความ กรองหาของแบบเดียวกับอีกสองหน้าไม่ได้ */
+  const [inv, setInv] = React.useState<InventoryFilterState>(EMPTY_FILTERS);
   const [only, setOnly] = React.useState<'all' | 'todo' | 'done'>('all');
   const [openCode, setOpenCode] = React.useState<string | null>(null);
   const [chOpen, setChOpen] = React.useState(false);
@@ -84,13 +87,19 @@ export function SocialStatusBody() {
     return buildSummary({ typeLabel: row.title, code: row.code, values: valuesFor(row) }).text;
   };
 
-  const rows = (listings ?? []).filter((r) => {
-    const hit = !q.trim() || (r.title + r.code + r.location).toLowerCase().includes(q.trim().toLowerCase());
-    if (!hit) return false;
-    if (only === 'all' || !ready) return true;
-    const n = doneCount(recordOf(store, r.code), channels);
-    return only === 'done' ? n === channels.length && n > 0 : n < channels.length;
+  const view = (r: ApiListing): InventoryRow => ({
+    code: r.code, title: r.title, typeKey: r.typeKey, province: r.location,
+    zoning: r.zoning, deal: r.dealLabel, size: r.sizeSqm, price: r.priceValue,
+    available: r.available,
   });
+  const rows = sortInventory(
+    (listings ?? []).filter((r) => {
+      if (!matchesFilters(view(r), inv)) return false;
+      if (only === 'all' || !ready) return true;
+      const n = doneCount(recordOf(store, r.code), channels);
+      return only === 'done' ? n === channels.length && n > 0 : n < channels.length;
+    }).map((r) => ({ ...r, ...view(r) })),
+  ).map((r) => (listings ?? []).find((x) => x.code === r.code)!);
 
   /* ---- quick tick straight from the table ---- */
   const quickToggle = (code: string, key: string) => {
@@ -160,12 +169,11 @@ export function SocialStatusBody() {
 
   return (
     <>
+      {/* เมนูค้นหาชุดเดียวกับ Property และ Listings */}
+      <InventoryFilters value={inv} onChange={setInv} />
+
       {/* toolbar */}
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: 40, padding: '0 14px', borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border)', flex: 1, minWidth: 220 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาชื่อทรัพย์ / รหัส / จังหวัด" style={{ border: 0, outline: 'none', background: 'transparent', fontSize: 13, color: 'var(--text)', flex: 1, minWidth: 0, fontFamily: 'inherit' }} />
-        </div>
         {([['all', 'ทั้งหมด'], ['todo', 'ยังลงไม่ครบ'], ['done', 'ลงครบแล้ว']] as const).map(([k, l]) => (
           <button key={k} type="button" onClick={() => setOnly(k)} aria-pressed={only === k} style={{ height: 40, padding: '0 15px', borderRadius: 10, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', border: '1px solid ' + (only === k ? '#273c33' : 'var(--border)'), background: only === k ? '#273c33' : 'var(--surface)', color: only === k ? '#fff' : 'var(--muted)' }}>{l}</button>
         ))}

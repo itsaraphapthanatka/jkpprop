@@ -30,6 +30,14 @@ export const GET = handler(async () => {
     orderBy: { updatedAt: 'desc' },
     take: 500,
   });
+  /* ว่าง/ไม่ว่าง อยู่คนละตาราง — หน้านี้มีป้าย "ไม่ว่าง" อยู่แล้วแต่ไม่เคยมี
+     ทางได้ค่านั้นมา เพราะ status ที่ส่งออกอ่านจาก Property เท่านั้น */
+  const taken = new Set(
+    (await db.listing.findMany({
+      where: { propertyId: { in: rows.map((r) => r.id) }, status: 'unavailable' },
+      select: { propertyId: true },
+    })).map((l) => l.propertyId),
+  );
   return ok({
     items: rows.map((p) => {
       const values = (p.values ?? {}) as Record<string, unknown>;
@@ -42,6 +50,14 @@ export const GET = handler(async () => {
         typeKey: p.typeKey,
         area: displayArea(values),
         location: displayProvince(values) || '—',
+        /* ช่องที่เมนูค้นหาชุดร่วมต้องใช้ (สไลด์ 22) */
+        zoning: String(values.zoning_color ?? ''),
+        dealLabel: String(values.deal_type ?? ''),
+        sizeSqm: [values.building_area_total, values.building_area, values.usable_area]
+          .find((v) => typeof v === 'number') as number | undefined ?? null,
+        priceValue: [values.price_rent, values.price_sale, values.price]
+          .find((v) => typeof v === 'number') as number | undefined ?? null,
+        available: !taken.has(p.id),
         deal: price.deal,
         dealK: price.dealK,
         price: price.text,

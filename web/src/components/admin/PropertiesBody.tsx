@@ -4,6 +4,7 @@ import * as React from 'react';
 import { DynamicFieldForm } from './DynamicFieldForm';
 import { PROPERTY_TYPES, enabledPropertyTypes } from '@/lib/propertySchema';
 import { useSchemaSync } from '@/lib/schemaSync';
+import { InventoryFilters, EMPTY_FILTERS, matchesFilters, sortInventory, type InventoryFilterState, type InventoryRow } from './InventoryFilters';
 import { apiGet, apiPost, apiPatch, apiDelete, ApiClientError } from '@/lib/apiClient';
 import { placeMenu, type MenuBox } from '@/lib/menuPlacement';
 import { relTime } from '@/lib/leadStore';
@@ -65,13 +66,6 @@ const menuIcon = (paths: string, color: string) =>
    ยังไม่รู้ ไม่ใช่เดาให้ดูสวย */
 
 
-type FilterKey = 'type' | 'province' | 'status';
-const FILTER_DEFS: { key: FilterKey; label: string; opts: string[] }[] = [
-  { key: 'type', label: 'ประเภท', opts: ['ทั้งหมด', 'โกดัง', 'โรงงาน', 'ที่ดิน'] },
-  { key: 'province', label: 'จังหวัด', opts: ['ทั้งหมด', 'สมุทรปราการ', 'ชลบุรี', 'ระยอง', 'ปทุมธานี', 'อยุธยา'] },
-  { key: 'status', label: 'สถานะ', opts: ['ทั้งหมด', 'เผยแพร่', 'ร่าง', 'แปลไม่ครบ'] },
-];
-
 type MenuItem =
   | { divider: true }
   | { divider: false; label: string; href: string; icon: string; danger: boolean };
@@ -102,8 +96,6 @@ const thBase: React.CSSProperties = { padding: '13px 16px', textAlign: 'left', f
 const fieldLabel: React.CSSProperties = { fontSize: 12, fontWeight: 700, color: 'var(--muted)' };
 const drawerInput: React.CSSProperties = { marginTop: 6, width: '100%', height: 44, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: '13.5px', background: 'var(--surface)', outline: 'none' };
 
-const chipStyle = (hot: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 14px', borderRadius: 10, fontSize: 13, fontWeight: hot ? 700 : 600, cursor: 'pointer', background: hot ? '#273c33' : 'var(--bg)', color: hot ? '#fff' : 'var(--text)', border: '1px solid ' + (hot ? '#273c33' : 'var(--border)') });
-const ddOption = (active: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '9px 11px', borderRadius: 9, fontSize: '12.5px', fontWeight: active ? 700 : 600, cursor: 'pointer', color: active ? '#0D6C3B' : 'var(--text)', background: active ? 'rgba(13,108,59,.06)' : 'transparent' });
 const tabStyle = (on: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: 6, padding: '0 4px 12px', fontSize: 13, fontWeight: on ? 700 : 600, color: on ? '#0D6C3B' : 'var(--muted2)', borderBottom: '2.5px solid ' + (on ? '#0D6C3B' : 'transparent'), cursor: 'pointer', whiteSpace: 'nowrap' });
 const menuItemStyle = (danger: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 11px', borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: 'pointer', color: danger ? '#C0392B' : 'var(--text)' });
 const badgeYet: React.CSSProperties = { height: 22, padding: '0 10px', borderRadius: 9999, background: '#FBF3E1', color: '#9A741C', fontSize: '10.5px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' };
@@ -171,8 +163,27 @@ type ApiProperty = {
   location: string;
   area: number | null;
   updatedAt: number;
+  available?: boolean;
 };
 type ApiSummary = { total: number; published: number; draft: number; transIncomplete: number };
+
+
+/* แถวจาก API → รูปกลางที่ตัวกรองชุดร่วมเข้าใจ ค่าทั้งหมดมาจากเรกคอร์ดจริง */
+const toInventoryRow = (r: ApiProperty): InventoryRow => {
+  const v = r.values ?? {};
+  const num = (k: string) => (typeof v[k] === 'number' ? (v[k] as number) : null);
+  return {
+    code: r.publicCode,
+    title: r.title,
+    typeKey: r.typeKey,
+    province: r.location || '',
+    zoning: String(v.zoning_color ?? ''),
+    deal: String(v.deal_type ?? ''),
+    size: num('building_area_total') ?? num('building_area') ?? num('usable_area') ?? r.area,
+    price: num('price_rent') ?? num('price_sale') ?? num('price'),
+    available: r.available !== false,
+  };
+};
 
 const iconFor = (typeKey: string) =>
   typeKey === 'factory' ? FAC_ICON : typeKey === 'land' ? LAND_ICON : WH_ICON;
@@ -194,20 +205,16 @@ export function PropertiesBody() {
   const [openMenu, setOpenMenu] = React.useState<string | null>(null);
   const [menuBox, setMenuBox] = React.useState<MenuBox | null>(null);
   const menuBtns = React.useRef<Record<string, HTMLElement | null>>({});
-  const [openFilter, setOpenFilter] = React.useState<FilterKey | null>(null);
   const [sel, setSel] = React.useState<Set<string>>(new Set());
-  const [filterVals, setFilterVals] = React.useState<Record<FilterKey, string>>({ type: 'ทั้งหมด', province: 'ทั้งหมด', status: 'ทั้งหมด' });
+  /* เมนูค้นหาชุดเดียวกับ Listings และ Social Status (สไลด์ 22) */
+  const [inv, setInv] = React.useState<InventoryFilterState>(EMPTY_FILTERS);
 
   /* live data — GET /api/properties with the chip filters + search */
   const [items, setItems] = React.useState<ApiProperty[] | null>(null);
   const [summary, setSummary] = React.useState<ApiSummary | null>(null);
-  const [q, setQ] = React.useState('');
-  const reload = React.useCallback(async (fv: Record<FilterKey, string>, query: string) => {
+  const reload = React.useCallback(async (query: string) => {
     try {
       const params = new URLSearchParams();
-      if (fv.type !== 'ทั้งหมด') params.set('type', fv.type);
-      if (fv.province !== 'ทั้งหมด') params.set('province', fv.province);
-      if (fv.status !== 'ทั้งหมด') params.set('status', fv.status);
       if (query.trim()) params.set('q', query.trim());
       const r = await apiGet<{ items: ApiProperty[]; summary: ApiSummary }>(`/api/properties?${params}`);
       setItems(r.items);
@@ -223,9 +230,17 @@ export function PropertiesBody() {
     } catch { /* keep last data (§2.2) */ }
   }, []);
   React.useEffect(() => {
-    const t = window.setTimeout(() => { void reload(filterVals, q); }, q ? 300 : 0);
+    const t = window.setTimeout(() => { void reload(inv.q); }, inv.q ? 300 : 0);
     return () => window.clearTimeout(t);
-  }, [filterVals, q, reload]);
+  }, [inv.q, reload]);
+
+  /* รายการที่เห็นจริงบนหน้า — กรองและเรียงด้วยกฎชุดเดียวกับอีกสองหน้า */
+  const shown = React.useMemo(() => {
+    const view = new Map((items ?? []).map((r) => [r.id, toInventoryRow(r)]));
+    const kept = (items ?? []).filter((r) => matchesFilters(view.get(r.id)!, inv));
+    const order = new Map(sortInventory([...view.values()]).map((v, i) => [v.code, i]));
+    return [...kept].sort((a, b) => (order.get(a.publicCode) ?? 0) - (order.get(b.publicCode) ?? 0));
+  }, [items, inv]);
 
   /* the row menu is fixed-positioned to escape the table's clipping, so it has
      to follow its button when anything scrolls rather than drift away from it */
@@ -264,7 +279,7 @@ export function PropertiesBody() {
       setNewTitle('');
       setNewI18n({});
       newVals.current = {};
-      await reload(filterVals, q);
+      await reload(inv.q);
     } catch (e) {
       setSaveError(e instanceof ApiClientError ? e.message : 'บันทึกไม่สำเร็จ กรุณาลองใหม่');
     } finally {
@@ -276,7 +291,7 @@ export function PropertiesBody() {
      what the button always looked like it did. BOM first so Excel on Windows
      opens Thai without turning it into mojibake. */
   const exportCsv = () => {
-    const all = items ?? [];
+    const all = shown;
     // ticking rows and pressing Export should give those rows, not the page
     const rows = sel.size ? all.filter((r) => sel.has(r.id)) : all;
     if (!rows.length) { window.alert('ไม่มีทรัพย์ให้ export ตามเงื่อนไขที่เลือก'); return; }
@@ -312,7 +327,7 @@ export function PropertiesBody() {
         values: full.values,
         status: 'draft',
       });
-      await reload(filterVals, q);
+      await reload(inv.q);
     } catch (e) {
       window.alert(e instanceof ApiClientError ? e.message : 'ทำสำเนาไม่สำเร็จ');
     }
@@ -323,7 +338,7 @@ export function PropertiesBody() {
      it — and the ones that failed are named rather than counted. */
   const [busy, setBusy] = React.useState('');
   const runBulk = async (label: string, act: (p: ApiProperty) => Promise<unknown>) => {
-    const rows = (items ?? []).filter((r) => sel.has(r.id));
+    const rows = (shown).filter((r) => sel.has(r.id));
     if (!rows.length || busy) return;
     setBusy(label);
     const failed: string[] = [];
@@ -332,7 +347,7 @@ export function PropertiesBody() {
     }
     setBusy('');
     setSel(new Set());
-    await reload(filterVals, q);
+    await reload(inv.q);
     if (failed.length) {
       window.alert(`${label}: สำเร็จ ${rows.length - failed.length} · ไม่สำเร็จ ${failed.length} (${failed.join(', ')})`);
     }
@@ -342,7 +357,7 @@ export function PropertiesBody() {
     runBulk(label, (r) => apiPatch(`/api/properties/${r.id}`, { status }));
 
   const bulkDelete = () => {
-    const rows = (items ?? []).filter((r) => sel.has(r.id));
+    const rows = (shown).filter((r) => sel.has(r.id));
     if (!window.confirm(`ลบทรัพย์ ${rows.length} รายการ?\n${rows.map((r) => `· ${r.publicCode} ${r.title}`).join('\n')}`)) return;
     void runBulk('ลบทรัพย์', (r) => apiDelete(`/api/properties/${r.id}`));
   };
@@ -351,7 +366,7 @@ export function PropertiesBody() {
     if (!window.confirm(`ลบทรัพย์ ${p.publicCode} · ${p.title}?`)) return;
     try {
       await apiDelete(`/api/properties/${p.id}`);
-      await reload(filterVals, q);
+      await reload(inv.q);
     } catch (e) {
       window.alert(e instanceof ApiClientError ? e.message : 'ลบไม่สำเร็จ');
     }
@@ -376,7 +391,7 @@ export function PropertiesBody() {
     setTransMsg('');
     try {
       const r = await apiPost<{ written: number; skipped: string[] }>('/api/properties/translate', {});
-      await reload(filterVals, q);
+      await reload(inv.q);
       setTransMsg(
         r.written
           ? `เติมหัวเรื่อง EN / 中文 ให้ ${r.written} รายการแล้ว` +
@@ -415,45 +430,8 @@ export function PropertiesBody() {
         <div id="trans-msg" role="status" style={{ margin: '-6px 0 16px', padding: '10px 14px', borderRadius: 12, background: 'var(--tint)', border: '1px solid var(--border)', fontSize: 12.5, color: 'var(--text)', lineHeight: 1.6 }}>{transMsg}</div>
       )}
 
-      {/* FILTER BAR */}
-      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '14px 16px', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: 40, padding: '0 14px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--border)', flex: 1, minWidth: 220 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาด้วยรหัส (JKP…) หรือชื่อทรัพย์" style={{ border: 0, outline: 'none', background: 'transparent', fontSize: 13, color: 'var(--text)', flex: 1, minWidth: 0 }} />
-        </div>
-        {FILTER_DEFS.map((f) => {
-          const val = filterVals[f.key];
-          const on = openFilter === f.key;
-          const set = val !== 'ทั้งหมด';
-          const hot = set || on;
-          return (
-            <div key={f.key} style={{ position: 'relative' }}>
-              <div
-                onClick={() => { setOpenFilter(on ? null : f.key); setOpenMenu(null); }}
-                style={chipStyle(hot)}
-              >
-                {set ? val : f.label}
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={hot ? '#fff' : 'var(--muted2)'} strokeWidth="2.4" style={on ? { transform: 'rotate(180deg)', transition: 'transform .2s' } : { transition: 'transform .2s' }}><path d="M6 9l6 6 6-6" /></svg>
-              </div>
-              {on && (
-                <div onClick={stopP} style={{ position: 'absolute', top: 46, right: 0, zIndex: 40, width: 180, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 13, boxShadow: '0 18px 40px rgba(0,0,0,.16)', padding: 6 }}>
-                  {f.opts.map((o) => (
-                    <div key={o} onClick={() => { setFilterVals({ ...filterVals, [f.key]: o }); setOpenFilter(null); }} style={ddOption(val === o)}>
-                      <span>{o}</span>
-                      {val === o && (
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" strokeWidth="2.6"><path d="M20 6L9 17l-5-5" /></svg>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-        {openFilter !== null && (
-          <div onClick={() => setOpenFilter(null)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
-        )}
-      </div>
+      {/* เมนูค้นหาชุดเดียวกับ Listings และ Social Status */}
+      <InventoryFilters value={inv} onChange={setInv} />
 
       {/* BULK BAR — only exists once something is ticked */}
       {sel.size > 0 && (
@@ -480,7 +458,7 @@ export function PropertiesBody() {
                     label="เลือกทรัพย์ทั้งหมดที่แสดงอยู่"
                     on={!!items?.length && sel.size === items.length}
                     mixed={sel.size > 0}
-                    onChange={(v) => setSel(v ? new Set((items ?? []).map((r) => r.id)) : new Set())}
+                    onChange={(v) => setSel(v ? new Set((shown).map((r) => r.id)) : new Set())}
                   />
                 </th>
                 <th style={thBase}>รหัส / ทรัพย์</th>
@@ -494,7 +472,7 @@ export function PropertiesBody() {
               </tr>
             </thead>
             <tbody>
-              {(items ?? []).map((r) => {
+              {(shown).map((r) => {
                 const menuOpen = openMenu === r.id;
                 const ticked = sel.has(r.id);
                 return (
@@ -549,7 +527,6 @@ export function PropertiesBody() {
                           const rect = e.currentTarget.getBoundingClientRect();
                           setMenuBox(placeMenu(rect, { width: 210, align: 'right', maxHeight: 280 }));
                           setOpenMenu(r.id);
-                          setOpenFilter(null);
                         }}
                         className="prop-menu-btn"
                         aria-label={`เมนูของ ${r.publicCode}`}

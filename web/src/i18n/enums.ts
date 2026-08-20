@@ -13,24 +13,27 @@ import type { Locale } from './config';
 type Row = Partial<Record<Locale, string>>;
 const dict: Record<string, Row> = {
   /* deal type — the value shown on every card and detail page */
+  'ให้เช่า': { en: 'For rent', zh: '出租' },
   'เช่า': { en: 'For rent', zh: '出租' },
   'ขาย': { en: 'For sale', zh: '出售' },
+  'ให้เช่า และ ขาย': { en: 'Rent or sale', zh: '出租或出售' },
+  /* คำที่ใช้ก่อนสไลด์ 22 — ยังมีข้อมูลเดิมที่บันทึกไว้แบบนี้ */
   'เช่า / ขาย': { en: 'Rent or sale', zh: '出租或出售' },
   'ปล่อยเช่า': { en: 'For rent', zh: '出租' },
   'ขายและปล่อยเช่า': { en: 'Rent or sale', zh: '出租或出售' },
-  'ให้เช่า': { en: 'For rent', zh: '出租' },
   'ซื้อ': { en: 'Buy', zh: '购买' },
 
   /* property types */
   'บ้าน': { en: 'House', zh: '住宅' },
   'คอนโด': { en: 'Condominium', zh: '公寓' },
+  'ที่ดิน': { en: 'Land', zh: '土地' },
   'ที่ดินเปล่า': { en: 'Land', zh: '土地' },
   'โรงงาน': { en: 'Factory', zh: '工厂' },
   'โกดัง / คลังสินค้า': { en: 'Warehouse', zh: '仓库' },
   'โกดัง/คลังสินค้า': { en: 'Warehouse', zh: '仓库' },
   'โกดัง': { en: 'Warehouse', zh: '仓库' },
+  'โชว์รูม และ อาคารพาณิชย์': { en: 'Showroom / commercial', zh: '展厅及商业' },
   'โชว์รูมและเชิงพาณิชย์': { en: 'Showroom / commercial', zh: '展厅及商业' },
-  'ที่ดิน': { en: 'Land', zh: '土地' },
 
   /* urban-planning zone colours — the legal terms, kept literal */
   'พื้นที่สีเขียว — ชนบท/เกษตรกรรม': { en: 'Green — rural / agricultural', zh: '绿区 — 农业' },

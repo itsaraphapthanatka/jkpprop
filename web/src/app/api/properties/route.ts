@@ -45,7 +45,15 @@ export const GET = handler(async (req: Request) => {
   }
 
   const rows = await db.property.findMany({ where, orderBy: { updatedAt: 'desc' }, take: 500 });
-  let items = rows.map((p) => propertyDto(p, user));
+  /* ว่าง/ไม่ว่าง เก็บที่ Listing — สามหน้าที่ใช้รายการนี้ต้องกรองด้วยได้
+     (สไลด์ 22 "เมนูค้นหาต้องเหมือนกัน" ข้อ 7) คิวรีเดียวสำหรับทั้งหน้า */
+  const taken = new Set(
+    (await db.listing.findMany({
+      where: { propertyId: { in: rows.map((r) => r.id) }, status: 'unavailable' },
+      select: { propertyId: true },
+    })).map((l) => l.propertyId),
+  );
+  let items = rows.map((p) => ({ ...propertyDto(p, user), available: !taken.has(p.id) }));
   if (province && province !== 'ทั้งหมด') {
     items = items.filter((i) => displayProvince(i.values).includes(province));
   }

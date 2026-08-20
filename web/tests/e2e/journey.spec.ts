@@ -26,7 +26,7 @@ test('a requirement submitted on the website reaches the Leads workspace', async
 
   // these three are required and are chip buttons, not selects (§8)
   await page.getByRole('button', { name: 'ลูกค้า', exact: true }).click();
-  await page.getByRole('button', { name: 'โกดัง / คลังสินค้า' }).click();
+  await page.getByRole('button', { name: 'โกดัง', exact: true }).click();
   await page.getByRole('button', { name: 'เช่า', exact: true }).click();
 
   await page.getByRole('button', { name: 'ส่งความต้องการ' }).click();

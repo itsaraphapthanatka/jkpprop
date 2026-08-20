@@ -76,8 +76,8 @@ const excelDate = (v: unknown): string | null => {
 const dealFromTitle = (title: string): string | null => {
   const rent = /ให้เช่า|เช่า/.test(title);
   const sale = /ขาย/.test(title);
-  if (rent && sale) return 'เช่า / ขาย';
-  if (rent) return 'เช่า';
+  if (rent && sale) return 'ให้เช่า และ ขาย';
+  if (rent) return 'ให้เช่า';
   if (sale) return 'ขาย';
   return null;
 };
@@ -115,9 +115,11 @@ const TYPE_BY_LABEL: Record<string, string> = {
   'โรงงาน': 'factory',
   'โชว์รูม': 'showroom',
   'โชว์รูมและเชิงพาณิชย์': 'showroom',
+  'โชว์รูม และ อาคารพาณิชย์': 'showroom',
   'บ้าน': 'house',
   'คอนโด': 'condo',
   'ที่ดินเปล่า': 'land',
+  'ที่ดิน': 'land',
 };
 
 /* "13.639, 100.593" → รูปเดียวกับที่แผนที่ในหน้าแก้ไขเก็บไว้ ({lat,lng,link})

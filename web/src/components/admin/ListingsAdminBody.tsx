@@ -1,8 +1,9 @@
 'use client';
 
 import * as React from 'react';
+import { InventoryFilters, EMPTY_FILTERS, matchesFilters, sortInventory, type InventoryFilterState, type InventoryRow } from './InventoryFilters';
 import { apiGet, apiPost, apiPatch, apiDelete, ApiClientError } from '@/lib/apiClient';
-import { PROPERTY_TYPES, propertyType } from '@/lib/propertySchema';
+import { propertyType } from '@/lib/propertySchema';
 import { placeMenu, type MenuBox } from '@/lib/menuPlacement';
 import { relTime } from '@/lib/leadStore';
 import Link from 'next/link';
@@ -65,6 +66,12 @@ export type Row = {
   status: StatusK;
   featured: boolean;
   updated: string;
+  /* ช่องสำหรับเมนูค้นหาชุดร่วม */
+  zoning: string;
+  dealLabel: string;
+  sizeSqm: number | null;
+  priceValue: number | null;
+  available: boolean;
 };
 
 /* `act` is what the item does; `href` is where it goes. Every item used to
@@ -181,52 +188,6 @@ const STATUS_TABS: { key: 'all' | StatusK; label: string; danger: boolean }[] = 
   { key: 'unavailable', label: 'ไม่ว่าง', danger: true },
 ];
 
-/* ---- filter dropdowns (type / province / deal / featured) ---- */
-type FiltersState = { type?: string; province?: string; deal?: string; featured?: string };
-/* the type came from a regex on the title ("โกดัง" in the name meant a
-   warehouse); the record carries its own type and now says so */
-const filterDefs = (rows: Row[]): { key: keyof FiltersState; label: string; options: [string, string][] }[] => [
-  { key: 'type', label: 'ประเภท', options: PROPERTY_TYPES.filter((t) => rows.some((r) => r.typeKey === t.key)).map((t) => [t.key, t.label]) },
-  // only provinces that actually appear — an option that always finds nothing is noise
-  { key: 'province', label: 'จังหวัด', options: Array.from(new Set(rows.map((d) => d.location).filter((p) => p && p !== '—'))).map((p) => [p, p]) },
-  { key: 'deal', label: 'ดีล', options: [['rent', 'ให้เช่า'], ['sale', 'ขาย'], ['both', 'ทั้งสอง']] },
-  { key: 'featured', label: 'Featured', options: [['yes', 'แนะนำ'], ['no', 'ไม่แนะนำ']] },
-];
-
-const filterTriggerStyle = (active: boolean): React.CSSProperties => ({
-  display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 14px', borderRadius: 10,
-  background: active ? 'rgba(13,108,59,.06)' : 'var(--bg)', border: '1px solid ' + (active ? '#0D6C3B' : 'var(--border)'),
-  fontSize: 13, fontWeight: active ? 700 : 600, color: active ? '#0D6C3B' : 'var(--text)', cursor: 'pointer', whiteSpace: 'nowrap',
-});
-const filterOptStyle = (on: boolean): React.CSSProperties => ({
-  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '9px 11px', borderRadius: 9,
-  fontSize: 13, fontWeight: on ? 700 : 600, color: on ? '#0D6C3B' : 'var(--text)',
-  background: on ? 'rgba(13,108,59,.06)' : 'transparent', cursor: 'pointer',
-});
-const optCheck = (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" strokeWidth="2.6"><path d="M20 6L9 17l-5-5" /></svg>);
-
-function FilterDropdown({ def, value, open, onToggle, onSelect }: {
-  def: { key: keyof FiltersState; label: string; options: [string, string][] };
-  value?: string; open: boolean; onToggle: () => void; onSelect: (v: string | null) => void;
-}) {
-  const selLabel = value ? (def.options.find(([v]) => v === value)?.[1] ?? def.label) : def.label;
-  return (
-    <div style={{ position: 'relative' }}>
-      <div onClick={onToggle} style={filterTriggerStyle(!!value)}>
-        {selLabel}
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={value ? '#0D6C3B' : 'var(--muted2)'} strokeWidth="2.4" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}><path d="M6 9l6 6 6-6" /></svg>
-      </div>
-      {open && (
-        <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, minWidth: 190, maxHeight: 260, overflowY: 'auto', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, boxShadow: '0 20px 44px rgba(0,0,0,.16)', padding: 7, zIndex: 60 }}>
-          <div onClick={() => onSelect(null)} style={filterOptStyle(!value)}><span>ทั้งหมด</span>{!value && optCheck}</div>
-          {def.options.map(([v, l]) => (
-            <div key={v} onClick={() => onSelect(v)} style={filterOptStyle(value === v)}><span>{l}</span>{value === v && optCheck}</div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 const DEAL_OPTS: [DealK, string][] = [['rent', 'ให้เช่า'], ['sale', 'ขาย'], ['both', 'ทั้งสอง']];
 const STATUS_OPTS: [CreateStatusK, string][] = [['draft', 'บันทึกร่าง'], ['published', 'เผยแพร่ทันที']];
@@ -301,26 +262,19 @@ export function ListingsAdminBody() {
   React.useEffect(() => { void reload(); }, [reload]);
 
   // ---- filters (status tabs + search + dropdowns) ----
-  const [query, setQuery] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<'all' | StatusK>('all');
-  const [filters, setFilters] = React.useState<FiltersState>({});
-  const [openFilter, setOpenFilter] = React.useState<string | null>(null);
+  /* เมนูค้นหาชุดเดียวกับ Property และ Social Status (สไลด์ 22) */
+  const [inv, setInv] = React.useState<InventoryFilterState>(EMPTY_FILTERS);
 
   const all = rows ?? [];
-  const filtered = all.filter((d) => {
-    if (statusFilter !== 'all' && d.status !== statusFilter) return false;
-    if (filters.type && d.typeKey !== filters.type) return false;
-    if (filters.province && d.location !== filters.province) return false;
-    if (filters.deal && d.dealK !== filters.deal) return false;
-    if (filters.featured && (filters.featured === 'yes') !== d.featured) return false;
-    if (query.trim()) {
-      const q = query.trim().toLowerCase();
-      if (![d.title, d.code, d.location].some((f) => f.toLowerCase().includes(q))) return false;
-    }
-    return true;
+  const view = (d: Row): InventoryRow => ({
+    code: d.code, title: d.title, typeKey: d.typeKey, province: d.location,
+    zoning: d.zoning, deal: d.dealLabel, size: d.sizeSqm, price: d.priceValue,
+    available: d.available,
   });
-  const activeFilterCount = (statusFilter !== 'all' ? 1 : 0) + Object.values(filters).filter(Boolean).length + (query.trim() ? 1 : 0);
-  const clearFilters = () => { setStatusFilter('all'); setFilters({}); setQuery(''); setOpenFilter(null); };
+  const filtered = sortInventory(
+    all.filter((d) => (statusFilter === 'all' || d.status === statusFilter) && matchesFilters(view(d), inv)).map((d) => ({ ...d, ...view(d) })),
+  ).map((d) => all.find((r) => r.code === d.code)!);
 
   const selCount = Object.values(sel).filter(Boolean).length;
   const allChecked = filtered.length > 0 && filtered.every((d) => sel[d.id]);
@@ -577,9 +531,6 @@ export function ListingsAdminBody() {
           </>
         );
       })()}
-      {/* CLICK-CATCHER FOR FILTER DROPDOWNS */}
-      {openFilter && (<div onClick={() => setOpenFilter(null)} style={{ position: 'fixed', inset: 0, zIndex: 50 }} />)}
-
       {/* STATUS TABS */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         {STATUS_TABS.map((t) => {
@@ -590,29 +541,8 @@ export function ListingsAdminBody() {
         })}
       </div>
 
-      {/* FILTER + SEARCH */}
-      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '14px 16px', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16, position: 'relative', zIndex: openFilter ? 51 : undefined }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: 40, padding: '0 14px', borderRadius: 10, background: 'var(--bg)', border: '1px solid ' + (query.trim() ? '#0D6C3B' : 'var(--border)'), flex: 1, minWidth: 220 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ค้นหา listing code หรือชื่อ" style={{ border: 0, outline: 'none', background: 'transparent', fontSize: 13, color: 'var(--text)', flex: 1, minWidth: 0 }} />
-          {query && (<div onClick={() => setQuery('')} title="ล้าง" style={{ cursor: 'pointer', color: 'var(--muted3)', display: 'flex', flexShrink: 0 }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M18 6L6 18M6 6l12 12" /></svg></div>)}
-        </div>
-        {filterDefs(all).map((f) => (
-          <FilterDropdown
-            key={f.key}
-            def={f}
-            value={filters[f.key]}
-            open={openFilter === f.key}
-            onToggle={() => setOpenFilter(openFilter === f.key ? null : f.key)}
-            onSelect={(v) => { setFilters((p) => ({ ...p, [f.key]: v ?? undefined })); setOpenFilter(null); }}
-          />
-        ))}
-        {activeFilterCount > 0 && (
-          <div onClick={clearFilters} style={{ display: 'flex', alignItems: 'center', gap: 6, height: 40, padding: '0 12px', borderRadius: 10, color: '#C0392B', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M18 6L6 18M6 6l12 12" /></svg>ล้างตัวกรอง
-          </div>
-        )}
-      </div>
+      {/* เมนูค้นหาชุดเดียวกับ Property และ Social Status */}
+      <InventoryFilters value={inv} onChange={setInv} />
 
       {/* BULK BAR */}
       {selCount > 0 && (
@@ -681,7 +611,6 @@ export function ListingsAdminBody() {
                           if (mOpen) { setOpenMenu(null); return; }
                           setMenuBox(placeMenu(e.currentTarget.getBoundingClientRect(), { width: 210, align: 'right', maxHeight: 320 }));
                           setOpenMenu(d.id);
-                          setOpenFilter(null);
                         }}
                         style={{ width: 30, height: 30, borderRadius: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted2)', cursor: 'pointer', ...(mOpen ? { background: 'var(--border)' } : {}) }}
                       >
@@ -697,7 +626,7 @@ export function ListingsAdminBody() {
                     {rows === null ? 'กำลังโหลด…'
                       : loadErr ? <span style={{ color: '#C0392B' }}>{loadErr}</span>
                         : all.length === 0 ? <>ยังไม่มีประกาศในระบบ — <Link href="/admin/properties" style={{ color: '#0D6C3B', fontWeight: 700 }}>เพิ่มทรัพย์ที่หน้า Properties</Link> แล้วกลับมาตั้งดีลและราคา</>
-                          : <>ไม่พบประกาศที่ตรงกับตัวกรอง — <span onClick={clearFilters} style={{ color: '#0D6C3B', fontWeight: 700, cursor: 'pointer' }}>ล้างตัวกรอง</span></>}
+                          : <>ไม่พบประกาศที่ตรงกับตัวกรอง — <span onClick={() => { setInv(EMPTY_FILTERS); setStatusFilter('all'); }} style={{ color: '#0D6C3B', fontWeight: 700, cursor: 'pointer' }}>ล้างตัวกรอง</span></>}
                   </td>
                 </tr>
               )}

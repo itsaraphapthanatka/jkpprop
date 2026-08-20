@@ -82,7 +82,7 @@ export function Hero({ copy }: { copy: SectionCopy }) {
     const p = new URLSearchParams();
     if (term.trim()) p.set('q', term.trim());
     if (listingMode) p.set('deal', listingMode);
-    if (propType) p.set('type', propType === 'factory' ? 'โรงงาน' : 'โกดัง / คลังสินค้า');
+    if (propType) p.set('type', propType === 'factory' ? 'โรงงาน' : 'โกดัง');
     if (sizeSel) p.set('size', sizeSel);
     if (priceSel) p.set('price', priceSel);
     router.push(`/${locale}/listing?${p}`);

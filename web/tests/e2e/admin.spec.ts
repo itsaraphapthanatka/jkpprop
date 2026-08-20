@@ -1841,7 +1841,7 @@ test.describe('the properties screen', () => {
 
     try {
       await page.goto(`/admin/properties?`);
-      await page.getByPlaceholder('ค้นหาด้วยรหัส').fill(p.publicCode);
+      await page.locator('[data-filter-q]').fill(p.publicCode);
       const row = page.locator('tr.prop-row');
       await expect(row).toHaveCount(1);
 
@@ -1903,7 +1903,7 @@ test.describe('the listings screen', () => {
 
     try {
       await page.goto('/admin/listings');
-      await page.getByPlaceholder('ค้นหา listing code หรือชื่อ').fill(made.publicCode);
+      await page.locator('[data-filter-q]').fill(made.publicCode);
       const row = page.locator('.lst-row');
       await expect(row).toHaveCount(1);
 
@@ -1929,7 +1929,7 @@ test.describe('the listings screen', () => {
 
     try {
       await page.goto('/admin/listings');
-      await page.getByPlaceholder('ค้นหา listing code หรือชื่อ').fill(made.publicCode);
+      await page.locator('[data-filter-q]').fill(made.publicCode);
       await expect(page.locator('.lst-row')).toHaveCount(1);
 
       const said = new Promise<string>((resolve) => page.once('dialog', (d) => { resolve(d.message()); void d.accept(); }));
@@ -1954,7 +1954,7 @@ test.describe('the listings screen', () => {
     test.skip(!target, 'needs a published listing');
 
     await page.goto('/admin/listings');
-    await page.getByPlaceholder('ค้นหา listing code หรือชื่อ').fill(target!.code);
+    await page.locator('[data-filter-q]').fill(target!.code);
     await expect(page.locator('.lst-row')).toHaveCount(1);
     await page.locator('.lst-menu-btn').click();
     await page.getByText('ตั้งเป็นแนะนำ').click();
@@ -2047,14 +2047,18 @@ test.describe('the social status screen', () => {
   test('the rows are the real listings, and a tick is stored against a real code', async ({ page, request }) => {
     await signIn(page, OWNER);
     const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
-    const real = (await (await request.get('/api/listings', { headers: { cookie } })).json()).items as { code: string }[];
+    const real = (await (await request.get('/api/listings', { headers: { cookie } })).json()).items as { code: string; available: boolean }[];
 
     await page.goto('/admin/social-status');
     await expect(page.getByText(`แสดง ${real.length} จาก ${real.length} ประกาศ`)).toBeVisible();
     for (const ghost of ['ที่ดินอุตสาหกรรม วังน้อย', 'คลังห้องเย็น บางปะกง']) {
       await expect(page.getByText(ghost)).toHaveCount(0);
     }
-    if (real.length) await expect(page.locator('.soc-row').first().locator('code')).toHaveText(real[0].code);
+    /* ลำดับเป็นชุดเดียวกับ Property และ Listings (สไลด์ 22) — ว่างก่อน แล้วรหัส */
+    const expected = [...real].sort(
+      (a, b) => Number(b.available) - Number(a.available) || a.code.localeCompare(b.code, 'th'),
+    )[0];
+    if (real.length) await expect(page.locator('.soc-row').first().locator('code')).toHaveText(expected.code);
   });
 });
 
@@ -2291,7 +2295,7 @@ test.describe('a property reads in the visitor\'s language', () => {
     expect(before, 'a property with no translation must be counted').toBeGreaterThan(0);
 
     await page.goto('/admin/properties');
-    await page.getByPlaceholder('ค้นหาด้วยรหัส').fill(code);
+    await page.locator('[data-filter-q]').fill(code);
     const row = page.locator('tr.prop-row');
     await expect(row).toHaveCount(1);
     await expect(row.getByTitle('ยังไม่แปล EN')).toBeVisible();
@@ -2354,8 +2358,8 @@ test.describe('the Field Builder reaches the public page', () => {
     await page.goto('/admin/field-builder');
     // the schema is per type — switch the page to warehouse first
     await page.locator('#fb-actions').getByText(/^ฟิลด์ของ:/).click();
-    await page.getByText('ฟิลด์ของ โกดัง / คลังสินค้า').click();
-    await expect(page.locator('#fb-actions')).toContainText('โกดัง / คลังสินค้า');
+    await page.getByText('ฟิลด์ของ โกดัง', { exact: true }).click();
+    await expect(page.locator('#fb-actions')).toContainText('โกดัง');
 
     await page.locator('.fb-type').filter({ hasText: 'ตัวเลข' }).first().click();   // add a number field
     const editor = page.locator('[data-editor]').first();

@@ -535,3 +535,50 @@ test.describe('คอมเมนต์ลูกค้า · ลูกค้า/
     if (made) await request.delete(`/api/leads/${made.id}`, { headers: { cookie } }).catch(() => null);
   });
 });
+
+/* สไลด์ 22 · "Property และ Listings Social Status ต้องแสดงผลเหมือนกัน เมนู
+   ค้นหาด้วย" แล้วไล่ช่องไว้เจ็ดข้อ — เดิมสามหน้านี้มีตัวกรองคนละชุด
+   (Property: ประเภท/จังหวัด/สถานะ · Listings: ประเภท/จังหวัด/ดีล/แนะนำ ·
+   Social Status: มีแต่ช่องค้นหา) */
+test.describe('คอมเมนต์ลูกค้า · เมนูค้นหาชุดเดียวกัน', () => {
+  const PAGES = ['/admin/properties', '/admin/listings', '/admin/social-status'];
+  const WANT = ['type', 'zoning', 'deal', 'size', 'price', 'avail'];
+
+  const signIn = async (page: import('@playwright/test').Page) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+  };
+
+  test('ทั้งสามหน้ามีเมนูค้นหาชุดเดียวกันครบเจ็ดช่อง', async ({ page }) => {
+    await signIn(page);
+    for (const path of PAGES) {
+      await page.goto(path);
+      await expect(page.locator('[data-inventory-filters]'), `${path} ต้องมีเมนูค้นหาชุดร่วม`).toBeVisible();
+      await expect(page.locator('[data-filter-q]'), `${path} ต้องค้นหาด้วยชื่อได้`).toBeVisible();
+      for (const key of WANT) {
+        await expect(page.locator(`[data-filter="${key}"]`), `${path} ขาดตัวกรอง ${key}`).toBeVisible();
+      }
+    }
+  });
+
+  test('กรองพื้นที่สีแล้วรายการหดจริง ไม่ใช่ปุ่มเปลี่ยนสีเฉย ๆ', async ({ page }) => {
+    await signIn(page);
+    await page.goto('/admin/properties');
+    const rows = page.locator('#prop-table tbody tr, table tbody tr');
+    await expect.poll(() => rows.count(), { timeout: 15000 }).toBeGreaterThan(1);
+    const before = await rows.count();
+
+    await page.locator('[data-filter="zoning"]').click();
+    await page.locator('[data-filter-opt]').first().click();
+    await expect(page.locator('[data-filter="zoning"][data-on="1"]')).toBeVisible();
+
+    const after = await rows.count();
+    expect(after, 'กรองแล้วต้องเหลือน้อยกว่าเดิม').toBeLessThan(before);
+
+    await page.locator('[data-filter-clear]').click();
+    await expect.poll(() => rows.count()).toBe(before);
+  });
+});

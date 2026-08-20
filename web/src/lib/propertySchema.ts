@@ -185,7 +185,7 @@ const CONDO: PropertyType = {
 };
 
 const LAND: PropertyType = {
-  key: 'land', label: 'ที่ดินเปล่า', icon: ICON_LAND,
+  key: 'land', label: 'ที่ดิน', icon: ICON_LAND,
   fields: [
     F.deal(),
     LOC_LAND,
@@ -218,14 +218,14 @@ const payerAmount = (payers: string[]) => ([
   { key: 'payer', label: 'ผู้รับผิดชอบ', kind: 'select' as FieldKind, options: payers },
   { key: 'amount', label: 'จำนวนเงิน', kind: 'number' as FieldKind, unit: 'บาท' },
 ]);
-const WHEN_RENT: ShowWhen = { field: 'deal_type', in: ['เช่า', 'เช่า / ขาย'] };
-const WHEN_SALE: ShowWhen = { field: 'deal_type', in: ['ขาย', 'เช่า / ขาย'] };
+const WHEN_RENT: ShowWhen = { field: 'deal_type', in: ['ให้เช่า', 'ให้เช่า และ ขาย'] };
+const WHEN_SALE: ShowWhen = { field: 'deal_type', in: ['ขาย', 'ให้เช่า และ ขาย'] };
 
 /* ชุดฟิลด์ที่ใช้ร่วมกันระหว่าง "โกดัง / คลังสินค้า" และ "โชว์รูมและเชิงพาณิชย์"
    เรียง section ตามลำดับที่ทีมงานกำหนด (1→9) แล้วปิดท้ายด้วยข้อความสรุปอัตโนมัติ */
 const WAREHOUSE_FIELDS: FieldDef[] = [
   // 1 · ประเภทและทำเล (รวมตำแหน่งบนแผนที่เข้ามาด้วย)
-  { key: 'deal_type', label: 'ประเภทประกาศ', kind: 'dealtype', options: ['เช่า', 'ขาย', 'เช่า / ขาย'], required: true, section: 'ประเภทและทำเล' },
+  { key: 'deal_type', label: 'ประเภทประกาศ', kind: 'dealtype', options: ['ให้เช่า', 'ขาย', 'ให้เช่า และ ขาย'], required: true, section: 'ประเภทและทำเล' },
   { key: 'listing_date', label: 'วันที่ลงประกาศ', kind: 'date', required: true, section: 'ประเภทและทำเล' },
   { key: 'subdistrict', label: 'แขวง / ตำบล', kind: 'text', required: true, section: 'ประเภทและทำเล' },
   { key: 'district', label: 'เขต / อำเภอ', kind: 'text', required: true, section: 'ประเภทและทำเล' },
@@ -338,10 +338,10 @@ const FACTORY: PropertyType = {
   fields: [...WAREHOUSE_FIELDS, ...FACTORY_ONLY],
 };
 
-const WAREHOUSE: PropertyType = { key: 'warehouse', label: 'โกดัง / คลังสินค้า', icon: ICON_WAREHOUSE, fields: WAREHOUSE_FIELDS };
+const WAREHOUSE: PropertyType = { key: 'warehouse', label: 'โกดัง', icon: ICON_WAREHOUSE, fields: WAREHOUSE_FIELDS };
 
 /* ใช้ชุดฟิลด์เดียวกับโกดังทั้งหมด (คนละ typeKey จึงตั้งค่า Field Builder แยกกันได้) */
-const SHOWROOM: PropertyType = { key: 'showroom', label: 'โชว์รูมและเชิงพาณิชย์', icon: ICON_SHOWROOM, fields: WAREHOUSE_FIELDS };
+const SHOWROOM: PropertyType = { key: 'showroom', label: 'โชว์รูม และ อาคารพาณิชย์', icon: ICON_SHOWROOM, fields: WAREHOUSE_FIELDS };
 
 
 export const PROPERTY_TYPES: PropertyType[] = [HOUSE, CONDO, LAND, FACTORY, WAREHOUSE, SHOWROOM];
