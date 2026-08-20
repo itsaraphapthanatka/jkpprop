@@ -1352,3 +1352,49 @@ test.describe('คอมเมนต์ลูกค้า · รูปหน้�
     });
   }
 });
+
+/* แบ่งหน้าในตารางหลังบ้าน — Properties กับ Listings วาดทั้ง 393 แถวรวดเดียว
+   (และตั้งแต่ใส่รูปหน้าปกก็คือโหลดรูป 393 ใบพร้อมกัน) ส่วนปุ่มเลขหน้าที่เคยอยู่
+   ใต้ตารางเป็นของปลอมที่เขียนไว้ตายตัว */
+test.describe('คอมเมนต์ลูกค้า · แบ่งหน้าในตารางหลังบ้าน', () => {
+  const PER = 25;
+  const signIn = async (page: import('@playwright/test').Page) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    return (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  };
+
+  for (const [path, rowSel, api] of [
+    ['/admin/properties', 'tr.prop-row', '/api/properties'],
+    ['/admin/listings', 'table tbody tr', '/api/listings'],
+  ] as const) {
+    test(`${path} แบ่งหน้าจริง และเปลี่ยนหน้าแล้วได้ของคนละชุด`, async ({ page, request }) => {
+      const cookie = await signIn(page);
+      const total = ((await (await request.get(api, { headers: { cookie } })).json()).items as unknown[]).length;
+      test.skip(total <= PER, `มีของแค่ ${total} รายการ ยังไม่ถึงหน้าที่สอง`);
+
+      await page.goto(path);
+      const rows = page.locator(rowSel);
+      await expect.poll(() => rows.count(), { timeout: 15000 }).toBeGreaterThan(0);
+      expect(await rows.count(), `หน้าหนึ่งต้องมีไม่เกิน ${PER} แถว`).toBeLessThanOrEqual(PER);
+
+      const pager = page.locator('[data-table-pager]');
+      await expect(pager).toBeVisible();
+      await expect(page.locator('[data-pager-count]')).toContainText(`จาก ${total}`);
+      await expect(page.locator('[data-pager-prev]'), 'หน้าแรกต้องกดย้อนไม่ได้').toBeDisabled();
+
+      const firstBefore = await rows.first().innerText();
+      await page.locator('[data-pager-next]').click();
+      await expect.poll(async () => (await rows.first().innerText()) !== firstBefore, { timeout: 10000 }).toBe(true);
+      await expect(page.locator('[data-pager-prev]'), 'หน้าสองต้องกดย้อนได้').toBeEnabled();
+
+      /* กรองแล้วต้องเด้งกลับหน้าแรก ไม่ใช่ค้างอยู่หน้าที่ไม่มีของ */
+      await page.locator('[data-filter="type"]').click();
+      await page.locator('[data-filter-opt]').first().click();
+      await expect(page.locator('[data-pager-prev]'), 'กรองแล้วต้องกลับหน้าแรก').toBeDisabled();
+    });
+  }
+});

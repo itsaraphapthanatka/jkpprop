@@ -4,6 +4,7 @@ import * as React from 'react';
 import { DynamicFieldForm } from './DynamicFieldForm';
 import { PROPERTY_TYPES, enabledPropertyTypes } from '@/lib/propertySchema';
 import { useSchemaSync } from '@/lib/schemaSync';
+import { TablePager, pageSlice, pageCountOf } from './TablePager';
 import { InventoryFilters, EMPTY_FILTERS, matchesFilters, sortInventory, type InventoryFilterState, type InventoryRow } from './InventoryFilters';
 import { thumb } from '@/lib/mediaThumb';
 import { apiGet, apiPost, apiPatch, apiDelete, ApiClientError } from '@/lib/apiClient';
@@ -208,6 +209,7 @@ export function PropertiesBody() {
   const [menuBox, setMenuBox] = React.useState<MenuBox | null>(null);
   const menuBtns = React.useRef<Record<string, HTMLElement | null>>({});
   const [sel, setSel] = React.useState<Set<string>>(new Set());
+  const [page, setPage] = React.useState(1);
   /* เมนูค้นหาชุดเดียวกับ Listings และ Social Status (สไลด์ 22) */
   const [inv, setInv] = React.useState<InventoryFilterState>(EMPTY_FILTERS);
 
@@ -249,6 +251,13 @@ export function PropertiesBody() {
     const order = new Map(sortInventory([...view.values()]).map((v, i) => [v.code, i]));
     return [...kept].sort((a, b) => (order.get(a.publicCode) ?? 0) - (order.get(b.publicCode) ?? 0));
   }, [items, inv]);
+
+  /* เปลี่ยนตัวกรองแล้วต้องกลับหน้าแรก ไม่งั้นค้างอยู่หน้า 9 ของผลลัพธ์ที่เหลือ
+     3 แถว แล้วดูเหมือนไม่มีของ */
+  React.useEffect(() => { setPage(1); }, [inv]);
+  const pageCount = pageCountOf(shown.length);
+  React.useEffect(() => { if (page > pageCount) setPage(pageCount); }, [page, pageCount]);
+  const rowsOnPage = React.useMemo(() => pageSlice(shown, page), [shown, page]);
 
   /* the row menu is fixed-positioned to escape the table's clipping, so it has
      to follow its button when anything scrolls rather than drift away from it */
@@ -462,11 +471,14 @@ export function PropertiesBody() {
             <thead>
               <tr style={{ background: 'var(--bg)' }}>
                 <th style={{ ...thBase, width: 40 }}>
+                  {/* "ทั้งหมดที่แสดงอยู่" = แถวในหน้านี้ ไม่ใช่ทั้ง 393 แถวที่
+                      มองไม่เห็น — การกดครั้งเดียวแล้วเผยแพร่ของที่ไม่ได้ดูเป็น
+                      เรื่องที่ย้อนคืนยาก */}
                   <Check
-                    label="เลือกทรัพย์ทั้งหมดที่แสดงอยู่"
-                    on={!!items?.length && sel.size === items.length}
+                    label="เลือกทรัพย์ทั้งหมดในหน้านี้"
+                    on={rowsOnPage.length > 0 && rowsOnPage.every((r) => sel.has(r.id))}
                     mixed={sel.size > 0}
-                    onChange={(v) => setSel(v ? new Set((shown).map((r) => r.id)) : new Set())}
+                    onChange={(v) => setSel(v ? new Set(rowsOnPage.map((r) => r.id)) : new Set())}
                   />
                 </th>
                 <th style={thBase}>รหัส / ทรัพย์</th>
@@ -480,7 +492,7 @@ export function PropertiesBody() {
               </tr>
             </thead>
             <tbody>
-              {(shown).map((r) => {
+              {rowsOnPage.map((r) => {
                 const menuOpen = openMenu === r.id;
                 const ticked = sel.has(r.id);
                 return (
@@ -564,17 +576,11 @@ export function PropertiesBody() {
             </tbody>
           </table>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderTop: '1px solid var(--border)', flexWrap: 'wrap', rowGap: 10 }}>
-          <div style={{ fontSize: '12.5px', color: 'var(--muted)' }}>แสดง {items?.length ?? 0} จาก {summary?.total ?? 0} ทรัพย์</div>
-          {/* The buttons here read 1 · 2 · 3 · … whatever the data was — three
-              pages offered above a list of three items on a single page. The
-              API returns everything it has, so there is nothing to page
-              through; the count is stated instead of faked. */}
-          {(summary?.total ?? 0) > (items?.length ?? 0) && (
-            <div style={{ fontSize: '12.5px', color: 'var(--muted3)' }}>
-              แสดงได้สูงสุด {items?.length ?? 0} รายการต่อครั้ง — ใช้ตัวกรองด้านบนเพื่อแคบผลลัพธ์
-            </div>
-          )}
+        {/* แบ่งหน้า — เดิมวาดทั้ง 393 แถวรวดเดียว (และตั้งแต่มีรูปหน้าปกก็คือ
+            โหลดรูป 393 ใบพร้อมกัน) ปุ่มเลขหน้าที่เคยอยู่ตรงนี้เป็นของปลอม
+            เขียนไว้ 1 · 2 · 3 ทั้งที่มีของอยู่หน้าเดียว */}
+        <div style={{ padding: '10px 18px 14px', borderTop: '1px solid var(--border)' }}>
+          <TablePager page={page} total={shown.length} onPage={setPage} unit="ทรัพย์" />
         </div>
       </div>
 

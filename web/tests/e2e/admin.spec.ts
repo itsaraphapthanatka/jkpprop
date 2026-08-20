@@ -135,6 +135,9 @@ test.describe('creating a property through the UI', () => {
     await page.getByText('บันทึกร่าง').click();
 
     await expect(page.locator('#np-modal')).toBeHidden();
+    /* ตารางแบ่งหน้าแล้ว (25 แถวต่อหน้า) ของที่เพิ่งสร้างอาจไม่ได้อยู่หน้าแรก
+       — ค้นหาก่อนเหมือนที่คนใช้จริงทำ */
+    await page.locator('[data-filter-q]').fill(title);
     await expect(page.locator('table')).toContainText(title);
     // the code is issued by the server, never typed
     await expect(page.locator('table')).toContainText(/JKP/);
@@ -1761,11 +1764,13 @@ test.describe('the properties screen', () => {
     await expect(page.getByText('ไม่ได้ระบุว่าจะดูทรัพย์ไหน')).toBeVisible();
   });
 
-  test('the pager no longer offers pages that do not exist', async ({ page, request }) => {
+  test('the pager counts the real result set', async ({ page, request }) => {
     const props = await (await request.get('/api/properties', { headers: { cookie } })).json();
     const n = (props.items as unknown[]).length;
     await page.goto('/admin/properties');
-    await expect(page.getByText(`แสดง ${n} จาก`)).toBeVisible();
+    /* ตารางแบ่งหน้าจริงแล้ว (25 แถวต่อหน้า) ตัวเลขท้ายตารางจึงต้องนับจากผล
+       ทั้งหมด ไม่ใช่จำนวนแถวที่วาดอยู่ */
+    await expect(page.locator('[data-pager-count]')).toContainText(`จาก ${n}`);
     // a single page of results must not be dressed up as three
     await expect(page.getByText('…', { exact: true })).toHaveCount(0);
   });
@@ -1830,8 +1835,9 @@ test.describe('the properties screen', () => {
     await rows.first().locator('input[type=checkbox]').check();
     await expect(page.locator('#prop-bulk')).toContainText('เลือกไว้ 1 รายการ');
 
-    // the header box takes the whole visible list, and gives it back
-    await page.locator('thead input[type=checkbox]').check();
+    /* ติ๊กหัวตาราง = ทั้งหน้าที่เห็นอยู่ ไม่ใช่ทั้ง 393 แถวที่มองไม่เห็น
+       (ตารางแบ่งหน้าแล้ว 25 แถวต่อหน้า) */
+    await page.locator('thead input[type=checkbox]').setChecked(true);
     await expect(page.locator('#prop-bulk')).toContainText(`เลือกไว้ ${n} รายการ`);
     await page.getByRole('button', { name: 'ล้างการเลือก' }).click();
     await expect(page.locator('#prop-bulk')).toHaveCount(0);
@@ -1897,7 +1903,8 @@ test.describe('the listings screen', () => {
   test('the rows and the tab counts are the org\'s own, not a demo set', async ({ page, request }) => {
     const real = (await (await request.get('/api/listings', { headers: { cookie } })).json()).items as { code: string; status: string }[];
     await page.goto('/admin/listings');
-    await expect(page.getByText(`แสดง ${real.length} จาก ${real.length} ประกาศ`)).toBeVisible();
+    /* ตารางแบ่งหน้าแล้ว ตัวเลขท้ายตารางจึงเป็น "แสดง 1–25 จาก N ประกาศ" */
+    await expect(page.locator('[data-pager-count]')).toContainText(`จาก ${real.length} ประกาศ`);
 
     /* The demo set is checked by title, not by code: codes are issued in the
        same JKP#### shape the generator uses, so a real record can land on one
@@ -1910,7 +1917,8 @@ test.describe('the listings screen', () => {
     await expect(page.getByText('20 ต่อหน้า')).toHaveCount(0);
 
     const published = real.filter((r) => r.status === 'published').length;
-    await expect(page.locator('.lst-row')).toHaveCount(real.length);
+    /* แบ่งหน้าแล้ว — หน้าหนึ่งไม่เกิน 25 แถว ส่วนยอดรวมอยู่ที่ตัวนับท้ายตาราง */
+    expect(await page.locator('.lst-row').count()).toBe(Math.min(25, real.length));
     await expect(page.getByText('เผยแพร่', { exact: true }).first()).toBeVisible();
     expect(published).toBeLessThanOrEqual(real.length);
   });

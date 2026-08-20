@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { TablePager, pageSlice, pageCountOf } from './TablePager';
 import { InventoryFilters, EMPTY_FILTERS, matchesFilters, sortInventory, type InventoryFilterState, type InventoryRow } from './InventoryFilters';
 import { thumb } from '@/lib/mediaThumb';
 import { apiGet, apiPost, apiPatch, apiDelete, ApiClientError } from '@/lib/apiClient';
@@ -266,6 +267,7 @@ export function ListingsAdminBody() {
 
   // ---- filters (status tabs + search + dropdowns) ----
   const [statusFilter, setStatusFilter] = React.useState<'all' | StatusK>('all');
+  const [page, setPage] = React.useState(1);
   /* เมนูค้นหาชุดเดียวกับ Property และ Social Status (สไลด์ 22) */
   const [inv, setInv] = React.useState<InventoryFilterState>(EMPTY_FILTERS);
 
@@ -282,13 +284,19 @@ export function ListingsAdminBody() {
   ).map((d) => all.find((r) => r.code === d.code)!);
 
   const selCount = Object.values(sel).filter(Boolean).length;
-  const allChecked = filtered.length > 0 && filtered.every((d) => sel[d.id]);
+  /* เปลี่ยนตัวกรองหรือแท็บสถานะแล้วกลับหน้าแรก ไม่งั้นค้างอยู่หน้าที่ไม่มีของ */
+  React.useEffect(() => { setPage(1); }, [inv, statusFilter]);
+  const pageCount = pageCountOf(filtered.length);
+  React.useEffect(() => { if (page > pageCount) setPage(pageCount); }, [page, pageCount]);
+  const rowsOnPage = pageSlice(filtered, page);
+
+  const allChecked = rowsOnPage.length > 0 && rowsOnPage.every((d) => sel[d.id]);
   const anyMenuOpen = openMenu !== null;
   const statusCount = (k: 'all' | StatusK) => (k === 'all' ? all.length : all.filter((d) => d.status === k).length);
 
   const toggleAll = () => {
     if (allChecked) { setSel({}); }
-    else { const s: Record<string, boolean> = { ...sel }; filtered.forEach((d) => { s[d.id] = true; }); setSel(s); }
+    else { const s: Record<string, boolean> = { ...sel }; rowsOnPage.forEach((d) => { s[d.id] = true; }); setSel(s); }
   };
 
   /* ---- actions ----------------------------------------------------------
@@ -583,7 +591,7 @@ export function ListingsAdminBody() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((d) => {
+              {rowsOnPage.map((d) => {
                 const on = !!sel[d.id];
                 const mOpen = openMenu === d.id;
                 return (
@@ -650,13 +658,13 @@ export function ListingsAdminBody() {
             </tbody>
           </table>
         </div>
-        {/* "แสดง N จาก 2,956 ประกาศ · 20 ต่อหน้า" with pages 1 · 2 · 3 · …
-            sat under a table that had every row it was ever going to get. */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderTop: '1px solid var(--border)', flexWrap: 'wrap', rowGap: 10 }}>
-          <div style={{ fontSize: '12.5px', color: 'var(--muted)' }}>
-            แสดง {filtered.length} จาก {all.length} ประกาศ
-            {filtered.length !== all.length && <span style={{ color: 'var(--muted3)' }}> · กรองอยู่</span>}
-          </div>
+        {/* เดิม "แสดง N จาก 2,956 ประกาศ · 20 ต่อหน้า" กับปุ่มหน้า 1 · 2 · 3 เป็น
+            ของปลอมที่เขียนไว้ใต้ตารางซึ่งมีทุกแถวอยู่แล้ว ตอนนี้แบ่งหน้าจริง */}
+        <div style={{ padding: '10px 18px 14px', borderTop: '1px solid var(--border)' }}>
+          <TablePager page={page} total={filtered.length} onPage={setPage} unit="ประกาศ" />
+          {filtered.length !== all.length && (
+            <div style={{ marginTop: 4, fontSize: '11.5px', color: 'var(--muted3)' }}>กรองจากทั้งหมด {all.length} ประกาศ</div>
+          )}
         </div>
       </div>
     </>
