@@ -257,8 +257,10 @@ const WAREHOUSE_FIELDS: FieldDef[] = [
   { key: 'office_floors', label: 'จำนวนชั้นออฟฟิศ', kind: 'select', options: ['ไม่มีออฟฟิศ', '1 ชั้น', '2 ชั้น', '3 ชั้น', 'มากกว่า 3 ชั้น'], section: 'พื้นที่' },
   { key: 'building_floors', label: 'จำนวนชั้นอาคาร', kind: 'select', options: ['1 ชั้น', '2 ชั้น', '3 ชั้น', '4 ชั้น', 'มากกว่า 4 ชั้น'], section: 'พื้นที่' },
   { key: 'office_area_f1', label: 'พื้นที่ออฟฟิศ ชั้น 1', kind: 'number', unit: 'ตร.ม.', section: 'พื้นที่' },
-  { key: 'building_total_wh', label: 'กว้าง x ลึก พื้นที่อาคารรวม', kind: 'text', unit: 'ม.', section: 'พื้นที่', placeholder: 'เช่น 20 x 40' },
+  /* สไลด์ 26 · ลูกศรคู่ที่สอง — ออฟฟิศ ชั้น 1 กับออฟฟิศรวมอยู่ติดกัน แล้ว
+     กว้าง x ลึก ของอาคารรวมมาก่อนพื้นที่อาคารรวม เหมือนอีกสองคู่ข้างบน */
   { key: 'office_area_total', label: 'พื้นที่ออฟฟิศรวม', kind: 'number', unit: 'ตร.ม.', section: 'พื้นที่' },
+  { key: 'building_total_wh', label: 'กว้าง x ลึก พื้นที่อาคารรวม', kind: 'text', unit: 'ม.', section: 'พื้นที่', placeholder: 'เช่น 20 x 40' },
   { key: 'building_area_total', label: 'พื้นที่อาคารรวม', kind: 'number', unit: 'ตร.ม.', section: 'พื้นที่' },
 
   // 4 · สเปคอาคาร

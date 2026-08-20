@@ -155,10 +155,22 @@ describe('ลำดับช่องในหมวดพื้นที่ (�
       const area = keys.indexOf('building_area');
       assert.ok(wh >= 0 && area >= 0, 'ต้องมีทั้งสองช่อง');
       assert.ok(wh < area, `กว้าง x ลึก ต้องอยู่ก่อนพื้นที่ — ตอนนี้ ${keys.join(' → ')}`);
-      /* คู่ที่ดินเรียงแบบเดียวกันอยู่แล้ว ทั้งสองคู่ต้องไม่สวนทางกัน */
-      const landWh = keys.indexOf('land_wh');
-      const landTotal = keys.indexOf('land_area_total');
-      if (landWh >= 0 && landTotal >= 0) assert.ok(landWh < landTotal, 'คู่ที่ดินต้องเรียงแบบเดียวกัน');
+      /* ทั้งสามคู่ต้องเรียงแบบเดียวกัน — วัดกว้าง x ลึกก่อน แล้วค่อยพื้นที่ */
+      const pairs: [string, string, string][] = [
+        ['land_wh', 'land_area_total', 'ที่ดิน'],
+        ['building_total_wh', 'building_area_total', 'อาคารรวม'],
+      ];
+      for (const [dim, total, name] of pairs) {
+        const a = keys.indexOf(dim);
+        const b = keys.indexOf(total);
+        if (a >= 0 && b >= 0) assert.ok(a < b, `คู่${name}ต้องเรียงแบบเดียวกัน — ตอนนี้ ${keys.join(' → ')}`);
+      }
+      /* ออฟฟิศ ชั้น 1 กับออฟฟิศรวมต้องอยู่ติดกัน ไม่มีช่องของอาคารมาคั่น */
+      const f1 = keys.indexOf('office_area_f1');
+      const offTotal = keys.indexOf('office_area_total');
+      if (f1 >= 0 && offTotal >= 0) {
+        assert.equal(offTotal, f1 + 1, `ช่องออฟฟิศต้องอยู่ติดกัน — ตอนนี้ ${keys.join(' → ')}`);
+      }
     });
   }
 });
