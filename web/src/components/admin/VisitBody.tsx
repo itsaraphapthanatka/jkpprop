@@ -108,6 +108,29 @@ export function VisitActions() {
   const visit = useLatestVisit();
   const [completed, setCompleted] = React.useState(false);
   React.useEffect(() => { if (visit?.status === 'done') setCompleted(true); }, [visit]);
+  /* สไลด์ 40 · "ปุ่มยกเลิกนัดหาย · ยกเลิกต้องระบุข้อความด้วย" — แผนที่ยกเลิก
+     ทำได้เฉพาะทางฐานข้อมูล และไม่มีที่บันทึกว่าทำไม */
+  const [cancelled, setCancelled] = React.useState(false);
+  React.useEffect(() => { if (visit?.status === 'cancelled') setCancelled(true); }, [visit]);
+  const [cancelOpen, setCancelOpen] = React.useState(false);
+  const [cancelWhy, setCancelWhy] = React.useState('');
+  const [cancelErr, setCancelErr] = React.useState('');
+  const [cancelBusy, setCancelBusy] = React.useState(false);
+
+  const cancelVisit = () => {
+    if (!visit || cancelBusy) return;
+    if (!cancelWhy.trim()) { setCancelErr('กรุณาระบุเหตุผลที่ยกเลิก'); return; }
+    setCancelBusy(true);
+    setCancelErr('');
+    apiPatch(`/api/visits/${visit.id}`, { status: 'cancelled', cancelReason: cancelWhy.trim() })
+      .then(() => {
+        setCancelled(true);
+        setCancelOpen(false);
+        if (visitCache) visitCache.status = 'cancelled';
+      })
+      .catch((e) => setCancelErr(e instanceof ApiClientError ? e.message : 'ยกเลิกไม่สำเร็จ'))
+      .finally(() => setCancelBusy(false));
+  };
 
   // the server refuses to close a plan whose availability gate is still open
   const complete = () => {
@@ -123,6 +146,39 @@ export function VisitActions() {
       <div onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9"><path d="M9 17H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v7a2 2 0 01-2 2h-2" /><path d="M9 13h6M9 17h6" /></svg>พิมพ์ route sheet
       </div>
+      {/* ยกเลิกนัด — ต้องบอกเหตุผล คนที่มารับช่วงต่อจะได้รู้ว่าเกิดอะไรขึ้น */}
+      {visit && !completed && (
+        cancelled ? (
+          <span id="visit-cancelled" style={{ display: 'flex', alignItems: 'center', gap: 6, height: 40, padding: '0 16px', borderRadius: 9999, background: '#F9E4E1', color: '#C0392B', fontSize: 13, fontWeight: 700 }}>ยกเลิกนัดแล้ว</span>
+        ) : (
+          <div id="visit-cancel" onClick={() => { setCancelErr(''); setCancelOpen(true); }} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid #E4C4C0', color: '#C0392B', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>ยกเลิกนัด
+          </div>
+        )
+      )}
+      {cancelOpen && (
+        <div onClick={() => setCancelOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 860, background: 'rgba(2,14,8,.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 440, background: 'var(--surface)', borderRadius: 20, boxShadow: '0 40px 80px rgba(0,0,0,.4)', padding: '26px 28px' }}>
+            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)' }}>ยกเลิกนัดเข้าชม</div>
+            <p style={{ margin: '6px 0 14px', fontSize: '12.5px', color: 'var(--muted)', lineHeight: 1.6 }}>
+              เหตุผลจะถูกบันทึกไว้กับแผนนี้ คนที่มาดูต่อจะได้รู้ว่าลูกค้าเลื่อน ยกเลิก หรือทรัพย์ถูกปล่อยไปแล้ว
+            </p>
+            <textarea
+              id="visit-cancel-why"
+              autoFocus
+              value={cancelWhy}
+              onChange={(e) => { setCancelWhy(e.target.value); if (cancelErr) setCancelErr(''); }}
+              placeholder="เช่น ลูกค้าติดประชุม ขอเลื่อนสัปดาห์หน้า · เจ้าของปล่อยทรัพย์ไปแล้ว"
+              style={{ width: '100%', height: 88, padding: '11px 13px', borderRadius: 12, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none', resize: 'none', fontFamily: 'inherit' }}
+            />
+            {cancelErr && <div id="visit-cancel-error" style={{ marginTop: 10, padding: '9px 12px', borderRadius: 10, background: '#FDECEC', color: '#A32A2A', fontSize: '12.5px', fontWeight: 600 }}>{cancelErr}</div>}
+            <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <div onClick={() => setCancelOpen(false)} style={{ height: 42, padding: '0 20px', borderRadius: 9999, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 700, color: 'var(--text)', cursor: 'pointer' }}>ปิด</div>
+              <div id="visit-cancel-save" onClick={cancelVisit} style={{ height: 42, padding: '0 22px', borderRadius: 9999, background: cancelBusy ? '#C08C86' : '#C0392B', color: '#fff', display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 700, cursor: cancelBusy ? 'default' : 'pointer' }}>{cancelBusy ? 'กำลังยกเลิก…' : 'ยกเลิกนัดนี้'}</div>
+            </div>
+          </div>
+        </div>
+      )}
       <div onClick={complete} title={visit ? undefined : 'ยังไม่มีแผนเข้าชมให้ปิด'}
         style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 18px', borderRadius: 9999, background: !visit ? 'var(--border)' : completed ? '#273c33' : '#0D6C3B', color: visit ? '#fff' : 'var(--muted3)', fontSize: 13, fontWeight: 700, cursor: visit ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M20 6L9 17l-5-5" /></svg>{completed ? 'ปิด plan แล้ว' : 'ปิด plan (completed)'}

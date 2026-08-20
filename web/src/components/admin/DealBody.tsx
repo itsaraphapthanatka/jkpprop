@@ -46,6 +46,9 @@ type ApiDoc = { id: string; filename: string; mime: string; size: number; status
 type ApiDeal = {
   id: string; title: string; amount: number; status: string; locked: boolean; note: string | null;
   propertyCode: string; propertyTitle: string; customer: string;
+  /* สไลด์ 42 · "ไม่มีสรุปและประวัติการติดต่อ" */
+  customerContact?: string; customerPhone?: string; customerEmail?: string; leadStatus?: string;
+  history?: { text: string; at: number }[];
 };
 
 const DealContext = createContext<DealCtx | null>(null);
@@ -309,6 +312,7 @@ export default function DealBody() {
   const dealSummary = [
     { k: 'ดีล', v: deal?.title || '—' },
     { k: 'ลูกค้า', v: deal?.customer || '—' },
+    { k: 'ผู้ติดต่อ', v: [deal?.customerContact, deal?.customerPhone].filter(Boolean).join(' · ') || '—' },
     { k: 'มูลค่า', v: deal?.amount ? baht(deal.amount) : 'ยังไม่ระบุ' },
     { k: 'สถานะ', v: deal ? (deal.status === 'won' ? 'ปิดดีลแล้ว (won)' : deal.status === 'lost' ? 'ไม่สำเร็จ (lost)' : 'กำลังเจรจา') : '—' },
     { k: 'การเงิน', v: deal?.locked ? 'ล็อกแล้ว' : 'ยังแก้ได้' },
@@ -368,6 +372,37 @@ export default function DealBody() {
               property card's accordion, collapsed by default — so opening a
               deal showed a one-line card and nothing else. They are the page. */}
           <>
+          {/* ประวัติการติดต่อกับลูกค้า — สไลด์ 42 "ไม่มีสรุปและประวัติการติดต่อ"
+              หน้านี้มีไทม์ไลน์การเจรจา (ยื่นข้อเสนอกี่รอบ) แต่ไม่มีว่าคุยอะไร
+              กับลูกค้ามาบ้าง ทั้งที่บันทึกอยู่ใน lead ตั้งแต่ต้นทางแล้ว */}
+          <div data-deal-history style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 22 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>ประวัติการติดต่อลูกค้า</div>
+              {deal?.customerPhone && (
+                <a href={`tel:${deal.customerPhone.replace(/[^+\d]/g, '')}`} data-deal-phone style={{ display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 13px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: '12.5px', fontWeight: 700, textDecoration: 'none' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z" /></svg>
+                  {deal.customerPhone}
+                </a>
+              )}
+            </div>
+            {(deal?.history ?? []).length === 0 ? (
+              <div style={{ padding: '16px 14px', borderRadius: 12, background: 'var(--bg)', fontSize: '12.5px', color: 'var(--muted2)', lineHeight: 1.7 }}>
+                ยังไม่มีบันทึกการติดต่อ — บันทึกจะขึ้นเองเมื่อสถานะ lead เปลี่ยน หรือทีมเพิ่มโน้ตในหน้า Leads
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {(deal?.history ?? []).map((h) => (
+                  <div key={`${h.at}-${h.text}`} data-history-row style={{ display: 'flex', gap: 12, padding: '11px 13px', borderRadius: 12, background: 'var(--bg)' }}>
+                    <span style={{ flexShrink: 0, fontSize: 11.5, color: 'var(--muted2)', fontVariantNumeric: 'tabular-nums', minWidth: 74 }}>
+                      {new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }).format(new Date(h.at))}
+                    </span>
+                    <span style={{ fontSize: '12.5px', color: 'var(--text)', lineHeight: 1.6 }}>{h.text}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* offers timeline */}
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 22 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>

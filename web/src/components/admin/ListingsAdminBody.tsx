@@ -72,6 +72,7 @@ export type Row = {
   sizeSqm: number | null;
   priceValue: number | null;
   available: boolean;
+  pic: string;
 };
 
 /* `act` is what the item does; `href` is where it goes. Every item used to
@@ -267,10 +268,12 @@ export function ListingsAdminBody() {
   const [inv, setInv] = React.useState<InventoryFilterState>(EMPTY_FILTERS);
 
   const all = rows ?? [];
+  // ชื่อผู้ดูแลที่มีอยู่จริงในรายการนี้ ไม่ใช่รายชื่อพนักงานทั้งบริษัท
+  const picOptions = Array.from(new Set(all.map((d) => d.pic).filter(Boolean))).sort();
   const view = (d: Row): InventoryRow => ({
     code: d.code, title: d.title, typeKey: d.typeKey, province: d.location,
     zoning: d.zoning, deal: d.dealLabel, size: d.sizeSqm, price: d.priceValue,
-    available: d.available,
+    available: d.available, pic: d.pic ?? '',
   });
   const filtered = sortInventory(
     all.filter((d) => (statusFilter === 'all' || d.status === statusFilter) && matchesFilters(view(d), inv)).map((d) => ({ ...d, ...view(d) })),
@@ -542,7 +545,7 @@ export function ListingsAdminBody() {
       </div>
 
       {/* เมนูค้นหาชุดเดียวกับ Property และ Social Status */}
-      <InventoryFilters value={inv} onChange={setInv} />
+      <InventoryFilters value={inv} onChange={setInv} picOptions={picOptions} />
 
       {/* BULK BAR */}
       {selCount > 0 && (

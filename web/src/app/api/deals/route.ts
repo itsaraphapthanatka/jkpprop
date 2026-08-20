@@ -16,10 +16,27 @@ export const GET = handler(async () => {
   const leadIds = [...new Set(rows.map((d) => d.leadId).filter(Boolean) as string[])];
   const [props, leads] = await Promise.all([
     propIds.length ? db.property.findMany({ where: { id: { in: propIds } }, select: { id: true, publicCode: true, title: true } }) : [],
-    leadIds.length ? db.lead.findMany({ where: { id: { in: leadIds } }, select: { id: true, name: true, company: true } }) : [],
+    leadIds.length ? db.lead.findMany({ where: { id: { in: leadIds } }, select: { id: true, name: true, company: true, phone: true, email: true, status: true } }) : [],
   ]);
   const propById = new Map(props.map((p) => [p.id, p]));
   const leadById = new Map(leads.map((l) => [l.id, l]));
+
+  /* สไลด์ 42 · "ไม่มีสรุปและประวัติการติดต่อ" — หน้าดีลมีไทม์ไลน์การเจรจา
+     (ยื่นข้อเสนอกี่รอบ) แต่ไม่มีประวัติว่าคุยอะไรกับลูกค้ามาบ้าง ทั้งที่บันทึก
+     อยู่ใน LeadNote ตั้งแต่ตอนทำ lead แล้ว */
+  const notes = leadIds.length
+    ? await db.leadNote.findMany({
+      where: { leadId: { in: leadIds } },
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+    })
+    : [];
+  const notesByLead = new Map<string, { text: string; at: number }[]>();
+  for (const n of notes) {
+    const list = notesByLead.get(n.leadId) ?? [];
+    if (list.length < 20) list.push({ text: n.text, at: n.createdAt.getTime() });
+    notesByLead.set(n.leadId, list);
+  }
 
   return ok({
     items: rows.map((d) => ({
@@ -27,6 +44,11 @@ export const GET = handler(async () => {
       propertyCode: d.propertyId ? propById.get(d.propertyId)?.publicCode ?? '' : '',
       propertyTitle: d.propertyId ? propById.get(d.propertyId)?.title ?? '' : '',
       customer: d.leadId ? (leadById.get(d.leadId)?.company || leadById.get(d.leadId)?.name || '') : '',
+      customerContact: d.leadId ? (leadById.get(d.leadId)?.name ?? '') : '',
+      customerPhone: d.leadId ? (leadById.get(d.leadId)?.phone ?? '') : '',
+      customerEmail: d.leadId ? (leadById.get(d.leadId)?.email ?? '') : '',
+      leadStatus: d.leadId ? (leadById.get(d.leadId)?.status ?? '') : '',
+      history: d.leadId ? (notesByLead.get(d.leadId) ?? []) : [],
       amount: d.amount, status: d.status, locked: d.locked,
       closedAt: d.closedAt?.getTime() ?? null, note: d.note, updatedAt: d.updatedAt.getTime(),
     })),

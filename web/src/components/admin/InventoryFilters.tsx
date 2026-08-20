@@ -25,6 +25,8 @@ export type InventoryRow = {
   /** บาท (เช่า/เดือน หรือ ราคาขาย แล้วแต่ดีล) */
   price: number | null;
   available: boolean;
+  /** ผู้ดูแลทรัพย์ — สไลด์ 22 ข้อ 8 "ชื่อคนลงประกาศ หรือ PIC" */
+  pic: string;
 };
 
 export type InventoryFilterState = {
@@ -35,9 +37,10 @@ export type InventoryFilterState = {
   size: string;
   price: string;
   avail: string;
+  pic: string;
 };
 
-export const EMPTY_FILTERS: InventoryFilterState = { q: '', type: '', zoning: '', deal: '', size: '', price: '', avail: '' };
+export const EMPTY_FILTERS: InventoryFilterState = { q: '', type: '', zoning: '', deal: '', size: '', price: '', avail: '', pic: '' };
 
 const ANY = 'ทั้งหมด';
 
@@ -62,11 +65,12 @@ const AVAIL = ['ว่าง', 'ไม่ว่าง'];
 /** ตัวกรองหนึ่งช่องผ่านหรือไม่ — แยกไว้ให้เทสต์เรียกได้ตรง ๆ */
 export function matchesFilters(row: InventoryRow, f: InventoryFilterState): boolean {
   const q = f.q.trim().toLowerCase();
-  if (q && !`${row.code} ${row.title}`.toLowerCase().includes(q)) return false;
+  if (q && !`${row.code} ${row.title} ${row.pic}`.toLowerCase().includes(q)) return false;
   if (f.type && row.typeKey !== f.type) return false;
   if (f.zoning && row.zoning !== f.zoning) return false;
   if (f.deal && row.deal !== f.deal) return false;
   if (f.avail && (f.avail === 'ว่าง') !== row.available) return false;
+  if (f.pic && row.pic !== f.pic) return false;
   if (f.size) {
     const band = SIZE_BANDS.find(([l]) => l === f.size);
     if (!band) return true;
@@ -96,11 +100,13 @@ const option = (active: boolean): React.CSSProperties => ({
   color: active ? '#0D6C3B' : 'var(--text)', background: active ? 'rgba(13,108,59,.06)' : 'transparent',
 });
 
-export function InventoryFilters({ value, onChange, extra }: {
+export function InventoryFilters({ value, onChange, extra, picOptions = [] }: {
   value: InventoryFilterState;
   onChange: (next: InventoryFilterState) => void;
   /** ปุ่มเฉพาะของแต่ละหน้า เช่นแท็บสถานะของ Listings */
   extra?: React.ReactNode;
+  /** ชื่อผู้ดูแลที่มีอยู่จริงในรายการของหน้านั้น */
+  picOptions?: string[];
 }) {
   const [open, setOpen] = React.useState<string | null>(null);
   const set = (k: keyof InventoryFilterState, v: string) => { onChange({ ...value, [k]: v }); setOpen(null); };
@@ -112,7 +118,8 @@ export function InventoryFilters({ value, onChange, extra }: {
     { key: 'size', label: 'ขนาดรวม', opts: SIZE_BANDS.map(([l]) => [l, l] as [string, string]) },
     { key: 'price', label: 'ราคา', opts: PRICE_BANDS.map(([l]) => [l, l] as [string, string]) },
     { key: 'avail', label: 'ว่าง/ไม่ว่าง', opts: AVAIL.map((v) => [v, v] as [string, string]) },
-  ];
+    { key: 'pic', label: 'ผู้ดูแล (PIC)', opts: picOptions.map((v) => [v, v] as [string, string]) },
+  ].filter((f) => f.key !== 'pic' || picOptions.length > 0) as { key: keyof InventoryFilterState; label: string; opts: [string, string][] }[];
 
   return (
     <div
@@ -125,7 +132,7 @@ export function InventoryFilters({ value, onChange, extra }: {
           data-filter-q
           value={value.q}
           onChange={(e) => onChange({ ...value, q: e.target.value })}
-          placeholder="ค้นหาด้วยชื่อ หรือรหัสทรัพย์ (JKP…)"
+          placeholder="ค้นหาด้วยชื่อประกาศ หรือรหัสทรัพย์ (JKP…)"
           style={{ border: 0, outline: 'none', background: 'transparent', fontSize: 13, color: 'var(--text)', flex: 1, minWidth: 0, fontFamily: 'inherit' }}
         />
       </div>

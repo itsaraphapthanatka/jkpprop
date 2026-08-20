@@ -182,6 +182,7 @@ const toInventoryRow = (r: ApiProperty): InventoryRow => {
     size: num('building_area_total') ?? num('building_area') ?? num('usable_area') ?? r.area,
     price: num('price_rent') ?? num('price_sale') ?? num('price'),
     available: r.available !== false,
+    pic: String(v.pic ?? ''),
   };
 };
 
@@ -235,6 +236,12 @@ export function PropertiesBody() {
   }, [inv.q, reload]);
 
   /* รายการที่เห็นจริงบนหน้า — กรองและเรียงด้วยกฎชุดเดียวกับอีกสองหน้า */
+  // ผู้ดูแลที่มีอยู่จริงในรายการที่โหลดมา
+  const picOptions = React.useMemo(
+    () => Array.from(new Set((items ?? []).map((r) => String((r.values ?? {}).pic ?? '')).filter(Boolean))).sort(),
+    [items],
+  );
+
   const shown = React.useMemo(() => {
     const view = new Map((items ?? []).map((r) => [r.id, toInventoryRow(r)]));
     const kept = (items ?? []).filter((r) => matchesFilters(view.get(r.id)!, inv));
@@ -431,7 +438,7 @@ export function PropertiesBody() {
       )}
 
       {/* เมนูค้นหาชุดเดียวกับ Listings และ Social Status */}
-      <InventoryFilters value={inv} onChange={setInv} />
+      <InventoryFilters value={inv} onChange={setInv} picOptions={picOptions} />
 
       {/* BULK BAR — only exists once something is ticked */}
       {sel.size > 0 && (

@@ -87,10 +87,11 @@ export function SocialStatusBody() {
     return buildSummary({ typeLabel: row.title, code: row.code, values: valuesFor(row) }).text;
   };
 
+  const picOptions = Array.from(new Set((listings ?? []).map((r) => r.pic).filter(Boolean))).sort();
   const view = (r: ApiListing): InventoryRow => ({
     code: r.code, title: r.title, typeKey: r.typeKey, province: r.location,
     zoning: r.zoning, deal: r.dealLabel, size: r.sizeSqm, price: r.priceValue,
-    available: r.available,
+    available: r.available, pic: r.pic ?? '',
   });
   const rows = sortInventory(
     (listings ?? []).filter((r) => {
@@ -170,7 +171,7 @@ export function SocialStatusBody() {
   return (
     <>
       {/* เมนูค้นหาชุดเดียวกับ Property และ Listings */}
-      <InventoryFilters value={inv} onChange={setInv} />
+      <InventoryFilters value={inv} onChange={setInv} picOptions={picOptions} />
 
       {/* toolbar */}
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>

@@ -15,7 +15,7 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
   if (!visit) throw new ApiError('NOT_FOUND', 'ไม่พบแผนการเข้าชมนี้', 404);
 
   const body = (await req.json().catch(() => null)) as
-    | { gateConfirmed?: boolean; status?: string; note?: string; outcomes?: Record<string, string> }
+    | { gateConfirmed?: boolean; status?: string; note?: string; outcomes?: Record<string, string>; cancelReason?: string }
     | null;
   if (!body) throw new ApiError('VALIDATION', 'ข้อมูลไม่ถูกต้อง', 400);
 
@@ -30,6 +30,16 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
        instead of ringing the customer. */
     if (body.status === 'done' && !(body.gateConfirmed ?? visit.gateConfirmed)) {
       throw new ApiError('GATE_REQUIRED', 'ต้องยืนยันเกณฑ์กับลูกค้าก่อน (FR-VIS-07) — กด "เกณฑ์เดิม — จัดนัดต่อ" ที่หัวแผน หรือกลับไปแก้ requirement ถ้าลูกค้าเปลี่ยนเกณฑ์', 400);
+    }
+    /* สไลด์ 40 · "ยกเลิกต้องระบุข้อความด้วย" — นัดที่หายไปโดยไม่มีเหตุผล
+       ทำให้ทีมที่มารับช่วงต่อไม่รู้ว่าลูกค้าเลื่อน ยกเลิก หรือทรัพย์ถูกปล่อยไปแล้ว */
+    if (body.status === 'cancelled') {
+      const reason = String(body.cancelReason || '').trim();
+      if (!reason) {
+        throw new ApiError('VALIDATION', 'ยกเลิกนัดต้องระบุเหตุผล', 400, { cancelReason: 'กรุณาระบุเหตุผลที่ยกเลิก' });
+      }
+      const stamp = new Date().toISOString().slice(0, 10);
+      data.note = [visit.note, `[ยกเลิก ${stamp}] ${reason.slice(0, 500)}`].filter(Boolean).join('\n');
     }
     data.status = body.status;
   }

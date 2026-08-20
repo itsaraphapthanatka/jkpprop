@@ -58,6 +58,7 @@ export const GET = handler(async () => {
         priceValue: [values.price_rent, values.price_sale, values.price]
           .find((v) => typeof v === 'number') as number | undefined ?? null,
         available: !taken.has(p.id),
+        pic: String(values.pic ?? ''),
         deal: price.deal,
         dealK: price.dealK,
         price: price.text,

@@ -263,6 +263,9 @@ const WAREHOUSE_FIELDS: FieldDef[] = [
   { key: 'doors', label: 'จำนวนประตู', kind: 'number', unit: 'ประตู', section: 'สเปคอาคาร' },
   { key: 'door_wh', label: 'ประตู กว้าง x สูง', kind: 'text', unit: 'ม.', section: 'สเปคอาคาร', placeholder: 'เช่น 5 x 5' },
   { key: 'building_height', label: 'ความสูงอาคาร', kind: 'number', unit: 'ม.', section: 'สเปคอาคาร' },
+  /* สไลด์ 27 · ความสูงใต้คานเคยมีแต่ในโรงงาน ทั้งที่โกดังกับโชว์รูมก็ต้องใช้
+     ตัวเลขนี้ตัดสินว่าวางชั้นวางหรือรถยกได้แค่ไหน */
+  { key: 'clear_height', label: 'ความสูงใต้คาน', kind: 'number', unit: 'ม.', section: 'สเปคอาคาร' },
   { key: 'parking', label: 'จำนวนที่จอดรถ', kind: 'number', unit: 'คัน', section: 'สเปคอาคาร' },
   /* สี่ตัวเลือกตามที่ลูกค้าเขียนไว้ในสไลด์ 26 และตรงกับที่ทีมกรอกใน Master
      Sheet ทั้ง 393 แถว เดิมระบบมีให้เลือกแค่ "1 เฟส / 3 เฟส" ตอนนำเข้าจึงตัด
@@ -270,6 +273,9 @@ const WAREHOUSE_FIELDS: FieldDef[] = [
   { key: 'power_phase', label: 'ระบบไฟ', kind: 'select', options: POWER_PHASES, section: 'สเปคอาคาร' },
   { key: 'power_system', label: 'ขนาดหม้อแปลงไฟฟ้า (รายละเอียด)', kind: 'text', section: 'สเปคอาคาร', placeholder: 'เช่น 250 kVA' },
   { key: 'floor_loading', label: 'น้ำหนักที่พื้นรับได้', kind: 'text', section: 'สเปคอาคาร', placeholder: 'เช่น 3 ตัน/ตร.ม.' },
+  /* สไลด์ 27 · "โกดัง โรงงาน โชว์รูม มีฟิลเลือกเครน มี/ไม่มี" — เดิมมีแต่ในชุด
+     ของโรงงาน ทั้งที่เป็นคุณสมบัติที่คนหาโกดังถามถึงตลอด */
+  { key: 'overhead_crane', label: 'เครนเหนือศีรษะ', kind: 'select', options: ['มี', 'ไม่มี'], section: 'สเปคอาคาร' },
   { key: 'cold_storage', label: 'ห้องเย็น / ควบคุมอุณหภูมิ', kind: 'boolean', section: 'สเปคอาคาร' },
 
   /* 5 · แยกเป็นสามหมวดตามที่ลูกค้าร่างมาในสไลด์ 21: ราคา / ค่าสาธารณูปโภค /
@@ -327,9 +333,10 @@ const WAREHOUSE_FIELDS: FieldDef[] = [
 const FACTORY_ONLY: FieldDef[] = [
   { key: 'usable_area', label: 'พื้นที่ใช้สอย', kind: 'number', unit: 'ตร.ม.', section: 'พื้นที่และอาคาร' },
   { key: 'land_area', label: 'พื้นที่ดิน', kind: 'number', unit: 'ตารางวา', section: 'พื้นที่และอาคาร' },
-  { key: 'clear_height', label: 'ความสูงใต้คาน', kind: 'number', unit: 'เมตร', section: 'พื้นที่และอาคาร' },
-  { key: 'factory_license', label: 'มีใบอนุญาต ร.ง.4', kind: 'boolean', section: 'เอกสารและใบอนุญาต' },
-  { key: 'overhead_crane', label: 'มีเครนเหนือศีรษะ', kind: 'boolean', section: 'พื้นที่และอาคาร' },
+  /* สไลด์ 27 · "โรงงานมีฟิลเลือก รง.4 มี/ไม่มี ระบุประเภทใบอนุญาตเป็นโนต"
+     เดิมเป็นช่องติ๊กอย่างเดียว ตอบได้แค่มี/ไม่ตอบ และไม่มีที่เขียนว่าใบไหน */
+  { key: 'factory_license', label: 'ใบอนุญาต ร.ง.4', kind: 'select', options: ['มี', 'ไม่มี'], section: 'เอกสารและใบอนุญาต' },
+  { key: 'factory_license_type', label: 'ประเภทใบอนุญาต (ระบุ)', kind: 'text', section: 'เอกสารและใบอนุญาต', placeholder: 'เช่น ร.ง.4 ลำดับที่ 64 · โกดังสินค้า', showWhen: { field: 'factory_license', in: ['มี'] } },
   { key: 'deed_copy', label: 'สำเนาโฉนด / เอกสารสิทธิ์', kind: 'media', section: 'เอกสารและใบอนุญาต' },
 ];
 

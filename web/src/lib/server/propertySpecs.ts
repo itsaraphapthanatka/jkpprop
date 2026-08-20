@@ -30,7 +30,8 @@ const LABELS: Record<string, Record<Locale, string>> = {
   floor_loading:   { th: 'รับน้ำหนักพื้น',          en: 'Floor loading',        zh: '楼板承重' },
   power_system:    { th: 'ขนาดหม้อแปลงไฟฟ้า',       en: 'Transformer size',     zh: '变压器容量' },
   power_phase:     { th: 'ระบบไฟ',                  en: 'Power supply',         zh: '供电系统' },
-  factory_license: { th: 'ขอใบ ร.ง.4 ได้',         en: 'Factory licence (Rg.4)', zh: '可申请工厂许可证' },
+  factory_license: { th: 'ใบอนุญาต ร.ง.4',         en: 'Factory licence (Rg.4)', zh: '工厂许可证' },
+  factory_license_type: { th: 'ประเภทใบอนุญาต',    en: 'Licence type',         zh: '许可证类型' },
   overhead_crane:  { th: 'เครนเหนือศีรษะ',         en: 'Overhead crane',       zh: '行车吊' },
   cold_storage:    { th: 'ห้องเย็น / ควบคุมอุณหภูมิ', en: 'Cold storage',        zh: '冷库' },
   doors:           { th: 'จำนวนประตู',             en: 'Loading doors',        zh: '装卸门数量' },
@@ -158,7 +159,7 @@ const TABLE_ORDER = [
   'province', 'district', 'subdistrict', 'amphoe', 'tambon',
   'usable_area', 'land_area', 'clear_height', 'building_height',
   'floor_loading', 'power_system', 'power_phase', 'doors', 'parking',
-  'overhead_crane', 'cold_storage', 'factory_license', 'zoning_color', 'zone',
+  'overhead_crane', 'cold_storage', 'factory_license', 'factory_license_type', 'zoning_color', 'zone',
   /* เรียงตามที่ลูกค้าร่างไว้: ราคา → ค่าสาธารณูปโภค (พร้อม "จ่ายกับใคร" ต่อท้าย
      แต่ละรายการ) → ภาษีและค่าธรรมเนียม → เงื่อนไขสัญญา */
   'price_rent', 'price_sale', 'price_per_sqm',

@@ -899,6 +899,7 @@ test.describe('Flow B — requirement to shortlist', () => {
   let cookie = '';
   let leadId = '';
   const made: string[] = [];
+  const madeLeads: string[] = [];
 
   const api = (page: Page) => async () => {
     const cookies = await page.context().cookies();
@@ -908,8 +909,14 @@ test.describe('Flow B — requirement to shortlist', () => {
   test.beforeEach(async ({ page, request }) => {
     await signIn(page, OWNER);
     cookie = await (api(page))();
-    const leads = await (await request.get('/api/leads', { headers: { cookie } })).json();
-    leadId = leads.items?.[0]?.id ?? '';
+    /* หนึ่ง lead เปิดใบงานค้างได้ทีละใบ (สไลด์ 40) — เทสต์ชุดนี้เคยผูกทุกใบไว้
+       กับลีดตัวแรกร่วมกัน พอมีกติกานั้นก็ชนกันเอง แต่ละเทสต์จึงใช้ลีดของตัวเอง */
+    const lead = await (await request.post('/api/leads', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { name: `flow-b ${Date.now().toString(36)}-${Math.floor(performance.now())}` },
+    })).json();
+    leadId = lead.id;
+    madeLeads.push(leadId);
     expect(leadId, 'no lead to attach a requirement to').toBeTruthy();
   });
 
@@ -919,6 +926,7 @@ test.describe('Flow B — requirement to shortlist', () => {
       db = new PrismaClient();
     }
     for (const id of made) await db.requirement.deleteMany({ where: { id } });
+    for (const id of madeLeads) await db.lead.deleteMany({ where: { id } });
   });
 
   const create = async (request: import('@playwright/test').APIRequestContext, extra: Record<string, unknown> = {}) => {
@@ -1548,6 +1556,7 @@ test.describe('the chain from requirement to deal, clicked end to end', () => {
   const madeReq: string[] = [];
   const madeVisit: string[] = [];
   const madeDeal: string[] = [];
+  const madeLead: string[] = [];
 
   test.beforeEach(async ({ page }) => {
     await signIn(page, OWNER);
@@ -1562,6 +1571,7 @@ test.describe('the chain from requirement to deal, clicked end to end', () => {
     for (const id of madeDeal) await db.deal.deleteMany({ where: { id } });
     for (const id of madeVisit) await db.visit.deleteMany({ where: { id } });
     for (const id of madeReq) await db.requirement.deleteMany({ where: { id } });
+    for (const id of madeLead) await db.lead.deleteMany({ where: { id } });
   });
 
   test('a requirement can be raised from the queue screen', async ({ page, request }) => {
@@ -1569,10 +1579,16 @@ test.describe('the chain from requirement to deal, clicked end to end', () => {
     await page.locator('#req-new-btn').click();
     await expect(page.getByText('เพิ่ม requirement').last()).toBeVisible();
 
-    const leads = await (await request.get('/api/leads', { headers: { cookie } })).json();
-    const lead = leads.items?.[0];
-    test.skip(!lead, 'no lead to attach to');
+    /* ลีดของตัวเอง — หนึ่ง lead เปิดใบงานค้างได้ทีละใบ (สไลด์ 40) การหยิบลีด
+       ตัวแรกร่วมกับเทสต์อื่นจึงชนกันเอง */
+    const lead = await (await request.post('/api/leads', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { name: `queue-req ${Date.now().toString(36)}` },
+    })).json();
+    madeLead.push(lead.id);
 
+    await page.reload();
+    await page.locator('#req-new-btn').click();
     await page.locator(`[data-lead="${lead.id}"]`).click();
     await page.locator('#req-new-save').click();
     await expect(page).toHaveURL(/\/admin\/requirements\/[a-z0-9]+/);
@@ -2167,9 +2183,18 @@ test.describe('the client shortlist page reads in the customer\'s language', () 
   });
 
   test('the criteria strip is the customer\'s own requirement, translated', async ({ page, request }) => {
-    const leads = await (await request.get('/api/leads', { headers: { cookie } })).json();
-    const leadId = leads.items?.[0]?.id;
-    test.skip(!leadId, 'no lead');
+    /* ลีดของตัวเอง ด้วยเหตุผลเดียวกับเทสต์คิว */
+    const ownLead = await (await request.post('/api/leads', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { name: `client-sl ${Date.now().toString(36)}` },
+    })).json();
+    const leadId = ownLead.id;
+    cleanup.push(async () => {
+      const { PrismaClient } = await import('@prisma/client');
+      const p = new PrismaClient();
+      await p.lead.deleteMany({ where: { id: leadId } });
+      await p.$disconnect();
+    });
 
     const r = await (await request.post('/api/requirements', {
       headers: { cookie },
@@ -2773,10 +2798,13 @@ test.describe('the visit criteria gate (FR-VIS-07)', () => {
     await db2.$disconnect();
   });
 
-  test('"แก้ criteria" opens this customer\'s requirement, not the queue', async ({ page, request }) => {
-    const leads = await (await request.get('/api/leads', { headers: { cookie } })).json();
-    const leadId = leads.items?.[0]?.id;
-    test.skip(!leadId, 'no lead');
+  test('"ลูกค้าเปลี่ยนเกณฑ์" opens this customer\'s requirement, not the queue', async ({ page, request }) => {
+    /* ลีดของตัวเอง — หนึ่ง lead เปิดใบงานค้างได้ทีละใบ (สไลด์ 40) */
+    const ownLead = await (await request.post('/api/leads', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { name: `gate-req ${Date.now().toString(36)}` },
+    })).json();
+    const leadId = ownLead.id;
     const props = await (await request.get('/api/properties', { headers: { cookie } })).json();
     const code = (props.items as { publicCode: string }[])[0]?.publicCode;
 
@@ -2799,6 +2827,7 @@ test.describe('the visit criteria gate (FR-VIS-07)', () => {
       await db2.visit.deleteMany({ where: { id: visit.id } });
       await db2.availabilityCheck.deleteMany({ where: { requirementId: req.id } });
       await db2.requirement.deleteMany({ where: { id: req.id } });
+      await db2.lead.deleteMany({ where: { id: leadId } });
       await db2.$disconnect();
     }
   });

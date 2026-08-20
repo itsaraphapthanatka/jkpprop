@@ -67,6 +67,25 @@ export const POST = handler(async (req: Request) => {
   const lead = await db.lead.findFirst({ where: { id: leadId, orgId: user.orgId } });
   if (!lead) throw new ApiError('NOT_FOUND', 'ไม่พบ lead นี้', 404);
 
+  /* สไลด์ 40 · "ทำไม 1 Leads เปิดใบงานได้หลายใบ — ต้องเปิด REQ และแก้ไขจนจบ
+     ขั้นตอนเป็นรอบไป ถึงจะเปิด REQ ใหม่ได้"
+     ลีดหนึ่งรายเปิดใบงานได้ไม่จำกัด ทีมจึงมี REQ-1009/1010/1011 ของลูกค้าคน
+     เดียวกันค้างพร้อมกัน แล้วไม่รู้ว่าใบไหนคือรอบที่กำลังทำอยู่
+     ใบที่ปิดแล้ว (ยกเลิก) หรือทำจนได้ shortlist แล้ว ไม่นับว่าค้าง */
+  const open = await db.requirement.findFirst({
+    where: { orgId: user.orgId, leadId, status: { in: ['submitted', 'confirmed'] } },
+    orderBy: { createdAt: 'desc' },
+    select: { code: true, status: true },
+  });
+  if (open) {
+    throw new ApiError(
+      'CONFLICT',
+      `ลูกค้ารายนี้มีใบงาน ${open.code} ค้างอยู่ — ทำรอบนั้นให้จบหรือยกเลิกก่อน แล้วค่อยเปิดใบใหม่`,
+      409,
+      { leadId: `มีใบงาน ${open.code} ค้างอยู่` },
+    );
+  }
+
   const code = await nextRequirementCode(user.orgId);
   const created = await db.requirement.create({
     data: {

@@ -5,7 +5,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { stripInternal } from '../../src/lib/server/propertyDto.ts';
-import { PROPERTY_TYPES } from '../../src/lib/propertySchema.ts';
+import { PROPERTY_TYPES, propertyType } from '../../src/lib/propertySchema.ts';
 import { buildSpecs } from '../../src/lib/server/propertySpecs.ts';
 
 const values = {
@@ -96,6 +96,47 @@ describe('the exact location never leaves the building', () => {
       const loc = t.fields.find((f) => f.key === 'location');
       assert.ok(!loc?.sub?.some((sf) => sf.key === 'map'),
         `${t.key} still has a coordinate box inside its location group`);
+    }
+  });
+});
+
+
+/* สไลด์ 27 (แก้เพิ่มหลังรอบแรก) · "ความสูงใต้คาน" และ "โกดัง โรงงาน โชว์รูม
+   มีฟิลเลือกเครน มี/ไม่มี" — สองช่องนี้เคยมีแต่ในชุดของโรงงาน ส่วน ร.ง.4 เป็น
+   ช่องติ๊กที่ตอบได้แค่มี และไม่มีที่เขียนว่าใบไหน */
+describe('ช่องที่ลูกค้าขอเพิ่มในสไลด์ 27', () => {
+  const fieldsOf = (key: string) => propertyType(key).fields;
+  const find = (key: string, fieldKey: string) => fieldsOf(key).find((f) => f.key === fieldKey);
+
+  for (const type of ['warehouse', 'factory', 'showroom']) {
+    test(`${type} มีความสูงใต้คานและเครน`, () => {
+      const height = find(type, 'clear_height');
+      assert.ok(height, `${type} ไม่มีช่องความสูงใต้คาน`);
+      const crane = find(type, 'overhead_crane');
+      assert.ok(crane, `${type} ไม่มีช่องเครน`);
+      assert.equal(crane!.kind, 'select', 'เครนต้องเลือก มี/ไม่มี ไม่ใช่ติ๊กถูก');
+      assert.deepEqual(crane!.options, ['มี', 'ไม่มี']);
+    });
+  }
+
+  test('โรงงานเลือก ร.ง.4 มี/ไม่มี และระบุประเภทใบอนุญาตได้', () => {
+    const lic = find('factory', 'factory_license');
+    assert.ok(lic, 'ไม่มีช่องใบอนุญาต ร.ง.4');
+    assert.equal(lic!.kind, 'select');
+    assert.deepEqual(lic!.options, ['มี', 'ไม่มี']);
+
+    const note = find('factory', 'factory_license_type');
+    assert.ok(note, 'ไม่มีช่องระบุประเภทใบอนุญาต');
+    /* ถามเฉพาะเมื่อบอกว่ามีใบ — ไม่งั้นเป็นช่องว่างที่ไม่มีใครกรอก */
+    assert.deepEqual(note!.showWhen, { field: 'factory_license', in: ['มี'] });
+  });
+
+  test('ทุกช่องที่เพิ่มมีคำแปลในตารางสเปค', () => {
+    for (const key of ['clear_height', 'overhead_crane', 'factory_license', 'factory_license_type']) {
+      const row = buildSpecs({ [key]: key === 'clear_height' ? 6 : 'มี' }, 'en', { disabled: [], extra: [] })
+        .rows.find((r) => r.key === key);
+      assert.ok(row, `${key} ไม่โผล่ในตารางสเปค`);
+      assert.ok(!/[ก-๙]/.test(row!.label), `${key} ป้ายยังเป็นไทยในภาษาอังกฤษ: ${row!.label}`);
     }
   });
 });

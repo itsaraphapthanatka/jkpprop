@@ -552,8 +552,15 @@ test.describe('คอมเมนต์ลูกค้า · เมนูค้�
     await expect(page).toHaveURL(/\/admin(?!\/login)/);
   };
 
-  test('ทั้งสามหน้ามีเมนูค้นหาชุดเดียวกันครบเจ็ดช่อง', async ({ page }) => {
+  test('ทั้งสามหน้ามีเมนูค้นหาชุดเดียวกัน', async ({ page, request }) => {
     await signIn(page);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    /* สไลด์ 22 แก้เพิ่มข้อ 8 "ชื่อคนลงประกาศ หรือ PIC" ทีหลัง — ตัวกรองนี้ขึ้น
+       เฉพาะเมื่อมีทรัพย์ที่ระบุผู้ดูแลไว้จริง ตัวเลือกที่ติ๊กแล้วไม่เจออะไรคือ
+       ตัวเลือกที่ไม่ควรมี */
+    const items = (await (await request.get('/api/listings', { headers: { cookie } })).json()).items as { pic: string }[];
+    const hasPic = items.some((i) => i.pic);
+
     for (const path of PAGES) {
       await page.goto(path);
       await expect(page.locator('[data-inventory-filters]'), `${path} ต้องมีเมนูค้นหาชุดร่วม`).toBeVisible();
@@ -561,7 +568,31 @@ test.describe('คอมเมนต์ลูกค้า · เมนูค้�
       for (const key of WANT) {
         await expect(page.locator(`[data-filter="${key}"]`), `${path} ขาดตัวกรอง ${key}`).toBeVisible();
       }
+      await expect(
+        page.locator('[data-filter="pic"]'),
+        hasPic ? `${path} ขาดตัวกรองผู้ดูแล ทั้งที่มีข้อมูล` : `${path} ไม่ควรเสนอตัวกรองผู้ดูแล เพราะยังไม่มีทรัพย์ไหนระบุไว้`,
+      ).toHaveCount(hasPic ? 1 : 0);
     }
+  });
+
+  test('กรองด้วยผู้ดูแล (PIC) แล้วเหลือเฉพาะของคนนั้น', async ({ page, request }) => {
+    await signIn(page);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    const items = (await (await request.get('/api/listings', { headers: { cookie } })).json()).items as { pic: string }[];
+    const pics = items.map((i) => i.pic).filter(Boolean);
+    test.skip(!pics.length, 'ยังไม่มีทรัพย์ที่ระบุผู้ดูแล');
+    const one = pics[0];
+    const want = pics.filter((p) => p === one).length;
+    test.skip(want === items.length, 'ทุกรายการเป็นของคนเดียวกัน กรองแล้ววัดผลไม่ได้');
+
+    await page.goto('/admin/listings');
+    const rows = page.locator('table tbody tr');
+    await expect.poll(() => rows.count(), { timeout: 15000 }).toBeGreaterThan(want);
+
+    await page.locator('[data-filter="pic"]').click();
+    await page.locator(`[data-filter-opt="${one}"]`).click();
+    await expect(page.locator('[data-filter="pic"][data-on="1"]')).toBeVisible();
+    await expect.poll(() => rows.count()).toBe(want);
   });
 
   test('กรองพื้นที่สีแล้วรายการหดจริง ไม่ใช่ปุ่มเปลี่ยนสีเฉย ๆ', async ({ page }) => {
@@ -1063,5 +1094,137 @@ test.describe('คอมเมนต์ลูกค้า · ปุ่มแช�
     const rows = (Array.isArray(res) ? res : res.items) as { id: string; phone: string }[];
     const made = rows.find((l) => l.phone === phone);
     if (made) await request.delete(`/api/leads/${made.id}`, { headers: { cookie } }).catch(() => null);
+  });
+});
+
+/* สไลด์ 40 (แก้เพิ่มหลังรอบแรก)
+     "Visits — ปุ่มยกเลิกนัดหาย · ยกเลิกต้องระบุข้อความด้วย"
+     "ทำไม 1 Leads เปิดใบงานได้หลายใบ — ต้องเปิด REQ และแก้ไขจนจบขั้นตอน
+      เป็นรอบไป ถึงจะเปิด REQ ใหม่ได้" */
+test.describe('คอมเมนต์ลูกค้า · ยกเลิกนัด และใบงานค้าง', () => {
+  const signIn = async (page: import('@playwright/test').Page) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    return (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  };
+
+  test('ยกเลิกนัดได้ แต่ต้องบอกเหตุผล', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const props = (await (await request.get('/api/properties', { headers: { cookie } })).json()).items as { publicCode: string; status: string }[];
+    const code = props.find((p) => p.status === 'active')?.publicCode;
+    test.skip(!code, 'ยังไม่มีทรัพย์ที่เผยแพร่');
+
+    const when = new Date();
+    when.setDate(when.getDate() + 3);
+    const visit = await (await request.post('/api/visits', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { date: when.toISOString(), codes: [code] },
+    })).json();
+
+    try {
+      /* เซิร์ฟเวอร์ต้องไม่ยอมให้ยกเลิกลอย ๆ แม้จะยิงตรงมาที่ API */
+      const bare = await request.patch(`/api/visits/${visit.id}`, {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { status: 'cancelled' },
+      });
+      expect(bare.status(), 'ยกเลิกโดยไม่ให้เหตุผลต้องถูกปฏิเสธ').toBe(400);
+
+      await page.goto(`/admin/visits/${visit.id}`);
+      await page.locator('#visit-cancel').click();
+      await page.locator('#visit-cancel-save').click();
+      await expect(page.locator('#visit-cancel-error'), 'ไม่กรอกเหตุผลต้องเตือน').toBeVisible();
+
+      await page.locator('#visit-cancel-why').fill('ลูกค้าติดประชุม ขอเลื่อนสัปดาห์หน้า');
+      await page.locator('#visit-cancel-save').click();
+      await expect(page.locator('#visit-cancelled')).toBeVisible({ timeout: 15000 });
+
+      /* เหตุผลต้องถูกเก็บไว้จริง ไม่ใช่แค่เปลี่ยนสถานะบนหน้าจอ */
+      const list = (await (await request.get('/api/visits', { headers: { cookie } })).json()).items as
+        { id: string; status: string; note: string | null }[];
+      const after = list.find((v) => v.id === visit.id)!;
+      expect(after.status).toBe('cancelled');
+      expect(String(after.note ?? ''), 'เหตุผลที่ยกเลิกต้องถูกบันทึก').toContain('ติดประชุม');
+    } finally {
+      await request.delete(`/api/visits/${visit.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+
+  test('ลูกค้ารายเดียวเปิดใบงานค้างได้ทีละใบ', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const lead = await (await request.post('/api/leads', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { name: `บ. ทดสอบใบงานซ้ำ ${Date.now().toString(36)}`, phone: '081-000-0000' },
+    })).json();
+
+    try {
+      const first = await request.post('/api/requirements', {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { leadId: lead.id, dealIntent: 'เช่า' },
+      });
+      expect(first.status(), 'ใบแรกต้องเปิดได้').toBe(201);
+      const req1 = await first.json();
+
+      const second = await request.post('/api/requirements', {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { leadId: lead.id, dealIntent: 'เช่า' },
+      });
+      expect(second.status(), 'ใบที่สองต้องถูกปฏิเสธระหว่างที่ใบแรกยังค้าง').toBe(409);
+      expect(JSON.stringify(await second.json()), 'ต้องบอกว่าใบไหนค้างอยู่').toContain(req1.code);
+
+      /* ปิดรอบแรกแล้วต้องเปิดใบใหม่ได้ */
+      await request.patch(`/api/requirements/${req1.id}`, {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { action: 'cancel', cancelReason: 'ทดสอบ', cancelField: 'budget' },
+      });
+      const third = await request.post('/api/requirements', {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { leadId: lead.id, dealIntent: 'เช่า' },
+      });
+      expect(third.status(), 'ปิดรอบเก่าแล้วต้องเปิดใบใหม่ได้').toBe(201);
+    } finally {
+      await request.delete(`/api/leads/${lead.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+});
+
+/* สไลด์ 42 · "ไม่มีสรุปและประวัติการติดต่อ" — หน้าดีลมีไทม์ไลน์การเจรจา (ยื่น
+   ข้อเสนอกี่รอบ) แต่ไม่มีว่าคุยอะไรกับลูกค้ามาบ้าง ทั้งที่บันทึกอยู่ใน lead แล้ว */
+test.describe('คอมเมนต์ลูกค้า · ประวัติการติดต่อในหน้า Deals', () => {
+  test('หน้าดีลแสดงผู้ติดต่อ เบอร์ และบันทึกการคุยจาก lead', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const lead = await (await request.post('/api/leads', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { name: `บ. ทดสอบประวัติ ${Date.now().toString(36)}`, contact: 'คุณทดสอบ', phone: '081-555-4444' },
+    })).json();
+    const deal = await (await request.post('/api/deals', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { title: `ดีลทดสอบประวัติ ${Date.now().toString(36)}`, leadId: lead.id, amount: 250000 },
+    })).json();
+
+    try {
+      /* เปลี่ยนสถานะ lead — ระบบต้องบันทึกเป็นประวัติให้เอง */
+      await request.patch(`/api/leads/${lead.id}`, {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { status: 'contacted' },
+      });
+
+      await page.goto(`/admin/deals/${deal.id}`);
+      const box = page.locator('[data-deal-history]');
+      await expect(box, 'หน้าดีลต้องมีประวัติการติดต่อ').toBeVisible();
+      await expect(page.locator('[data-deal-phone]'), 'ต้องมีเบอร์ลูกค้าให้กดโทร').toHaveAttribute('href', /^tel:\+?\d+$/);
+      await expect(box.locator('[data-history-row]').first(), 'ต้องเห็นบันทึกที่ระบบเขียนไว้ตอนเปลี่ยนสถานะ').toBeVisible({ timeout: 15000 });
+    } finally {
+      await request.delete(`/api/deals/${deal.id}`, { headers: { cookie } }).catch(() => null);
+      await request.delete(`/api/leads/${lead.id}`, { headers: { cookie } }).catch(() => null);
+    }
   });
 });

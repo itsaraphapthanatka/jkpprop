@@ -199,6 +199,8 @@ const dict: Record<string, Row> = {
   /* misc option values that surface publicly */
   'อื่นๆ': { en: 'Other', zh: '其他' },
   'ไม่ระบุ': { en: 'Not specified', zh: '未指定' },
+  /* คำตอบของช่องแบบเลือก เช่น เครน และใบอนุญาต ร.ง.4 ("ไม่มี" มีอยู่แล้วข้างล่าง) */
+  'มี': { en: 'Yes', zh: '有' },
   '1 เฟส': { en: 'Single phase', zh: '单相电' },
   '3 เฟส': { en: 'Three phase', zh: '三相电' },
 
