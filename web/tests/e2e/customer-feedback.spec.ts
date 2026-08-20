@@ -671,3 +671,54 @@ test.describe('คอมเมนต์ลูกค้า · แท็ก', () =
     expect(after, 'และต้องกรองจริง').toBeLessThanOrEqual(before);
   });
 });
+
+/* สไลด์ 9/14 · "ใช้ระบบเมนูเดียวกัน — ทำตัวกรองให้เหมือนรูปด้านซ้าย"
+   เดิมมีตัวกรองสองชุด: หน้าแรกมี ทำเล·พื้นที่สี·คุณสมบัติ·รับน้ำหนัก ส่วนหน้า
+   รายการมี ทำเล·ประเภท·ขนาด·ราคา และแผงบนหน้าแรกก็เก็บค่าไว้เฉย ๆ ไม่เคยส่ง
+   ไปไหน อีกทั้งตัวเลือกก็เป็นคำที่พิมพ์ไว้ในไฟล์ ไม่ตรงกับข้อมูลจริงสักคำ */
+test.describe('คอมเมนต์ลูกค้า · ตัวกรองชุดเดียวกัน', () => {
+  test('หน้ารายการมีทุกหมวดที่หน้าแรกมี และตัวเลือกบนหน้าแรกก็เป็นค่าจริง', async ({ page, request }) => {
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=500')).json()).items as { features: string[]; zoning: string }[];
+    const realFeatures = new Set(items.flatMap((i) => i.features ?? []));
+
+    await page.goto('/th');
+    await page.getByText('ตัวกรองเพิ่มเติม').first().click();
+    const homeFeatures = await page.locator('[data-more-opt="feature"]').allInnerTexts();
+    expect(homeFeatures.length, 'แผงบนหน้าแรกต้องมีหมวดคุณสมบัติ').toBeGreaterThan(0);
+    for (const o of homeFeatures) {
+      expect(realFeatures.has(o.trim()), `หน้าแรกเสนอ "${o.trim()}" ซึ่งไม่มีในข้อมูลจริง`).toBe(true);
+    }
+
+    await page.goto('/th/listing');
+    for (const title of ['ทำเล', 'พื้นที่สี (ผังเมือง)', 'ประเภทอสังหา', 'ขนาดพื้นที่', 'ช่วงราคา']) {
+      await expect(page.getByText(title, { exact: true }).first(), `หน้ารายการขาดหมวด ${title}`).toBeVisible();
+    }
+  });
+
+  test('ตัวเลือกคุณสมบัติตรงกับค่าที่บันทึกจริง ไม่ใช่คำที่พิมพ์ไว้ในไฟล์', async ({ page, request }) => {
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=500')).json()).items as { features: string[] }[];
+    const real = new Set(items.flatMap((i) => i.features ?? []));
+    test.skip(!real.size, 'ยังไม่มีทรัพย์ที่กรอกคุณสมบัติ');
+
+    await page.goto('/th/listing');
+    const opts = await page.locator('[data-filter-opt="feature"]').allInnerTexts();
+    expect(opts.length, 'หน้ารายการต้องมีหมวดคุณสมบัติ').toBeGreaterThan(0);
+    for (const o of opts) {
+      expect(real.has(o.trim()), `ตัวเลือก "${o.trim()}" ไม่มีอยู่ในข้อมูลจริง`).toBe(true);
+    }
+  });
+
+  test('กรองจากหน้าแรกแล้วหน้ารายการกรองตามจริง', async ({ page, request }) => {
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=500')).json()).items as { code: string; features: string[] }[];
+    const feature = items.flatMap((i) => i.features ?? [])[0];
+    test.skip(!feature, 'ยังไม่มีทรัพย์ที่กรอกคุณสมบัติ');
+    const want = items.filter((i) => (i.features ?? []).includes(feature)).length;
+    test.skip(want === items.length, 'คุณสมบัตินี้มีทุกรายการ กรองแล้ววัดผลไม่ได้');
+
+    await page.goto(`/th/listing?feature=${encodeURIComponent(feature)}`);
+    await expect(page.locator('[data-filter-opt="feature"][data-checked="1"]'), 'ต้องติ๊กมาให้แล้วตามลิงก์').toHaveCount(1);
+    const shown = await page.locator('[data-card]').count();
+    expect(shown, 'ต้องกรองจริง ไม่ใช่แสดงทั้งคลัง').toBeLessThan(items.length);
+    expect(shown).toBeGreaterThan(0);
+  });
+});

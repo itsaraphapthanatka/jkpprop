@@ -40,6 +40,11 @@ export type PublicListing = {
   province: string;
   /** พื้นที่สีตามผังเมือง — ค่าดิบ ใช้ทั้งกรองและทำแท็กที่กดได้ */
   zoning: string;
+  /** โซน (ปลอดอากร · กนอ. · DG) · คุณสมบัติ · รับน้ำหนักพื้น — ตัวกรองบน
+      หน้าแรกเก็บสามอย่างนี้มาตลอด แต่ไม่เคยส่งไปถึงหน้ารายการ */
+  zone: string[];
+  features: string[];
+  loadTon: number | null;
   /** ว่าง/ไม่ว่าง จากข้อมูลที่ทีมกรอก — เก็บมา 129 รายการแล้วแต่หน้าเว็บไม่เคย
       อ่าน ทรัพย์ที่ปล่อยไปแล้วจึงยังโฆษณาว่าว่างอยู่ */
   available: boolean;
@@ -159,6 +164,13 @@ export async function loadPublicListings(q: ListingQuery = {}): Promise<PublicLi
       photos: String(photos.length),
       province,
       zoning: String(values.zoning_color ?? ''),
+      zone: Array.isArray(values.zone) ? (values.zone as unknown[]).map(String) : [],
+      features: Array.isArray(values.features) ? (values.features as unknown[]).map(String) : [],
+      /* เก็บเป็นข้อความ เช่น "3 ตัน/ตร.ม." — ตัวกรองอยากได้ตัวเลขต่ำสุด */
+      loadTon: (() => {
+        const m = /(\d+(?:\.\d+)?)/.exec(String(values.floor_loading ?? ''));
+        return m ? Number(m[1]) : null;
+      })(),
       available: !taken.has(p.id),
     }];
   }).slice(0, limit);

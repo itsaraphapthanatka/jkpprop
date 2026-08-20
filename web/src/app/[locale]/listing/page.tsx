@@ -5,6 +5,7 @@ import { ListingShell } from '@/components/listing/ListingShell';
 import { PROVINCES } from '@/lib/thaiProvinces';
 import { SIZE_ITEMS, PRICE_ITEMS } from '@/lib/listingFilters';
 import { ZONE_COLORS } from '@/lib/propertySchema';
+import { readFilterParams } from '@/lib/publicFilters';
 
 /* Title in the reader's language: this page shipped a hard-coded Thai one to
    every locale, including in search results. */
@@ -34,6 +35,7 @@ export default async function ListingPage({ searchParams }: { searchParams: Prom
   /* ?zone= — แท็กพื้นที่สีบนหน้ารายละเอียดลิงก์มาที่นี่ (สไลด์ 12
      "กดแล้วไม่ไปตามแท็ค") รับเฉพาะสีที่ระบบรู้จัก */
   const zoneColor = ZONE_COLORS.includes(one('zone') ?? '') ? one('zone') : undefined;
+  const more = readFilterParams(sp);
   const price = PRICE_ITEMS.includes(one('price') ?? '') ? one('price') : undefined;
 
   /* ?saved=1 — the heart in the masthead lands here. The codes live in the
@@ -51,6 +53,12 @@ export default async function ListingPage({ searchParams }: { searchParams: Prom
     ...(size ? { sizeSel: size } : {}),
     ...(price ? { priceSel: price } : {}),
     ...(zoneColor ? { zoningSel: [zoneColor] } : {}),
+    /* แผงตัวกรองบนหน้าแรกส่งมาครบทุกหมวดแล้ว หน้านี้ต้องรับให้ครบด้วย */
+    ...(more.areas.length ? { areaSel: more.areas } : {}),
+    ...(more.colors.length && !zoneColor ? { zoningSel: more.colors } : {}),
+    ...(more.zones.length ? { estateSel: more.zones } : {}),
+    ...(more.features.length ? { featureSel: more.features } : {}),
+    ...(more.load !== null ? { loadSel: more.load } : {}),
   };
   const any = Object.keys(preset).some((k) => k !== 'breadcrumb');
   return <ListingShell preset={any || preset.breadcrumb ? preset : undefined} />;

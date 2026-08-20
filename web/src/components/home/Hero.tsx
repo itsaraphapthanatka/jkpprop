@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useI18n } from '@/i18n/useDict';
 import { useRouter } from 'next/navigation';
 import { SIZE_ITEMS, PRICE_ITEMS } from '@/lib/listingFilters';
+import { LOAD_STEPS, writeFilterParams, type Facets } from '@/lib/publicFilters';
+import { zoneSwatch } from '@/lib/zoneSwatch';
 import { enumLabel } from '@/i18n/enums';
 import type { SectionCopy } from '@/lib/server/sectionCopy';
 
@@ -27,22 +29,11 @@ const idleChip: React.CSSProperties = { ...CHIP_BASE, background: 'rgba(255,255,
 /* the same buckets the listing page filters by — the six sizes and five
    price bands this file used to offer could not be honoured there */
 const SIZE_VALS = SIZE_ITEMS;
+
+/* ตัวเลือกทั้งสี่หมวดเคยเป็นรายการที่พิมพ์ไว้ตรงนี้ และไม่ตรงกับค่าที่บันทึก
+   จริงสักค่า — เมนูเขียน "บนถนนสายหลัก" ส่วนข้อมูลเก็บว่า "ใกล้ถนนหลัก"
+   ตอนนี้มาจากทรัพย์ที่เผยแพร่อยู่จริง ผ่าน props */
 const PRICE_VALS = PRICE_ITEMS;
-const ZONE_ITEMS = ['เขตปลอดอากร', 'เขตสีม่วง', 'นิคมอุตสาหกรรม'];
-const FEATURE_ITEMS = ['เครนเหนือศีรษะ', 'บนถนนสายหลัก', 'พนักงานรักษาความปลอดภัย', 'พร้อมพื้นที่สำนักงาน', 'พื้นที่ขนถ่ายสินค้าแบบยกพื้น', 'อาคารเดี่ยว'];
-const LOAD_VALS: [string, string][] = [['any', 'ไม่ระบุต่ำสุด'], ['0.5', '0.5 ton per sqm'], ['1', '1 ton per sqm'], ['2', '2 ton per sqm'], ['3', '3 ton per sqm']];
-// ผังเมือง (กทม. + EEC) — สีตามคู่มือประกาศผังเมือง; อ้างอิงเฉพาะโซนที่เกี่ยวกับทรัพย์อุตสาหกรรม/พาณิชย์เป็นหลัก
-const COLORZONE_ITEMS: { name: string; color: string; desc: string }[] = [
-  { name: 'เขตสีม่วง', color: '#7C4D9E', desc: 'ที่ดินประเภทอุตสาหกรรม' },
-  { name: 'เขตสีม่วงอ่อน', color: '#C79FD0', desc: 'พัฒนา/ส่งเสริมอุตสาหกรรม (EEC)' },
-  { name: 'เขตสีเม็ดมะปราง', color: '#9E5A6B', desc: 'ที่ดินประเภทคลังสินค้า' },
-  { name: 'เขตสีน้ำตาล', color: '#6E4A2A', desc: 'ส่งเสริมเศรษฐกิจพิเศษ (EEC)' },
-  { name: 'เขตสีแดง', color: '#D63C31', desc: 'ที่ดินประเภทพาณิชยกรรม' },
-  { name: 'เขตสีส้ม', color: '#F0862E', desc: 'ชุมชนเมือง / ที่อยู่อาศัยปานกลาง' },
-  { name: 'เขตสีเหลือง', color: '#F3D93B', desc: 'ที่อยู่อาศัยหนาแน่นน้อย' },
-  { name: 'เขตสีเขียว', color: '#4C9A4C', desc: 'ชนบทและเกษตรกรรม' },
-  { name: 'เขตสีน้ำเงิน', color: '#2B5BA8', desc: 'สถาบันราชการ / สาธารณูปโภค' },
-];
 
 const pillStyle = (on: boolean): React.CSSProperties => ({
   padding: '10px 16px', borderRadius: 9999, fontSize: '13.5px', fontWeight: 600, cursor: 'pointer',
@@ -61,7 +52,7 @@ const checkIcon = (
   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
 );
 
-export function Hero({ copy }: { copy: SectionCopy }) {
+export function Hero({ copy, facets = { areas: [], colors: [], zones: [], features: [], types: [] } }: { copy: SectionCopy; facets?: Facets }) {
   const { d, locale } = useI18n();
   const pick = (v: string, fallback: string) => v || fallback;
   /* Nothing is chosen until someone chooses it. These both started applied —
@@ -85,6 +76,8 @@ export function Hero({ copy }: { copy: SectionCopy }) {
     if (propType) p.set('type', propType === 'factory' ? 'โรงงาน' : 'โกดัง');
     if (sizeSel) p.set('size', sizeSel);
     if (priceSel) p.set('price', priceSel);
+    /* สี่หมวดในแผง "ตัวกรองเพิ่มเติม" เคยเก็บ state ไว้เฉย ๆ ไม่เคยส่งไปไหน */
+    writeFilterParams(p, { areas: zoneSel, colors: colorSel, zones: estateSel, features: featureSel, load: loadSel });
     router.push(`/${locale}/listing?${p}`);
   };
 
@@ -93,10 +86,11 @@ export function Hero({ copy }: { copy: SectionCopy }) {
 
   const [moreOpen, setMoreOpen] = useState(false);
   const [secOpen, setSecOpen] = useState<{ zone: boolean; color: boolean; feature: boolean; load: boolean }>({ zone: true, color: true, feature: true, load: true });
-  const [zoneSel, setZoneSel] = useState<string[]>([]);
+  const [zoneSel, setZoneSel] = useState<string[]>([]);      // ทำเล
+  const [estateSel, setEstateSel] = useState<string[]>([]);  // โซน (ปลอดอากร · กนอ. · DG)
   const [colorSel, setColorSel] = useState<string[]>([]);
   const [featureSel, setFeatureSel] = useState<string[]>([]);
-  const [loadSel, setLoadSel] = useState('any');
+  const [loadSel, setLoadSel] = useState<number | null>(null);
 
   const toggleIn = (arr: string[], v: string) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
 
@@ -246,10 +240,10 @@ export function Hero({ copy }: { copy: SectionCopy }) {
               {/* zone */}
               <MoreSection title={d.hero.zone} open={secOpen.zone} onToggle={() => setSecOpen((s) => ({ ...s, zone: !s.zone }))} icon="zone">
                 <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr', gap: 4 }}>
-                  {ZONE_ITEMS.map((label) => {
-                    const on = zoneSel.includes(label);
+                  {facets.zones.map((label) => {
+                    const on = estateSel.includes(label);
                     return (
-                      <div key={label} onClick={() => setZoneSel((a) => toggleIn(a, label))} style={rowSelStyle(on)}>
+                      <div key={label} data-more-opt="estate" onClick={() => setEstateSel((a) => toggleIn(a, label))} style={rowSelStyle(on)}>
                         <div style={boxStyle(on)}>{on && checkIcon}</div>
                         <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{enumLabel(label, locale)}</div>
                       </div>
@@ -260,16 +254,22 @@ export function Hero({ copy }: { copy: SectionCopy }) {
               {/* color zone (ผังเมือง) */}
               <MoreSection title={d.hero.zoneColor} open={secOpen.color} onToggle={() => setSecOpen((s) => ({ ...s, color: !s.color }))} icon="color">
                 <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr', gap: 4 }}>
-                  {COLORZONE_ITEMS.map((z) => {
-                    const on = colorSel.includes(z.name);
+                  {facets.colors.map((value) => {
+                    const on = colorSel.includes(value);
+                    const sw = zoneSwatch(value);
                     return (
-                      <div key={z.name} onClick={() => setColorSel((a) => toggleIn(a, z.name))} style={rowSelStyle(on)}>
+                      <div key={value} data-more-opt="color" onClick={() => setColorSel((a) => toggleIn(a, value))} style={rowSelStyle(on)}>
                         <div style={boxStyle(on)}>{on && checkIcon}</div>
-                        <div style={{ width: 22, height: 22, borderRadius: 6, flexShrink: 0, background: z.color, border: '1px solid rgba(0,0,0,.14)' }} />
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{enumLabel(z.name, locale)}</div>
-                          <div style={{ fontSize: 11, color: 'var(--muted2)' }}>{enumLabel(z.desc, locale)}</div>
-                        </div>
+                        <div
+                          style={{
+                            width: 22, height: 22, borderRadius: 6, flexShrink: 0, border: '1px solid rgba(0,0,0,.14)',
+                            background: !sw ? 'var(--border)'
+                              : sw.hatch ? `repeating-linear-gradient(45deg, ${sw.hatch} 0 3px, ${sw.fill} 3px 6px)`
+                                : sw.dots ? `radial-gradient(#fff 1.4px, ${sw.fill} 1.5px) 0 0/6px 6px`
+                                  : sw.fill,
+                          }}
+                        />
+                        <div style={{ minWidth: 0, fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{enumLabel(value, locale)}</div>
                       </div>
                     );
                   })}
@@ -278,10 +278,10 @@ export function Hero({ copy }: { copy: SectionCopy }) {
               {/* feature */}
               <MoreSection title={d.hero.features} open={secOpen.feature} onToggle={() => setSecOpen((s) => ({ ...s, feature: !s.feature }))} icon="feature">
                 <div id="hero-feature-grid" style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-                  {FEATURE_ITEMS.map((label) => {
+                  {facets.features.map((label) => {
                     const on = featureSel.includes(label);
                     return (
-                      <div key={label} onClick={() => setFeatureSel((a) => toggleIn(a, label))} style={rowSelStyle(on)}>
+                      <div key={label} data-more-opt="feature" onClick={() => setFeatureSel((a) => toggleIn(a, label))} style={rowSelStyle(on)}>
                         <div style={boxStyle(on)}>{on && checkIcon}</div>
                         <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{enumLabel(label, locale)}</div>
                       </div>
@@ -292,12 +292,12 @@ export function Hero({ copy }: { copy: SectionCopy }) {
               {/* load */}
               <MoreSection title={d.hero.floorLoading} open={secOpen.load} onToggle={() => setSecOpen((s) => ({ ...s, load: !s.load }))} icon="load">
                 <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr', gap: 4 }}>
-                  {LOAD_VALS.map(([key, label]) => {
-                    const on = loadSel === key;
+                  {LOAD_STEPS.map((n) => {
+                    const on = loadSel === n;
                     return (
-                      <div key={key} onClick={() => setLoadSel(key)} style={rowSelStyle(on)}>
+                      <div key={n} onClick={() => setLoadSel((cur) => (cur === n ? null : n))} style={rowSelStyle(on)}>
                         <div style={boxStyle(on, true)}>{on && checkIcon}</div>
-                        <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{enumLabel(label, locale)}</div>
+                        <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{n} {d.common.tonPerSqm}</div>
                       </div>
                     );
                   })}
@@ -305,7 +305,7 @@ export function Hero({ copy }: { copy: SectionCopy }) {
               </MoreSection>
             </div>
             <div style={{ display: 'flex', gap: 12, padding: '18px 24px 24px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
-              <div onClick={() => { setZoneSel([]); setColorSel([]); setFeatureSel([]); setLoadSel('any'); }} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, border: '1.5px solid var(--border)', color: 'var(--text)', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>{d.common.clear}</div>
+              <div onClick={() => { setZoneSel([]); setEstateSel([]); setColorSel([]); setFeatureSel([]); setLoadSel(null); }} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, border: '1.5px solid var(--border)', color: 'var(--text)', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>{d.common.clear}</div>
               <div onClick={() => setMoreOpen(false)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, background: 'var(--pine)', color: '#fff', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>{d.common.apply}</div>
             </div>
           </div>

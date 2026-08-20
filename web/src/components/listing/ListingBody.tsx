@@ -8,6 +8,7 @@ import { PropertyCard } from './PropertyCard';
 import { ShareMenu } from '@/components/site/ShareMenu';
 import { useI18n } from '@/i18n/useDict';
 import { propertyType } from '@/lib/propertySchema';
+import { buildFacets, LOAD_STEPS } from '@/lib/publicFilters';
 import { enumLabel } from '@/i18n/enums';
 
 /* ============================================================
@@ -21,7 +22,7 @@ import { enumLabel } from '@/i18n/enums';
 
 type SortKey = 'new' | 'price_asc' | 'price_desc' | 'size_asc' | 'size_desc';
 type Mode = 'rent' | 'sale';
-type SecKey = 'zone' | 'zoning' | 'type' | 'size' | 'price';
+type SecKey = 'zone' | 'zoning' | 'estate' | 'type' | 'size' | 'price' | 'feature' | 'load';
 
 /* zone options are derived from the inventory on the page, not listed here */
 
@@ -46,6 +47,9 @@ export type ListingItem = {
   photos: string;
   province: string;
   zoning: string;
+  zone: string[];
+  features: string[];
+  loadTon: number | null;
   available: boolean;
 };
 
@@ -67,6 +71,9 @@ type Listing = {
      that string was translated (the parser looked for the Thai word ล้าน). */
   priceValue: number;
   zoning: string;
+  zone: string[];
+  features: string[];
+  loadTon: number | null;
   available: boolean;
 };
 
@@ -84,6 +91,9 @@ const toListing = (it: ListingItem): Listing => ({
   areaSqm: it.area,
   province: it.province,
   zoning: it.zoning,
+  zone: it.zone,
+  features: it.features,
+  loadTon: it.loadTon,
   priceValue: it.priceValue,
   available: it.available,
 });
@@ -105,6 +115,11 @@ export interface ListingPreset {
   priceSel?: string;
   /** ?zone= — แท็กพื้นที่สีบนหน้ารายละเอียดลิงก์มาที่นี่ */
   zoningSel?: string[];
+  /** ?area= ?estate= ?feature= ?load= — แผงตัวกรองบนหน้าแรกส่งมา */
+  areaSel?: string[];
+  estateSel?: string[];
+  featureSel?: string[];
+  loadSel?: number | null;
   /** ?saved=1 — arriving from the heart in the masthead */
   onlyFavs?: boolean;
 }
@@ -191,11 +206,15 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
   /* null = both. /listing must not hide every property for sale just because
      the pills default to one of them; preset pages still pin their own. */
   const [listingMode, setListingMode] = useState<Mode | null>(preset.listingMode ?? null);
-  const [secOpen, setSecOpen] = useState<Record<SecKey, boolean>>({ zone: true, zoning: true, type: true, size: true, price: true });
-  const [zoneSel, setZoneSel] = useState<string[]>([]);
+  const [secOpen, setSecOpen] = useState<Record<SecKey, boolean>>({ zone: true, zoning: true, estate: true, type: true, size: true, price: true, feature: true, load: true });
+  const [zoneSel, setZoneSel] = useState<string[]>(preset.areaSel ?? []);
   /* พื้นที่สีเป็นตัวกรองของตัวเอง — เดิมช่องที่ชื่อ "โซน" กลับไล่ชื่ออำเภอ
      ซึ่งคือคอมเมนต์ "โซนแสดงผลไม่ตรง" ในสไลด์ 12 */
   const [zoningSel, setZoningSel] = useState<string[]>(preset.zoningSel ?? []);
+  /* สามหมวดที่เคยมีแต่บนหน้าแรก (สไลด์ 9/14 "ใช้ระบบเมนูเดียวกัน") */
+  const [estateSel, setEstateSel] = useState<string[]>(preset.estateSel ?? []);
+  const [featureSel, setFeatureSel] = useState<string[]>(preset.featureSel ?? []);
+  const [loadSel, setLoadSel] = useState<number | null>(preset.loadSel ?? null);
   const [typeSel, setTypeSel] = useState<string[]>(preset.typeSel ?? []);
   const [sizeSel, setSizeSel] = useState<string | null>(preset.sizeSel ?? null);
   const [priceSel, setPriceSel] = useState<string | null>(preset.priceSel ?? null);
@@ -231,6 +250,9 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
     if (listingMode === 'sale' && it.deal !== 'ขาย') return false;
     if (zoneSel.length && !zoneSel.includes(it.loc)) return false;
     if (zoningSel.length && !zoningSel.includes(it.zoning)) return false;
+    if (estateSel.length && !estateSel.some((z) => it.zone.includes(z))) return false;
+    if (featureSel.length && !featureSel.every((x) => it.features.includes(x))) return false;
+    if (loadSel !== null && (it.loadTon === null || it.loadTon < loadSel)) return false;
     if (typeSel.length && !typeSel.includes(it.type)) return false;
     if (onlyFavs && !favs.has(it.code)) return false;
     if (sizeSel && !inSize(it.areaSqm, sizeSel)) return false;
@@ -262,6 +284,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
      ไม่ตรงกับที่การ์ดแสดง ("โกดัง/คลังสินค้า" ไม่มีเว้นวรรค) ติ๊กแล้วกรองไม่เจอ
      อะไรเลย ส่วนที่หน้าอื่นส่งมาเป็นตัวเลือกตั้งต้นก็ต้องเห็นเสมอ */
   const typeItems = Array.from(new Set([...all.map((it) => it.type), ...typeSel])).filter(Boolean).sort();
+  const facets = buildFacets(all);
 
   const toggleIn = (arr: string[], v: string) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
   const sortLabel = (SORT_DEFS.find((d) => d.key === sortKey) || SORT_DEFS[0]).label;
@@ -287,13 +310,16 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
   const toggleSort = () => setSortOpen((v) => !v);
 
   type Section = { key: SecKey; title: string; items: { label: string; checked: boolean; select: () => void }[] };
-  const sections: Section[] = [
+  const sections: Section[] = ([
     { key: 'zone', title: d.listing.zone, items: zoneItems.map((label) => ({ label, checked: zoneSel.includes(label), select: () => setZoneSel((a) => toggleIn(a, label)) })) },
     { key: 'zoning', title: d.listing.zoneColor, items: zoningItems.map((value) => ({ label: enumLabel(value, locale), checked: zoningSel.includes(value), select: () => setZoningSel((a) => toggleIn(a, value)) })) },
     { key: 'type', title: d.listing.type, items: typeItems.map((label) => ({ label, checked: typeSel.includes(label), select: () => setTypeSel((a) => toggleIn(a, label)) })) },
     { key: 'size', title: d.listing.size, items: SIZE_ITEMS.map((label) => ({ label, checked: sizeSel === label, select: () => setSizeSel((cur) => (cur === label ? null : label)) })) },
     { key: 'price', title: d.listing.price, items: PRICE_ITEMS.map((label) => ({ label, checked: priceSel === label, select: () => setPriceSel((cur) => (cur === label ? null : label)) })) },
-  ];
+    { key: 'estate', title: d.hero.zone, items: facets.zones.map((value) => ({ label: value, checked: estateSel.includes(value), select: () => setEstateSel((a) => toggleIn(a, value)) })) },
+    { key: 'feature', title: d.hero.features, items: facets.features.map((value) => ({ label: value, checked: featureSel.includes(value), select: () => setFeatureSel((a) => toggleIn(a, value)) })) },
+    { key: 'load', title: d.hero.floorLoading, items: LOAD_STEPS.map((n) => ({ label: `${n} ${d.common.tonPerSqm}`, checked: loadSel === n, select: () => setLoadSel((cur) => (cur === n ? null : n)) })) },
+  ] as Section[]).filter((sec) => sec.items.length > 0);
 
   const renderModePills = () => (
     <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
