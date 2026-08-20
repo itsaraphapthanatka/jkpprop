@@ -74,10 +74,12 @@ export function PropertyCard({ it, favFill, onToggleFav }: {
             : <PhotoPlaceholder />}
         </div>
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(var(--ink-rgb),.24) 0%,rgba(var(--ink-rgb),0) 34%,rgba(var(--ink-rgb),0) 62%,rgba(var(--ink-rgb),.38) 100%)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', alignItems: 'center', gap: 6, height: 26, padding: '0 11px', borderRadius: 9999, background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.42)', color: '#fff', fontSize: '11.5px', fontWeight: 700, pointerEvents: 'none', backdropFilter: 'blur(6px)' }}>
-          <span style={{ width: 5, height: 5, borderRadius: 9999, background: '#fff' }} />
-          {enumLabel(it.deal, locale)}
-        </div>
+        {it.deal && (
+          <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', alignItems: 'center', gap: 6, height: 26, padding: '0 11px', borderRadius: 9999, background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.42)', color: '#fff', fontSize: '11.5px', fontWeight: 700, pointerEvents: 'none', backdropFilter: 'blur(6px)' }}>
+            <span style={{ width: 5, height: 5, borderRadius: 9999, background: '#fff' }} />
+            {enumLabel(it.deal, locale)}
+          </div>
+        )}
         {/* ทรัพย์ที่ทีมทำเครื่องหมายว่าไม่ว่าง — เดิมหน้าเว็บโฆษณาว่าว่างเหมือนกันหมด */}
         {it.available === false && (
           <div

@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import Link from '@/i18n/LocaleLink';
 import { PhotoPlaceholder } from '@/components/common/PhotoPlaceholder';
 import { useDict, useI18n } from '@/i18n/useDict';
+import { propertyType } from '@/lib/propertySchema';
 import { enumLabel } from '@/i18n/enums';
 import type { SectionCopy } from '@/lib/server/sectionCopy';
 import { useFavourites } from '@/lib/favourites';
@@ -49,7 +50,8 @@ const toListing = (it: FeaturedItem): Listing => ({
   price: it.price,
   area: it.areaLabel || '—',
   img: it.img,
-  type: it.typeKey === 'factory' ? 'โรงงาน' : 'โกดัง/คลังสินค้า',
+  // ชื่อประเภทมาจาก schema ชุดเดียว ไม่ใช่การเดาจาก typeKey ทีละที่
+  type: propertyType(it.typeKey).label,
   available: it.available,
 });
 

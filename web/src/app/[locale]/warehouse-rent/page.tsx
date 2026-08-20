@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { isLocale, DEFAULT_LOCALE } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { ListingShell } from '@/components/listing/ListingShell';
+import { propertyType } from '@/lib/propertySchema';
 
 /* Title in the reader's language: this page shipped a hard-coded Thai one to
    every locale, including in search results. */
@@ -16,7 +17,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 export default function WarehouseRentPage() {
   return (
     <ListingShell
-      preset={{ breadcrumb: 'โกดังสำหรับเช่า', listingMode: 'rent', typeSel: ['โกดัง/คลังสินค้า'], filterKey: 'warehouse-rent' }}
+      preset={{ breadcrumb: 'โกดังสำหรับเช่า', listingMode: 'rent', typeSel: [propertyType('warehouse').label], filterKey: 'warehouse-rent' }}
     />
   );
 }

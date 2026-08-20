@@ -25,6 +25,9 @@ export type PublicListing = {
   code: string;
   title: string;
   deal: string;
+  /** ประเภทดีลจริง — ป้ายบนการ์ดเลือกได้คำเดียว ทรัพย์ที่ทั้งเช่าและขายจึงถูก
+      ตัวกรอง "ขาย" คัดทิ้ง ทั้งที่ขายอยู่จริง */
+  dealKey: 'rent' | 'sale' | 'both' | 'none';
   loc: string;
   price: string;
   /** the same figure in baht, so sorting and the price filter never have to
@@ -152,7 +155,10 @@ export async function loadPublicListings(q: ListingQuery = {}): Promise<PublicLi
       title: localTitleFor(p, values, q.locale ?? DEFAULT_LOCALE, geo.get(p.orgId)),
       /* stays Thai on purpose: this is the enum key. Both the badge
          (enumLabel) and the listing page's rent/sale filter match on it. */
-      deal: isRent ? 'ให้เช่า' : 'ขาย',
+      /* ทรัพย์ที่ยังไม่ได้กรอกประเภทประกาศเคยถูกติดป้ายว่า "ขาย" เพราะเงื่อนไข
+         มีแค่สองทาง ปล่อยว่างไว้ดีกว่าติดป้ายผิด */
+      deal: isRent ? 'ให้เช่า' : isSale ? 'ขาย' : '',
+      dealKey: (isRent && isSale ? 'both' : isRent ? 'rent' : isSale ? 'sale' : 'none') as PublicListing['dealKey'],
       loc: displayLocation(values, q.locale ?? DEFAULT_LOCALE, geo.get(p.orgId))
         || provinceLabel(province, q.locale ?? DEFAULT_LOCALE, geo.get(p.orgId)) || '—',
       price,

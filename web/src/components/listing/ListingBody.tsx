@@ -46,6 +46,7 @@ export type ListingItem = {
   img: string | null;
   photos: string;
   province: string;
+  dealKey: 'rent' | 'sale' | 'both' | 'none';
   zoning: string;
   zone: string[];
   features: string[];
@@ -70,6 +71,7 @@ type Listing = {
      server: it used to be parsed back out of `price`, which broke the moment
      that string was translated (the parser looked for the Thai word ล้าน). */
   priceValue: number;
+  dealKey: 'rent' | 'sale' | 'both' | 'none';
   zoning: string;
   zone: string[];
   features: string[];
@@ -90,6 +92,7 @@ const toListing = (it: ListingItem): Listing => ({
   area: it.areaLabel || '—',
   areaSqm: it.area,
   province: it.province,
+  dealKey: it.dealKey,
   zoning: it.zoning,
   zone: it.zone,
   features: it.features,
@@ -246,8 +249,10 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
   const filtered = all.filter((it) => {
     // the words typed into the home page's search box
     if (term && ![it.title, it.code, it.loc, it.province].some((f) => (f ?? '').toLowerCase().includes(term))) return false;
-    if (listingMode === 'rent' && it.deal !== 'ให้เช่า') return false;
-    if (listingMode === 'sale' && it.deal !== 'ขาย') return false;
+    /* ทรัพย์ที่ทั้งเช่าและขายต้องขึ้นทั้งสองหน้า — เดิมเทียบกับป้ายบนการ์ด
+       ซึ่งเลือกได้คำเดียว หน้าขายจึงว่างเปล่าทั้งที่มีของขายอยู่ */
+    if (listingMode === 'rent' && !(it.dealKey === 'rent' || it.dealKey === 'both')) return false;
+    if (listingMode === 'sale' && !(it.dealKey === 'sale' || it.dealKey === 'both')) return false;
     if (zoneSel.length && !zoneSel.includes(it.loc)) return false;
     if (zoningSel.length && !zoningSel.includes(it.zoning)) return false;
     if (estateSel.length && !estateSel.some((z) => it.zone.includes(z))) return false;

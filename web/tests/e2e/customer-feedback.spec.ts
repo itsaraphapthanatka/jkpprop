@@ -722,3 +722,40 @@ test.describe('คอมเมนต์ลูกค้า · ตัวกรอ�
     expect(shown).toBeGreaterThan(0);
   });
 });
+
+/* หน้าประเภท/ทำเลทุกหน้ากรองด้วย preset ที่เขียนชื่อประเภทเป็นข้อความไว้ในไฟล์
+   พอเปลี่ยนชื่อประเภทตามสไลด์ 22 ("โกดัง / คลังสินค้า" → "โกดัง") preset ก็ชี้
+   ไปที่คำที่ไม่มีอยู่แล้ว หน้าโกดังให้เช่าและโกดังขายจึงว่างเปล่าทั้งหน้า
+   โดยไม่มีอะไรฟ้อง
+
+   เทสต์นี้นับจาก API เองว่าหน้านั้นควรมีกี่รายการ แล้วเทียบกับที่หน้าแสดงจริง
+   หน้าที่ไม่มีของเพราะคลังไม่มีจริง ๆ จะถูกข้าม ไม่ใช่ถูกนับว่าผ่าน */
+type Pub = { code: string; dealKey: string; typeKey: string; province: string };
+
+test.describe('หน้าประเภทและทำเลต้องไม่ว่างเปล่าเมื่อมีของ', () => {
+  const PAGES: { path: string; want: (r: Pub) => boolean }[] = [
+    { path: 'warehouse-rent', want: (r) => r.typeKey === 'warehouse' && ['rent', 'both'].includes(r.dealKey) },
+    { path: 'warehouse-sale', want: (r) => r.typeKey === 'warehouse' && ['sale', 'both'].includes(r.dealKey) },
+    { path: 'factory-rent', want: (r) => r.typeKey === 'factory' && ['rent', 'both'].includes(r.dealKey) },
+    { path: 'factory-sale', want: (r) => r.typeKey === 'factory' && ['sale', 'both'].includes(r.dealKey) },
+    { path: 'bangkok-cbd', want: (r) => r.province.includes('กรุงเทพ') },
+    { path: 'bangkok-nonthaburi', want: (r) => r.province.includes('นนทบุรี') },
+    { path: 'airport-suvarnabhumi', want: (r) => r.province.includes('สมุทรปราการ') },
+    { path: 'airport-donmuang', want: (r) => r.province.includes('ปทุมธานี') },
+    { path: 'port-laem-chabang', want: (r) => r.province.includes('ชลบุรี') },
+    { path: 'port-mahachai', want: (r) => r.province.includes('สมุทรสาคร') },
+    { path: 'port-map-ta-phut', want: (r) => r.province.includes('ระยอง') },
+  ];
+
+  for (const { path, want } of PAGES) {
+    test(`/${path} แสดงทรัพย์ที่ควรอยู่ในหน้านั้น`, async ({ page, request }) => {
+      const rows = (await (await request.get('/api/public/listings?locale=th&limit=500')).json()).items as Pub[];
+      const expected = rows.filter(want).length;
+      test.skip(!expected, 'คลังไม่มีทรัพย์ที่เข้าเกณฑ์หน้านี้');
+
+      await page.goto(`/th/${path}`);
+      const shown = await page.locator('[data-card]').count();
+      expect(shown, `ควรมี ${expected} รายการ แต่หน้านี้ไม่แสดงอะไรเลย`).toBeGreaterThan(0);
+    });
+  }
+});
