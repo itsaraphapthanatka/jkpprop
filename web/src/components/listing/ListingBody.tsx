@@ -7,7 +7,7 @@ import Link from '@/i18n/LocaleLink';
 import { PropertyCard } from './PropertyCard';
 import { ShareMenu } from '@/components/site/ShareMenu';
 import { useI18n } from '@/i18n/useDict';
-import { PROPERTY_TYPES, propertyType } from '@/lib/propertySchema';
+import { propertyType } from '@/lib/propertySchema';
 import { enumLabel } from '@/i18n/enums';
 
 /* ============================================================
@@ -24,10 +24,7 @@ type Mode = 'rent' | 'sale';
 type SecKey = 'zone' | 'zoning' | 'type' | 'size' | 'price';
 
 /* zone options are derived from the inventory on the page, not listed here */
-/* ตัวเลือกประเภทมาจาก schema ชุดเดียวกับหลังบ้าน — เดิมเป็นสองคำที่พิมพ์ไว้
-   ตรงนี้ และคำหนึ่งก็สะกดไม่ตรงกับที่การ์ดแสดง ("โกดัง/คลังสินค้า" ไม่มีเว้นวรรค)
-   ติ๊กแล้วจึงกรองไม่เจออะไรเลย */
-const TYPE_ITEMS = PROPERTY_TYPES.map((t) => t.label);
+
 
 
 /* One card's worth of published inventory, handed down from the server
@@ -261,6 +258,10 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
   const zoneItems = Array.from(new Set(all.map((it) => it.loc).filter((l) => l && l !== '—'))).sort();
   // เช่นเดียวกัน — เอาเฉพาะสีที่มีทรัพย์จริง ไม่ใช่รายการสีทั้งหมด
   const zoningItems = Array.from(new Set(all.map((it) => it.zoning).filter(Boolean))).sort();
+  /* ประเภทก็มาจากของที่มีจริง เดิมเป็นสองคำที่พิมพ์ไว้ในไฟล์ และคำหนึ่งสะกด
+     ไม่ตรงกับที่การ์ดแสดง ("โกดัง/คลังสินค้า" ไม่มีเว้นวรรค) ติ๊กแล้วกรองไม่เจอ
+     อะไรเลย ส่วนที่หน้าอื่นส่งมาเป็นตัวเลือกตั้งต้นก็ต้องเห็นเสมอ */
+  const typeItems = Array.from(new Set([...all.map((it) => it.type), ...typeSel])).filter(Boolean).sort();
 
   const toggleIn = (arr: string[], v: string) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
   const sortLabel = (SORT_DEFS.find((d) => d.key === sortKey) || SORT_DEFS[0]).label;
@@ -289,7 +290,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
   const sections: Section[] = [
     { key: 'zone', title: d.listing.zone, items: zoneItems.map((label) => ({ label, checked: zoneSel.includes(label), select: () => setZoneSel((a) => toggleIn(a, label)) })) },
     { key: 'zoning', title: d.listing.zoneColor, items: zoningItems.map((value) => ({ label: enumLabel(value, locale), checked: zoningSel.includes(value), select: () => setZoningSel((a) => toggleIn(a, value)) })) },
-    { key: 'type', title: d.listing.type, items: TYPE_ITEMS.map((label) => ({ label, checked: typeSel.includes(label), select: () => setTypeSel((a) => toggleIn(a, label)) })) },
+    { key: 'type', title: d.listing.type, items: typeItems.map((label) => ({ label, checked: typeSel.includes(label), select: () => setTypeSel((a) => toggleIn(a, label)) })) },
     { key: 'size', title: d.listing.size, items: SIZE_ITEMS.map((label) => ({ label, checked: sizeSel === label, select: () => setSizeSel((cur) => (cur === label ? null : label)) })) },
     { key: 'price', title: d.listing.price, items: PRICE_ITEMS.map((label) => ({ label, checked: priceSel === label, select: () => setPriceSel((cur) => (cur === label ? null : label)) })) },
   ];
@@ -311,7 +312,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
         {secOpen[sec.key] && (
           <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
             {sec.items.map((it) => (
-              <div key={enumLabel(it.label, locale)} onClick={it.select} style={checkStyle(it.checked)}>
+              <div key={enumLabel(it.label, locale)} data-filter-opt={sec.key} data-checked={it.checked ? '1' : '0'} onClick={it.select} style={checkStyle(it.checked)}>
                 <div style={boxStyle(it.checked)}>{it.checked && checkIcon}</div>
                 <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{enumLabel(it.label, locale)}</div>
               </div>

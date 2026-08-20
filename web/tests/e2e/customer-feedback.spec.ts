@@ -651,4 +651,23 @@ test.describe('คอมเมนต์ลูกค้า · แท็ก', () =
     await expect(page.getByText('พื้นที่สี (ผังเมือง)').first(), 'ต้องมีหมวดพื้นที่สี').toBeVisible();
     await expect(page.getByText('ทำเล').first(), 'และหมวดทำเลแยกกัน').toBeVisible();
   });
+
+  /* ตัวเลือกที่ติ๊กแล้วไม่เจออะไรเลยคือตัวเลือกที่ไม่ควรมี */
+  test('ตัวกรองประเภทมีเฉพาะประเภทที่มีทรัพย์จริง และติ๊กแล้วกรองได้', async ({ page, request }) => {
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=500')).json()).items as { typeKey: string }[];
+    test.skip(!items.length, 'ยังไม่มีทรัพย์');
+    const kinds = new Set(items.map((i) => i.typeKey));
+
+    await page.goto('/th/listing');
+    const opts = page.locator('[data-filter-opt="type"]');
+    await expect(opts.first()).toBeVisible();
+    expect(await opts.count(), 'ตัวเลือกประเภทต้องไม่เกินจำนวนประเภทที่มีของจริง').toBeLessThanOrEqual(kinds.size);
+
+    const before = await page.locator('[data-card]').count();
+    await opts.first().click();
+    await expect(page.locator('[data-filter-opt="type"][data-checked="1"]')).toHaveCount(1);
+    const after = await page.locator('[data-card]').count();
+    expect(after, 'ติ๊กแล้วต้องได้ผลลัพธ์ ไม่ใช่ว่างเปล่า').toBeGreaterThan(0);
+    expect(after, 'และต้องกรองจริง').toBeLessThanOrEqual(before);
+  });
 });
