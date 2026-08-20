@@ -943,3 +943,64 @@ test.describe('คอมเมนต์ลูกค้า · หน้า Requir
     expect(raw.includes('lessor_phone'), 'เบอร์เจ้าของหลุดออก API สาธารณะ').toBe(false);
   });
 });
+
+/* สไลด์ 36 · "Leads ไม่มีให้คีย์ข้อมูลความต้องการลูกค้า ตาม GG Form ที่ส่งให้
+   สำหรับเซลล์" — ฟอร์มบนหน้า /contact ถามครบทั้งประเภททรัพย์ · เช่า/ซื้อ ·
+   พื้นที่ · ทำเล · งบ · รายละเอียด แล้วเปิดใบงาน Requirement ให้ทันที
+   ส่วนลีดที่เซลล์คีย์เองในหลังบ้านเก็บได้แค่ชื่อกับเบอร์ */
+test.describe('คอมเมนต์ลูกค้า · เพิ่ม Lead ในหลังบ้าน', () => {
+  const signIn = async (page: import('@playwright/test').Page) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    return (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  };
+
+  test('เก็บความต้องการครบเหมือนฟอร์มหน้าติดต่อ และเปิดใบงานให้เอง', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const name = `บ. ทดสอบคีย์เอง ${Date.now().toString(36)}`;
+
+    await page.goto('/admin/leads');
+    await page.getByText('เพิ่ม Lead').first().click();
+    await page.getByPlaceholder('เช่น บ. ไทยโลจิสติกส์').fill(name);
+    await page.getByPlaceholder('เช่น คุณสมชาย').fill('คุณทดสอบ');
+    await page.getByPlaceholder('+66 8x-xxx-xxxx').fill('081-999-8888');
+
+    // ช่องที่หน้าติดต่อมี แต่หลังบ้านไม่เคยมี
+    await page.locator('[data-lead-type]').selectOption('factory');
+    await page.locator('[data-lead-deal]').selectOption('เช่า');
+    await page.locator('[data-lead-area]').fill('1500');
+    await page.locator('[data-lead-location]').fill('บางนา, สมุทรปราการ');
+    await page.locator('[data-lead-budget]').fill('150,000/เดือน');
+    await page.locator('[data-lead-message]').fill('ลูกค้าโทรมาถามเมื่อเช้า');
+    await page.locator('#lead-create-save').click();
+
+    /* ลีดต้องเก็บความต้องการไว้จริง */
+    type SavedLead = { id: string; name: string; typeKey: string; message: string; req: { k: string; v: string }[] };
+    const findLead = async (): Promise<SavedLead | undefined> => {
+      const res = await (await request.get('/api/leads?limit=50', { headers: { cookie } })).json();
+      const rows = (Array.isArray(res) ? res : res.items) as SavedLead[];
+      return rows.find((l) => l.name === name);
+    };
+    await expect.poll(async () => (await findLead())?.id ?? null, { timeout: 15000 }).not.toBeNull();
+    const saved = (await findLead())!;
+
+    expect(saved.typeKey, 'ประเภททรัพย์').toBe('factory');
+    expect(saved.message, 'รายละเอียดที่พิมพ์ไว้').toContain('ลูกค้าโทรมาถามเมื่อเช้า');
+    const req = JSON.stringify(saved.req ?? []);
+    expect(req, 'พื้นที่ที่ต้องการ').toContain('1500');
+    expect(req, 'ทำเล').toContain('บางนา');
+    expect(req, 'งบ').toContain('150,000');
+
+    /* และต้องเปิดใบงาน Requirement ให้เหมือนที่ฟอร์มบนเว็บทำ ไม่ใช่จบแค่แถวลีด */
+    const reqs = (await (await request.get('/api/requirements?limit=50', { headers: { cookie } })).json());
+    const list = (Array.isArray(reqs) ? reqs : reqs.items) as { leadId: string; code: string; areaMin: number | null }[];
+    const mine = list.find((r) => r.leadId === saved.id);
+    expect(mine, 'ต้องมีใบงาน Requirement ให้ทีมทำงานต่อ').toBeTruthy();
+    expect(mine!.code).toMatch(/^REQ-/);
+
+    await request.delete(`/api/leads/${saved.id}`, { headers: { cookie } }).catch(() => null);
+  });
+});

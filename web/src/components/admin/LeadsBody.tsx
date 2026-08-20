@@ -3,6 +3,7 @@ import * as React from 'react';
 import { loadLeads, relTime, type StoredLead } from '@/lib/leadStore';
 import { apiGet, apiPost, apiPatch, ApiClientError } from '@/lib/apiClient';
 import Link from 'next/link';
+import { PROPERTY_TYPES, propertyType } from '@/lib/propertySchema';
 
 /* Ported from AdminLeads.dc.html <main> — interactive leads split view:
    lead list + detail card (status/agent dropdowns), filter chips,
@@ -182,7 +183,15 @@ export function LeadsBody() {
   const [creating, setCreating] = React.useState(false);
   /* สไลด์ 16 · ลูกค้า/นายหน้า — ฟอร์มบนเว็บถามอยู่แล้ว แต่ลีดที่เซลล์คีย์เอง
      ไม่เคยมีช่องนี้ เลยแยกไม่ออกว่าใครเป็นใคร */
-  const emptyForm = { name: '', contact: '', country: 'TH', phone: '', email: '', source: 'contact form', statusK: 'new', agent: '', who: 'ลูกค้า' };
+  /* สไลด์ 36 · "Leads ไม่มีให้คีย์ข้อมูลความต้องการลูกค้า ตาม GG Form"
+     ฟอร์มบนหน้าติดต่อถามครบทั้งประเภททรัพย์ · เช่า/ซื้อ · พื้นที่ · ทำเล · งบ ·
+     รายละเอียด แล้วเปิดใบงาน Requirement ให้เลย แต่ลีดที่เซลล์คีย์เองเก็บได้
+     แค่ชื่อกับเบอร์ ความต้องการที่ลูกค้าบอกทางโทรศัพท์จึงไม่มีที่ลง */
+  const emptyForm = {
+    name: '', contact: '', country: 'TH', phone: '', email: '',
+    source: 'contact form', statusK: 'new', agent: '', who: 'ลูกค้า',
+    typeKey: 'warehouse', dealIntent: 'เช่า', area: '', location: '', budget: '', message: '',
+  };
   const [form, setForm] = React.useState(emptyForm);
   const setF = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
   const canCreate = form.name.trim().length > 0;
@@ -458,6 +467,17 @@ export function LeadsBody() {
         source: form.source,
         status: form.statusK,
         respondentType: form.who,
+        /* ส่งเป็นชุดเดียวกับที่ฟอร์มบนเว็บส่ง เพื่อให้ได้ Requirement เหมือนกัน */
+        typeKey: form.typeKey,
+        typeLabel: propertyType(form.typeKey).label,
+        dealIntent: form.dealIntent,
+        message: form.message.trim(),
+        req: [
+          { k: 'ต้องการ', v: form.dealIntent },
+          form.area.trim() && { k: 'พื้นที่ใช้สอยที่ต้องการ', v: `${form.area.trim()} ตร.ม.` },
+          form.location.trim() && { k: 'ทำเล / จังหวัดที่สนใจ', v: form.location.trim() },
+          form.budget.trim() && { k: 'งบประมาณ (เช่า/ซื้อ)', v: form.budget.trim() },
+        ].filter(Boolean),
         // ช่อง "มอบหมายให้" ในฟอร์มนี้เคยส่งชื่อที่พิมพ์ไว้ในโค้ดไปเปล่า ๆ
         assigneeId: form.agent || null,
       });
@@ -538,6 +558,44 @@ export function LeadsBody() {
                 </div>
                 <div />
               </div>
+              {/* ความต้องการ — ชุดเดียวกับฟอร์มบนหน้าติดต่อ กรอกได้เท่าที่ลูกค้าบอก
+                  ถ้ากรอกมาอย่างน้อยหนึ่งช่อง ระบบจะเปิดใบงาน Requirement ให้ */}
+              <div style={{ marginTop: 4, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+                <div style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text)', marginBottom: 10 }}>ความต้องการของลูกค้า</div>
+                <div style={fGrid}>
+                  <div>
+                    <label style={fLabel}>ประเภททรัพย์</label>
+                    <select value={form.typeKey} onChange={(e) => setF('typeKey', e.target.value)} style={fSelect} data-lead-type>
+                      {PROPERTY_TYPES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={fLabel}>ต้องการ</label>
+                    <select value={form.dealIntent} onChange={(e) => setF('dealIntent', e.target.value)} style={fSelect} data-lead-deal>
+                      {['เช่า', 'ซื้อ', 'เช่า / ซื้อ'].map((v) => <option key={v} value={v}>{v}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div style={fGrid}>
+                  <div><label style={fLabel}>พื้นที่ที่ต้องการ (ตร.ม.)</label><input value={form.area} onChange={(e) => setF('area', e.target.value)} placeholder="เช่น 1500 หรือ 1000-3000" style={fInput} data-lead-area /></div>
+                  <div><label style={fLabel}>ทำเล / จังหวัดที่สนใจ</label><input value={form.location} onChange={(e) => setF('location', e.target.value)} placeholder="เช่น บางนา, สมุทรปราการ" style={fInput} data-lead-location /></div>
+                </div>
+                <div>
+                  <label style={fLabel}>งบประมาณ (เช่า/ซื้อ)</label>
+                  <input value={form.budget} onChange={(e) => setF('budget', e.target.value)} placeholder="เช่น 150,000/เดือน หรือ 40 ล้าน" style={fInput} data-lead-budget />
+                </div>
+                <div style={{ marginTop: 12 }}>
+                  <label style={fLabel}>รายละเอียดเพิ่มเติม</label>
+                  <textarea
+                    value={form.message}
+                    onChange={(e) => setF('message', e.target.value)}
+                    placeholder="บอกเราเกี่ยวกับความต้องการของลูกค้าเพิ่มเติม…"
+                    data-lead-message
+                    style={{ ...fInput, height: 76, padding: '10px 14px', resize: 'none', fontFamily: 'inherit' }}
+                  />
+                </div>
+              </div>
+
               <div>
                 <label style={fLabel}>มอบหมายให้</label>
                 <select value={form.agent} onChange={(e) => setF('agent', e.target.value)} style={fSelect}>

@@ -6,6 +6,7 @@ import { requireUser, requireRole, scopeWhere } from '@/lib/server/auth';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
 import { leadDto } from '@/lib/server/leadDto';
+import { nextRequirementCode, requirementFromForm, type ReqItem } from '@/lib/server/requirements';
 import type { Prisma } from '@prisma/client';
 
 export const GET = handler(async (req: Request) => {
@@ -56,6 +57,28 @@ export const POST = handler(async (req: Request) => {
     },
   });
 
-  await audit({ user, orgId: user.orgId, action: 'lead.create', entity: 'lead', entityId: lead.id, after: { name: lead.name, source: lead.source } });
+  /* สไลด์ 36 · "Leads ไม่มีให้คีย์ข้อมูลความต้องการลูกค้า" — ฟอร์มบนเว็บสร้าง
+     Requirement ให้ทันทีเพื่อให้งานเข้าคิว Flow B แต่ลีดที่เซลล์คีย์เองจบแค่
+     แถวใน Lead งานจึงไม่ไปไหนต่อ ตอนนี้เดินเส้นเดียวกัน: ถ้าคีย์ความต้องการ
+     มาด้วย จะได้ Requirement พร้อมรหัสเหมือนกัน */
+  let requirementCode = '';
+  if (Array.isArray(body?.req) && body.req.length) {
+    try {
+      requirementCode = await nextRequirementCode(user.orgId);
+      await db.requirement.create({
+        data: {
+          orgId: user.orgId,
+          code: requirementCode,
+          leadId: lead.id,
+          ...requirementFromForm(body.req as ReqItem[], lead),
+        },
+      });
+    } catch {
+      /* ลีดบันทึกไปแล้ว — ถ้าสร้างใบงานต่อไม่ได้ ให้ทีมไปสร้างเองทีหลัง
+         ดีกว่าบอกว่าบันทึกไม่สำเร็จทั้งที่ข้อมูลลูกค้าเก็บไว้แล้ว */
+    }
+  }
+
+  await audit({ user, orgId: user.orgId, action: 'lead.create', entity: 'lead', entityId: lead.id, after: { name: lead.name, source: lead.source, requirement: requirementCode } });
   return ok(leadDto(lead, user), { status: 201 });
 });
