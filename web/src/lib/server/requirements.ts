@@ -85,7 +85,7 @@ export function requirementInput(body: Record<string, unknown>) {
 }
 
 export type RequirementRow = Requirement & {
-  lead: { id: string; name: string; company: string | null; status: string } | null;
+  lead: { id: string; name: string; company: string | null; status: string; phone?: string; email?: string; respondentType?: string | null } | null;
   _count?: { checks: number; shortlists: number };
 };
 
@@ -99,6 +99,10 @@ export function requirementDto(r: RequirementRow) {
     leadName: r.lead?.name ?? '',
     company: r.lead?.company ?? '',
     leadStatus: r.lead?.status ?? '',
+    /* สไลด์ 37 · ใครคือลูกค้าเจ้านี้ และจะโทรกลับที่เบอร์ไหน */
+    leadPhone: r.lead?.phone ?? '',
+    leadEmail: r.lead?.email ?? '',
+    leadWho: r.lead?.respondentType ?? '',
     dealIntent: r.dealIntent,
     typeKey: r.typeKey,
     usage: r.usage,

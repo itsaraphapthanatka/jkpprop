@@ -12,7 +12,9 @@ import { requirementInput, requirementDto, CANCEL_FIELDS } from '@/lib/server/re
 import { displayArea, displayLocation, stripInternal } from '@/lib/server/propertyDto';
 
 const INCLUDE = {
-  lead: { select: { id: true, name: true, company: true, status: true } },
+  /* สไลด์ 37 · "ชื่อลูกค้าหรือบริษัทอยู่ตรงไหน · รู้ได้อย่างไรว่าทำแผนลูกค้า
+     เจ้าไหน" — หน้า REQ มีแต่รหัส REQ-xxxx เบอร์กับผู้รับผิดชอบไม่เคยส่งมา */
+  lead: { select: { id: true, name: true, company: true, status: true, phone: true, email: true, respondentType: true, assigneeId: true } },
   _count: { select: { checks: true, shortlists: true } },
 } as const;
 
@@ -50,6 +52,15 @@ async function checksFor(orgId: string, requirementId: string) {
       stillActive: p.status === 'active',
       available: c.result === 'available' && p.status === 'active',
       note: c.note,
+      /* รูปกับเบอร์เจ้าของ — สไลด์ 37 "นำเบอร์เจ้าของมาจากไหน" และ "ต้องมี
+         รูปภาพเพื่อยืนยัน" เดิมแถวนี้มีแต่รหัสกับชื่อ ถ้าจะโทรถามซ้ำต้องไป
+         เปิดอีกหน้าหาเบอร์เอาเอง (หน้านี้ต้องล็อกอินอยู่แล้ว) */
+      img: (() => {
+        const raw = ((p.values ?? {}) as Record<string, unknown>).photos;
+        return Array.isArray(raw) && typeof raw[0] === 'string' ? (raw[0] as string) : null;
+      })(),
+      contactName: String(((p.values ?? {}) as Record<string, unknown>).lessor_name ?? ''),
+      contactPhone: String(((p.values ?? {}) as Record<string, unknown>).lessor_phone ?? ''),
       checkedAt: c.checkedAt.getTime(),
     }];
   });

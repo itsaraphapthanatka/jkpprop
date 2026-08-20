@@ -18,7 +18,16 @@ import { apiGet, apiPatch, apiPost, apiDelete, ApiClientError } from '@/lib/apiC
  * the FR-AVL-04 gate enforced by the server when the shortlist is built.
  */
 
+/** ทรัพย์ที่ระบบเสนอให้เช็ค — มาจาก /api/requirements/:id/candidates */
+type Candidate = {
+  id: string; code: string; title: string; typeLabel: string; province: string;
+  area: number | null; price: number | null; img: string | null;
+  available: boolean; contactName: string; contactPhone: string; contactCompany: string;
+  alreadyChecked: boolean; misses: string[]; fit: boolean;
+};
+
 type Check = {
+  img?: string | null; contactName?: string; contactPhone?: string;
   id: string; propertyId: string; code: string; title: string;
   area: number | null; location: string;
   result: string; stillActive: boolean; available: boolean;
@@ -30,6 +39,7 @@ type CancelField = { key: string; label: string };
 type Detail = {
   id: string; code: string; status: string; statusLabel: string;
   leadId: string; leadName: string; company: string; leadStatus: string;
+  leadPhone: string; leadEmail: string; leadWho: string;
   dealIntent: string; typeKey: string; usage: string;
   areaMin: number | null; areaMax: number | null;
   budgetMin: number | null; budgetMax: number | null;
@@ -129,6 +139,22 @@ export function RequirementBody({ id }: { id: string }) {
   const [checkResult, setCheckResult] = React.useState('available');
   const [checkNote, setCheckNote] = React.useState('');
   const [checkErr, setCheckErr] = React.useState('');
+  /* สไลด์ 35/37 · เดิมช่องนี้ให้พิมพ์รหัสทรัพย์ที่คนคีย์ไม่มีทางรู้ ตอนนี้เลือก
+     จากรายการที่เข้าเกณฑ์ พร้อมรูป ราคา สถานะว่าง และเบอร์เจ้าของให้โทรได้เลย */
+  const [cands, setCands] = React.useState<Candidate[] | null>(null);
+  const [candQ, setCandQ] = React.useState('');
+  const [picked, setPicked] = React.useState<Candidate | null>(null);
+
+  const loadCandidates = React.useCallback((term: string) => {
+    apiGet<{ items: Candidate[] }>(`/api/requirements/${id}/candidates?q=${encodeURIComponent(term)}`)
+      .then((r) => setCands(r.items))
+      .catch(() => setCands([]));
+  }, [id]);
+  React.useEffect(() => {
+    if (!checkOpen) return;
+    const t = window.setTimeout(() => loadCandidates(candQ), candQ ? 250 : 0);
+    return () => window.clearTimeout(t);
+  }, [checkOpen, candQ, loadCandidates]);
 
   const flash = (msg: string, ms = 2600) => {
     setToast(msg);
@@ -203,13 +229,15 @@ export function RequirementBody({ id }: { id: string }) {
 
   const saveCheck = async () => {
     setCheckErr('');
-    if (!checkCode.trim()) { setCheckErr('กรุณากรอกรหัสทรัพย์'); return; }
+    if (!checkCode.trim()) { setCheckErr('เลือกทรัพย์ที่โทรถามมาก่อน'); return; }
     if (busy) return;
     setBusy(true);
     try {
       await apiPost(`/api/requirements/${id}/checks`, { code: checkCode.trim().toUpperCase(), result: checkResult, note: checkNote });
       setCheckOpen(false);
       setCheckCode('');
+      setPicked(null);
+      setCandQ('');
       setCheckNote('');
       load();
       flash('บันทึกผลการเช็คแล้ว');
@@ -354,6 +382,29 @@ export function RequirementBody({ id }: { id: string }) {
         </div>
       )}
 
+      {/* ลูกค้าเจ้าไหน · โทรที่ไหน — สไลด์ 37 "ชื่อลูกค้าหรือบริษัทอยู่ตรงไหน
+          รู้ได้อย่างไรว่าทำแผนลูกค้าเจ้าไหน" หน้านี้เคยมีแต่รหัส REQ-xxxx */}
+      <div data-req-customer style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '16px 20px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+        <span style={{ width: 40, height: 40, borderRadius: 11, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+        </span>
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <div style={{ fontSize: '11.5px', color: 'var(--muted2)' }}>ทำแผนให้ลูกค้า</div>
+          <div style={{ fontSize: '15.5px', fontWeight: 800, color: 'var(--text)' }}>
+            {data.company || data.leadName || 'ยังไม่ได้ระบุชื่อ'}
+            {data.company && data.leadName && <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--muted)' }}> · {data.leadName}</span>}
+            {data.leadWho && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: 'var(--accent)', background: 'var(--tint)', padding: '2px 8px', borderRadius: 9999 }}>{data.leadWho}</span>}
+          </div>
+        </div>
+        {data.leadPhone && (
+          <a href={`tel:${data.leadPhone.replace(/[^+\d]/g, '')}`} data-req-lead-phone style={{ display: 'flex', alignItems: 'center', gap: 7, height: 38, padding: '0 14px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: '13px', fontWeight: 700 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z" /></svg>
+            {data.leadPhone}
+          </a>
+        )}
+        <Link href={`/admin/leads?id=${data.leadId}`} style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--accent)' }}>เปิด lead →</Link>
+      </div>
+
       {/* FLOW B RAIL */}
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '22px 26px', marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, gap: 12, flexWrap: 'wrap' }}>
@@ -449,11 +500,20 @@ export function RequirementBody({ id }: { id: string }) {
               )}
               {data.checks.map((c) => (
                 <div key={c.id} data-check={c.code} style={{ padding: '13px 15px', borderRadius: 12, background: 'rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {c.img
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    ? <img src={c.img} alt="" style={{ width: 46, height: 38, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                    : <div style={{ width: 46, height: 38, borderRadius: 8, background: 'rgba(255,255,255,.09)', flexShrink: 0 }} />}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ ...monoCode, fontSize: '12.5px', fontWeight: 700, color: '#fff' }}>{c.code}</div>
                     <div style={{ marginTop: 2, fontSize: '11.5px', color: '#9FD9BA', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {c.title}{c.area ? ` ${nf.format(c.area)} ตร.ม.` : ''}
                     </div>
+                    {c.contactPhone && (
+                      <a href={`tel:${c.contactPhone.replace(/[^+\d]/g, '')}`} data-check-owner style={{ fontSize: '11px', fontWeight: 700, color: '#8FE6B6' }}>
+                        {c.contactName || 'เจ้าของ'} · {c.contactPhone}
+                      </a>
+                    )}
                     {c.result === 'available' && !c.stillActive && (
                       <div style={{ marginTop: 3, fontSize: '11px', color: '#F3B0A8' }}>เจ้าของบอกว่าว่าง แต่ทรัพย์ไม่ได้เผยแพร่อยู่แล้ว</div>
                     )}
@@ -681,16 +741,65 @@ export function RequirementBody({ id }: { id: string }) {
               ระบบเช็คให้เองไม่ได้ — ต้องถามเจ้าของทรัพย์แล้วมาบันทึกว่าได้คำตอบว่าอะไร
             </p>
 
-            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>รหัสทรัพย์</label>
-            <input
-              id="req-check-code"
-              autoFocus
-              value={checkCode}
-              onChange={(e) => { setCheckCode(e.target.value); if (checkErr) setCheckErr(''); }}
-              onKeyDown={(e) => { if (e.key === 'Enter') void saveCheck(); }}
-              placeholder="JKP-SPK0042"
-              style={{ marginTop: 6, width: '100%', height: 46, padding: '0 14px', borderRadius: 12, border: '1px solid var(--border)', fontSize: 14, ...monoCode, background: 'var(--bg)', outline: 'none' }}
-            />
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>ทรัพย์ที่โทรถาม</label>
+            {picked ? (
+              <div data-check-picked style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 12, padding: 10, borderRadius: 12, border: '1.5px solid #0D6C3B', background: '#F4FAF6' }}>
+                {picked.img
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  ? <img src={picked.img} alt="" style={{ width: 54, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                  : <div style={{ width: 54, height: 44, borderRadius: 8, background: 'var(--border)', flexShrink: 0 }} />}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ ...monoCode, fontSize: 12, fontWeight: 800, color: '#0D6C3B' }}>{picked.code}</div>
+                  <div style={{ fontSize: '12.5px', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{picked.title}</div>
+                  {picked.contactPhone && (
+                    <a href={`tel:${picked.contactPhone.replace(/[^+\d]/g, '')}`} data-check-phone style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent)' }}>
+                      {picked.contactName || 'ผู้ติดต่อ'} · {picked.contactPhone}
+                    </a>
+                  )}
+                </div>
+                <span onClick={() => { setPicked(null); setCheckCode(''); }} style={{ fontSize: '12px', fontWeight: 700, color: 'var(--muted2)', cursor: 'pointer', flexShrink: 0 }}>เปลี่ยน</span>
+              </div>
+            ) : (
+              <>
+                <input
+                  id="req-check-code"
+                  autoFocus
+                  value={candQ}
+                  onChange={(e) => { setCandQ(e.target.value); if (checkErr) setCheckErr(''); }}
+                  placeholder="ค้นหาด้วยชื่อ รหัส หรือจังหวัด"
+                  style={{ marginTop: 6, width: '100%', height: 46, padding: '0 14px', borderRadius: 12, border: '1px solid var(--border)', fontSize: 14, background: 'var(--bg)', outline: 'none', fontFamily: 'inherit' }}
+                />
+                <div style={{ marginTop: 8, maxHeight: 260, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {cands === null && <div style={{ padding: 12, fontSize: '12.5px', color: 'var(--muted2)' }}>กำลังหาทรัพย์ที่เข้าเกณฑ์…</div>}
+                  {cands?.length === 0 && <div style={{ padding: 12, fontSize: '12.5px', color: 'var(--muted2)' }}>ไม่พบทรัพย์ที่ตรงกับคำค้นนี้</div>}
+                  {cands?.map((c) => (
+                    <div
+                      key={c.id}
+                      data-candidate={c.code}
+                      onClick={() => { setPicked(c); setCheckCode(c.code); setCheckErr(''); }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, borderRadius: 11, border: '1px solid var(--border)', cursor: 'pointer', background: c.alreadyChecked ? 'var(--bg)' : 'var(--surface)', opacity: c.alreadyChecked ? 0.6 : 1 }}
+                    >
+                      {c.img
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        ? <img src={c.img} alt="" style={{ width: 48, height: 40, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                        : <div style={{ width: 48, height: 40, borderRadius: 8, background: 'var(--border)', flexShrink: 0 }} />}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ ...monoCode, fontSize: '11.5px', fontWeight: 800, color: 'var(--accent)' }}>{c.code}</span>
+                          {!c.available && <span style={{ fontSize: 10, fontWeight: 700, color: '#A32A2A' }}>ไม่ว่าง</span>}
+                          {c.alreadyChecked && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted2)' }}>เช็คแล้ว</span>}
+                        </div>
+                        <div style={{ fontSize: '12px', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--muted2)' }}>
+                          {[c.province, c.area ? `${nf.format(c.area)} ตร.ม.` : '', c.price ? `฿${nf.format(c.price)}` : ''].filter(Boolean).join(' · ')}
+                          {c.misses.length > 0 && <span style={{ color: '#9A741C' }}> · {c.misses.join(' · ')}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
 
             <label style={{ marginTop: 14, display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>เจ้าของทรัพย์ตอบว่า</label>
             <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>

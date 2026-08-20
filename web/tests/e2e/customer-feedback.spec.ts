@@ -852,3 +852,94 @@ test.describe('คอมเมนต์ลูกค้า · ไอคอนห�
     expect(new Set(colors).size, `ยังมี ${new Set(colors).size} สี: ${[...new Set(colors)].join(' · ')}`).toBe(1);
   });
 });
+
+/* กลุ่ม D · สไลด์ 35/37 — คำถามว่า "ใช้ยังไง" ที่เป็นเรื่องของข้อมูลที่หายไป
+   จากหน้าจอ ไม่ใช่เรื่องอธิบายเพิ่ม
+     "REQ เช็คอย่างไร"           ช่องบันทึกผลเช็คให้พิมพ์รหัสทรัพย์ที่คนคีย์ไม่รู้
+     "นำเบอร์เจ้าของมาจากไหน"     เบอร์ผู้ติดต่อไม่เคยอยู่บนหน้านี้เลย
+     "ชื่อลูกค้าหรือบริษัทอยู่ตรงไหน" หน้ามีแต่รหัส REQ-xxxx
+     "จำเป็นต้องมีรูป"            คนทำงานหลายคน ดูรหัสอย่างเดียวยืนยันไม่ได้ */
+test.describe('คอมเมนต์ลูกค้า · หน้า Requirement', () => {
+  const signIn = async (page: import('@playwright/test').Page) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    return (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  };
+
+  /** สร้าง lead + requirement ของตัวเอง เพื่อไม่ต้องพึ่งข้อมูลที่บังเอิญมีอยู่ */
+  const makeReq = async (request: import('@playwright/test').APIRequestContext, cookie: string) => {
+    const tag = Date.now().toString(36);
+    const lead = await (await request.post('/api/leads', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { name: `บ. ทดสอบ REQ ${tag}`, company: `คุณทดสอบ ${tag}`, phone: '081-234-5678', respondentType: 'ลูกค้า' },
+    })).json();
+    const req = await (await request.post('/api/requirements', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { leadId: lead.id, dealIntent: 'เช่า', typeKey: 'warehouse', areaMin: 500, areaMax: 5000 },
+    })).json();
+    return { lead, req };
+  };
+
+  test('หน้า REQ บอกว่าทำแผนให้ลูกค้าเจ้าไหน และโทรที่เบอร์ไหน', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const { lead, req } = await makeReq(request, cookie);
+    try {
+      await page.goto(`/admin/requirements/${req.id}`);
+      const card = page.locator('[data-req-customer]');
+      await expect(card, 'ต้องบอกว่าเป็นของลูกค้าเจ้าไหน').toBeVisible();
+      await expect(card).toContainText(lead.company || lead.name);
+      await expect(page.locator('[data-req-lead-phone]'), 'ต้องมีเบอร์ลูกค้าให้กดโทร').toHaveAttribute('href', /^tel:\+?\d+$/);
+    } finally {
+      await request.delete(`/api/leads/${lead.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+
+  test('เลือกทรัพย์จากรายการที่มีรูป ไม่ใช่พิมพ์รหัสที่ไม่รู้', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const { lead, req } = await makeReq(request, cookie);
+    try {
+      await page.goto(`/admin/requirements/${req.id}`);
+      await page.locator('#req-add-check').click();
+
+      const cands = page.locator('[data-candidate]');
+      await expect(cands.first(), 'ต้องมีรายการทรัพย์ให้เลือก').toBeVisible({ timeout: 15000 });
+      /* แต่ละแถวต้องบอกได้ว่าคือทรัพย์ไหน ไม่ใช่แค่รหัส */
+      const first = cands.first();
+      await expect(first.locator('img, div').first()).toBeVisible();
+
+      await first.click();
+      await expect(page.locator('[data-check-picked]'), 'เลือกแล้วต้องยืนยันว่าเป็นตัวไหน').toBeVisible();
+
+      // บันทึกได้จริง ไม่ใช่แค่เลือกแล้วจบ
+      await page.locator('[data-check-result="available"]').click();
+      await page.locator('#req-check-save, [data-check-save]').first().click();
+      await expect(page.locator('[data-check]').first(), 'ผลการเช็คต้องขึ้นในรายการ').toBeVisible({ timeout: 15000 });
+    } finally {
+      await request.delete(`/api/leads/${lead.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+
+  test('รายการทรัพย์ที่เสนอ พกเบอร์เจ้าของมาด้วย', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const { lead, req } = await makeReq(request, cookie);
+    try {
+      const cands = (await (await request.get(`/api/requirements/${req.id}/candidates`, { headers: { cookie } })).json()).items as
+        { code: string; contactPhone: string; img: string | null }[];
+      test.skip(!cands.length, 'ยังไม่มีทรัพย์ในระบบ');
+      const withPhone = cands.filter((c) => c.contactPhone).length;
+      expect(withPhone, 'ทรัพย์ที่กรอกเบอร์ไว้ ต้องส่งเบอร์มาให้โทรได้').toBeGreaterThan(0);
+    } finally {
+      await request.delete(`/api/leads/${lead.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+
+  test('เบอร์เจ้าของต้องไม่หลุดออกไปทางหน้าเว็บสาธารณะ', async ({ request }) => {
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=5')).json()).items as { code: string }[];
+    test.skip(!items.length, 'ยังไม่มีทรัพย์');
+    const raw = await (await request.get(`/api/public/properties/${items[0].code}?locale=th`)).text();
+    expect(raw.includes('lessor_phone'), 'เบอร์เจ้าของหลุดออก API สาธารณะ').toBe(false);
+  });
+});

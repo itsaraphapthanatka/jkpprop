@@ -636,6 +636,14 @@ export const openapi = {
         responses: { 200: okRes('ลบแล้ว'), ...WITH_404 },
       },
     },
+    '/api/requirements/{id}/candidates': {
+      get: {
+        tags: ['Pipeline'], summary: 'ทรัพย์ที่น่าจะตรงกับ requirement นี้',
+        description: 'พร้อมรูป ขนาด ราคา สถานะว่าง เบอร์ผู้ติดต่อ และเหตุผลที่ยังไม่ตรงเงื่อนไข — ใช้เลือกทรัพย์ก่อนบันทึกผลเช็ค แทนการพิมพ์รหัสเอง · ต้องล็อกอิน เพราะมีข้อมูลผู้ติดต่อ',
+        parameters: [pathParam('id', 'id ของ requirement'), queryParam('q', 'คำค้น: ชื่อ รหัส หรือจังหวัด')],
+        responses: { 200: okRes('รายการทรัพย์'), ...WITH_404 },
+      },
+    },
     '/api/requirements/{id}/checks': {
       post: {
         tags: ['Pipeline'], summary: 'บันทึกผลเช็คความว่างกับเจ้าของทรัพย์',
