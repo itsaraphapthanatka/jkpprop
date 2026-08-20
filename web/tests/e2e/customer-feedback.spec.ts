@@ -1228,3 +1228,60 @@ test.describe('คอมเมนต์ลูกค้า · ประวัต�
     }
   });
 });
+
+/* สไลด์ 41 · "ปุ่มหาย — ไปที่ประกาศ · โทรศัพท์ · โลเคชั่น" · "ชื่อลูกค้าหรือ
+   บริษัทอยู่ตรงไหน" · "ต้องมีรูปภาพเพื่อยืนยัน" — แผนเข้าชมคือสิ่งที่คนถือ
+   ออกไปพาลูกค้าดูจริง แต่แต่ละจุดแวะมีแค่รหัสกับชื่อทำเล */
+test.describe('คอมเมนต์ลูกค้า · แผนเข้าชม', () => {
+  test('แต่ละจุดแวะเปิดประกาศ โทรหาเจ้าของ และนำทางได้', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    /* ทรัพย์ที่กรอกเบอร์เจ้าของและพิกัดไว้ — เพื่อให้วัดปุ่มได้ทั้งสามปุ่ม */
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: {
+        typeKey: 'warehouse', title: `ทดสอบจุดแวะ ${Date.now().toString(36)}`, status: 'active',
+        values: {
+          province: 'สมุทรปราการ', deal_type: 'ให้เช่า',
+          lessor_name: 'คุณเจ้าของ', lessor_phone: '081-777-6666',
+          location_map: { lat: 13.64, lng: 100.59 },
+        },
+      },
+    })).json();
+    const lead = await (await request.post('/api/leads', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { name: `บ. ทดสอบแผนชม ${Date.now().toString(36)}`, phone: '081-222-3333' },
+    })).json();
+    const when = new Date();
+    when.setDate(when.getDate() + 4);
+    const visit = await (await request.post('/api/visits', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { leadId: lead.id, date: when.toISOString(), codes: [made.publicCode] },
+    })).json();
+
+    try {
+      await page.goto(`/admin/visits/${visit.id}`);
+      const stop = page.locator(`[data-stop="${made.publicCode}"]`);
+      await expect(stop).toBeVisible();
+
+      await expect(stop.locator('[data-stop-listing]'), 'ต้องเปิดหน้าประกาศได้').toHaveAttribute('href', new RegExp(made.publicCode));
+      await expect(stop.locator('[data-stop-phone]'), 'ต้องโทรหาเจ้าของได้').toHaveAttribute('href', /^tel:\+?\d+$/);
+      await expect(stop.locator('[data-stop-map]'), 'ต้องนำทางได้').toHaveAttribute('href', /google\.com\/maps/);
+
+      /* ชื่อลูกค้าที่พาไปดู ต้องอยู่บนหน้า ไม่ใช่ต้องเดา */
+      const who = page.locator('[data-visit-customer]');
+      await expect(who).toBeVisible();
+      await expect(who).toContainText(lead.name);
+      await expect(page.locator('[data-visit-lead-phone]')).toHaveAttribute('href', /^tel:\+?\d+$/);
+    } finally {
+      await request.delete(`/api/visits/${visit.id}`, { headers: { cookie } }).catch(() => null);
+      await request.delete(`/api/leads/${lead.id}`, { headers: { cookie } }).catch(() => null);
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+});

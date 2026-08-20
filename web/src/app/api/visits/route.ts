@@ -25,6 +25,12 @@ export const GET = handler(async () => {
   /* "แก้ criteria" sent everyone to the queue to hunt for the right card. The
      visit knows its lead, and the lead's requirement is the card they want. */
   const leadIds = [...new Set(rows.map((v) => v.leadId).filter(Boolean) as string[])];
+  /* สไลด์ 41 · "ชื่อลูกค้าหรือบริษัทอยู่ตรงไหน · รู้ได้อย่างไรว่าทำแผนลูกค้า
+     เจ้าไหน" — แผนเข้าชมรู้ว่าเป็นของ lead ไหน แต่ไม่เคยส่งชื่อออกมา */
+  const leadRows = leadIds.length
+    ? await db.lead.findMany({ where: { id: { in: leadIds } }, select: { id: true, name: true, company: true, phone: true } })
+    : [];
+  const leadById = new Map(leadRows.map((l) => [l.id, l]));
   const reqs = leadIds.length
     ? await db.requirement.findMany({
       where: { orgId: user.orgId, leadId: { in: leadIds } },
@@ -39,19 +45,40 @@ export const GET = handler(async () => {
     items: rows.map((v) => ({
       id: v.id,
       leadId: v.leadId,
+      customer: v.leadId ? (leadById.get(v.leadId)?.company || leadById.get(v.leadId)?.name || '') : '',
+      customerContact: v.leadId ? (leadById.get(v.leadId)?.name ?? '') : '',
+      customerPhone: v.leadId ? (leadById.get(v.leadId)?.phone ?? '') : '',
       requirementId: v.leadId ? reqByLead.get(v.leadId) ?? null : null,
       date: v.date.getTime(),
       status: v.status,
       note: v.note,
       /* the stop's own id: without it the screen could show outcomes but had
          no way to save one, so it invented the whole list instead */
-      stops: v.stops.map((s) => ({
-        id: s.id,
-        code: byId.get(s.propertyId)?.publicCode ?? '',
-        title: byId.get(s.propertyId)?.title ?? '',
-        location: displayLocation((byId.get(s.propertyId)?.values ?? {}) as Record<string, unknown>),
-        result: s.result,
-      })),
+      /* สไลด์ 41 · "ปุ่มหาย — ไปที่ประกาศ · โทรศัพท์ · โลเคชั่น" และ "ต้องมี
+         รูปภาพเพื่อยืนยัน" — แต่ละจุดแวะมีแค่รหัสกับชื่อทำเล คนที่ออกไปพา
+         ลูกค้าดูจึงเปิดประกาศไม่ได้ โทรหาเจ้าของไม่ได้ และนำทางไม่ได้
+         (หน้านี้ต้องล็อกอิน เบอร์เจ้าของจึงส่งมาได้) */
+      stops: v.stops.map((s) => {
+        const prop = byId.get(s.propertyId);
+        const vals = (prop?.values ?? {}) as Record<string, unknown>;
+        const photos = Array.isArray(vals.photos) ? (vals.photos as string[]) : [];
+        const pin = vals.location_map as { lat?: unknown; lng?: unknown } | undefined;
+        return {
+          id: s.id,
+          code: prop?.publicCode ?? '',
+          title: prop?.title ?? '',
+          location: displayLocation(vals),
+          result: s.result,
+          img: photos[0] ?? null,
+          contactName: String(vals.lessor_name ?? ''),
+          contactPhone: String(vals.lessor_phone ?? ''),
+          mapUrl: typeof pin?.lat === 'number' && typeof pin?.lng === 'number'
+            ? `https://www.google.com/maps/search/?api=1&query=${pin.lat},${pin.lng}`
+            : displayLocation(vals)
+              ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(displayLocation(vals))}`
+              : '',
+        };
+      }),
     })),
   });
 });

@@ -17,7 +17,17 @@ import Link from 'next/link';
    The data model has stops, not landlord appointments with time windows, so
    the screen shows what the model holds: the stops, in order, each with the
    outcome that was recorded for it. */
-type Stop = { id: string; code: string; title: string; location: string; result: string | null };
+const stopBtn: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 11px', borderRadius: 9999,
+  background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)',
+  fontSize: '11.5px', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap',
+};
+
+type Stop = {
+  id: string; code: string; title: string; location: string; result: string | null;
+  /* สไลด์ 41 · รูปยืนยันว่าใช่ตัวนี้ · เบอร์เจ้าของ · ลิงก์นำทาง */
+  img?: string | null; contactName?: string; contactPhone?: string; mapUrl?: string;
+};
 
 /* pill badge style helper (design `ob(label,bg,fg)` — label unused) */
 const ob = (bg: string, fg: string): React.CSSProperties => ({ height: 22, padding: '0 10px', borderRadius: 9999, background: bg, color: fg, fontSize: '10.5px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', flexShrink: 0 });
@@ -51,6 +61,7 @@ type ApiVisit = {
   /** the lead's requirement, so "แก้ criteria" opens that card and not the queue */
   requirementId?: string | null;
   leadId: string | null;
+  customer?: string; customerContact?: string; customerPhone?: string;
   stops: Stop[];
 };
 
@@ -264,6 +275,32 @@ export function VisitBody() {
 
   return (
     <>
+      {/* ลูกค้าเจ้าไหน · โทรที่ไหน — สไลด์ 41 ถามแบบเดียวกับหน้า REQ */}
+      {visit?.customer && (
+        <div data-visit-customer style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '14px 20px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <span style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+          </span>
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <div style={{ fontSize: 11.5, color: 'var(--muted2)' }}>พาลูกค้าไปดู</div>
+            <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text)' }}>
+              {visit.customer}
+              {visit.customerContact && visit.customerContact !== visit.customer && (
+                <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--muted)' }}> · {visit.customerContact}</span>
+              )}
+            </div>
+          </div>
+          {visit.customerPhone && (
+            <a href={`tel:${visit.customerPhone.replace(/[^+\d]/g, '')}`} data-visit-lead-phone style={{ display: 'flex', alignItems: 'center', gap: 7, height: 36, padding: '0 14px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: '12.5px', fontWeight: 700, textDecoration: 'none' }}>
+              {visit.customerPhone}
+            </a>
+          )}
+          {visit.leadId && (
+            <Link href={`/admin/leads?id=${visit.leadId}`} style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--accent)' }}>เปิด lead →</Link>
+          )}
+        </div>
+      )}
+
       {/* CRITERIA GATE (Flow C) */}
       {/* ด่านยืนยันเกณฑ์เป็นเรื่องของแผนที่มีอยู่จริง — ไม่มีแผนก็ไม่มีอะไรให้ยืนยัน
           เดิมกล่องนี้ขึ้นเสมอ พร้อมปุ่มที่กดแล้วขึ้นว่า "ยืนยันแล้ว" เฉย ๆ */}
@@ -346,6 +383,12 @@ export function VisitBody() {
                 <div key={st.id} data-stop={st.code} style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--bg)', border: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <span style={{ width: 24, height: 24, borderRadius: 8, background: 'var(--tint)', color: 'var(--accent)', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</span>
+                    {/* รูปยืนยันว่าใช่ทรัพย์ตัวที่คุยกัน — ดูรหัสอย่างเดียวไม่พอ
+                        เมื่อคนทำงานหลายคน (สไลด์ 41) */}
+                    {st.img
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      ? <img src={st.img} alt="" data-stop-photo style={{ width: 52, height: 42, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                      : <div style={{ width: 52, height: 42, borderRadius: 8, background: 'var(--border)', flexShrink: 0 }} />}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text)' }}>{st.title}</div>
                       <div style={{ marginTop: 2, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -354,6 +397,30 @@ export function VisitBody() {
                       </div>
                     </div>
                     <span style={outcomeStyle(st.result)}>{st.result || 'ยังไม่ดู'}</span>
+                  </div>
+
+                  {/* สไลด์ 41 · "ปุ่มหาย — ไปที่ประกาศ · โทรศัพท์ · โลเคชั่น"
+                      คนที่ออกไปพาลูกค้าดูต้องเปิดประกาศ โทรหาเจ้าของ และนำทาง
+                      ได้จากแถวนี้ ไม่ใช่ไปเปิดอีกสามหน้า */}
+                  <div style={{ marginTop: 9, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {st.code && (
+                      <a href={`/th/property/${encodeURIComponent(st.code)}`} target="_blank" rel="noreferrer" data-stop-listing style={stopBtn}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><path d="M15 3h6v6M10 14L21 3" /></svg>
+                        ไปที่ประกาศ
+                      </a>
+                    )}
+                    {st.contactPhone && (
+                      <a href={`tel:${st.contactPhone.replace(/[^+\d]/g, '')}`} data-stop-phone style={stopBtn}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z" /></svg>
+                        {st.contactName || 'โทรหาเจ้าของ'} · {st.contactPhone}
+                      </a>
+                    )}
+                    {st.mapUrl && (
+                      <a href={st.mapUrl} target="_blank" rel="noreferrer" data-stop-map style={stopBtn}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                        นำทาง
+                      </a>
+                    )}
                   </div>
                   {/* recording the outcome per stop — the old cards showed one
                       and offered no way to change it */}
