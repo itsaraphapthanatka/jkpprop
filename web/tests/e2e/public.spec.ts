@@ -181,6 +181,79 @@ test.describe('แถบเครื่องมือหน้ารายก�
   }
 });
 
+/* สไลด์ 18 · ลูกค้าวางภาพเว็บอ้างอิงคู่กับเว็บเรา ชี้ที่แถบติดต่อขอบล่างของเขา
+   แล้วเขียนว่า "ขอเหมือนกัน" กับ "ไม่มี Popup" — บนมือถือ กล่องติดต่อของเราไป
+   กองอยู่ท้ายหน้า ต้องเลื่อนผ่านสเปค รูป และแผนที่ทั้งหมดก่อนถึงจะเจอ */
+test.describe('แถบติดต่อขอบล่างบนมือถือ', () => {
+  const propertyUrl = async (request: import('@playwright/test').APIRequestContext) => {
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=1')).json()).items as { code: string }[];
+    return `/th/property/${items[0].code}`;
+  };
+
+  test('เห็นแถบตั้งแต่ยังไม่เลื่อนหน้า และปุ่มพาไปช่องทางจริง', async ({ page, request }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(await propertyUrl(request));
+    const bar = page.locator('#contact-bar');
+    await expect(bar, 'แถบต้องเห็นทันทีโดยไม่ต้องเลื่อน').toBeVisible();
+
+    const box = (await bar.boundingBox())!;
+    expect(box.y + box.height, 'แถบต้องติดขอบล่างจอ').toBeGreaterThan(844 - 2);
+
+    /* ทุกปุ่มต้องมีปลายทางจริง — ปุ่มที่กดแล้วไม่ไปไหนแย่กว่าไม่มีปุ่ม
+       ยกเว้น WeChat ที่เป็นไอดี ไม่ใช่ลิงก์ จึงเปิดป๊อปอัปแทน */
+    const buttons = page.locator('[data-bar-channel]');
+    const n = await buttons.count();
+    expect(n, 'ต้องมีอย่างน้อยหนึ่งช่องทาง').toBeGreaterThan(0);
+    for (let i = 0; i < n; i += 1) {
+      const el = buttons.nth(i);
+      const key = await el.getAttribute('data-bar-channel');
+      if (key === 'wechat') continue;
+      const href = await el.getAttribute('href');
+      expect(href, `ปุ่ม ${key} ไม่มีปลายทาง`).toBeTruthy();
+      expect(href!, `ปุ่ม ${key} ปลายทางไม่ถูกต้อง: ${href}`).toMatch(/^(https?:|tel:)/);
+    }
+    // ปุ่มโทรต้องโทรออกได้จริง ไม่ใช่ลิงก์เปล่า
+    const tel = page.locator('[data-bar-channel="phone"]');
+    if (await tel.count()) await expect(tel).toHaveAttribute('href', /^tel:\+?\d{6,}$/);
+  });
+
+  test('WeChat ไม่มีลิงก์ให้เปิด จึงต้องมีป๊อปอัปให้คัดลอกไอดี', async ({ page, request }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(await propertyUrl(request));
+    const wc = page.locator('[data-bar-channel="wechat"]');
+    test.skip(!(await wc.count()), 'ยังไม่ได้ตั้งค่า WeChat ใน /admin/company');
+
+    await wc.click();
+    const sheet = page.locator('#contact-bar-sheet');
+    await expect(sheet).toBeVisible();
+    await expect(page.locator('[data-bar-wechat-id]')).not.toBeEmpty();
+    await page.keyboard.press('Escape');
+    await expect(sheet, 'ปิดด้วย Esc ไม่ได้').toHaveCount(0);
+  });
+
+  test('แถบไม่บังปุ่มกลับขึ้นด้านบน และไม่บังบรรทัดท้ายฟุตเตอร์', async ({ page, request }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(await propertyUrl(request));
+    await page.mouse.wheel(0, 40000);
+    await page.waitForTimeout(1200);
+
+    const bar = (await page.locator('#contact-bar').boundingBox())!;
+    const top = (await page.locator('#back-to-top-btn').boundingBox())!;
+    expect(top.y + top.height, 'ปุ่มกลับขึ้นด้านบนโดนแถบทับ').toBeLessThanOrEqual(bar.y + 1);
+
+    /* วัดที่ตัวข้อความ ไม่ใช่กล่องที่ครอบมัน — ฟุตเตอร์ตรึงขอบล่าง การเพิ่ม
+       padding ด้านล่างทำให้กล่องสูงขึ้นไปทางบน ขอบล่างของกล่องยังชนขอบจออยู่ดี */
+    const rights = (await page.locator('[data-foot-rights]').boundingBox())!;
+    expect(rights.y + rights.height, 'บรรทัดสงวนลิขสิทธิ์โดนแถบทับ').toBeLessThanOrEqual(bar.y + 1);
+  });
+
+  test('จอใหญ่ไม่มีแถบ เพราะกล่องติดต่อลอยตามอยู่ข้าง ๆ แล้ว', async ({ page, request }) => {
+    await page.setViewportSize({ width: 1400, height: 900 });
+    await page.goto(await propertyUrl(request));
+    await expect(page.locator('#contact-bar')).toBeHidden();
+  });
+});
+
 test.describe('layout', () => {
   test('the page never scrolls sideways', async ({ page }) => {
     // the responsive rules keyed off inline-style strings used to fail

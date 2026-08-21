@@ -2,8 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useDict } from '@/i18n/useDict';
+import { ContactBar } from '@/components/site/ContactBar';
 
-export function Floating() {
+/* แถบติดต่อขอบล่างอยู่ที่นี่ เพราะมันแย่งพื้นที่มุมล่างขวากับปุ่ม "กลับขึ้นด้านบน"
+   ตัวเดียวกัน ให้คอมโพเนนต์เดียวคุมทั้งสองอย่างจะได้ไม่ทับกัน (สไลด์ 18) */
+export function Floating({ contact }: {
+  contact?: { socials?: { key: string; url: string }[]; wechatId?: string; phone?: string };
+} = {}) {
   const d = useDict();
   const [showTop, setShowTop] = useState(false);
 
@@ -66,6 +71,7 @@ export function Floating() {
         </div>
       </div>
 
+      {contact && <ContactBar socials={contact.socials} wechatId={contact.wechatId} phone={contact.phone} />}
     </>
   );
 }

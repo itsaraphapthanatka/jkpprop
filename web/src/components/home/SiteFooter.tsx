@@ -185,7 +185,7 @@ export function SiteFooter({ company, pages = [] }: { company: Company; pages?: 
               color: '#8E8B84',
             }}
           >
-            <div>{d.footer.rights}</div>
+            <div data-foot-rights>{d.footer.rights}</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24 }}>
               {/* only documents that exist — these were href="#" */}
               {pages.map((pg) => (

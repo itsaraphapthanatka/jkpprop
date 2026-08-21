@@ -96,7 +96,7 @@ export async function ListingShell({ preset }: { preset?: ListingPreset }) {
       <SiteFooter company={company} pages={pages} />
 
       {/* back-to-top + cookie/PDPA */}
-      <Floating />
+      <Floating contact={{ socials: company.socials, wechatId: company.wechatId, phone: company.phones?.[0]?.number ?? '' }} />
     </div>
   );
 }

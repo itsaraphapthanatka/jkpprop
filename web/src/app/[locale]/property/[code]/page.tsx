@@ -156,7 +156,7 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
         <PropertyDetail property={property} />
       </div>
       <SiteFooter company={company} pages={pages} />
-      <Floating />
+      <Floating contact={{ socials: company.socials, wechatId: company.wechatId, phone: company.phones?.[0]?.number ?? '' }} />
     </div>
   );
 }

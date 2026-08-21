@@ -13,6 +13,7 @@
  * link that silently fails would be worse than showing the square.
  */
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import { useDict } from '@/i18n/useDict';
 import { placeMenu } from '@/lib/menuPlacement';
 
@@ -32,6 +33,17 @@ export function ShareMenu({ target, children, align = 'right' }: {
   const ref = React.useRef<HTMLDivElement>(null);
 
   const url = target.url || (typeof window === 'undefined' ? '' : window.location.href);
+
+  /* เมนูกับฉากหลังต้องออกไปแขวนที่ <body> ไม่ใช่อยู่ในที่ที่ปุ่มอยู่
+     #page-sheet ตั้ง position:relative กับ z-index:2 ไว้ ซึ่งสร้าง stacking
+     context ของตัวเอง — เลข z ที่เขียนข้างในนี้ (940/950) จึงแข่งกันได้เฉพาะ
+     ในกรอบนั้น เทียบกับของที่ลอยอยู่ระดับหน้าเว็บมันมีค่าเท่ากับ 2 เสมอ
+     พอมีแถบติดต่อขอบล่าง (z 420) แถบก็ทับทั้งฉากหลังและตัวเมนู กดปิดไม่ได้
+     ปุ่ม "กลับขึ้นด้านบน" (z 400) ก็ทับมาตลอดเหมือนกัน แค่มันเล็กเลยไม่มีใครเจอ */
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
+  const portal = (node: React.ReactNode) =>
+    (mounted && typeof document !== 'undefined' ? createPortal(node, document.body) : null);
 
   /* The menu is positioned `fixed`, so it has to be told when the page moves
      under it. Closing on scroll was the first attempt and it was wrong: a
@@ -95,9 +107,9 @@ export function ShareMenu({ target, children, align = 'right' }: {
           on `document` did that before, and it also caught the clicks *inside*
           the menu — pressing WeChat closed the menu instead of showing the
           code. */}
-      {open && <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 940 }} />}
+      {open && portal(<div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 940 }} />)}
 
-      {open && (
+      {open && portal(
         <div
           id="share-menu"
           onClick={(e) => e.stopPropagation()}
@@ -123,7 +135,7 @@ export function ShareMenu({ target, children, align = 'right' }: {
               <Row icon={wechatIcon} label="WeChat" onClick={openQr} testId="share-wechat" />
             </>
           )}
-        </div>
+        </div>,
       )}
     </>
   );

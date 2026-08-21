@@ -95,6 +95,8 @@ export type Dictionary = {
   share: { copy: string; email: string; wechat: string; wechatHint: string; back: string };
   inquiry: {
     heading: string; hours: string; orFillIn: string; contactVia: string;
+    /** ป๊อปอัป WeChat ในแถบติดต่อ — เป็นไอดี ไม่ใช่ลิงก์ */
+    copyId: string;
     interestedIn: string; wantMore: string;
     namePh: string; emailPh: string; phonePh: string;
     send: string; sent: string; sending: string; failed: string; sentNote: string;
@@ -298,7 +300,7 @@ const th: Dictionary = {
   },
   inquiry: {
     heading: 'ขอข้อมูลเพิ่มเติม', hours: 'ทีมขายพร้อมดูแล จ–ศ 9:00–18:00',
-    orFillIn: 'หรือกรอกฟอร์ม', contactVia: 'ติดต่อผ่าน ',
+    orFillIn: 'หรือกรอกฟอร์ม', contactVia: 'ติดต่อผ่าน ', copyId: 'คัดลอกไอดี',
     interestedIn: 'สนใจทรัพย์', wantMore: 'ต้องการข้อมูลเพิ่มเติม…',
     namePh: 'ชื่อของคุณ', emailPh: 'อีเมล', phonePh: 'เบอร์โทรศัพท์',
     send: 'ส่งคำถาม', sent: 'ส่งแล้ว', sending: 'กำลังส่ง…',
@@ -522,7 +524,7 @@ const en: Dictionary = {
   },
   inquiry: {
     heading: 'Request more information', hours: 'Our sales team is available Mon–Fri, 9:00–18:00',
-    orFillIn: 'or use the form', contactVia: 'Contact via ',
+    orFillIn: 'or use the form', contactVia: 'Contact via ', copyId: 'Copy ID',
     interestedIn: 'Enquiry about', wantMore: '— please send more information.',
     namePh: 'Your name', emailPh: 'Email', phonePh: 'Phone number',
     send: 'Send enquiry', sent: 'Sent', sending: 'Sending…',
@@ -746,7 +748,7 @@ const zh: Dictionary = {
   },
   inquiry: {
     heading: '索取更多资料', hours: '销售团队服务时间：周一至周五 9:00–18:00',
-    orFillIn: '或填写表单', contactVia: '通过以下方式联系 ',
+    orFillIn: '或填写表单', contactVia: '通过以下方式联系 ', copyId: '复制 ID',
     interestedIn: '咨询房源', wantMore: '，希望了解更多信息。',
     namePh: '您的姓名', emailPh: '电子邮箱', phonePh: '电话号码',
     send: '发送咨询', sent: '已发送', sending: '发送中…',

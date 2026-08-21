@@ -60,6 +60,17 @@ svg[fill="none"] { stroke-width:1.7px !important; }
   #cta-band-grid { grid-template-columns:1fr !important; }
 }
 
+/* สไลด์ 18 · แถบติดต่อขอบล่าง — โผล่ที่ความกว้างเดียวกับที่กล่องติดต่อในหน้า
+   ทรัพย์เลิกเป็นแถบข้างแล้วไปกองท้ายหน้า (980px) ก่อนหน้านั้นกล่องยังลอยตาม
+   อยู่ข้าง ๆ ตลอด ไม่ต้องมีแถบซ้ำ
+   ปุ่ม "กลับขึ้นด้านบน" ยกขึ้นให้พ้นแถบ และท้ายฟุตเตอร์เว้นที่ไว้เท่าความสูงแถบ
+   ไม่งั้นบรรทัดสงวนลิขสิทธิ์จะโดนบัง */
+@media (max-width:980px) {
+  #contact-bar { display:flex !important; }
+  #back-to-top-btn { bottom:calc(84px + env(safe-area-inset-bottom)) !important; }
+  #foot-bottom-row { padding-bottom:calc(70px + env(safe-area-inset-bottom)) !important; }
+}
+
 /* คำที่หมุนอยู่ในหัวเรื่องหน้าแรก
    ความสูงของกรอบ ความสูงของแต่ละคำ และระยะที่เลื่อนขึ้นต่อหนึ่งคำ ต้องเป็น
    ตัวเลขเดียวกันเสมอ เดิมเขียนไว้สามที่: กรอบกับคำเป็น inline style 1.18em
