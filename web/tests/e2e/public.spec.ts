@@ -362,6 +362,70 @@ test.describe('ตัวกรองเพิ่มเติม · รับน�
   });
 });
 
+/* สไลด์ 1 · "เพิ่มโชว์รูม และ อาคารพาณิชย์ · ที่ดิน" — เมนูบนสุดมีแต่โรงงานกับ
+   โกดัง ทั้งที่ระบบคีย์ทรัพย์ได้สี่ประเภทมาตั้งแต่แรก
+   แถบบนสุดมีสามชุดในโค้ด (หน้าแรก · หน้ารายการ · หน้าทรัพย์) เทสต์จึงไล่ทั้งสาม
+   ที่ ไม่ใช่หน้าเดียว — การ์ดทรัพย์เคยหลุดเพราะแก้ไปแค่ที่เดียวมาแล้ว */
+test.describe('เมนูประเภททรัพย์บนแถบบนสุด', () => {
+  const PAGES = ['/th', '/th/listing'];
+  const WANT = ['factory', 'warehouse', 'showroom', 'land'];
+
+  test('ครบสี่ประเภท เหมือนกันทุกหน้า ทั้งจอใหญ่และลิ้นชักมือถือ', async ({ page, request }) => {
+    const code = ((await (await request.get('/api/public/listings?locale=th&limit=1')).json()).items as { code: string }[])[0].code;
+    for (const url of [...PAGES, `/th/property/${code}`]) {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(url);
+      await page.locator('[data-nav-type]').first().waitFor();
+      expect(await page.locator('[data-nav-type]').evaluateAll((els) => els.map((e) => e.getAttribute('data-nav-type'))),
+        `${url}: เมนูบนจอใหญ่ไม่ครบ`).toEqual(WANT);
+
+      await page.setViewportSize({ width: 412, height: 900 });
+      await page.locator('#mobile-menu-btn').click();
+      expect(await page.locator('[data-drawer-type]').evaluateAll((els) => els.map((e) => e.getAttribute('data-drawer-type'))),
+        `${url}: เมนูในลิ้นชักไม่ครบ`).toEqual(WANT);
+    }
+  });
+
+  test('ทุกเมนูมีทั้งให้เช่าและขาย และปลายทางเปิดได้จริง', async ({ page, request }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/th');
+    for (const key of WANT) {
+      await page.locator(`[data-nav-type="${key}"]`).hover();
+      const links = await page.locator('.dd-item:visible').evaluateAll((els) => els.map((e) => e.getAttribute('href') ?? ''));
+      expect(links, `เมนู ${key} ควรมีสองปลายทาง`).toHaveLength(2);
+      for (const href of links) {
+        expect((await request.get(href)).status(), `${href} เปิดไม่ได้`).toBe(200);
+      }
+    }
+  });
+
+  /* ปลายทางต้องกรองมาแล้วจริง ไม่ใช่หน้ารายการเปล่า ๆ ที่ตั้งชื่อว่าที่ดิน */
+  test('หน้าปลายทางกรองตามประเภทและประเภทประกาศที่ชื่อบอกไว้', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/th/warehouse-rent');
+    await page.locator('#listing-grid').waitFor();
+    await page.waitForTimeout(2500);
+    const types = await page.locator('[data-card]').evaluateAll((els) => els.length);
+    expect(types, 'โกดังให้เช่าควรมีของ').toBeGreaterThan(0);
+
+    /* โชว์รูมกับที่ดินยังไม่มีของในคลัง — หน้าต้องบอกว่า "ไม่พบตามเงื่อนไข"
+       ไม่ใช่ "ยังไม่มีทรัพย์ที่เผยแพร่" ซึ่งไม่จริง (คลังมี 393 รายการ) และไม่ใช่
+       โชว์ทรัพย์ประเภทอื่นมาแทน */
+    await page.goto('/th/land-sale');
+    await page.waitForTimeout(2500);
+    const shown = await page.locator('[data-card]').count();
+    if (shown === 0) {
+      await expect(page.locator('#listing-empty')).toContainText('ไม่พบทรัพย์ตามเงื่อนไข');
+      await expect(page.locator('#listing-empty')).not.toContainText('ยังไม่มีทรัพย์ที่เผยแพร่');
+      // ปุ่มต้องพากลับไปหน้ารายการทั้งหมด ไม่ใช่ปุ่มล้างค่าที่กดแล้วยังว่างเหมือนเดิม
+      await expect(page.locator('#listing-see-all')).toHaveAttribute('href', '/th/listing');
+    } else {
+      const labels = await page.locator('[data-card]').evaluateAll((els) => els.map((e) => e.textContent ?? ''));
+      for (const t of labels) expect(t, 'หน้าที่ดินขายมีทรัพย์ประเภทอื่นปน').toContain('ที่ดิน');
+    }
+  });
+});
+
 test.describe('layout', () => {
   test('the page never scrolls sideways', async ({ page }) => {
     // the responsive rules keyed off inline-style strings used to fail

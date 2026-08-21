@@ -21,6 +21,10 @@ export type Dictionary = {
     home: string; listing: string; about: string; faq: string; contact: string; contactTeam: string;
     forRent: string; forSale: string; factory: string; warehouse: string;
     factoryRent: string; factorySale: string; warehouseRent: string; warehouseSale: string;
+    /* สไลด์ 1 · "เพิ่มโชว์รูม และ อาคารพาณิชย์ · ที่ดิน" — เมนูบนสุดมีแต่โรงงาน
+       กับโกดัง ทั้งที่ระบบคีย์ทรัพย์ได้สี่ประเภท */
+    showroom: string; showroomRent: string; showroomSale: string;
+    land: string; landRent: string; landSale: string;
     chooseLanguage: string; menu: string;
   };
   common: {
@@ -154,6 +158,7 @@ export type Dictionary = {
   titles: {
     faq: string; listing: string;
     factoryRent: string; factorySale: string; warehouseRent: string; warehouseSale: string;
+    showroomRent: string; showroomSale: string; landRent: string; landSale: string;
     airportDonmuang: string; airportSuvarnabhumi: string;
     bangkokCbd: string; bangkokNonthaburi: string;
     portLaemChabang: string; portMahachai: string; portMapTaPhut: string; portKhlongToei: string;
@@ -173,6 +178,8 @@ const th: Dictionary = {
     forRent: 'ให้เช่า', forSale: 'ขาย', factory: 'โรงงาน', warehouse: 'โกดัง',
     factoryRent: 'โรงงานให้เช่า', factorySale: 'โรงงานสำหรับขาย',
     warehouseRent: 'โกดังให้เช่า', warehouseSale: 'โกดังสำหรับขาย',
+    showroom: 'โชว์รูม / อาคารพาณิชย์', showroomRent: 'โชว์รูมให้เช่า', showroomSale: 'โชว์รูมสำหรับขาย',
+    land: 'ที่ดิน', landRent: 'ที่ดินให้เช่า', landSale: 'ที่ดินสำหรับขาย',
     chooseLanguage: 'เลือกภาษา', menu: 'เมนู',
   },
   common: {
@@ -375,6 +382,8 @@ const th: Dictionary = {
     faq: 'คำถามที่พบบ่อย', listing: 'อสังหาริมทรัพย์ทั้งหมด',
     factoryRent: 'โรงงานให้เช่า', factorySale: 'โรงงานสำหรับขาย',
     warehouseRent: 'โกดังให้เช่า', warehouseSale: 'โกดังสำหรับขาย',
+    showroomRent: 'โชว์รูมและอาคารพาณิชย์ให้เช่า', showroomSale: 'โชว์รูมและอาคารพาณิชย์สำหรับขาย',
+    landRent: 'ที่ดินให้เช่า', landSale: 'ที่ดินสำหรับขาย',
     airportDonmuang: 'ทรัพย์ใกล้สนามบินดอนเมือง', airportSuvarnabhumi: 'ทรัพย์ใกล้สนามบินสุวรรณภูมิ',
     bangkokCbd: 'ทรัพย์ในกรุงเทพฯ', bangkokNonthaburi: 'ทรัพย์ในนนทบุรี',
     portLaemChabang: 'ทรัพย์ใกล้ท่าเรือแหลมฉบัง', portMahachai: 'ทรัพย์ใกล้ท่าเรือมหาชัย', portKhlongToei: 'ทรัพย์ใกล้ท่าเรือคลองเตย',
@@ -398,6 +407,8 @@ const en: Dictionary = {
     forRent: 'For rent', forSale: 'For sale', factory: 'Factories', warehouse: 'Warehouses',
     factoryRent: 'Factories for rent', factorySale: 'Factories for sale',
     warehouseRent: 'Warehouses for rent', warehouseSale: 'Warehouses for sale',
+    showroom: 'Showroom / commercial', showroomRent: 'Showrooms for rent', showroomSale: 'Showrooms for sale',
+    land: 'Land', landRent: 'Land for rent', landSale: 'Land for sale',
     chooseLanguage: 'Choose language', menu: 'Menu',
   },
   common: {
@@ -600,6 +611,8 @@ const en: Dictionary = {
     faq: 'Frequently asked questions', listing: 'All properties',
     factoryRent: 'Factories for rent', factorySale: 'Factories for sale',
     warehouseRent: 'Warehouses for rent', warehouseSale: 'Warehouses for sale',
+    showroomRent: 'Showrooms and commercial buildings for rent', showroomSale: 'Showrooms and commercial buildings for sale',
+    landRent: 'Land for rent', landSale: 'Land for sale',
     airportDonmuang: 'Property near Don Mueang Airport', airportSuvarnabhumi: 'Property near Suvarnabhumi Airport',
     bangkokCbd: 'Property in Bangkok', bangkokNonthaburi: 'Property in Nonthaburi',
     portLaemChabang: 'Property near Laem Chabang Port', portMahachai: 'Property near Mahachai Port', portKhlongToei: 'Property near Khlong Toei Port',
@@ -623,6 +636,8 @@ const zh: Dictionary = {
     forRent: '出租', forSale: '出售', factory: '工厂', warehouse: '仓库',
     factoryRent: '工厂出租', factorySale: '工厂出售',
     warehouseRent: '仓库出租', warehouseSale: '仓库出售',
+    showroom: '展厅 / 商业楼', showroomRent: '展厅出租', showroomSale: '展厅出售',
+    land: '土地', landRent: '土地出租', landSale: '土地出售',
     chooseLanguage: '选择语言', menu: '菜单',
   },
   common: {
@@ -825,6 +840,8 @@ const zh: Dictionary = {
     faq: '常见问题', listing: '全部房源',
     factoryRent: '厂房出租', factorySale: '厂房出售',
     warehouseRent: '仓库出租', warehouseSale: '仓库出售',
+    showroomRent: '展厅及商业楼出租', showroomSale: '展厅及商业楼出售',
+    landRent: '土地出租', landSale: '土地出售',
     airportDonmuang: '廊曼机场周边房源', airportSuvarnabhumi: '素万那普机场周边房源',
     bangkokCbd: '曼谷房源', bangkokNonthaburi: '暖武里房源',
     portLaemChabang: '林查班港周边房源', portMahachai: '马哈猜港周边房源', portKhlongToei: '克隆栽港周边房源',

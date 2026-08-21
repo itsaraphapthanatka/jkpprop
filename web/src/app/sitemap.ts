@@ -15,6 +15,7 @@ const SITE = (process.env.SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'http:
 const STATIC_PATHS = [
   '', '/listing', '/about', '/faq', '/contact',
   '/factory-rent', '/factory-sale', '/warehouse-rent', '/warehouse-sale',
+  '/showroom-rent', '/showroom-sale', '/land-rent', '/land-sale',
   '/port-laem-chabang', '/port-mahachai', '/port-map-ta-phut',
   '/airport-suvarnabhumi', '/airport-donmuang',
   '/bangkok-cbd', '/bangkok-nonthaburi',

@@ -112,7 +112,10 @@ const toListing = (it: ListingItem): Listing => ({
   available: it.available,
 });
 
-export type ListingFilterKey = 'factory-rent' | 'factory-sale' | 'warehouse-rent' | 'warehouse-sale';
+export type ListingFilterKey =
+  | 'factory-rent' | 'factory-sale' | 'warehouse-rent' | 'warehouse-sale'
+  /* สไลด์ 1 · เพิ่มโชว์รูม/อาคารพาณิชย์ กับที่ดิน เข้าเมนูบนสุด */
+  | 'showroom-rent' | 'showroom-sale' | 'land-rent' | 'land-sale';
 
 /** Preset config for SEO/area pages (Listing with a preset filter).
     No `totalCount`: the count shown is however many rows actually matched. */
@@ -323,6 +326,14 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
   const sortLabel = (SORT_DEFS.find((d) => d.key === sortKey) || SORT_DEFS[0]).label;
 
   const toggleSec = (key: SecKey) => setSecOpen((s) => ({ ...s, [key]: !s[key] }));
+  /* หน้าปลายทางของเมนู (โกดังให้เช่า · ที่ดินขาย · ทรัพย์ใกล้ท่าเรือมหาชัย ฯลฯ)
+     ถามเซิร์ฟเวอร์มาแบบกรองแล้ว รายการที่ถืออยู่จึงเป็นชุดย่อย ไม่ใช่ทั้งคลัง
+     ถ้าได้ศูนย์รายการ แปลว่า "ไม่มีของที่ตรงเงื่อนไขนี้" ไม่ใช่ "เว็บยังไม่มีทรัพย์"
+     ซึ่งเป็นข้อความที่เคยขึ้นบนหน้าท่าเรือมหาชัย แหลมฉบัง มาบตาพุด มาตลอด
+     ทั้งที่คลังมีทรัพย์อยู่ 393 รายการ */
+  const serverFiltered = !!(preset.filterKey || preset.province || preset.typeSel?.length
+    || preset.listingMode || preset.q || preset.zoningSel?.length);
+
   const clearAll = () => {
     setQ('');
     setProvSel([]); setDistSel([]); setSubSel([]);
@@ -584,14 +595,21 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
             {/* "ยังไม่มีทรัพย์ที่บันทึกไว้" คนละเรื่องกับ "ไม่พบทรัพย์ตามเงื่อนไข" —
                 เดิมพูดถึงตัวกรองทั้งที่ผู้อ่านไม่ได้เลือกตัวกรองอะไรเลย */}
             <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)' }}>
-              {all.length === 0 ? d.listing.emptyTitle : onlyFavs && !favs.codes.length ? d.listing.noSavedTitle : d.listing.empty}
+              {all.length === 0 && !serverFiltered ? d.listing.emptyTitle : onlyFavs && !favs.codes.length ? d.listing.noSavedTitle : d.listing.empty}
             </div>
             <p style={{ margin: '10px 0 0', fontSize: 14, color: 'var(--muted2)' }}>
-              {all.length === 0
+              {all.length === 0 && !serverFiltered
                 ? d.listing.emptyBody
                 : onlyFavs && !favs.codes.length ? d.listing.noSavedBody : d.listing.emptyHint}
             </p>
-            {all.length > 0 && (
+            {/* บนหน้าที่กรองมาจากเซิร์ฟเวอร์ ปุ่ม "ล้างค่า" ล้างได้แค่ตัวกรองฝั่ง
+                หน้าเว็บ ของประเภทอื่นไม่ได้ถูกดึงมาตั้งแต่แรก กดแล้วก็ยังว่าง
+                เหมือนเดิม — ที่นี่จึงพากลับไปหน้ารายการทั้งหมดแทน */}
+            {all.length === 0 && serverFiltered ? (
+              <Link href="/listing" id="listing-see-all" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginTop: 18, height: 42, padding: '0 22px', borderRadius: 9999, border: '1.5px solid var(--pine)', color: 'var(--pine)', fontSize: '13.5px', fontWeight: 700 }}>
+                {d.listing.showAll}
+              </Link>
+            ) : all.length > 0 && (
               <button type="button" id="listing-clear" onClick={clearAll} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginTop: 18, height: 42, padding: '0 22px', borderRadius: 9999, border: '1.5px solid var(--pine)', background: 'transparent', fontFamily: 'inherit', color: 'var(--pine)', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer' }}>
                 {onlyFavs && !favs.codes.length ? d.listing.showAll : d.listing.clear}
               </button>

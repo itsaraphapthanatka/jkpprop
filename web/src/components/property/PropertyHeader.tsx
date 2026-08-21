@@ -7,6 +7,7 @@ import { useLocale } from '@/i18n/LocaleLink';
 import { localizePath } from '@/i18n/config';
 import Image from 'next/image';
 import { useDict } from '@/i18n/useDict';
+import { TYPE_MENUS } from '@/lib/navMenus';
 import { SavedLink } from '@/components/site/SavedLink';
 
 type Lang = 'th' | 'en' | 'zh';
@@ -77,8 +78,9 @@ const ddItem: React.CSSProperties = {
 
 export function PropertyHeader() {
   const d = useDict();
-  const [navFactory, setNavFactory] = useState(false);
-  const [navWarehouse, setNavWarehouse] = useState(false);
+  /* เมนูประเภทที่กางอยู่ตอนนี้ — ทีละอันเท่านั้น (ดู lib/navMenus) */
+  const [navOpen, setNavOpen] = useState<string | null>(null);
+  const [drawerOpenKey, setDrawerOpenKey] = useState<string | null>(null);
   const [langOpen, setLangOpen] = useState(false);
   // the URL is the source of truth for language — picking one navigates
   const router = useRouter();
@@ -116,35 +118,27 @@ export function PropertyHeader() {
           </Link>
 
           <nav style={{ display: 'flex', alignItems: 'center', gap: 26 }}>
-            {/* โรงงาน */}
-            <div style={{ position: 'relative' }} onMouseEnter={() => setNavFactory(true)} onMouseLeave={() => setNavFactory(false)}>
-              <div className="nav-link" style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', padding: '4px 0', ...navText }}>
-                {d.nav.factory} {chev(navFactory)}
-              </div>
-              {navFactory && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, paddingTop: 10, width: 150 }}>
-                  <div style={ddPanel}>
-                    <Link className="dd-item" href="/factory-rent" style={ddItem}>{d.nav.factoryRent}</Link>
-                    <Link className="dd-item" href="/factory-sale" style={ddItem}>{d.nav.factorySale}</Link>
-                  </div>
+            {TYPE_MENUS.map((m) => (
+              <div
+                key={m.key}
+                style={{ position: 'relative' }}
+                onMouseEnter={() => setNavOpen(m.key)}
+                onMouseLeave={() => setNavOpen((cur) => (cur === m.key ? null : cur))}
+              >
+                <div className="nav-link" data-nav-type={m.key} style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', padding: '4px 0', whiteSpace: 'nowrap', ...navText }}>
+                  {m.label(d)} {chev(navOpen === m.key)}
                 </div>
-              )}
-            </div>
-
-            {/* โกดัง */}
-            <div style={{ position: 'relative' }} onMouseEnter={() => setNavWarehouse(true)} onMouseLeave={() => setNavWarehouse(false)}>
-              <div className="nav-link" style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', padding: '4px 0', ...navText }}>
-                {d.nav.warehouse} {chev(navWarehouse)}
-              </div>
-              {navWarehouse && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, paddingTop: 10, width: 150 }}>
-                  <div style={ddPanel}>
-                    <Link className="dd-item" href="/warehouse-rent" style={ddItem}>{d.nav.warehouseRent}</Link>
-                    <Link className="dd-item" href="/warehouse-sale" style={ddItem}>{d.nav.warehouseSale}</Link>
+                {navOpen === m.key && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, paddingTop: 10, minWidth: 150 }}>
+                    <div style={ddPanel}>
+                      {m.items.map(([href, label]) => (
+                        <Link key={href} className="dd-item" href={href} style={ddItem}>{label(d)}</Link>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            ))}
 
             <Link className="nav-link" href="/faq" style={navText}>{d.nav.faq}</Link>
             <Link className="nav-link" href="/about" style={navText}>{d.nav.about}</Link>
@@ -297,8 +291,26 @@ export function PropertyHeader() {
           </div>
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '10px 14px 20px' }}>
-          <Link href="/factory-rent" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>{d.nav.factoryRent}</Link>
-          <Link href="/warehouse-rent" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>{d.nav.warehouseRent}</Link>
+          {/* เดิมลิ้นชักของหน้านี้มีแค่ "โรงงานให้เช่า" กับ "โกดังให้เช่า" สองลิงก์
+              แบน ๆ ไม่มีฝั่งขาย และไม่ตรงกับลิ้นชักของอีกสองแถบบนสุด */}
+          {TYPE_MENUS.map((m) => {
+            const open = drawerOpenKey === m.key;
+            return (
+              <div key={m.key}>
+                <div onClick={() => setDrawerOpenKey(open ? null : m.key)} data-drawer-type={m.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '15px 10px', borderRadius: 12, cursor: 'pointer' }}>
+                  <span style={{ fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>{m.label(d)}</span>
+                  {chev(open, 14, 'var(--muted)')}
+                </div>
+                {open && (
+                  <div style={{ padding: '0 10px 10px 22px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {m.items.map(([href, label]) => (
+                      <Link key={href} href={href} style={{ padding: '10px 12px', borderRadius: 10, fontSize: 14, fontWeight: 600, color: 'var(--muted)' }}>{label(d)}</Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
           <Link href="/faq" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>{d.nav.faq}</Link>
           <Link href="/about" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>{d.nav.about}</Link>
           <SavedLink block />

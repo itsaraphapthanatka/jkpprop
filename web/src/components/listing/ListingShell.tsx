@@ -52,6 +52,10 @@ const PRESET_QUERY: Record<ListingFilterKey, { deal: string; type: string }> = {
   'factory-sale': { deal: 'sale', type: 'factory' },
   'warehouse-rent': { deal: 'rent', type: 'warehouse' },
   'warehouse-sale': { deal: 'sale', type: 'warehouse' },
+  'showroom-rent': { deal: 'rent', type: 'showroom' },
+  'showroom-sale': { deal: 'sale', type: 'showroom' },
+  'land-rent': { deal: 'rent', type: 'land' },
+  'land-sale': { deal: 'sale', type: 'land' },
 };
 
 /** Full Listing page chrome (black sheet + header + body + footer).
