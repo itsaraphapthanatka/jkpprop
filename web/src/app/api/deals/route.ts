@@ -4,6 +4,7 @@ import { requireUser, requireRole } from '@/lib/server/auth';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
 import { advanceLead } from '@/lib/server/leadPipeline';
+import { displayNoteText } from '@/lib/server/leadNoteText';
 
 export const GET = handler(async () => {
   const user = await requireUser();
@@ -15,10 +16,17 @@ export const GET = handler(async () => {
   const propIds = [...new Set(rows.map((d) => d.propertyId).filter(Boolean) as string[])];
   const leadIds = [...new Set(rows.map((d) => d.leadId).filter(Boolean) as string[])];
   const [props, leads] = await Promise.all([
-    propIds.length ? db.property.findMany({ where: { id: { in: propIds } }, select: { id: true, publicCode: true, title: true } }) : [],
+    /* values ด้วย — รูปทรัพย์อยู่ในนั้น หน้าดีลโชว์แต่ไอคอนบ้านสีเทาเหมือนกัน
+       ทุกดีล (สไลด์ 43 "ต้องมีรูปภาพเพื่อยืนยัน" · ลูกค้าชี้ซ้ำว่า "รูปยังไม่ขึ้น") */
+    propIds.length ? db.property.findMany({ where: { id: { in: propIds } }, select: { id: true, publicCode: true, title: true, values: true } }) : [],
     leadIds.length ? db.lead.findMany({ where: { id: { in: leadIds } }, select: { id: true, name: true, company: true, phone: true, email: true, status: true } }) : [],
   ]);
   const propById = new Map(props.map((p) => [p.id, p]));
+  /** รูปแรกของทรัพย์ — ช่อง photos เก็บ src ที่เสิร์ฟได้เลย */
+  const propImg = (values: unknown): string | null => {
+    const raw = ((values ?? {}) as Record<string, unknown>).photos;
+    return Array.isArray(raw) && typeof raw[0] === 'string' ? raw[0] : null;
+  };
   const leadById = new Map(leads.map((l) => [l.id, l]));
 
   /* สไลด์ 42 · "ไม่มีสรุปและประวัติการติดต่อ" — หน้าดีลมีไทม์ไลน์การเจรจา
@@ -34,7 +42,7 @@ export const GET = handler(async () => {
   const notesByLead = new Map<string, { text: string; at: number }[]>();
   for (const n of notes) {
     const list = notesByLead.get(n.leadId) ?? [];
-    if (list.length < 20) list.push({ text: n.text, at: n.createdAt.getTime() });
+    if (list.length < 20) list.push({ text: displayNoteText(n.text), at: n.createdAt.getTime() });
     notesByLead.set(n.leadId, list);
   }
 
@@ -43,6 +51,7 @@ export const GET = handler(async () => {
       id: d.id, title: d.title, leadId: d.leadId, propertyId: d.propertyId,
       propertyCode: d.propertyId ? propById.get(d.propertyId)?.publicCode ?? '' : '',
       propertyTitle: d.propertyId ? propById.get(d.propertyId)?.title ?? '' : '',
+      propertyImg: d.propertyId ? propImg(propById.get(d.propertyId)?.values) : null,
       customer: d.leadId ? (leadById.get(d.leadId)?.company || leadById.get(d.leadId)?.name || '') : '',
       customerContact: d.leadId ? (leadById.get(d.leadId)?.name ?? '') : '',
       customerPhone: d.leadId ? (leadById.get(d.leadId)?.phone ?? '') : '',

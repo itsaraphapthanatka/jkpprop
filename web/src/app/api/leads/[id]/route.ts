@@ -8,6 +8,7 @@ import { db } from '@/lib/server/db';
 import { rank, STATUS_LABEL } from '@/lib/server/leadPipeline';
 import { leadDto } from '@/lib/server/leadDto';
 import type { Prisma } from '@prisma/client';
+import { displayNoteText } from '@/lib/server/leadNoteText';
 
 
 export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: string }> }) => {
@@ -133,7 +134,7 @@ export const GET = handler(async (_req: Request, ctx: { params: Promise<{ id: st
       /* บันทึกที่ระบบเขียนเองตอนเลื่อนสถานะ แยกออกจากบันทึกที่คนพิมพ์ — ไม่งั้น
          "ติดต่อแล้ว 3 ครั้ง" จะนับการเปลี่ยนสถานะเป็นการติดต่อลูกค้าไปด้วย */
       kind: n.text.startsWith('สถานะเปลี่ยนเป็น "') ? 'status' : 'note',
-      at: n.createdAt.getTime(), text: n.text,
+      at: n.createdAt.getTime(), text: displayNoteText(n.text),
       by: n.userId ? nameOf.get(n.userId) ?? 'ทีมงาน' : 'ระบบ',
     })),
     ...requirements.flatMap((r) => [
@@ -186,7 +187,7 @@ export const GET = handler(async (_req: Request, ctx: { params: Promise<{ id: st
       dealsOpen: deals.filter((dl) => dl.status === 'negotiating').length,
     },
     notes: notes.map((n) => ({
-      id: n.id, text: n.text, createdAt: n.createdAt.getTime(),
+      id: n.id, text: displayNoteText(n.text), createdAt: n.createdAt.getTime(),
       by: n.userId ? nameOf.get(n.userId) ?? 'ทีมงาน' : 'ระบบ',
     })),
     tasks: tasks.map((t) => ({

@@ -1679,6 +1679,40 @@ test.describe('คอมเมนต์ลูกค้า · ประวัต�
     await expect(page.locator('[data-event-property]').first(), 'บรรทัดประวัติไม่มีรูปทรัพย์').toBeVisible();
   });
 
+  /* "รูปยังไม่ขึ้น" — หน้าดีลโชว์ไอคอนบ้านสีเทาเหมือนกันทุกดีล คนตรวจดีลจำรหัส
+     JKPSPK1010 ไม่ได้ ต้องเห็นรูปถึงจะรู้ว่าใช่ตัวเดียวกันไหม */
+  test('หน้าดีลโชว์รูปทรัพย์จริง ไม่ใช่ไอคอนเปล่า และไม่โชว์รหัสภายใน', async ({ page, request }) => {
+    const stamp = Date.now().toString(36);
+    const lead = await (await request.post('/api/leads', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { name: `บริษัททดสอบรูปดีล ${stamp}`, phone: '0800000003', source: 'contact form' },
+    })).json();
+    madeLeads.push(lead.id);
+
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=20')).json()).items as { code: string; img: string | null }[];
+    const withPhoto = items.find((i) => i.img);
+    test.skip(!withPhoto, 'ยังไม่มีทรัพย์ที่มีรูป');
+
+    const deal = await (await request.post('/api/deals', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { title: `ดีลทดสอบรูป ${stamp}`, amount: 500000, leadId: lead.id, propertyCode: withPhoto!.code },
+    })).json();
+    madeDeals.push(deal.id);
+    await request.patch(`/api/deals/${deal.id}`, {
+      headers: { cookie, 'Content-Type': 'application/json' }, data: { status: 'lost' },
+    });
+
+    await signIn(page);
+    await page.goto(`/admin/deals/${deal.id}`);
+    await expect(page.locator('[data-deal-property-img]'), 'หน้าดีลยังไม่ขึ้นรูปทรัพย์').toBeVisible();
+    await expect(page.locator('[data-deal-property-noimg]')).toHaveCount(0);
+
+    /* ประวัติการติดต่อบนหน้าดีลเคยโชว์เหตุผลของ audit log ทั้งดุ้น
+       เช่น 'สถานะเปลี่ยนเป็น "ไม่สำเร็จ" · deal cmt0wopu8003... lost' */
+    const history = await page.locator('#deal-contact-history, [data-deal-history]').innerText().catch(async () => (await page.locator('body').innerText()));
+    expect(history, 'ประวัติยังโชว์รหัสภายในของดีล').not.toContain(deal.id);
+  });
+
   test('ประวัติประกอบจากเหตุการณ์จริง ไม่ใช่แค่โน้ตที่พิมพ์มือ', async ({ request }) => {
     const stamp = Date.now().toString(36);
     const lead = await (await request.post('/api/leads', {

@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { thumb } from '@/lib/mediaThumb';
 import { apiFetch, apiGet, apiPost, apiPatch, apiDelete, ApiClientError } from '@/lib/apiClient';
 
 /* ============================================================
@@ -45,7 +46,7 @@ type ApiDoc = { id: string; filename: string; mime: string; size: number; status
 
 type ApiDeal = {
   id: string; title: string; amount: number; status: string; locked: boolean; note: string | null;
-  propertyCode: string; propertyTitle: string; customer: string;
+  propertyCode: string; propertyTitle: string; propertyImg?: string | null; customer: string;
   /* สไลด์ 42 · "ไม่มีสรุปและประวัติการติดต่อ" */
   customerContact?: string; customerPhone?: string; customerEmail?: string; leadStatus?: string;
   history?: { text: string; at: number }[];
@@ -350,9 +351,22 @@ export default function DealBody() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* context (accordion header — คลิกเพื่อกาง/ซ่อนรายละเอียดด้านใน) */}
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-            <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--tint)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M3 21V8l9-5 9 5v13" /><path d="M3 21h18" /><path d="M7 21v-8h10v8" /></svg>
-            </div>
+            {/* รูปทรัพย์จริง ไม่ใช่ไอคอนบ้านสีเทาที่เหมือนกันทุกดีล — คนตรวจดีล
+                จำรหัส JKPSPK1010 ไม่ได้ ต้องเห็นรูปถึงจะรู้ว่าใช่ตัวเดียวกันไหม
+                (สไลด์ 43 "ต้องมีรูปภาพเพื่อยืนยัน") */}
+            {deal?.propertyImg ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                data-deal-property-img
+                src={thumb(deal.propertyImg, 160)}
+                alt={deal.propertyTitle || ''}
+                style={{ width: 48, height: 48, borderRadius: 12, objectFit: 'cover', border: '1px solid var(--border)', flexShrink: 0 }}
+              />
+            ) : (
+              <div data-deal-property-noimg style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--tint)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M3 21V8l9-5 9 5v13" /><path d="M3 21h18" /><path d="M7 21v-8h10v8" /></svg>
+              </div>
+            )}
             <div style={{ flex: 1, minWidth: 180 }}>
               <div style={{ fontSize: '14.5px', fontWeight: 800, color: 'var(--text)' }}>{deal?.propertyTitle || deal?.title || 'ยังไม่ได้ผูกกับทรัพย์'}</div>
               {propCode
