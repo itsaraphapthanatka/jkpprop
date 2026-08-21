@@ -26,6 +26,11 @@ import { FACTOR_PROVINCES, PIN_FACTORS, type Factor } from '@/lib/mapFactors';
 
 export type MapPin = {
   name: string; lat: number; lng: number; color: string; iconSvg: string;
+  /* หมุดที่อยู่ชิดกันให้ป้ายกางคนละทาง ไม่งั้นสองป้ายเกยกันจนอ่านไม่ออก
+     (สไลด์ 6 "มันทับกันจนดูไม่ออก" — CBD กับท่าเรือคลองเตยห่างกันราว 3 กม.) */
+  labelLeft?: boolean;
+  /** ป้ายอยู่ใต้หมุด — ใช้กับหมุดที่ขนาบด้วยหมุดอื่นทั้งซ้ายและขวา */
+  labelBelow?: boolean;
   /** the province it stands in — what its card counts and its click opens */
   province: string;
   catLabel: string;
@@ -187,12 +192,14 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
       for (const pin of pins) {
         const mk = L.marker([pin.lat, pin.lng], {
           icon: L.divIcon({
-            className: 'belt-pin',
-            html: `<span class="belt-pin-dot" style="background:${pin.color}">${pin.iconSvg}</span><span class="belt-pin-label">${escapeHtml(pin.name)}</span>`,
+            className: `belt-pin${pin.labelLeft ? ' belt-pin-left' : ''}${pin.labelBelow ? ' belt-pin-below' : ''}`,
+            html: pin.labelLeft
+              ? `<span class="belt-pin-label">${escapeHtml(pin.name)}</span><span class="belt-pin-dot" style="background:${pin.color}">${pin.iconSvg}</span>`
+              : `<span class="belt-pin-dot" style="background:${pin.color}">${pin.iconSvg}</span><span class="belt-pin-label">${escapeHtml(pin.name)}</span>`,
             /* no iconSize: Leaflet would write it onto the element, and a
                0x0 marker is a marker nothing can point at — the dot and the
                label sized the box themselves */
-            iconAnchor: [17, 17],
+            iconAnchor: [15, 15],
           }),
           keyboard: false,
           interactive: true,
@@ -230,10 +237,30 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
 
       map.current = m;
       setBuilt((n) => n + 1);   // now there is something to paint
+      /* สไลด์ 6 · "มันทับกันจนดูไม่ออก" — หมุดในกรุงเทพฯ อยู่ชิดกันจนป้ายชื่อ
+         เกยกัน การไล่ขยับทีละหมุดจะพังอีกทันทีที่ซูมหรือขนาดจอเปลี่ยน จึงวัด
+         กรอบของป้ายจริงหลังวาดเสร็จ แล้วซ่อนป้ายที่ทับของที่แสดงไปแล้ว
+         จุดหมุดยังอยู่ครบ และป้ายที่ซ่อนจะโผล่เมื่อเอาเมาส์ไปชี้ */
+      const declutter = () => {
+        const pins = Array.from(host.current?.querySelectorAll<HTMLElement>('.belt-pin') ?? []);
+        for (const el of pins) el.classList.remove('belt-pin-quiet');
+        const kept: DOMRect[] = [];
+        for (const el of pins) {
+          const lb = el.querySelector<HTMLElement>('.belt-pin-label');
+          if (!lb) continue;
+          const r = lb.getBoundingClientRect();
+          const hits = kept.some((k) => r.left < k.right && r.right > k.left && r.top < k.bottom && r.bottom > k.top);
+          if (hits) el.classList.add('belt-pin-quiet');
+          else kept.push(r);
+        }
+      };
+      m.on('zoomend', () => setTimeout(declutter, 60));
+      cleanups.push(() => m.off('zoomend'));
+
       /* the panel animates in; leaflet needs telling once the box has settled
          พอล็อกไม่ให้ลากแล้ว ต้องจัดกรอบใหม่ทุกครั้งที่ขนาดกล่องเปลี่ยน ไม่งั้น
          ภาพจะค้างอยู่คนละที่โดยที่คนดูขยับกลับเองไม่ได้ */
-      const refit = () => { m.invalidateSize(); m.fitBounds(BOUNDS, { padding: [8, 8] }); };
+      const refit = () => { m.invalidateSize(); m.fitBounds(BOUNDS, { padding: [8, 8] }); setTimeout(declutter, 80); };
       setTimeout(refit, 250);
       window.addEventListener('resize', refit);
       cleanups.push(() => window.removeEventListener('resize', refit));

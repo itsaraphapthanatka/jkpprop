@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { groupDigits, numericValue } from '@/lib/numberFormat';
+import { ZoneDot } from '@/components/common/ZoneDot';
 import { thumb } from '@/lib/mediaThumb';
 import { resolveFields, propertyType, type FieldDef } from '@/lib/propertySchema';
 import { useSchemaSync } from '@/lib/schemaSync';
@@ -31,6 +32,12 @@ type Vals = Record<string, unknown>;
 
 /* media field — uploads to /api/media and stores the served src paths in the
    property values (payload shape per FRONTEND_API_SPEC §4: asset URL array) */
+const mediaBtn = (off: boolean): React.CSSProperties => ({
+  width: 26, height: 26, borderRadius: 7, border: '1px solid var(--border)', background: 'var(--surface)',
+  color: off ? 'var(--muted3)' : 'var(--text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+  cursor: off ? 'default' : 'pointer', opacity: off ? 0.45 : 1, fontFamily: 'inherit', padding: 0,
+});
+
 function MediaField({ f, lbl, value, onChange }: {
   f: FieldDef;
   lbl: (f: FieldDef) => React.ReactNode;
@@ -95,21 +102,57 @@ function MediaField({ f, lbl, value, onChange }: {
         />
       )}
       {value.length > 0 && (
-        <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {value.map((src, i) => (
-            <span key={src + i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 6px 0 4px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)' }}>
-              {src.startsWith('/api/media/') && !src.endsWith('.pdf') ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={thumb(src, 160)} alt="" loading="lazy" decoding="async" style={{ width: 22, height: 22, borderRadius: 5, objectFit: 'cover' }} />
-              ) : (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><path d="M14 2v6h6" /></svg>
-              )}
-              <span style={{ fontSize: 11, color: 'var(--muted)' }}>ไฟล์ {i + 1}{i === 0 && f.key === 'photos' ? ' · ปก' : ''}</span>
-              <span onClick={() => onChange(value.filter((_, j) => j !== i))} style={{ display: 'flex', cursor: 'pointer', color: 'var(--muted3)' }} aria-label="ลบไฟล์">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M18 6L6 18M6 6l12 12" /></svg>
-              </span>
-            </span>
-          ))}
+        /* สไลด์ 23 · "รูปภาพสลับที่ไม่ได้ · ขยายช่องรูปภาพ (มองภาพไม่เห็น)"
+           เดิมเป็นชิปสูง 30px กับรูปย่อ 22×22 — เล็กจนดูไม่ออกว่าเป็นรูปอะไร
+           และไม่มีทางเปลี่ยนลำดับเลย ทั้งที่รูปแรกคือรูปปกที่ออกหน้าเว็บ */
+        <div data-media-grid style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(132px,1fr))', gap: 10 }}>
+          {value.map((src, i) => {
+            const isImage = src.startsWith('/api/media/') && !src.endsWith('.pdf');
+            const move = (to: number) => {
+              if (to < 0 || to >= value.length) return;
+              const next = [...value];
+              const [x] = next.splice(i, 1);
+              next.splice(to, 0, x);
+              onChange(next);
+            };
+            return (
+              <div key={src + i} data-media-item={String(i)} style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', background: 'var(--surface)' }}>
+                <div style={{ position: 'relative', height: 96, background: 'var(--bg)' }}>
+                  {isImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={thumb(src, 320)} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  ) : (
+                    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted3)' }}>
+                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><path d="M14 2v6h6" /></svg>
+                    </div>
+                  )}
+                  {i === 0 && f.key === 'photos' && (
+                    <span data-media-cover style={{ position: 'absolute', top: 6, left: 6, height: 20, padding: '0 8px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 10, fontWeight: 800, display: 'inline-flex', alignItems: 'center' }}>ปก</span>
+                  )}
+                  <span
+                    onClick={() => onChange(value.filter((_, j) => j !== i))}
+                    data-media-remove={String(i)}
+                    aria-label="ลบไฟล์"
+                    style={{ position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: 9999, background: 'rgba(2,14,8,.62)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 7px' }}>
+                  <button type="button" data-media-left={String(i)} disabled={i === 0} onClick={() => move(i - 1)} aria-label="เลื่อนไปทางซ้าย" style={mediaBtn(i === 0)}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M15 18l-6-6 6-6" /></svg>
+                  </button>
+                  <button type="button" data-media-right={String(i)} disabled={i === value.length - 1} onClick={() => move(i + 1)} aria-label="เลื่อนไปทางขวา" style={mediaBtn(i === value.length - 1)}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M9 6l6 6-6 6" /></svg>
+                  </button>
+                  <span style={{ flex: 1 }} />
+                  {f.key === 'photos' && i !== 0 && (
+                    <button type="button" data-media-cover-set={String(i)} onClick={() => move(0)} style={{ ...mediaBtn(false), width: 'auto', padding: '0 8px', fontSize: 10.5, fontWeight: 700 }}>ทำเป็นปก</button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -273,6 +316,41 @@ export function DynamicFieldForm({ typeKey, code, initialValues, onValuesChange 
           </div>
         );
       case 'select':
+        /* สไลด์ 9/22/25 · "พื้นที่สีทุกอันใส่ Icon สีด้วย" — <select> ของ
+           เบราว์เซอร์ใส่สีในตัวเลือกไม่ได้ ช่องผังเมืองจึงเป็นรายการปุ่มที่มี
+           จุดสีจริง ส่วนช่องเลือกอื่นยังเป็น select ตามเดิม */
+        if (f.key === 'zoning_color') {
+          const cur = str(f.key);
+          return (
+            <div>
+              {lbl(f)}
+              <div data-zone-picker style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {(f.options || []).map((o) => {
+                  const on = cur === o;
+                  return (
+                    <button
+                      type="button"
+                      key={o}
+                      data-zone-opt={o}
+                      aria-pressed={on}
+                      onClick={() => setV(f.key, on ? '' : o)}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 7, height: 34, padding: '0 12px',
+                        borderRadius: 9999, fontSize: '12.5px', fontWeight: on ? 800 : 600, cursor: 'pointer',
+                        fontFamily: 'inherit', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'),
+                        background: on ? 'rgba(13,108,59,.06)' : 'var(--surface)', color: on ? '#0D6C3B' : 'var(--text)',
+                      }}
+                    >
+                      <ZoneDot value={o} size={13} />
+                      {o}
+                    </button>
+                  );
+                })}
+              </div>
+              {note(f)}
+            </div>
+          );
+        }
         return (<div>{lbl(f)}<select value={str(f.key)} onChange={(e) => setV(f.key, e.target.value)} style={selectStyle}><option value="">เลือก…</option>{(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}</select>{note(f)}</div>);
       case 'multiselect':
         return (

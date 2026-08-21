@@ -738,7 +738,8 @@ test.describe('the location finder map', () => {
     await page.locator('#lf-map-plane').scrollIntoViewIfNeeded();
     await expect.poll(() => page.locator('.leaflet-tile').count(), { timeout: 15_000 }).toBeGreaterThan(0);
     await expect(page.locator('#lf-map-plane')).toContainText('OpenStreetMap');
-    await expect(page.locator('[data-pin]')).toHaveCount(6);
+    /* เจ็ดหมุดตั้งแต่เพิ่มท่าเรือคลองเตย (สไลด์ 7) */
+    await expect(page.locator('[data-pin]')).toHaveCount(7);
     await expect(page.locator('[data-province]')).toHaveCount(13);
   });
 

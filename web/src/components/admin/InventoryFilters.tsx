@@ -12,6 +12,7 @@
  * (ของเดิมมีจังหวัดให้เลือกห้าจังหวัด ทั้งที่คลังของจริงมีมากกว่านั้น) */
 import * as React from 'react';
 import { PROPERTY_TYPES, ZONE_COLORS } from '@/lib/propertySchema';
+import { ZoneDot } from '@/components/common/ZoneDot';
 
 export type InventoryRow = {
   code: string;
@@ -144,6 +145,8 @@ export function InventoryFilters({ value, onChange, extra, picOptions = [] }: {
         return (
           <div key={f.key} style={{ position: 'relative' }}>
             <div data-filter={f.key} data-on={cur ? '1' : '0'} onClick={() => setOpen(on ? null : f.key)} style={chip(!!cur || on)}>
+              {/* สไลด์ 9/22/25 · "พื้นที่สีทุกอันใส่ Icon สีด้วย" */}
+              {f.key === 'zoning' && cur ? <ZoneDot value={cur} size={13} /> : null}
               <span style={{ maxWidth: 190, overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={cur || on ? '#fff' : 'var(--muted2)'} strokeWidth="2.4"><path d="M6 9l6 6 6-6" /></svg>
             </div>
@@ -152,7 +155,10 @@ export function InventoryFilters({ value, onChange, extra, picOptions = [] }: {
                 <div onClick={() => set(f.key, '')} style={option(!cur)}><span>{ANY}</span></div>
                 {f.opts.map(([v, l]) => (
                   <div key={v} data-filter-opt={v} onClick={() => set(f.key, v)} style={option(cur === v)}>
-                    <span>{l}</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                      {f.key === 'zoning' ? <ZoneDot value={v} size={13} /> : null}
+                      {l}
+                    </span>
                     {cur === v && <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D6C3B" strokeWidth="2.6"><path d="M20 6L9 17l-5-5" /></svg>}
                   </div>
                 ))}

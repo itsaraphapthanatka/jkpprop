@@ -22,7 +22,7 @@ import { sameProvince } from '@/i18n/places';
    "640+ / 820+ / 1,150+ รายการ" — inventory the catalogue never had. */
 const AREA_PROVINCES = {
   air: ['สมุทรปราการ', 'กรุงเทพมหานคร'],
-  port: ['ชลบุรี', 'ระยอง', 'สมุทรสาคร'],
+  port: ['ชลบุรี', 'ระยอง', 'สมุทรสาคร', 'กรุงเทพมหานคร'],
   bkk: ['กรุงเทพมหานคร', 'นนทบุรี'],
   eec: ['ชลบุรี', 'ระยอง', 'ฉะเชิงเทรา'],
 } as const;

@@ -152,7 +152,7 @@ export type Dictionary = {
     factoryRent: string; factorySale: string; warehouseRent: string; warehouseSale: string;
     airportDonmuang: string; airportSuvarnabhumi: string;
     bangkokCbd: string; bangkokNonthaburi: string;
-    portLaemChabang: string; portMahachai: string; portMapTaPhut: string;
+    portLaemChabang: string; portMahachai: string; portMapTaPhut: string; portKhlongToei: string;
   };
   form: {
     name: string; phone: string; email: string; company: string;
@@ -372,7 +372,7 @@ const th: Dictionary = {
     warehouseRent: 'โกดังให้เช่า', warehouseSale: 'โกดังสำหรับขาย',
     airportDonmuang: 'ทรัพย์ใกล้สนามบินดอนเมือง', airportSuvarnabhumi: 'ทรัพย์ใกล้สนามบินสุวรรณภูมิ',
     bangkokCbd: 'ทรัพย์ในกรุงเทพฯ', bangkokNonthaburi: 'ทรัพย์ในนนทบุรี',
-    portLaemChabang: 'ทรัพย์ใกล้ท่าเรือแหลมฉบัง', portMahachai: 'ทรัพย์ใกล้ท่าเรือมหาชัย',
+    portLaemChabang: 'ทรัพย์ใกล้ท่าเรือแหลมฉบัง', portMahachai: 'ทรัพย์ใกล้ท่าเรือมหาชัย', portKhlongToei: 'ทรัพย์ใกล้ท่าเรือคลองเตย',
     portMapTaPhut: 'ทรัพย์ใกล้ท่าเรือมาบตาพุด',
   },
   form: {
@@ -596,7 +596,7 @@ const en: Dictionary = {
     warehouseRent: 'Warehouses for rent', warehouseSale: 'Warehouses for sale',
     airportDonmuang: 'Property near Don Mueang Airport', airportSuvarnabhumi: 'Property near Suvarnabhumi Airport',
     bangkokCbd: 'Property in Bangkok', bangkokNonthaburi: 'Property in Nonthaburi',
-    portLaemChabang: 'Property near Laem Chabang Port', portMahachai: 'Property near Mahachai Port',
+    portLaemChabang: 'Property near Laem Chabang Port', portMahachai: 'Property near Mahachai Port', portKhlongToei: 'Property near Khlong Toei Port',
     portMapTaPhut: 'Property near Map Ta Phut Port',
   },
   form: {
@@ -820,7 +820,7 @@ const zh: Dictionary = {
     warehouseRent: '仓库出租', warehouseSale: '仓库出售',
     airportDonmuang: '廊曼机场周边房源', airportSuvarnabhumi: '素万那普机场周边房源',
     bangkokCbd: '曼谷房源', bangkokNonthaburi: '暖武里房源',
-    portLaemChabang: '林查班港周边房源', portMahachai: '马哈猜港周边房源',
+    portLaemChabang: '林查班港周边房源', portMahachai: '马哈猜港周边房源', portKhlongToei: '克隆栽港周边房源',
     portMapTaPhut: '马达普港周边房源',
   },
   form: {

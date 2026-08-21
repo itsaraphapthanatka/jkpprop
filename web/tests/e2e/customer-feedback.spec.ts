@@ -1460,3 +1460,174 @@ test.describe('คอมเมนต์ลูกค้า · ข้อควา�
     }
   });
 });
+
+/* สไลด์ 9 · 22 · 25 (ลูกค้าเขียนย้ำสามที่) — "พื้นที่สีทุกอันใส่ Icon สีด้วย"
+   จุดสีเคยมีแต่ในหน้ารายละเอียดฝั่งลูกค้า ส่วนตัวกรองและฟอร์มมีแต่ชื่อสีเป็น
+   ตัวหนังสือ ซึ่งต้องอ่านแล้วแปลเอาเองทุกครั้ง */
+test.describe('คอมเมนต์ลูกค้า · จุดสีผังเมืองทุกที่', () => {
+  const signIn = async (page: import('@playwright/test').Page) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    return (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  };
+
+  test('ตัวกรองหลังบ้านมีจุดสีในทุกตัวเลือก', async ({ page }) => {
+    await signIn(page);
+    await page.goto('/admin/properties');
+    await page.locator('[data-filter="zoning"]').click();
+    const opts = page.locator('[data-filter-opt]');
+    await expect(opts.first()).toBeVisible();
+    const n = await opts.count();
+    /* ทุกตัวเลือกที่เป็นสีต้องมีจุด ยกเว้น "อื่นๆ" ที่ไม่มีสีของตัวเอง */
+    const dots = await page.locator('[data-filter-opt] [data-zone-dot]').count();
+    expect(dots, `มี ${n} ตัวเลือก แต่มีจุดสีแค่ ${dots}`).toBeGreaterThanOrEqual(n - 2);
+  });
+
+  test('ฟอร์มแก้ทรัพย์เลือกพื้นที่สีจากจุดสีจริง', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { typeKey: 'warehouse', title: `ทดสอบจุดสีในฟอร์ม ${Date.now().toString(36)}`, status: 'draft', values: { province: 'สมุทรปราการ' } },
+    })).json();
+    try {
+      await page.goto(`/admin/property-edit?code=${made.publicCode}`);
+      const picker = page.locator('[data-zone-picker]');
+      await expect(picker, 'ช่องผังเมืองต้องเป็นตัวเลือกที่มีสี ไม่ใช่ dropdown ข้อความ').toBeVisible({ timeout: 15000 });
+      expect(await picker.locator('[data-zone-dot]').count(), 'ทุกตัวเลือกต้องมีจุดสี').toBeGreaterThan(8);
+
+      /* เลือกแล้วต้องบันทึกได้จริง */
+      await page.locator('[data-zone-opt="พื้นที่สีม่วง — อุตสาหกรรม"]').click();
+      await page.getByText('บันทึก', { exact: true }).first().click();
+      await expect(page).toHaveURL(/\/admin\/properties$/, { timeout: 15000 });
+      const saved = await (await request.get(`/api/properties/${made.id}`, { headers: { cookie } })).json();
+      expect(saved.values.zoning_color).toBe('พื้นที่สีม่วง — อุตสาหกรรม');
+    } finally {
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+
+  test('ตัวกรองหน้ารายการฝั่งลูกค้าก็มีจุดสี', async ({ page }) => {
+    await page.goto('/th/listing');
+    const opts = page.locator('[data-filter-opt="zoning"]');
+    const n = await opts.count();
+    test.skip(!n, 'ยังไม่มีทรัพย์ที่กรอกพื้นที่สี');
+    const dots = await page.locator('[data-filter-opt="zoning"] [data-zone-dot]').count();
+    expect(dots, `มี ${n} ตัวเลือก แต่มีจุดสีแค่ ${dots}`).toBeGreaterThanOrEqual(n - 1);
+  });
+});
+
+/* สไลด์ 23 (หน้าใหม่) · "รูปภาพสลับที่ไม่ได้ · ขยายช่องรูปภาพ (มองภาพไม่เห็น)"
+   รูปในฟอร์มเป็นชิปสูง 30px กับรูปย่อ 22×22 เล็กจนดูไม่ออกว่าเป็นรูปอะไร และ
+   ไม่มีทางเปลี่ยนลำดับ ทั้งที่รูปแรกคือรูปปกที่ออกหน้าเว็บ */
+test.describe('คอมเมนต์ลูกค้า · จัดการรูปในฟอร์ม', () => {
+  test('รูปใหญ่พอมองเห็น และสลับลำดับได้จริง', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    /* ยืมรูปจริงจากทรัพย์ที่มีอยู่ สองใบ เพื่อวัดการสลับลำดับ */
+    const items = (await (await request.get('/api/properties', { headers: { cookie } })).json()).items as
+      { values?: { photos?: unknown } }[];
+    const photos = items.flatMap((i) => (Array.isArray(i.values?.photos) ? (i.values!.photos as string[]) : [])).slice(0, 2);
+    test.skip(photos.length < 2, 'ต้องมีรูปอย่างน้อยสองใบในระบบ');
+
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { typeKey: 'warehouse', title: `ทดสอบสลับรูป ${Date.now().toString(36)}`, status: 'draft', values: { province: 'สมุทรปราการ', photos } },
+    })).json();
+
+    try {
+      await page.goto(`/admin/property-edit?code=${made.publicCode}`);
+      const grid = page.locator('[data-media-grid]');
+      await expect(grid).toBeVisible({ timeout: 15000 });
+
+      /* ใหญ่พอมองเห็น — ไม่ใช่ไอคอน 22px */
+      const box = await grid.locator('[data-media-item] img').first().boundingBox();
+      expect(box!.height, 'รูปต้องสูงพอจะดูออกว่าเป็นรูปอะไร').toBeGreaterThan(60);
+      await expect(page.locator('[data-media-cover]'), 'ใบแรกต้องบอกว่าเป็นปก').toBeVisible();
+
+      /* สลับลำดับแล้วบันทึก — ปกต้องเปลี่ยนตาม */
+      await page.locator('[data-media-cover-set="1"]').click();
+      await page.getByText('บันทึก', { exact: true }).first().click();
+      await expect(page).toHaveURL(/\/admin\/properties$/, { timeout: 15000 });
+
+      const saved = await (await request.get(`/api/properties/${made.id}`, { headers: { cookie } })).json();
+      expect(saved.values.photos[0], 'รูปที่กด "ทำเป็นปก" ต้องขึ้นมาเป็นใบแรก').toBe(photos[1]);
+      expect(saved.values.photos, 'ต้องสลับลำดับ ไม่ใช่ลบทิ้ง').toHaveLength(2);
+    } finally {
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+});
+
+/* สไลด์ 7 · "เพิ่ม ท่าเรือคลองเตย" — ตัวเลือกท่าเรือมีแหลมฉบัง มหาชัย
+   มาบตาพุด แต่ไม่มีคลองเตย ทั้งที่เป็นท่าเรือที่ใกล้คลังในกรุงเทพฯ ที่สุด */
+test.describe('คอมเมนต์ลูกค้า · ท่าเรือคลองเตย', () => {
+  test('เลือกท่าเรือคลองเตยได้จากหน้าแรก และหน้าปลายทางมีทรัพย์จริง', async ({ page, request }) => {
+    await page.goto('/th');
+    await page.locator('#lf-map-plane').scrollIntoViewIfNeeded();
+    await expect(page.getByText('ท่าเรือคลองเตย').first(), 'ต้องมีคลองเตยในตัวเลือกท่าเรือ').toBeVisible({ timeout: 15000 });
+
+    const rows = (await (await request.get('/api/public/listings?locale=th&limit=500')).json()).items as { province: string }[];
+    const inBkk = rows.filter((r) => r.province.includes('กรุงเทพ')).length;
+    test.skip(!inBkk, 'ยังไม่มีทรัพย์ในกรุงเทพฯ');
+
+    await page.goto('/th/port-khlong-toei');
+    await expect(page.locator('[data-card]').first(), 'หน้าท่าเรือคลองเตยต้องมีทรัพย์').toBeVisible({ timeout: 15000 });
+  });
+
+  test('หมุดคลองเตยอยู่บนแผนที่ และอยู่ในกรุงเทพฯ', async ({ page }) => {
+    await page.goto('/th');
+    const plane = page.locator('#lf-map-plane');
+    await plane.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(1500);
+    await expect(page.locator('[data-pin="ท่าเรือคลองเตย"]')).toBeVisible({ timeout: 15000 });
+  });
+});
+
+/* สไลด์ 6 (เขียนใหม่หลังรอบก่อน) · "ขยายแผนที่ · มันทับกันจนดูไม่ออก"
+   หมุดในกรุงเทพฯ อยู่ชิดกันมาก — CBD กับท่าเรือคลองเตยห่างกันราวสามกิโลเมตร
+   ป้ายชื่อจึงเกยกันจนอ่านไม่ออก */
+test.describe('คอมเมนต์ลูกค้า · แผนที่ใหญ่ขึ้นและป้ายไม่ทับกัน', () => {
+  test('แผนที่สูงขึ้น และป้ายหมุดไม่ทับกัน', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/th');
+    const plane = page.locator('#lf-map-plane');
+    await plane.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(2500);
+
+    const box = (await plane.boundingBox())!;
+    expect(box.height, 'แผนที่ต้องสูงพอจะกางหมุดได้').toBeGreaterThan(700);
+
+    /* ป้ายที่ "มองเห็นอยู่" ต้องไม่ทับกัน — ป้ายที่ระบบซ่อนเพราะจะทับ ไม่นับ
+       (จุดหมุดยังอยู่ครบ ชี้แล้วป้ายโผล่) */
+    const rects = await page.locator('.belt-pin .belt-pin-label').evaluateAll((els) =>
+      els
+        .filter((el) => Number(getComputedStyle(el).opacity) > 0.5)
+        .map((el) => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, t: (el.textContent ?? '').trim() }; }));
+    expect(rects.length, 'ต้องเหลือป้ายให้อ่านอย่างน้อยครึ่งหนึ่งของหมุด').toBeGreaterThan(3);
+    /* จุดหมุดต้องอยู่ครบทุกอัน ไม่ใช่หายไปพร้อมป้าย */
+    expect(await page.locator('.belt-pin').count(), 'หมุดต้องอยู่ครบ').toBeGreaterThanOrEqual(6);
+
+    const overlaps: string[] = [];
+    for (let i = 0; i < rects.length; i++) {
+      for (let j = i + 1; j < rects.length; j++) {
+        const a = rects[i]; const b = rects[j];
+        const ox = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+        const oy = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+        if (ox > 0 && oy > 0) {
+          const area = ox * oy;
+          const smaller = Math.min(a.w * a.h, b.w * b.h);
+          if (area > smaller * 0.5) overlaps.push(`${a.t} ↔ ${b.t}`);
+        }
+      }
+    }
+    expect(overlaps, `ป้ายทับกัน: ${overlaps.join(' · ')}`).toEqual([]);
+  });
+});

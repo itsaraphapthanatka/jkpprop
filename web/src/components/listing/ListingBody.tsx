@@ -9,6 +9,7 @@ import { ShareMenu } from '@/components/site/ShareMenu';
 import { useI18n } from '@/i18n/useDict';
 import { propertyType } from '@/lib/propertySchema';
 import { buildFacets, LOAD_STEPS } from '@/lib/publicFilters';
+import { ZoneDot } from '@/components/common/ZoneDot';
 import { enumLabel } from '@/i18n/enums';
 
 /* ============================================================
@@ -314,10 +315,10 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
   };
   const toggleSort = () => setSortOpen((v) => !v);
 
-  type Section = { key: SecKey; title: string; items: { label: string; checked: boolean; select: () => void }[] };
+  type Section = { key: SecKey; title: string; items: { label: string; value?: string; checked: boolean; select: () => void }[] };
   const sections: Section[] = ([
     { key: 'zone', title: d.listing.zone, items: zoneItems.map((label) => ({ label, checked: zoneSel.includes(label), select: () => setZoneSel((a) => toggleIn(a, label)) })) },
-    { key: 'zoning', title: d.listing.zoneColor, items: zoningItems.map((value) => ({ label: enumLabel(value, locale), checked: zoningSel.includes(value), select: () => setZoningSel((a) => toggleIn(a, value)) })) },
+    { key: 'zoning', title: d.listing.zoneColor, items: zoningItems.map((value) => ({ label: enumLabel(value, locale), value, checked: zoningSel.includes(value), select: () => setZoningSel((a) => toggleIn(a, value)) })) },
     { key: 'type', title: d.listing.type, items: typeItems.map((label) => ({ label, checked: typeSel.includes(label), select: () => setTypeSel((a) => toggleIn(a, label)) })) },
     { key: 'size', title: d.listing.size, items: SIZE_ITEMS.map((label) => ({ label, checked: sizeSel === label, select: () => setSizeSel((cur) => (cur === label ? null : label)) })) },
     { key: 'price', title: d.listing.price, items: PRICE_ITEMS.map((label) => ({ label, checked: priceSel === label, select: () => setPriceSel((cur) => (cur === label ? null : label)) })) },
@@ -345,6 +346,8 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
             {sec.items.map((it) => (
               <div key={enumLabel(it.label, locale)} data-filter-opt={sec.key} data-checked={it.checked ? '1' : '0'} onClick={it.select} style={checkStyle(it.checked)}>
                 <div style={boxStyle(it.checked)}>{it.checked && checkIcon}</div>
+                {/* จุดสีของผังเมือง — สไลด์ 9/22/25 */}
+                {sec.key === 'zoning' ? <ZoneDot value={it.value ?? it.label} size={14} /> : null}
                 <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{enumLabel(it.label, locale)}</div>
               </div>
             ))}

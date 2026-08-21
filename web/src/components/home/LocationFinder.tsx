@@ -13,7 +13,7 @@ type Loc = 'air' | 'port' | 'bkk' | 'eec';
 type PinCat = 'air' | 'port' | 'bkk';
 
 interface FactorDef { key: Loc; title: string; desc: string; }
-interface PinDef { name: string; cat: PinCat; prov: string; eec?: boolean; lat: number; lng: number; }
+interface PinDef { name: string; cat: PinCat; prov: string; eec?: boolean; lat: number; lng: number; labelLeft?: boolean; labelBelow?: boolean }
 
 interface ChipDef { key: Loc; label: string; c: string; }
 interface OptionDef { key: string; label: string; href: string; }
@@ -39,7 +39,10 @@ const factorDefs: FactorDef[] = [
 const pinDefs: PinDef[] = [
   { name: 'ดอนเมือง', cat: 'air', prov: 'bangkok', lat: 13.9126, lng: 100.6068 },
   { name: 'สุวรรณภูมิ', cat: 'air', prov: 'samut_prakan', lat: 13.6900, lng: 100.7501 },
-  { name: 'CBD กรุงเทพฯ', cat: 'bkk', prov: 'bangkok', lat: 13.7280, lng: 100.5340 },
+  { name: 'CBD กรุงเทพฯ', cat: 'bkk', prov: 'bangkok', lat: 13.7280, lng: 100.5340, labelLeft: true },
+  /* สไลด์ 7 · "เพิ่ม ท่าเรือคลองเตย" — ท่าเรือที่ใกล้คลังในกรุงเทพฯ ที่สุด
+     แต่ไม่เคยอยู่ในตัวเลือก */
+  { name: 'ท่าเรือคลองเตย', cat: 'port', prov: 'bangkok', lat: 13.7080, lng: 100.5680, labelBelow: true },
   { name: 'ท่าเรือมหาชัย', cat: 'port', prov: 'samut_sakhon', lat: 13.5470, lng: 100.2740 },
   { name: 'ท่าเรือแหลมฉบัง', cat: 'port', eec: true, prov: 'chonburi', lat: 13.0827, lng: 100.8836 },
   { name: 'ท่าเรือมาบตาพุด', cat: 'port', eec: true, prov: 'rayong', lat: 12.6800, lng: 101.1500 },
@@ -76,6 +79,7 @@ const OPTION_DEFS: Record<Loc, OptionDef[]> = {
     { key: 'suvarnabhumi', label: 'สุวรรณภูมิ', href: '/airport-suvarnabhumi' },
   ],
   port: [
+    { key: 'khlongtoei', label: 'ท่าเรือคลองเตย', href: '/port-khlong-toei' },
     { key: 'mahachai', label: 'ท่าเรือมหาชัย', href: '/port-mahachai' },
     { key: 'laemchabang', label: 'ท่าเรือแหลมฉบัง', href: '/port-laem-chabang' },
     { key: 'maptaphut', label: 'ท่าเรือมาบตาพุด', href: '/port-map-ta-phut' },
@@ -174,7 +178,7 @@ export function LocationFinder({ counts = {}, provinceCounts = {}, copy }: { cou
         <h2 style={{ margin: '8px 0 40px', textAlign: 'center', fontSize: '30px', fontWeight: 700, color: 'var(--text)' }}>{pick(copy.headline, d.locations.heading)}</h2>
         {/* สไลด์ 5-6 ของลูกค้าเขียนว่า "ขยายให้ใหญ่ขึ้น" ทั้งสองหน้า — แผนที่คือ
             สิ่งที่คนใช้เลือกทำเล แต่เดิมได้พื้นที่พอ ๆ กับคอลัมน์ตัวเลือก */}
-        <div className="rs-split-l" style={{ display: 'grid', gridTemplateColumns: '0.72fr 1.28fr', gap: '28px', alignItems: 'stretch' }}>
+        <div className="rs-split-l" style={{ display: 'grid', gridTemplateColumns: '0.62fr 1.38fr', gap: '24px', alignItems: 'stretch' }}>
 
           {/* LEFT: factor selector */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -228,7 +232,7 @@ export function LocationFinder({ counts = {}, provinceCounts = {}, copy }: { cou
           <div
             onMouseEnter={() => setMapHover(true)}
             onMouseLeave={() => { setMapHover(false); setHoverPin(null); }}
-            style={{ position: 'relative', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden', minHeight: 'min(760px, 78vh)', transform: mapHover ? 'translateY(-4px)' : 'none', boxShadow: mapHover ? '0 26px 60px rgba(var(--ink-rgb),.20), inset 0 0 0 1px rgba(255,255,255,.5)' : '0 18px 44px rgba(var(--ink-rgb),.12), inset 0 0 0 1px rgba(255,255,255,.4)', transition: 'transform .3s cubic-bezier(.2,.8,.3,1), box-shadow .3s' }}
+            style={{ position: 'relative', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden', minHeight: 'min(880px, 86vh)', transform: mapHover ? 'translateY(-4px)' : 'none', boxShadow: mapHover ? '0 26px 60px rgba(var(--ink-rgb),.20), inset 0 0 0 1px rgba(255,255,255,.5)' : '0 18px 44px rgba(var(--ink-rgb),.12), inset 0 0 0 1px rgba(255,255,255,.4)', transition: 'transform .3s cubic-bezier(.2,.8,.3,1), box-shadow .3s' }}
           >
             <BeltMap
               factor={shown}
@@ -237,6 +241,8 @@ export function LocationFinder({ counts = {}, provinceCounts = {}, copy }: { cou
                 color: CAT[pd.cat], iconSvg: pinIcon(pd.cat), province: pd.prov,
                 catLabel: enumLabel(CAT_LABEL[pd.cat], locale),
                 count: countIn(provinceCounts, pd.prov),
+                labelLeft: pd.labelLeft,
+                labelBelow: pd.labelBelow,
               }))}
               countLabel={d.locations.properties}
               provinceCount={(key) => countIn(provinceCounts, key)}

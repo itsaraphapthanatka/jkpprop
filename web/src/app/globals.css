@@ -123,11 +123,24 @@ svg[fill="none"] { stroke-width:1.7px !important; }
 /* The pins on the home-page map. Leaflet builds these elements itself, so
    they cannot be styled inline the way the rest of this site is. */
 .belt-pin { display:flex; align-items:center; gap:8px; white-space:nowrap; transition:opacity .3s, transform .2s; }
-.belt-pin-dot { display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9999px; border:2.5px solid #fff; box-shadow:0 3px 10px rgba(2,35,16,.28); flex-shrink:0; }
-.belt-pin-label { font-size:13.5px; font-weight:700; color:#28251D; padding:2px 8px; border-radius:7px; background:rgba(255,255,255,.9); box-shadow:0 1px 4px rgba(2,35,16,.14); }
+.belt-pin-dot { display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:9999px; border:2.5px solid #fff; box-shadow:0 3px 10px rgba(2,35,16,.28); flex-shrink:0; }
+/* สไลด์ 6 · "มันทับกันจนดูไม่ออก" — หมุดในกรุงเทพฯ อยู่ใกล้กันมาก (CBD กับ
+   ท่าเรือคลองเตยห่างกันราวสามกิโลเมตร) ป้ายจึงเกยกันจนอ่านไม่ออก ย่อป้ายลง
+   ให้กินที่น้อยลง และตัวที่กำลังชี้อยู่ลอยขึ้นมาอยู่บนสุดเสมอ */
+.belt-pin-label { font-size:12px; font-weight:700; color:#28251D; padding:1px 6px; border-radius:6px; background:rgba(255,255,255,.86); box-shadow:0 1px 4px rgba(2,35,16,.14); max-width:118px; overflow:hidden; text-overflow:ellipsis; }
+.belt-pin-dot { transition:box-shadow .2s; }
+/* หมุดที่ป้ายกางไปทางซ้าย: จุดกลมต้องยังทับพิกัดจริง จึงเลื่อนทั้งก้อนไปทาง
+   ซ้ายเท่ากับความกว้างของตัวเอง แล้วบวกความกว้างของจุดกลมกลับมา */
+.belt-pin-left { transform:translateX(calc(-100% + 30px)); }
+/* ป้ายใต้หมุด สำหรับหมุดที่มีเพื่อนบ้านทั้งซ้ายและขวา */
+.belt-pin-below { flex-direction:column; align-items:center; gap:3px; }
+/* ป้ายที่ทับของหมุดอื่นถูกซ่อนไว้ แต่ยังเรียกดูได้ด้วยการชี้ */
+.belt-pin-quiet .belt-pin-label { opacity:0; pointer-events:none; transition:opacity .15s; }
+.belt-pin-quiet:hover .belt-pin-label, .belt-pin-quiet.belt-pin-active .belt-pin-label { opacity:1; }
 .belt-pin:hover, .belt-pin-active { transform:scale(1.12); z-index:700 !important; }
+.belt-pin-left:hover, .belt-pin-left.belt-pin-active { transform:translateX(calc(-100% + 30px)) scale(1.12); }
 .belt-pin:hover .belt-pin-dot, .belt-pin-active .belt-pin-dot { box-shadow:0 0 0 6px rgba(255,255,255,.55), 0 6px 18px rgba(2,35,16,.34); }
-.belt-pin:hover .belt-pin-label, .belt-pin-active .belt-pin-label { background:#fff; }
+.belt-pin:hover .belt-pin-label, .belt-pin-active .belt-pin-label { background:#fff; max-width:none; box-shadow:0 2px 10px rgba(2,35,16,.22); }
 
 /* the card that opens when the cursor is on a pin */
 .belt-card.leaflet-tooltip { display:flex; flex-direction:column; gap:2px; padding:12px 14px; min-width:170px;
