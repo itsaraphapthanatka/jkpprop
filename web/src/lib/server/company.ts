@@ -53,12 +53,32 @@ const DEFAULTS = {
   hoursValue: '9:00 - 18:00 น.',
 };
 
+/* ข้อความตัวอย่างในช่องกรอกของ /admin/company (components/admin/CompanyBody)
+   ที่ถูกบันทึกเป็นค่าจริง — production เก็บทั้งสามอันนี้ไว้ หน้าเว็บจึงโชว์ปุ่ม
+   Line / Facebook / Instagram ที่กดแล้วไปหน้าไม่มีอยู่จริงมาตลอด
+   ค่าที่เท่ากับข้อความตัวอย่างของช่องตัวเองเป๊ะ ๆ ไม่เคยเป็นคำตอบ */
+const PLACEHOLDERS = new Set([
+  'https://line.me/R/ti/p/@yourid',
+  'https://facebook.com/yourpage',
+  'https://instagram.com/youraccount',
+  /* ไม่รวม WhatsApp — ข้อความตัวอย่างของช่องนั้นเป็นเบอร์จริง แยกไม่ออกว่าเป็น
+     ค่าที่ตั้งใจกรอกหรือเผลอบันทึกตัวอย่างไว้ ตัดทิ้งเองเสี่ยงกว่าปล่อยไว้ */
+]);
+
 /* Only http(s) — a contact icon is a link out, and `javascript:` has no
    business being one. Stored values come from an admin form, but the form is
    not the last line of defence. */
-const safeUrl = (v: unknown): string => {
+export const safeUrl = (v: unknown): string => {
   const s = typeof v === 'string' ? v.trim() : '';
+  if (PLACEHOLDERS.has(s)) return '';
   return /^https?:\/\/[^\s<>"']+$/i.test(s) ? s : '';
+};
+
+/* ไอดี WeChat ที่ production เก็บไว้คือ "#" — ไม่มีตัวอักษรหรือตัวเลขสักตัว
+   คัดลอกไปก็ใช้ไม่ได้ ป๊อปอัปที่โชว์ "#" แย่กว่าไม่มีปุ่ม */
+export const safeId = (v: unknown): string => {
+  const s = typeof v === 'string' ? v.trim().slice(0, 100) : '';
+  return /[A-Za-z0-9\u0E00-\u0E7F]/.test(s) ? s : '';
 };
 
 /** the visitor's language, then Thai — an address is the same place either way */
@@ -99,7 +119,7 @@ export async function loadCompany(locale: Locale): Promise<Company> {
       .map(([key, url]) => ({ key, url: safeUrl(url) }))
       .filter((sc): sc is Social => !!sc.url),
     /* an ID to copy, not a link to follow */
-    wechatId: (row?.wechatId ?? '').trim().slice(0, 100),
+    wechatId: safeId(row?.wechatId),
   };
 }
 
