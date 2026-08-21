@@ -4,13 +4,23 @@ import { useState } from 'react';
 import { useI18n } from '@/i18n/useDict';
 import { useRouter } from 'next/navigation';
 import { SIZE_ITEMS, PRICE_ITEMS } from '@/lib/listingFilters';
-import { LOAD_STEPS, writeFilterParams, type Facets } from '@/lib/publicFilters';
+import { LOAD_STEPS, PUBLIC_TYPE_KEYS, writeFilterParams, type Facets, type PublicTypeKey } from '@/lib/publicFilters';
+import { propertyType } from '@/lib/propertySchema';
 import { zoneSwatch } from '@/lib/zoneSwatch';
 import { enumLabel } from '@/i18n/enums';
 import type { SectionCopy } from '@/lib/server/sectionCopy';
 
 type FilterTab = 'type' | 'size' | 'price';
-type PropType = 'warehouse' | 'factory';
+type PropType = PublicTypeKey;
+
+/* ไอคอนของแต่ละประเภทในแผงค้นหา — วาดเป็นเส้น currentColor เพื่อให้กลับสีตาม
+   สถานะที่เลือกอยู่ ไอคอนใน propertySchema ฝังสีมาแล้วใช้ตรงนี้ไม่ได้ */
+const TYPE_ICON: Record<PropType, string[]> = {
+  warehouse: ['M3 21V8l9-5 9 5v13', 'M3 21h18', 'M7 21v-8h10v8'],
+  factory: ['M2 21h20', 'M4 21V10l5 3V10l5 3V10l5 3v8', 'M6 6h.01M10 6h.01'],
+  showroom: ['M3 9l1.5-5h15L21 9', 'M3 9a3 3 0 006 0 3 3 0 006 0 3 3 0 006 0', 'M5 11v10h14V11', 'M9 21v-6h6v6'],
+  land: ['M3 20h18M5 20V9l7-4 7 4v11', 'M9 20v-5h6v5'],
+};
 
 const CHIP_BASE: React.CSSProperties = {
   display: 'flex',
@@ -73,7 +83,7 @@ export function Hero({ copy, facets = { areas: [], colors: [], zones: [], featur
     const p = new URLSearchParams();
     if (term.trim()) p.set('q', term.trim());
     if (listingMode) p.set('deal', listingMode);
-    if (propType) p.set('type', propType === 'factory' ? 'โรงงาน' : 'โกดัง');
+    if (propType) p.set('type', propertyType(propType).label);
     if (sizeSel) p.set('size', sizeSel);
     if (priceSel) p.set('price', priceSel);
     /* สี่หมวดในแผง "ตัวกรองเพิ่มเติม" เคยเก็บ state ไว้เฉย ๆ ไม่เคยส่งไปไหน */
@@ -201,7 +211,7 @@ export function Hero({ copy, facets = { areas: [], colors: [], zones: [], featur
             </div>
             <div data-hero-chip="type" onClick={() => openFilter('type')} style={propType ? activeChip : idleChip}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21V8l9-5 9 5v13" /><path d="M3 21h18" /><path d="M7 21v-8h10v8" /></svg>
-              {propType ? enumLabel(propType === 'factory' ? 'โรงงาน' : 'โกดัง', locale) : enumLabel('ประเภททรัพย์', locale)}
+              {propType ? enumLabel(propertyType(propType).label, locale) : enumLabel('ประเภททรัพย์', locale)}
             </div>
             <div data-hero-chip="size" onClick={() => openFilter('size')} style={sizeSel ? activeChip : idleChip}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" /></svg>
@@ -330,18 +340,16 @@ export function Hero({ copy, facets = { areas: [], colors: [], zones: [], featur
             <div style={{ padding: 24, overflow: 'auto', flex: 1 }}>
               {filterTab === 'type' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {([['warehouse', 'โกดัง'], ['factory', 'โรงงาน']] as [PropType, string][]).map(([key, label]) => {
+                  {PUBLIC_TYPE_KEYS.map((key) => {
                     const on = propType === key;
                     return (
-                      <div key={key} onClick={() => setPropType(key)} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 14, border: '1.5px solid ' + (on ? 'var(--pine)' : 'var(--border)'), background: on ? 'rgba(var(--pine-rgb),.06)' : 'transparent', cursor: 'pointer', color: 'var(--text)' }}>
+                      <div key={key} data-hero-type={key} onClick={() => setPropType(on ? null : key)} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 14, border: '1.5px solid ' + (on ? 'var(--pine)' : 'var(--border)'), background: on ? 'rgba(var(--pine-rgb),.06)' : 'transparent', cursor: 'pointer', color: 'var(--text)' }}>
                         <div style={{ width: 38, height: 38, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? 'var(--pine)' : 'var(--tint)', color: on ? '#fff' : 'var(--accent)', flexShrink: 0 }}>
-                          {key === 'warehouse' ? (
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21V8l9-5 9 5v13" /><path d="M3 21h18" /><path d="M7 21v-8h10v8" /></svg>
-                          ) : (
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 21h20" /><path d="M4 21V10l5 3V10l5 3V10l5 3v8" /><path d="M6 6h.01M10 6h.01" /></svg>
-                          )}
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            {TYPE_ICON[key].map((dPath) => <path key={dPath} d={dPath} />)}
+                          </svg>
                         </div>
-                        <div style={{ flex: 1, fontSize: '14.5px', fontWeight: 600 }}>{enumLabel(label, locale)}</div>
+                        <div style={{ flex: 1, fontSize: '14.5px', fontWeight: 600 }}>{enumLabel(propertyType(key).label, locale)}</div>
                         <div style={{ width: 20, height: 20, borderRadius: 9999, border: '2px solid ' + (on ? 'var(--pine)' : 'var(--border)'), background: on ? 'var(--pine)' : 'transparent', boxShadow: on ? 'inset 0 0 0 3px var(--surface)' : 'none' }} />
                       </div>
                     );
@@ -366,7 +374,9 @@ export function Hero({ copy, facets = { areas: [], colors: [], zones: [], featur
               )}
             </div>
             <div style={{ display: 'flex', gap: 12, padding: '18px 24px 24px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
-              <div onClick={() => { setPropType('warehouse'); setSizeSel(null); setPriceSel(null); }} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, border: '1.5px solid var(--border)', color: 'var(--text)', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>{d.common.clear}</div>
+              {/* "ล้างค่า" เคยตั้งประเภทเป็นโกดังให้ ซึ่งไม่ใช่การล้าง — คนกดล้างแล้ว
+                  ยังติดตัวกรองอยู่โดยไม่รู้ตัว */}
+              <div onClick={() => { setPropType(null); setSizeSel(null); setPriceSel(null); }} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, border: '1.5px solid var(--border)', color: 'var(--text)', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>{d.common.clear}</div>
               <div onClick={() => setFilterOpen(false)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, background: 'var(--pine)', color: '#fff', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>{d.common.apply}</div>
             </div>
           </div>

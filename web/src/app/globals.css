@@ -67,7 +67,10 @@ svg[fill="none"] { stroke-width:1.7px !important; }
    ไม่งั้นบรรทัดสงวนลิขสิทธิ์จะโดนบัง */
 @media (max-width:980px) {
   #contact-bar { display:flex !important; }
-  #back-to-top-btn { bottom:calc(84px + env(safe-area-inset-bottom)) !important; }
+  /* ลูกค้าสั่ง "responsive กลับขึ้นข้างบน เอาออก" — บนมือถือปุ่มนี้ลอยทับเนื้อหา
+     อยู่ตลอด และตอนนี้มีแถบติดต่อกินขอบล่างอยู่แล้ว สองก้อนซ้อนกันในพื้นที่
+     เท่าฝ่ามือ ปัดนิ้วขึ้นเองก็ถึงบนสุดอยู่ดี · จอใหญ่ยังมีเหมือนเดิม */
+  #back-to-top-btn { display:none !important; }
   #foot-bottom-row { padding-bottom:calc(70px + env(safe-area-inset-bottom)) !important; }
 }
 

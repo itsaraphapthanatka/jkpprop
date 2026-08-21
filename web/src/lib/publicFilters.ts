@@ -51,6 +51,13 @@ export function buildFacets(items: FilterableListing[]): Facets {
   };
 }
 
+/* สไลด์ 2 · "เพิ่มโชว์รูม และ อาคารพาณิชย์ · ที่ดิน" — แผงค้นหาหน้าแรกมีให้เลือก
+   แค่โกดังกับโรงงาน เป็นรายการที่พิมพ์ไว้ตายตัวในไฟล์ ทั้งที่ระบบหลังบ้านคีย์
+   ทรัพย์ได้สี่ประเภทมาตั้งแต่แรก คนหาโชว์รูมหรือที่ดินจึงไม่มีทางเริ่มจากหน้าแรก
+   บ้านกับคอนโดไม่อยู่ในนี้ — มีในระบบหลังบ้านแต่ไม่ใช่ของที่เอเจนซีนี้ขาย */
+export const PUBLIC_TYPE_KEYS = ['warehouse', 'factory', 'showroom', 'land'] as const;
+export type PublicTypeKey = (typeof PUBLIC_TYPE_KEYS)[number];
+
 /** ระดับรับน้ำหนักที่ทีมพูดถึงกันจริง (ตัน/ตร.ม.) */
 export const LOAD_STEPS = [0.5, 1, 2, 3];
 

@@ -231,15 +231,13 @@ test.describe('แถบติดต่อขอบล่างบนมือ�
     await expect(sheet, 'ปิดด้วย Esc ไม่ได้').toHaveCount(0);
   });
 
-  test('แถบไม่บังปุ่มกลับขึ้นด้านบน และไม่บังบรรทัดท้ายฟุตเตอร์', async ({ page, request }) => {
+  test('แถบไม่บังบรรทัดท้ายฟุตเตอร์', async ({ page, request }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(await propertyUrl(request));
     await page.mouse.wheel(0, 40000);
     await page.waitForTimeout(1200);
 
     const bar = (await page.locator('#contact-bar').boundingBox())!;
-    const top = (await page.locator('#back-to-top-btn').boundingBox())!;
-    expect(top.y + top.height, 'ปุ่มกลับขึ้นด้านบนโดนแถบทับ').toBeLessThanOrEqual(bar.y + 1);
 
     /* วัดที่ตัวข้อความ ไม่ใช่กล่องที่ครอบมัน — ฟุตเตอร์ตรึงขอบล่าง การเพิ่ม
        padding ด้านล่างทำให้กล่องสูงขึ้นไปทางบน ขอบล่างของกล่องยังชนขอบจออยู่ดี */
@@ -251,6 +249,62 @@ test.describe('แถบติดต่อขอบล่างบนมือ�
     await page.setViewportSize({ width: 1400, height: 900 });
     await page.goto(await propertyUrl(request));
     await expect(page.locator('#contact-bar')).toBeHidden();
+  });
+});
+
+/* สไลด์ 2 · "เพิ่มโชว์รูม และ อาคารพาณิชย์ · ที่ดิน" — แผงค้นหาหน้าแรกมีให้เลือก
+   แค่โกดังกับโรงงาน เป็นรายการที่พิมพ์ไว้ตายตัวในไฟล์ ทั้งที่ระบบคีย์ทรัพย์ได้
+   สี่ประเภทมาตั้งแต่แรก คนหาโชว์รูมหรือที่ดินจึงไม่มีทางเริ่มจากหน้าแรก */
+test.describe('ประเภททรัพย์ในแผงค้นหาหน้าแรก', () => {
+  test('มีครบสี่ประเภทที่ระบบรองรับ', async ({ page }) => {
+    await page.goto('/th');
+    await page.locator('[data-hero-chip="type"]').click();
+    const keys = await page.locator('[data-hero-type]').evaluateAll((els) => els.map((e) => e.getAttribute('data-hero-type')));
+    expect(keys).toEqual(['warehouse', 'factory', 'showroom', 'land']);
+    await expect(page.locator('[data-hero-type="showroom"]')).toContainText('โชว์รูม');
+    await expect(page.locator('[data-hero-type="land"]')).toContainText('ที่ดิน');
+  });
+
+  test('เลือกโชว์รูมแล้วกดค้นหา ไปหน้ารายการพร้อมตัวกรองที่เลือก', async ({ page }) => {
+    await page.goto('/th');
+    await page.locator('[data-hero-chip="type"]').click();
+    await page.locator('[data-hero-type="showroom"]').click();
+    await page.getByText('นำไปใช้').click();
+    await page.locator('#hero-search-btn').click();
+    await page.waitForURL(/\/listing\?/);
+    /* ค่าที่ส่งไปต้องเป็นชื่อประเภทชุดเดียวกับที่การ์ดใช้ ไม่ใช่คำที่พิมพ์ซ้ำไว้
+       คนละที่ — ไม่งั้นกรองแล้วไม่มีทางเจอ */
+    // URLSearchParams เขียนช่องว่างเป็น + ตามมาตรฐาน form encoding
+    expect(new URL(page.url()).searchParams.get('type')).toBe('โชว์รูม และ อาคารพาณิชย์');
+    await expect(page.locator('#toolbar-count')).toBeVisible();
+  });
+
+  test('"ล้างค่า" ล้างจริง ไม่ใช่เลือกโกดังให้แทน', async ({ page }) => {
+    await page.goto('/th');
+    await page.locator('[data-hero-chip="type"]').click();
+    await page.locator('[data-hero-type="factory"]').click();
+    await page.getByText('ล้างค่า').click();
+    await page.getByText('นำไปใช้').click();
+    await page.locator('#hero-search-btn').click();
+    await page.waitForURL(/\/listing/);
+    expect(decodeURIComponent(page.url()), 'ล้างค่าแล้วไม่ควรเหลือตัวกรองประเภท').not.toContain('type=');
+  });
+});
+
+/* "responsive กลับขึ้นข้างบน เอาออก" — บนมือถือปุ่มนี้ลอยทับเนื้อหาตลอด และมี
+   แถบติดต่อกินขอบล่างอยู่แล้ว */
+test.describe('ปุ่มกลับขึ้นด้านบน', () => {
+  test('ไม่มีบนมือถือ แต่ยังมีบนจอใหญ่', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/th');
+    await page.mouse.wheel(0, 3000);
+    await page.waitForTimeout(700);
+    await expect(page.locator('#back-to-top-btn')).toBeHidden();
+
+    await page.setViewportSize({ width: 1400, height: 900 });
+    await page.mouse.wheel(0, 3000);
+    await page.waitForTimeout(700);
+    await expect(page.locator('#back-to-top-btn')).toBeVisible();
   });
 });
 
