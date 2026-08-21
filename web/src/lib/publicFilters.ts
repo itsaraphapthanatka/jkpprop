@@ -20,6 +20,8 @@ export type FilterableListing = {
   zone: string[];
   features: string[];
   loadTon: number | null;
+  /** ความสูงอาคาร (เมตร) — ทีมกรอกไว้ 198 จาก 248 รายการ ช่วง 3–14 ม. */
+  heightM: number | null;
   type: string;
 };
 
@@ -33,9 +35,12 @@ export type PublicFilterState = {
   features: string[];
   /** รับน้ำหนักพื้นต่ำสุด (ตัน/ตร.ม.) */
   load: number | null;
+  /** ความสูงอาคาร ต่ำสุด–สูงสุด (เมตร) — ว่างข้างไหนก็ได้ */
+  hMin: number | null;
+  hMax: number | null;
 };
 
-export const EMPTY_PUBLIC_FILTERS: PublicFilterState = { areas: [], colors: [], zones: [], features: [], load: null };
+export const EMPTY_PUBLIC_FILTERS: PublicFilterState = { areas: [], colors: [], zones: [], features: [], load: null, hMin: null, hMax: null };
 
 /** ตัวเลือกที่ "มีของจริง" — คำนวณจากรายการที่หน้านั้นถืออยู่ ไม่ใช่รายการคงที่ */
 export type Facets = { areas: string[]; colors: string[]; zones: string[]; features: string[]; types: string[] };
@@ -58,8 +63,15 @@ export function buildFacets(items: FilterableListing[]): Facets {
 export const PUBLIC_TYPE_KEYS = ['warehouse', 'factory', 'showroom', 'land'] as const;
 export type PublicTypeKey = (typeof PUBLIC_TYPE_KEYS)[number];
 
-/** ระดับรับน้ำหนักที่ทีมพูดถึงกันจริง (ตัน/ตร.ม.) */
-export const LOAD_STEPS = [0.5, 1, 2, 3];
+/* ระดับรับน้ำหนักที่ทีมพูดถึงกันจริง (ตัน/ตร.ม.)
+   ลูกค้าขอ "เพิ่มถึง 7 ตัน" — ของในคลังตอนนี้สูงสุด 5 ตัน แต่ตัวกรองต้องรองรับ
+   ของที่กำลังจะเข้ามาด้วย ไม่ใช่แค่ของที่มีอยู่วันนี้ */
+export const LOAD_STEPS = [0.5, 1, 2, 3, 4, 5, 7];
+
+/* ความสูงอาคารเป็นช่วง ต่ำสุด–สูงสุด ตามแบบที่ลูกค้าชี้มา ไม่ใช่ "ขึ้นไป"
+   เพราะคนหาโกดังมีเพดานความสูงจากอาคารเดิมหรือชั้นวางที่วางแผนไว้
+   ของในคลังอยู่ช่วง 3–14 ม. ขั้นบันไดจึงกว้างกว่านั้นเล็กน้อยเผื่อของใหม่ */
+export const HEIGHT_STEPS = [4, 6, 8, 10, 12, 15, 20];
 
 export function matchesPublicFilters(it: FilterableListing, f: PublicFilterState): boolean {
   if (f.areas.length && !f.areas.includes(it.loc)) return false;
@@ -67,6 +79,8 @@ export function matchesPublicFilters(it: FilterableListing, f: PublicFilterState
   if (f.zones.length && !f.zones.some((z) => it.zone.includes(z))) return false;
   if (f.features.length && !f.features.every((x) => it.features.includes(x))) return false;
   if (f.load !== null && (it.loadTon === null || it.loadTon < f.load)) return false;
+  if (f.hMin !== null && (it.heightM === null || it.heightM < f.hMin)) return false;
+  if (f.hMax !== null && (it.heightM === null || it.heightM > f.hMax)) return false;
   return true;
 }
 
@@ -83,20 +97,32 @@ export function writeFilterParams(p: URLSearchParams, f: PublicFilterState): voi
   if (f.zones.length) p.set('estate', f.zones.join('|'));
   if (f.features.length) p.set('feature', f.features.join('|'));
   if (f.load !== null) p.set('load', String(f.load));
+  if (f.hMin !== null) p.set('hmin', String(f.hMin));
+  if (f.hMax !== null) p.set('hmax', String(f.hMax));
 }
 
+/** ตัวเลขบวกจากพารามิเตอร์เดียว หรือ null ถ้าอ่านไม่ได้ */
+const numParam = (v: string | string[] | undefined): number | null => {
+  const n = Number(Array.isArray(v) ? v[0] : v);
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+
 export function readFilterParams(sp: Record<string, string | string[] | undefined>): PublicFilterState {
-  const loadRaw = Array.isArray(sp.load) ? sp.load[0] : sp.load;
-  const load = Number(loadRaw);
+  const hMin = numParam(sp.hmin);
+  const hMax = numParam(sp.hmax);
   return {
     areas: listParam(sp.area),
     colors: listParam(sp.zone),
     zones: listParam(sp.estate),
     features: listParam(sp.feature),
-    load: Number.isFinite(load) && load > 0 ? load : null,
+    load: numParam(sp.load),
+    /* สลับให้เองถ้าใครส่งกลับด้าน — ช่วงที่ต่ำสุดมากกว่าสูงสุดไม่มีวันเจออะไร */
+    hMin: hMin !== null && hMax !== null ? Math.min(hMin, hMax) : hMin,
+    hMax: hMin !== null && hMax !== null ? Math.max(hMin, hMax) : hMax,
   };
 }
 
 /** มีอะไรถูกเลือกไว้ไหม — ใช้ตัดสินว่าจะโชว์ปุ่มล้างตัวกรอง */
 export const anyFilterSet = (f: PublicFilterState): boolean =>
-  f.areas.length + f.colors.length + f.zones.length + f.features.length > 0 || f.load !== null;
+  f.areas.length + f.colors.length + f.zones.length + f.features.length > 0
+  || f.load !== null || f.hMin !== null || f.hMax !== null;

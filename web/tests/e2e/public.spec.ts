@@ -308,6 +308,60 @@ test.describe('ปุ่มกลับขึ้นด้านบน', () => {
   });
 });
 
+/* "ตัวกรองเพิ่มเติม น้ำหนักที่พื้นรับได้ เพิ่มถึง 7 ตัน และเพิ่มความสูง"
+   ตัวกรองที่มีให้กดแต่ไม่ได้กรองอะไรคือปัญหาที่แก้กันมาหลายรอบแล้ว เทสต์นี้จึง
+   ไม่ได้ดูแค่ว่ามีช่อง แต่ดูว่าค่าเดินทางไปถึงหน้ารายการและตัดผลลัพธ์จริง */
+test.describe('ตัวกรองเพิ่มเติม · รับน้ำหนักและความสูง', () => {
+  test('ระดับรับน้ำหนักมีถึง 7 ตัน', async ({ page }) => {
+    await page.goto('/th');
+    await page.locator('[data-hero-chip="more"]').click();
+    const steps = await page.locator('text=/ตัน\\/ตร\\.ม\\. ขึ้นไป/').allInnerTexts();
+    expect(steps.join(' ')).toContain('7 ตัน');
+  });
+
+  test('ช่องความสูงมีทั้งหน้าแรกและหน้ารายการ และเป็นช่วงต่ำสุด–สูงสุด', async ({ page }) => {
+    await page.goto('/th');
+    await page.locator('[data-hero-chip="more"]').click();
+    await expect(page.locator('[data-height-min]')).toBeVisible();
+    await expect(page.locator('[data-height-max]')).toBeVisible();
+
+    await page.goto('/th/listing');
+    // จอเล็กแถบตัวกรองซ่อนอยู่หลังปุ่ม ต้องกดเปิดก่อนเหมือนที่คนใช้ทำ
+    const openFilters = page.locator('#mobile-filter-btn');
+    if (await openFilters.isVisible()) await openFilters.click();
+    /* หน้านี้วาดชุดตัวกรองสองชุด — แถบข้างสำหรับจอใหญ่ กับแผงที่กางบนจอเล็ก
+       ขอแค่ชุดที่มองเห็นอยู่มีช่องความสูง ไม่ใช่ชุดแรกใน DOM */
+    await expect(page.locator('[data-height-min]:visible')).toHaveCount(1);
+  });
+
+  test('เลือกความสูงจากหน้าแรกแล้วผลลัพธ์ในหน้ารายการลดลงจริง', async ({ page, request }) => {
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=500')).json()).items as { heightM: number | null }[];
+    const tall = items.filter((i) => i.heightM !== null && i.heightM >= 12).length;
+    test.skip(tall === items.length, 'ทรัพย์ทุกรายการสูงเกิน 12 ม. จึงเทียบไม่ได้');
+
+    await page.goto('/th');
+    await page.locator('[data-hero-chip="more"]').click();
+    await page.locator('[data-height-min]').selectOption('12');
+    await page.getByText('นำไปใช้').click();
+    await page.locator('#hero-search-btn').click();
+    await page.waitForURL(/\/listing\?/);
+    expect(new URL(page.url()).searchParams.get('hmin'), 'ค่าความสูงไม่ได้ถูกส่งไปหน้ารายการ').toBe('12');
+
+    await page.waitForTimeout(2500);
+    const shown = Number(await page.locator('#toolbar-count').innerText().then((t) => t.replace(/\D/g, '')));
+    expect(shown, `กรอง ≥12 ม. แล้วควรเหลือ ${tall} จาก ${items.length}`).toBe(tall);
+  });
+
+  test('ช่องต่ำสุดกับสูงสุดไม่เสนอค่าที่ทำให้ช่วงกลับด้าน', async ({ page }) => {
+    await page.goto('/th');
+    await page.locator('[data-hero-chip="more"]').click();
+    await page.locator('[data-height-max]').selectOption('8');
+    const mins = await page.locator('[data-height-min] option').evaluateAll((els) =>
+      els.map((e) => Number((e as HTMLOptionElement).value)).filter(Boolean));
+    expect(Math.max(...mins), 'ช่องต่ำสุดยังเสนอค่าที่สูงกว่าสูงสุดที่เลือกไว้').toBeLessThanOrEqual(8);
+  });
+});
+
 test.describe('layout', () => {
   test('the page never scrolls sideways', async ({ page }) => {
     // the responsive rules keyed off inline-style strings used to fail

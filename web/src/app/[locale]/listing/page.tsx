@@ -66,6 +66,8 @@ export default async function ListingPage({ searchParams }: { searchParams: Prom
     ...(more.zones.length ? { estateSel: more.zones } : {}),
     ...(more.features.length ? { featureSel: more.features } : {}),
     ...(more.load !== null ? { loadSel: more.load } : {}),
+    ...(more.hMin !== null ? { hMin: more.hMin } : {}),
+    ...(more.hMax !== null ? { hMax: more.hMax } : {}),
   };
   const any = Object.keys(preset).some((k) => k !== 'breadcrumb');
   return <ListingShell preset={any || preset.breadcrumb ? preset : undefined} />;

@@ -95,7 +95,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         {/* The hero has no switch — a page whose masthead can be turned off
             has no top. Every other block obeys the toggle in /admin/sections,
             and the ones with nothing to show hide themselves. */}
-        <Hero copy={section(c, 'h')} facets={buildFacets(all.map((it) => ({ loc: it.loc, zoning: it.zoning, zone: it.zone, features: it.features, loadTon: it.loadTon, type: it.typeKey })))} />
+        <Hero copy={section(c, 'h')} facets={buildFacets(all.map((it) => ({ loc: it.loc, zoning: it.zoning, zone: it.zone, features: it.features, loadTon: it.loadTon, heightM: it.heightM, type: it.typeKey })))} />
         {section(c, 'n').enabled && <Featured items={featured} copy={section(c, 'n')} />}
         {section(c, 'l').enabled && <LocationFinder counts={counts} provinceCounts={provinceCounts} copy={section(c, 'l')} />}
         {section(c, 's').enabled && <Steps copy={section(c, 's')} />}

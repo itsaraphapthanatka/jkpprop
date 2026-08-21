@@ -33,6 +33,8 @@ export type Dictionary = {
     headline1: string; headline2: string; headlineTail: string; sub: string; searchPlaceholder: string;
     filters: string; moreFilters: string; propertyType: string; size: string; priceRange: string;
     zone: string; zoneColor: string; features: string; floorLoading: string;
+    /** ตัวกรองความสูงอาคาร เป็นช่วง ต่ำสุด–สูงสุด */
+    height: string; noMin: string; noMax: string; metre: string;
   };
   featured: {
     eyebrow: string; heading: string; sub: string;
@@ -187,6 +189,7 @@ const th: Dictionary = {
     filters: 'ตัวกรองการค้นหา', moreFilters: 'ตัวกรองเพิ่มเติม', propertyType: 'ประเภทอสังหา',
     size: 'ขนาดพื้นที่', priceRange: 'ช่วงราคา', zone: 'โซน', zoneColor: 'พื้นที่สี (ผังเมือง)', features: 'คุณสมบัติ',
     floorLoading: 'น้ำหนักที่พื้นรับได้',
+    height: 'ความสูง', noMin: 'ไม่ระบุต่ำสุด', noMax: 'ไม่ระบุสูงสุด', metre: 'ม.',
   },
   featured: {
     eyebrow: 'ทรัพย์มาใหม่', heading: 'อสังหาริมทรัพย์ล่าสุด',
@@ -411,6 +414,7 @@ const en: Dictionary = {
     filters: 'Search filters', moreFilters: 'More filters', propertyType: 'Property type',
     size: 'Floor area', priceRange: 'Price range', zone: 'Zone', zoneColor: 'Zoning colour', features: 'Features',
     floorLoading: 'Floor loading',
+    height: 'Height', noMin: 'No minimum', noMax: 'No maximum', metre: 'm',
   },
   featured: {
     eyebrow: 'New listings', heading: 'Latest properties',
@@ -635,6 +639,7 @@ const zh: Dictionary = {
     filters: '搜索筛选', moreFilters: '更多筛选', propertyType: '房源类型',
     size: '建筑面积', priceRange: '价格区间', zone: '区域', zoneColor: '城市规划分区颜色', features: '设施特点',
     floorLoading: '楼板承重',
+    height: '高度', noMin: '不限最低', noMax: '不限最高', metre: '米',
   },
   featured: {
     eyebrow: '最新房源', heading: '最新上架房源',

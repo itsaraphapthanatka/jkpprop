@@ -9,6 +9,7 @@ import { ShareMenu } from '@/components/site/ShareMenu';
 import { useI18n } from '@/i18n/useDict';
 import { propertyType } from '@/lib/propertySchema';
 import { buildFacets, LOAD_STEPS } from '@/lib/publicFilters';
+import { HeightRange } from '@/components/common/HeightRange';
 import { ZoneDot } from '@/components/common/ZoneDot';
 import { enumLabel } from '@/i18n/enums';
 
@@ -23,7 +24,7 @@ import { enumLabel } from '@/i18n/enums';
 
 type SortKey = 'new' | 'price_asc' | 'price_desc' | 'size_asc' | 'size_desc';
 type Mode = 'rent' | 'sale';
-type SecKey = 'province' | 'district' | 'subdistrict' | 'zoning' | 'estate' | 'type' | 'size' | 'price' | 'feature' | 'load';
+type SecKey = 'province' | 'district' | 'subdistrict' | 'zoning' | 'estate' | 'type' | 'size' | 'price' | 'feature' | 'load' | 'height';
 
 /* zone options are derived from the inventory on the page, not listed here */
 
@@ -54,6 +55,7 @@ export type ListingItem = {
   zone: string[];
   features: string[];
   loadTon: number | null;
+  heightM: number | null;
   available: boolean;
 };
 
@@ -81,6 +83,7 @@ type Listing = {
   zone: string[];
   features: string[];
   loadTon: number | null;
+  heightM: number | null;
   available: boolean;
 };
 
@@ -104,6 +107,7 @@ const toListing = (it: ListingItem): Listing => ({
   zone: it.zone,
   features: it.features,
   loadTon: it.loadTon,
+  heightM: it.heightM,
   priceValue: it.priceValue,
   available: it.available,
 });
@@ -130,6 +134,8 @@ export interface ListingPreset {
   estateSel?: string[];
   featureSel?: string[];
   loadSel?: number | null;
+  hMin?: number | null;
+  hMax?: number | null;
   /** ?saved=1 — arriving from the heart in the masthead */
   onlyFavs?: boolean;
 }
@@ -216,7 +222,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
   /* null = both. /listing must not hide every property for sale just because
      the pills default to one of them; preset pages still pin their own. */
   const [listingMode, setListingMode] = useState<Mode | null>(preset.listingMode ?? null);
-  const [secOpen, setSecOpen] = useState<Record<SecKey, boolean>>({ province: true, district: true, subdistrict: true, zoning: true, estate: true, type: true, size: true, price: true, feature: true, load: true });
+  const [secOpen, setSecOpen] = useState<Record<SecKey, boolean>>({ province: true, district: true, subdistrict: true, zoning: true, estate: true, type: true, size: true, price: true, feature: true, load: true, height: true });
   /* สไลด์ 9 · "แยกจังหวัดเขตแขวง" — เดิมเป็นหมวดเดียวชื่อ "ทำเล" ที่ไล่ข้อความ
      รวม ("บางพลี, สมุทรปราการ") เลือกได้ทีละก้อน แคบลงทีละชั้นไม่ได้ */
   const [provSel, setProvSel] = useState<string[]>(preset.province ? [preset.province] : []);
@@ -229,6 +235,8 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
   const [estateSel, setEstateSel] = useState<string[]>(preset.estateSel ?? []);
   const [featureSel, setFeatureSel] = useState<string[]>(preset.featureSel ?? []);
   const [loadSel, setLoadSel] = useState<number | null>(preset.loadSel ?? null);
+  const [hMin, setHMin] = useState<number | null>(preset.hMin ?? null);
+  const [hMax, setHMax] = useState<number | null>(preset.hMax ?? null);
   const [typeSel, setTypeSel] = useState<string[]>(preset.typeSel ?? []);
   const [sizeSel, setSizeSel] = useState<string | null>(preset.sizeSel ?? null);
   const [priceSel, setPriceSel] = useState<string | null>(preset.priceSel ?? null);
@@ -271,6 +279,8 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
     if (estateSel.length && !estateSel.some((z) => it.zone.includes(z))) return false;
     if (featureSel.length && !featureSel.every((x) => it.features.includes(x))) return false;
     if (loadSel !== null && (it.loadTon === null || it.loadTon < loadSel)) return false;
+    if (hMin !== null && (it.heightM === null || it.heightM < hMin)) return false;
+    if (hMax !== null && (it.heightM === null || it.heightM > hMax)) return false;
     if (typeSel.length && !typeSel.includes(it.type)) return false;
     if (onlyFavs && !favs.has(it.code)) return false;
     if (sizeSel && !inSize(it.areaSqm, sizeSel)) return false;
@@ -337,7 +347,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
     /* จังหวัด/เขต/แขวง เป็น dropdown — รายการติ๊กยาวเป็นสามสิบกว่าบรรทัด
        ทำให้แถบตัวกรองยาวจนหาหมวดอื่นไม่เจอ และการเลือกทีละหลายจังหวัดพร้อมกัน
        ก็ไม่ใช่สิ่งที่คนหาทำเลทำจริง */
-    kind?: 'dropdown';
+    kind?: 'dropdown' | 'range';
     value?: string;
     onPick?: (v: string) => void;
     items: { label: string; value?: string; checked: boolean; select: () => void }[];
@@ -368,7 +378,9 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
     { key: 'estate', title: d.hero.zone, items: facets.zones.map((value) => ({ label: value, checked: estateSel.includes(value), select: () => setEstateSel((a) => toggleIn(a, value)) })) },
     { key: 'feature', title: d.hero.features, items: facets.features.map((value) => ({ label: value, checked: featureSel.includes(value), select: () => setFeatureSel((a) => toggleIn(a, value)) })) },
     { key: 'load', title: d.hero.floorLoading, items: LOAD_STEPS.map((n) => ({ label: `${n} ${d.common.tonPerSqm}`, checked: loadSel === n, select: () => setLoadSel((cur) => (cur === n ? null : n)) })) },
-  ] as Section[]).filter((sec) => sec.items.length > 0);
+    /* ความสูงเป็นช่วง ไม่ใช่รายการติ๊ก — items ว่างจึงต้องยกเว้นจากตัวกรองด้านล่าง */
+    { key: 'height', title: d.hero.height, kind: 'range', items: [] },
+  ] as Section[]).filter((sec) => sec.kind === 'range' || sec.items.length > 0);
 
   /* สไลด์ 9 · "เพิ่มช่องค้นหา" — หน้านี้ไม่มีช่องค้นหาเลย มีแต่ชิปแสดงคำที่
      พิมพ์มาจากหน้าแรก ใครเข้ามาตรงหน้านี้จึงค้นด้วยชื่อหรือรหัสไม่ได้ */
@@ -423,7 +435,10 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
             ))}
           </select>
         )}
-        {secOpen[sec.key] && sec.kind !== 'dropdown' && (
+        {secOpen[sec.key] && sec.kind === 'range' && (
+          <HeightRange min={hMin} max={hMax} onMin={setHMin} onMax={setHMax} />
+        )}
+        {secOpen[sec.key] && !sec.kind && (
           <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
             {sec.items.map((it) => (
               <div key={enumLabel(it.label, locale)} data-filter-opt={sec.key} data-checked={it.checked ? '1' : '0'} onClick={it.select} style={checkStyle(it.checked)}>

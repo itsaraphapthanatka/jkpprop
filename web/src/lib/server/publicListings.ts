@@ -52,6 +52,8 @@ export type PublicListing = {
   zone: string[];
   features: string[];
   loadTon: number | null;
+  /** ความสูงอาคาร (เมตร) — ตัวกรอง "ความสูง" ใช้ตัวนี้ */
+  heightM: number | null;
   /** ว่าง/ไม่ว่าง จากข้อมูลที่ทีมกรอก — เก็บมา 129 รายการแล้วแต่หน้าเว็บไม่เคย
       อ่าน ทรัพย์ที่ปล่อยไปแล้วจึงยังโฆษณาว่าว่างอยู่ */
   available: boolean;
@@ -182,6 +184,15 @@ export async function loadPublicListings(q: ListingQuery = {}): Promise<PublicLi
       loadTon: (() => {
         const m = /(\d+(?:\.\d+)?)/.exec(String(values.floor_loading ?? ''));
         return m ? Number(m[1]) : null;
+      })(),
+      /* ความสูงอาคารก่อน แล้วค่อยความสูงใต้คาน — ทีมกรอกช่องแรกไว้ 198 รายการ
+         ส่วนช่องหลังยังไม่มีใครกรอกเลย แต่ฟอร์มมีให้กรอกทั้งคู่ */
+      heightM: (() => {
+        for (const k of ['building_height', 'clear_height'] as const) {
+          const n = Number(values[k]);
+          if (Number.isFinite(n) && n > 0) return n;
+        }
+        return null;
       })(),
       available: !taken.has(p.id),
     }];

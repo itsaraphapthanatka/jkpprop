@@ -7,6 +7,7 @@ import { SIZE_ITEMS, PRICE_ITEMS } from '@/lib/listingFilters';
 import { LOAD_STEPS, PUBLIC_TYPE_KEYS, writeFilterParams, type Facets, type PublicTypeKey } from '@/lib/publicFilters';
 import { propertyType } from '@/lib/propertySchema';
 import { zoneSwatch } from '@/lib/zoneSwatch';
+import { HeightRange } from '@/components/common/HeightRange';
 import { enumLabel } from '@/i18n/enums';
 import type { SectionCopy } from '@/lib/server/sectionCopy';
 
@@ -87,7 +88,7 @@ export function Hero({ copy, facets = { areas: [], colors: [], zones: [], featur
     if (sizeSel) p.set('size', sizeSel);
     if (priceSel) p.set('price', priceSel);
     /* สี่หมวดในแผง "ตัวกรองเพิ่มเติม" เคยเก็บ state ไว้เฉย ๆ ไม่เคยส่งไปไหน */
-    writeFilterParams(p, { areas: zoneSel, colors: colorSel, zones: estateSel, features: featureSel, load: loadSel });
+    writeFilterParams(p, { areas: zoneSel, colors: colorSel, zones: estateSel, features: featureSel, load: loadSel, hMin, hMax });
     router.push(`/${locale}/listing?${p}`);
   };
 
@@ -95,12 +96,14 @@ export function Hero({ copy, facets = { areas: [], colors: [], zones: [], featur
   const [filterTab, setFilterTab] = useState<FilterTab>('type');
 
   const [moreOpen, setMoreOpen] = useState(false);
-  const [secOpen, setSecOpen] = useState<{ zone: boolean; color: boolean; feature: boolean; load: boolean }>({ zone: true, color: true, feature: true, load: true });
+  const [secOpen, setSecOpen] = useState<{ zone: boolean; color: boolean; feature: boolean; load: boolean; height: boolean }>({ zone: true, color: true, feature: true, load: true, height: true });
   const [zoneSel, setZoneSel] = useState<string[]>([]);      // ทำเล
   const [estateSel, setEstateSel] = useState<string[]>([]);  // โซน (ปลอดอากร · กนอ. · DG)
   const [colorSel, setColorSel] = useState<string[]>([]);
   const [featureSel, setFeatureSel] = useState<string[]>([]);
   const [loadSel, setLoadSel] = useState<number | null>(null);
+  const [hMin, setHMin] = useState<number | null>(null);
+  const [hMax, setHMax] = useState<number | null>(null);
 
   const toggleIn = (arr: string[], v: string) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
 
@@ -221,7 +224,7 @@ export function Hero({ copy, facets = { areas: [], colors: [], zones: [], featur
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M14.5 9a2.5 2.5 0 00-2.5-1.8c-1.4 0-2.5.9-2.5 2s1.1 2 2.5 2 2.5.9 2.5 2-1.1 2-2.5 2A2.5 2.5 0 019.5 15" /><path d="M12 6v1.2M12 16.8V18" /></svg>
               {priceSel ? enumLabel(priceSel, locale) : d.hero.priceRange}
             </div>
-            <div onClick={() => setMoreOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 36, padding: '0 16px', borderRadius: 9999, background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.42)', color: '#fff', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
+            <div data-hero-chip="more" onClick={() => setMoreOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 36, padding: '0 16px', borderRadius: 9999, background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.42)', color: '#fff', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16" /><path d="M4 12h16" /><path d="M4 18h16" /><circle cx="9" cy="6" r="2" fill="#fff" /><circle cx="15" cy="12" r="2" fill="#fff" /><circle cx="8" cy="18" r="2" fill="#fff" /></svg>
               {d.hero.moreFilters}
             </div>
@@ -315,9 +318,13 @@ export function Hero({ copy, facets = { areas: [], colors: [], zones: [], featur
                   })}
                 </div>
               </MoreSection>
+              {/* ความสูง — ลูกค้าขอเพิ่ม เป็นช่วงต่ำสุด–สูงสุดตามภาพที่ชี้มา */}
+              <MoreSection title={d.hero.height} open={secOpen.height} onToggle={() => setSecOpen((s) => ({ ...s, height: !s.height }))} icon="height">
+                <HeightRange min={hMin} max={hMax} onMin={setHMin} onMax={setHMax} />
+              </MoreSection>
             </div>
             <div style={{ display: 'flex', gap: 12, padding: '18px 24px 24px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
-              <div onClick={() => { setZoneSel([]); setEstateSel([]); setColorSel([]); setFeatureSel([]); setLoadSel(null); }} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, border: '1.5px solid var(--border)', color: 'var(--text)', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>{d.common.clear}</div>
+              <div onClick={() => { setZoneSel([]); setEstateSel([]); setColorSel([]); setFeatureSel([]); setLoadSel(null); setHMin(null); setHMax(null); }} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, border: '1.5px solid var(--border)', color: 'var(--text)', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>{d.common.clear}</div>
               <div onClick={() => setMoreOpen(false)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 9999, background: 'var(--pine)', color: '#fff', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer' }}>{d.common.apply}</div>
             </div>
           </div>
@@ -386,7 +393,7 @@ export function Hero({ copy, facets = { areas: [], colors: [], zones: [], featur
   );
 }
 
-function MoreSection({ title, open, onToggle, icon, children }: { title: string; open: boolean; onToggle: () => void; icon: 'zone' | 'color' | 'feature' | 'load'; children: React.ReactNode }) {
+function MoreSection({ title, open, onToggle, icon, children }: { title: string; open: boolean; onToggle: () => void; icon: 'zone' | 'color' | 'feature' | 'load' | 'height'; children: React.ReactNode }) {
   return (
     <div style={{ borderTop: '1px solid var(--border)', padding: '16px 0' }}>
       <div onClick={onToggle} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
@@ -395,6 +402,7 @@ function MoreSection({ title, open, onToggle, icon, children }: { title: string;
             {icon === 'zone' && <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z" /><circle cx="12" cy="10" r="3" /></svg>}
             {icon === 'color' && <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r="1.4" /><circle cx="17.5" cy="10.5" r="1.4" /><circle cx="8.5" cy="7.5" r="1.4" /><circle cx="6.5" cy="12.5" r="1.4" /><path d="M12 22a10 10 0 110-20 8 8 0 018 8c0 2-2 3-4 3h-2a2 2 0 00-1 3.7A2 2 0 0112 22z" /></svg>}
             {icon === 'feature' && <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" /></svg>}
+            {icon === 'height' && <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v18" /><path d="M8 6l4-3 4 3" /><path d="M8 18l4 3 4-3" /></svg>}
             {icon === 'load' && <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20" /><path d="M5 8h14" /><path d="M2 8a3 3 0 006 0M16 8a3 3 0 006 0" /><path d="M2 8l2-4M22 8l-2-4" /></svg>}
           </div>
           {title}
