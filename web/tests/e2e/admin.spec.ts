@@ -2310,7 +2310,9 @@ test.describe('a property reads in the visitor\'s language', () => {
     const cards = await (await request.get('/api/public/listings?locale=en&limit=500')).json();
     const mine = (cards.items as { code: string; title: string }[]).find((c) => c.code === code);
     expect(mine, 'the property should be published and listed').toBeTruthy();
-    expect(mine!.title).toBe(`Warehouse for rent — Rayong (${code})`);
+    /* สไลด์ 23 · ลำดับใหม่: ประเภท → ขนาด → ประเภทประกาศ → ที่ → ที่ตั้ง → รหัส
+       (ทรัพย์ตัวนี้ไม่ได้กรอกขนาด ช่องขนาดจึงหายไปเฉย ๆ) */
+    expect(mine!.title).toBe(`Warehouse for rent in Rayong (${code})`);
     expect(mine!.title, 'no Thai left in an English headline').not.toMatch(/[ก-฾เ-๛]/);
   });
 
@@ -2878,9 +2880,9 @@ test.describe('เติมคำแปลให้ทรัพย์ทั้�
         .find((r) => r.publicCode === made.publicCode);
       const en = rec?.i18n?.en?.title ?? '';
       const zh = rec?.i18n?.zh?.title ?? '';
-      expect(en, 'หัวเรื่องอังกฤษ').toMatch(/Warehouse for rent/);
+      expect(en, 'หัวเรื่องอังกฤษ').toMatch(/Warehouse .*for rent/);
       expect(en, 'อังกฤษต้องไม่มีอักษรไทย').not.toMatch(/[ก-฾เ-๛]/);
-      expect(zh, 'หัวเรื่องจีน').toMatch(/仓库出租/);
+      expect(zh, 'หัวเรื่องจีน').toMatch(/仓库 .*出租/);
 
       // รันซ้ำต้องไม่เขียนทับของที่มีอยู่แล้ว
       const again = await (await request.post('/api/properties/translate', { headers: { cookie }, data: {} })).json();

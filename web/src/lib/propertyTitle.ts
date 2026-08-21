@@ -50,14 +50,14 @@ export function composeTitle({ typeLabel, values, area, code }: TitleParts, loca
     provinceLabel(values.province ?? loc.province, locale, over),
   ].map(str).filter(Boolean).join(', ');
 
-  /* Chinese sets type and deal without a connector; English wants the comma.
-     Either way an empty part drops out rather than leaving a dangling comma. */
-  const head = locale === 'zh'
-    ? [type, deal].filter(Boolean).join('')
-    : [type, deal.toLowerCase()].filter(Boolean).join(' ');
-
-  const body = [head, size].filter(Boolean).join(locale === 'zh' ? '，' : ', ');
-  return [[body, where].filter(Boolean).join(' — '), code ? `(${code})` : '']
+  /* สไลด์ 23 · "เรียงใหม่ตามนี้ 1ประเภททรัพย์ 2ขนาดอาคารรวม 3ประเภทประกาศ
+     ที่(เพิ่มคำ) 4แขวง 5เขต 6จังหวัด 7(รหัสทรัพย์)"
+     เดิมเรียง ประเภท → ประเภทประกาศ → ขนาด → ที่ตั้ง และไม่มีคำว่า "ที่" คั่น */
+  const at = locale === 'th' ? 'ที่ ' : locale === 'zh' ? '位于' : 'in ';
+  const body = [type, size, locale === 'en' ? deal.toLowerCase() : deal].filter(Boolean).join(' ');
+  /* จีนไม่เว้นวรรคก่อนคำบอกสถานที่ */
+  const tail = where ? (locale === 'zh' ? `${at}${where}` : `${at}${where}`) : '';
+  return [[body, tail].filter(Boolean).join(' '), code ? `(${code})` : '']
     .filter(Boolean).join(' ');
 }
 

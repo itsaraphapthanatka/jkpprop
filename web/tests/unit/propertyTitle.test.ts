@@ -27,13 +27,13 @@ const warehouse = {
 describe('หัวเรื่องทรัพย์ในภาษาของคนอ่าน', () => {
   test('อังกฤษ: ไม่เหลืออักษรไทยสักตัว', () => {
     const en = composeTitle(warehouse, 'en');
-    assert.equal(en, 'Warehouse for rent, 1,344 sqm — Racha Thewa, Bang Phli, Samut Prakan (JKPSPK1001)');
+    assert.equal(en, 'Warehouse 1,344 sqm for rent in Racha Thewa, Bang Phli, Samut Prakan (JKPSPK1001)');
     assert.ok(!/[ก-๙]/.test(en), en);
   });
 
   test('จีน: ประเภทกับดีลเป็นจีน จังหวัดใช้ชื่อจีนที่มีอยู่จริง', () => {
     const zh = composeTitle(warehouse, 'zh');
-    assert.match(zh, /仓库出租/);
+    assert.match(zh, /仓库 .*出租/);
     assert.match(zh, /北榄/); // สมุทรปราการ
     assert.match(zh, /\(JKPSPK1001\)/);
   });
@@ -57,7 +57,7 @@ describe('หัวเรื่องทรัพย์ในภาษาขอ�
   test('ไม่มีพื้นที่ ไม่มีดีล → ประโยคยังอ่านรู้เรื่อง ไม่มีจุลภาคลอย', () => {
     const partial = { ...warehouse, area: null, values: { ...warehouse.values, deal_type: '' } };
     const en = composeTitle(partial, 'en');
-    assert.equal(en, 'Warehouse — Racha Thewa, Bang Phli, Samut Prakan (JKPSPK1001)');
+    assert.equal(en, 'Warehouse in Racha Thewa, Bang Phli, Samut Prakan (JKPSPK1001)');
   });
 });
 
@@ -144,5 +144,44 @@ describe('ชื่อสถานที่ต้องครบทั้งส�
     const roman = KNOWN_PLACES.province().filter((th) => /[A-Za-z]/.test(provinceLabel(th, 'zh')));
     assert.deepEqual(roman, [], 'จังหวัดที่ยังได้ชื่อโรมันในภาษาจีน');
     assert.equal(provinceLabel('กระบี่', 'zh'), '甲米');
+  });
+});
+
+
+/* สไลด์ 23 · "เรียงใหม่ตามนี้ 1ประเภททรัพย์ 2ขนาดอาคารรวม 3ประเภทประกาศ
+   ที่(เพิ่มคำ) 4แขวง 5เขต 6จังหวัด 7(รหัสทรัพย์)" — เดิมเรียงประเภทประกาศ
+   มาก่อนขนาด และไม่มีคำว่า "ที่" คั่นก่อนที่ตั้ง */
+describe('ลำดับคำในชื่อประกาศอัตโนมัติ (สไลด์ 23)', () => {
+  const parts = {
+    typeLabel: 'โกดัง',
+    area: 1344,
+    code: 'JKPSPK1001',
+    values: {
+      deal_type: 'ให้เช่า',
+      subdistrict: 'ราชาเทวะ',
+      district: 'บางพลี',
+      province: 'สมุทรปราการ',
+    },
+  };
+
+  test('ไทย: ประเภท → ขนาด → ประเภทประกาศ → ที่ → แขวง เขต จังหวัด → รหัส', () => {
+    const t = composeTitle(parts, 'th');
+    assert.equal(t, 'โกดัง 1,344 ตร.ม. ให้เช่า ที่ ราชาเทวะ, บางพลี, สมุทรปราการ (JKPSPK1001)');
+  });
+
+  test('ลำดับต้องเป็นไปตามนั้นจริง ไม่ใช่บังเอิญมีคำครบ', () => {
+    const t = composeTitle(parts, 'th');
+    const at = (needle: string) => t.indexOf(needle);
+    assert.ok(at('โกดัง') < at('1,344'), 'ประเภทต้องมาก่อนขนาด');
+    assert.ok(at('1,344') < at('ให้เช่า'), 'ขนาดต้องมาก่อนประเภทประกาศ');
+    assert.ok(at('ให้เช่า') < at('ที่ '), 'ประเภทประกาศต้องมาก่อนคำว่า "ที่"');
+    assert.ok(at('ราชาเทวะ') < at('บางพลี'), 'แขวงต้องมาก่อนเขต');
+    assert.ok(at('บางพลี') < at('สมุทรปราการ'), 'เขตต้องมาก่อนจังหวัด');
+    assert.ok(at('สมุทรปราการ') < at('(JKPSPK1001)'), 'รหัสอยู่ท้ายสุด');
+  });
+
+  test('ช่องที่ไม่มีค่าหายไปเฉย ๆ ไม่เหลือคำคั่นค้าง', () => {
+    const t = composeTitle({ ...parts, area: null, code: undefined, values: { deal_type: '', province: 'ชลบุรี' } }, 'th');
+    assert.equal(t, 'โกดัง ที่ ชลบุรี');
   });
 });
