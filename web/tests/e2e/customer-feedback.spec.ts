@@ -1688,3 +1688,47 @@ test.describe('คอมเมนต์ลูกค้า · ค้นหาแ�
     await expect(subSel).toHaveValue('');
   });
 });
+
+/* สไลด์ 10 · "ให้แสดง โซน และพื้นที่สี" — ลูกค้าชี้ที่แถบป้ายบนรูปใหญ่ของหน้า
+   ทรัพย์ ซึ่งมีแค่ดีลกับประเภท ส่วนพื้นที่สีและโซนต้องเลื่อนลงไปหาในตาราง
+   ทั้งที่เป็นสองอย่างที่คนหาโรงงาน/โกดังดูก่อนอย่างอื่น */
+test.describe('คอมเมนต์ลูกค้า · โซนและพื้นที่สีบนรูปใหญ่', () => {
+  test('ป้ายบนรูปบอกพื้นที่สีพร้อมจุดสี และบอกโซน', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: {
+        typeKey: 'warehouse', title: `ทดสอบป้ายบนรูป ${Date.now().toString(36)}`, status: 'active',
+        values: {
+          province: 'สมุทรปราการ', deal_type: 'ให้เช่า',
+          zoning_color: 'พื้นที่สีม่วง — อุตสาหกรรม',
+          zone: ['ปลอดอากร (Free Zone)', 'การนิคมอุตสาหกรรม (กนอ.)'],
+        },
+      },
+    })).json();
+
+    try {
+      await page.goto(`/th/property/${made.publicCode}`);
+      const zoning = page.locator('[data-hero-zoning]');
+      await expect(zoning, 'ป้ายพื้นที่สีต้องอยู่บนรูปใหญ่').toBeVisible();
+      await expect(zoning).toContainText('พื้นที่สีม่วง');
+      await expect(zoning.locator('[data-zone-dot]'), 'ต้องมีจุดสีคู่กับชื่อสี').toBeVisible();
+
+      await expect(page.locator('[data-hero-zone]'), 'โซนทั้งสองต้องขึ้นป้าย').toHaveCount(2);
+      await expect(page.locator('[data-hero-zone]').first()).toContainText('ปลอดอากร');
+
+      /* ภาษาอังกฤษต้องแปลป้ายด้วย ไม่ใช่ทิ้งไทยไว้ */
+      await page.goto(`/en/property/${made.publicCode}`);
+      await expect(page.locator('[data-hero-zoning]')).toContainText('Purple');
+      await expect(page.locator('[data-hero-zone]').first()).toContainText('Free Zone');
+    } finally {
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+});

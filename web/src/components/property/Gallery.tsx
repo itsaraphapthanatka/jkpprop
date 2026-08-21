@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ZoneDot } from '@/components/common/ZoneDot';
 import { PhotoPlaceholder } from '@/components/common/PhotoPlaceholder';
 import { useDict } from '@/i18n/useDict';
 
@@ -40,10 +41,19 @@ export function Gallery({
   photos = [],
   dealLabel,
   typeLabel,
+  zoningLabel,
+  zoningKey,
+  zoneLabels,
 }: {
   photos?: string[];
   dealLabel?: string;
   typeLabel?: string;
+  /* สไลด์ 10 · "ให้แสดง โซน และพื้นที่สี" ตรงแถบป้ายบนรูปใหญ่ — สองอย่างนี้
+     เป็นสิ่งที่คนหาโรงงาน/โกดังดูก่อนอย่างอื่น แต่เดิมต้องเลื่อนลงไปหาในตาราง */
+  zoningLabel?: string;
+  /** ค่าดิบของพื้นที่สี ใช้เทียบสีจุด — ป้ายที่แปลแล้วใช้เป็นคีย์ไม่ได้ */
+  zoningKey?: string;
+  zoneLabels?: string[];
 }) {
   const d = useDict();
   const [mainSrc, setMainSrc] = useState<string | null>(photos[0] ?? null);
@@ -96,7 +106,7 @@ export function Gallery({
                 style={{ ...fillImg, cursor: 'zoom-in' }}
               />
             : <PhotoPlaceholder label={d.property.noPhotos} />}
-          <div style={{ position: 'absolute', top: 16, left: 16, display: 'flex', gap: 8 }}>
+          <div style={{ position: 'absolute', top: 16, left: 16, right: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {dealLabel && (
               <span style={{ height: 30, padding: '0 14px', borderRadius: 9999, background: 'rgba(255,255,255,.95)', color: 'var(--deep)', fontSize: '12.5px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ width: 8, height: 8, borderRadius: 9999, background: 'var(--deep)' }} />{dealLabel}
@@ -105,6 +115,15 @@ export function Gallery({
             {typeLabel && (
               <span style={{ height: 30, padding: '0 14px', borderRadius: 9999, background: 'rgba(var(--ink2-rgb),.72)', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center' }}>{typeLabel}</span>
             )}
+            {zoningLabel && (
+              <span data-hero-zoning style={{ height: 30, padding: '0 13px', borderRadius: 9999, background: 'rgba(255,255,255,.95)', color: 'var(--text)', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7 }}>
+                <ZoneDot value={zoningKey ?? ''} size={13} />
+                {zoningLabel}
+              </span>
+            )}
+            {(zoneLabels ?? []).map((z) => (
+              <span key={z} data-hero-zone style={{ height: 30, padding: '0 13px', borderRadius: 9999, background: 'rgba(var(--ink2-rgb),.72)', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center' }}>{z}</span>
+            ))}
           </div>
           {photos.length > 0 && (
             <div style={{ position: 'absolute', bottom: 16, right: 16, height: 32, padding: '0 13px', borderRadius: 9999, background: 'rgba(var(--ink2-rgb),.72)', color: '#fff', fontSize: '12.5px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>

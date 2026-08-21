@@ -153,6 +153,8 @@ export type PublicProperty = {
   specs: { quick: SpecRow[]; rows: SpecRow[]; features: string[]; usage: string[]; nearby: string[] };
   zoning: string | null;
   zoningKey: string | null;
+  /** โซน (ปลอดอากร · กนอ. · DG) — แปลแล้ว พร้อมขึ้นป้าย */
+  zoneLabels?: string[];
   /** media src จาก /api/public/properties/:code — ใส่ลายน้ำแล้วตอนเสิร์ฟ */
   photos: string[];
   related: RelatedProperty[];
@@ -202,7 +204,14 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
       </div>
 
       {/* GALLERY */}
-      <Gallery photos={property.photos} dealLabel={property.dealType} typeLabel={property.typeLabel} />
+      <Gallery
+        photos={property.photos}
+        dealLabel={property.dealType}
+        typeLabel={property.typeLabel}
+        zoningLabel={property.zoning ?? undefined}
+        zoningKey={property.zoningKey ?? undefined}
+        zoneLabels={property.zoneLabels}
+      />
 
       {/* MAIN SPLIT */}
       <div

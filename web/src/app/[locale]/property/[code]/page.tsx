@@ -134,6 +134,9 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
     zoning: zoningRaw ? enumLabel(zoningRaw, locale) : null,
     // ค่าดิบไว้เทียบสี — ป้ายที่แปลแล้วใช้เป็นคีย์ไม่ได้
     zoningKey: zoningRaw || null,
+    /* สไลด์ 10 · โซนขึ้นป้ายบนรูปใหญ่ด้วย ไม่ใช่มีแต่ในตารางข้างล่าง */
+    zoneLabels: (Array.isArray(values.zone) ? (values.zone as unknown[]) : [])
+      .map((z) => enumLabel(String(z), locale)).filter(Boolean),
     photos,
     related,
     // only channels that are actually configured in /admin/company
