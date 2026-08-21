@@ -3,6 +3,7 @@ import * as React from 'react';
 import { loadLeads, relTime, type StoredLead } from '@/lib/leadStore';
 import { apiGet, apiPost, apiPatch, ApiClientError } from '@/lib/apiClient';
 import Link from 'next/link';
+import { thumb } from '@/lib/mediaThumb';
 import { PROPERTY_TYPES, propertyType } from '@/lib/propertySchema';
 
 /* Ported from AdminLeads.dc.html <main> — interactive leads split view:
@@ -80,23 +81,54 @@ function webToLead(sl: ApiLead): Lead {
 
 const ti = (p: string, c: string) => ({ __html: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="' + c + '" stroke-width="2">' + p + '</svg>' });
 
+const noteIcon = ti('<path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"></path>', '#034956');
+
+/* หน้าตาของแต่ละชนิดเหตุการณ์ในประวัติ — ปิดดีลสำเร็จกับไม่สำเร็จต้องแยกออกจาก
+   กันได้ในแวบเดียว ไม่ใช่จุดสีเดียวกันหมดทั้งเส้น */
+const EVENT_STYLE: Record<string, { bg: string; icon: { __html: string } }> = {
+  created: { bg: '#EEF4F3', icon: ti('<path d="M12 5v14M5 12h14"></path>', '#034956') },
+  status: { bg: '#EEF4F3', icon: ti('<path d="M4 12h16M14 6l6 6-6 6"></path>', '#7A7974') },
+  note: { bg: '#E8F3EC', icon: noteIcon },
+  req: { bg: '#E9F1FA', icon: ti('<path d="M4 4h16v16H4z"></path><path d="M8 9h8M8 13h5"></path>', '#0E7C86') },
+  req_confirmed: { bg: '#E3F3E8', icon: ti('<path d="M20 6L9 17l-5-5"></path>', '#0D6C3B') },
+  req_cancelled: { bg: '#FBE9E7', icon: ti('<path d="M18 6L6 18M6 6l12 12"></path>', '#C0392B') },
+  shortlist: { bg: '#E9F1FA', icon: ti('<path d="M4 6h16M4 12h16M4 18h10"></path>', '#0E7C86') },
+  visit_scheduled: { bg: '#EEF4F3', icon: ti('<rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 11h18"></path>', '#034956') },
+  visit_done: { bg: '#E3F3E8', icon: ti('<path d="M20 6L9 17l-5-5"></path>', '#0D6C3B') },
+  visit_cancelled: { bg: '#FBE9E7', icon: ti('<path d="M18 6L6 18M6 6l12 12"></path>', '#C0392B') },
+  deal: { bg: '#E9F1FA', icon: ti('<path d="M12 2v20M17 6H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"></path>', '#0E7C86') },
+  deal_won: { bg: '#E3F3E8', icon: ti('<path d="M8 21h8M12 17v4M6 4h12v4a6 6 0 01-12 0z"></path><path d="M6 6H3v2a3 3 0 003 3M18 6h3v2a3 3 0 01-3 3"></path>', '#0D6C3B') },
+  deal_lost: { bg: '#FBE9E7', icon: ti('<path d="M18 6L6 18M6 6l12 12"></path>', '#C0392B') },
+};
+
 const dd = (active: boolean): React.CSSProperties => ({
   display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
   padding: '9px 11px', borderRadius: 9, fontSize: '12.5px', fontWeight: active ? 700 : 600,
   cursor: 'pointer', color: active ? '#0D6C3B' : 'var(--text)', background: active ? 'rgba(13,108,59,.06)' : 'transparent',
 });
 
+type LeadProp = { code: string; title: string; img: string | null };
+type LeadEvent = { kind: string; at: number; text: string; by: string; property?: LeadProp | null };
+
 type LeadDetail = {
   notes: { id: string; text: string; createdAt: number; by: string }[];
   tasks: { id: string; title: string; done: boolean; due: number | null; createdAt: number }[];
+  /* สไลด์ 43 · ประวัติจริงที่ประกอบจากแถวในฐานข้อมูล ไม่ใช่แค่โน้ตที่พิมพ์มือ */
+  history?: LeadEvent[];
+  summary?: {
+    contacts: number; lastContactAt: number | null; firstContactAt: number | null;
+    openTasks: number; visitsDone: number;
+    dealsWon: number; dealsLost: number; dealsOpen: number;
+  };
   linked: {
     requirements: { id: string; code: string; status: string }[];
     shortlists: { id: string; name: string; status: string; count: number }[];
     visits: { id: string; date: number; status: string }[];
+    deals?: { id: string; title: string; status: string; amount: number; closedAt: number | null; property: LeadProp | null }[];
   };
 };
 
-const noteIcon = ti('<path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"></path>', '#034956');
+
 
 const statusLabelMap: Record<string, string> = {
   new: 'New', qualified: 'Qualified', requirements_confirmed: 'Req. confirmed',
@@ -310,21 +342,20 @@ export function LeadsBody() {
     };
   });
 
-  /* The timeline is the notes actually on this lead, newest first, with the
-     lead's own creation at the bottom. It used to be the same four invented
-     events on every record. */
+  /* ไทม์ไลน์คือประวัติจริงของ lead ที่เซิร์ฟเวอร์ประกอบจากแถวในฐานข้อมูล —
+     เปิด/ยืนยัน/ยกเลิก REQ · ส่ง shortlist · นัดและเข้าชม · เปิดและปิดดีล ·
+     โน้ตที่ทีมพิมพ์เอง เดิมมีแต่โน้ตกับบรรทัด "สร้าง lead" การปิดดีลจึงไม่เคย
+     โผล่ที่นี่เลย (สไลด์ 43) */
   const fmtWhen = (ms: number) => relTime(ms);
-  const timeline = (detail?.notes ?? [])
-    .map((n) => ({ text: n.text, by: n.by, time: fmtWhen(n.createdAt), dotBg: '#E8F3EC', icon: noteIcon }))
-    .concat(cur.apiId && detail
-      ? [{
-        text: `สร้าง lead จาก ${cur.source || 'ฟอร์ม'}`,
-        by: 'ระบบ',
-        time: cur.time || '',
-        dotBg: '#EEF4F3',
-        icon: ti('<path d="M12 5v14M5 12h14"></path>', '#034956'),
-      }]
-      : []);
+  const sum = detail?.summary;
+  const timeline = (detail?.history ?? []).map((e) => ({
+    text: e.text,
+    by: e.by,
+    time: fmtWhen(e.at),
+    dotBg: EVENT_STYLE[e.kind]?.bg ?? '#E8F3EC',
+    icon: EVENT_STYLE[e.kind]?.icon ?? noteIcon,
+    property: e.property ?? null,
+  }));
 
   /* was a fixed ['Requirement #REQ-1042', 'Shortlist #SL-208', '2 Visits'] */
   const L = detail?.linked;
@@ -332,6 +363,11 @@ export function LeadsBody() {
     ...(L?.requirements ?? []).map((r) => ({ label: `Requirement ${r.code}`, href: `/admin/requirements/${r.id}` })),
     ...(L?.shortlists ?? []).map((sl) => ({ label: `Shortlist ${sl.name} · ${sl.count} ทรัพย์`, href: `/admin/shortlists/${sl.id}` })),
     ...(L?.visits?.length ? [{ label: `${L.visits.length} Visits`, href: '/admin/visits' }] : []),
+    /* สไลด์ 43 · ดีลไม่เคยโผล่ที่นี่ ทั้งที่การปิดดีลคือสิ่งที่ทำให้ lead จบ */
+    ...(L?.deals ?? []).map((dl) => ({
+      label: `ดีล ${dl.status === 'won' ? 'สำเร็จ' : dl.status === 'lost' ? 'ไม่สำเร็จ' : 'กำลังเจรจา'}${dl.amount ? ` · ฿${dl.amount.toLocaleString('th-TH')}` : ''}`,
+      href: `/admin/deals/${dl.id}`,
+    })),
   ];
 
   const curStatus = statusVal || statusLabelMap[cur.statusK];
@@ -714,7 +750,7 @@ export function LeadsBody() {
               </div>
             )}
             {leads.map((l, i) => (
-              <div key={i} onClick={l.select} style={l.rowStyle}>
+              <div key={i} data-lead-row={l.name} onClick={l.select} style={l.rowStyle}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
                   <div style={{ width: 38, height: 38, borderRadius: 9999, background: l.avBg, color: l.avFg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, flexShrink: 0 }}>{l.initial}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -933,7 +969,29 @@ export function LeadsBody() {
 
           {/* timeline */}
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 22 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', marginBottom: 6 }}>Timeline &amp; Notes</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', marginBottom: 6 }}>ประวัติและการติดต่อ</div>
+
+            {/* สไลด์ 43 · "ไม่มีสรุปและประวัติการติดต่อ" — คนเปิดหน้านี้ถามสาม
+                คำถามเดิมทุกครั้ง: คุยกันไปกี่ครั้งแล้ว ครั้งล่าสุดเมื่อไร ค้างอะไรอยู่
+                เดิมต้องไล่อ่านไทม์ไลน์เอาเองทีละบรรทัด */}
+            {sum && (
+              <div data-lead-summary style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                {([
+                  ['ติดต่อแล้ว', `${sum.contacts} ครั้ง`, null],
+                  ['ล่าสุด', sum.lastContactAt ? relTime(sum.lastContactAt) : 'ยังไม่เคย', sum.lastContactAt ? null : '#C0392B'],
+                  ['เข้าชมแล้ว', `${sum.visitsDone} ครั้ง`, null],
+                  ['งานค้าง', `${sum.openTasks} งาน`, sum.openTasks ? '#C0392B' : null],
+                  ...(sum.dealsWon ? [['ดีลสำเร็จ', `${sum.dealsWon}`, '#0D6C3B'] as const] : []),
+                  ...(sum.dealsLost ? [['ดีลไม่สำเร็จ', `${sum.dealsLost}`, '#C0392B'] as const] : []),
+                  ...(sum.dealsOpen ? [['กำลังเจรจา', `${sum.dealsOpen}`, null] as const] : []),
+                ] as [string, string, string | null][]).map(([k, v, colour]) => (
+                  <div key={k} style={{ padding: '8px 12px', borderRadius: 11, background: 'var(--bg)', border: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: 11, color: 'var(--muted3)' }}>{k}</div>
+                    <div style={{ marginTop: 2, fontSize: '12.5px', fontWeight: 700, color: colour ?? 'var(--text)' }}>{v}</div>
+                  </div>
+                ))}
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 10, margin: '12px 0 18px' }}>
               <input id="lead-note-input" value={noteText} onChange={(e) => setNoteText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') saveNote(); }} placeholder="เพิ่มบันทึก…" style={{ flex: 1, minWidth: 0, height: 42, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontFamily: 'inherit', fontSize: 13, background: 'var(--bg)', outline: 'none' }} />
               <div id="lead-note-save" onClick={saveNote} style={{ height: 42, padding: '0 18px', borderRadius: 11, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>บันทึก</div>
@@ -955,7 +1013,21 @@ export function LeadsBody() {
                   </div>
                   <div style={{ flex: 1, paddingBottom: 4 }}>
                     <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5 }}>{e.text}</div>
-                    <div style={{ marginTop: 2, fontSize: 11, color: 'var(--muted3)' }}>{e.by} · {e.time}</div>
+                    {/* รหัสทรัพย์อย่างเดียวไม่พอ — คนที่ไม่ได้ลงเองจำรหัสไม่ได้
+                        (สไลด์ 43 "ต้องมีรูปภาพเพื่อยืนยัน") */}
+                    {e.property && (
+                      <div data-event-property style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {e.property.img
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          ? <img src={thumb(e.property.img, 160)} alt="" style={{ width: 34, height: 34, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--border)', flexShrink: 0 }} />
+                          : <span style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--tint)', flexShrink: 0 }} />}
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: 'var(--muted2)' }}>{e.property.code}</div>
+                          <div style={{ fontSize: '11.5px', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>{e.property.title}</div>
+                        </div>
+                      </div>
+                    )}
+                    <div style={{ marginTop: 4, fontSize: 11, color: 'var(--muted3)' }}>{e.by} · {e.time}</div>
                   </div>
                 </div>
               ))}

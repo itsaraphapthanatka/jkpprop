@@ -1602,6 +1602,120 @@ test.describe('คอมเมนต์ลูกค้า · จัดการ�
   });
 });
 
+/* สไลด์ 43 · "ปิดดีลแล้วไม่ขึ้นประวัติใน Leads ภาพรวม" · "ไม่มีสรุปและประวัติ
+   การติดต่อ" · "ต้องมีรูปภาพเพื่อยืนยัน"
+
+   การปิดดีลเขียน audit log กับเลื่อนสถานะ lead แต่ตัว lead ไม่เคยรู้ว่ามีดีลอยู่
+   เลย — หน้านั้นไม่เคยถามถึงตาราง Deal สักครั้ง ส่วนไทม์ไลน์ก็มีแต่โน้ตที่พิมพ์
+   มือกับบรรทัด "สร้าง lead" หนึ่งบรรทัด สิ่งที่เกิดขึ้นจริง (เปิด REQ · ส่ง
+   shortlist · เข้าชม · ปิดดีล) ไม่มีอันไหนโผล่ */
+test.describe('คอมเมนต์ลูกค้า · ประวัติและการติดต่อใน Leads', () => {
+  const signIn = async (page: import('@playwright/test').Page) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    return (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  };
+
+  let cookie = '';
+  const madeLeads: string[] = [];
+  const madeDeals: string[] = [];
+
+  test.beforeAll(async ({ browser }) => {
+    const page = await browser.newPage();
+    cookie = await signIn(page);
+    await page.close();
+  });
+
+  test.afterAll(async ({ request }) => {
+    for (const id of madeDeals) await request.delete(`/api/deals/${id}`, { headers: { cookie } }).catch(() => null);
+    for (const id of madeLeads) await request.delete(`/api/leads/${id}`, { headers: { cookie } }).catch(() => null);
+  });
+
+  test('ปิดดีลแล้วขึ้นในประวัติของ lead พร้อมรูปทรัพย์', async ({ page, request }) => {
+    const stamp = Date.now().toString(36);
+    const lead = await (await request.post('/api/leads', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { name: `บริษัททดสอบประวัติ ${stamp}`, phone: '0800000001', source: 'contact form' },
+    })).json();
+    madeLeads.push(lead.id);
+
+    // ดีลผูกทรัพย์ด้วยรหัส ไม่ใช่ id — ตาม /api/deals
+    const propertyCode = ((await (await request.get('/api/public/listings?locale=th&limit=1')).json()).items as { code: string }[])[0].code;
+
+    const deal = await (await request.post('/api/deals', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { title: `ดีลทดสอบ ${stamp}`, amount: 1234000, leadId: lead.id, propertyCode },
+    })).json();
+    madeDeals.push(deal.id);
+
+    /* ก่อนปิด — ประวัติต้องมีบรรทัด "เปิดดีล" แล้ว */
+    let detail = await (await request.get(`/api/leads/${lead.id}`, { headers: { cookie } })).json();
+    expect((detail.history ?? []).map((e: { kind: string }) => e.kind), 'เปิดดีลแล้วไม่ขึ้นในประวัติ').toContain('deal');
+
+    await request.patch(`/api/deals/${deal.id}`, {
+      headers: { cookie, 'Content-Type': 'application/json' }, data: { status: 'won' },
+    });
+
+    detail = await (await request.get(`/api/leads/${lead.id}`, { headers: { cookie } })).json();
+    const won = (detail.history ?? []).find((e: { kind: string }) => e.kind === 'deal_won');
+    expect(won, 'ปิดดีลแล้วยังไม่ขึ้นในประวัติของ lead').toBeTruthy();
+    expect(won.text, 'ประวัติควรบอกยอดที่ปิดได้').toContain('1,234,000');
+    expect(detail.summary?.dealsWon, 'สรุปควรนับดีลที่ปิดสำเร็จ').toBe(1);
+
+    expect(won.property?.code, 'ประวัติควรบอกว่าเป็นทรัพย์รหัสไหน').toBe(propertyCode);
+
+    /* แล้วต้องเห็นบนหน้าจอจริง ไม่ใช่แค่ใน API */
+    /* คุกกี้ที่ beforeAll หยิบมาใช้กับคำขอ API เท่านั้น หน้าเว็บของเทสต์นี้เป็น
+       คนละ context จึงต้องล็อกอินของตัวเองก่อน */
+    await signIn(page);
+    await page.goto('/admin/leads');
+    await page.locator(`[data-lead-row="บริษัททดสอบประวัติ ${stamp}"]`).click();
+    await expect(page.locator('[data-lead-summary]'), 'ไม่มีแถบสรุปการติดต่อ').toBeVisible();
+    await expect(page.locator('[data-lead-summary]')).toContainText('ดีลสำเร็จ');
+    await expect(page.getByText('ปิดดีลสำเร็จ').first(), 'ไทม์ไลน์ไม่มีบรรทัดปิดดีล').toBeVisible();
+    await expect(page.locator('[data-event-property]').first(), 'บรรทัดประวัติไม่มีรูปทรัพย์').toBeVisible();
+  });
+
+  test('ประวัติประกอบจากเหตุการณ์จริง ไม่ใช่แค่โน้ตที่พิมพ์มือ', async ({ request }) => {
+    const stamp = Date.now().toString(36);
+    const lead = await (await request.post('/api/leads', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { name: `บริษัททดสอบ REQ ${stamp}`, phone: '0800000002', source: 'contact form' },
+    })).json();
+    madeLeads.push(lead.id);
+
+    const req = await (await request.post('/api/requirements', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { leadId: lead.id, typeKey: 'warehouse' },
+    })).json();
+    await request.patch(`/api/requirements/${req.id}`, {
+      headers: { cookie, 'Content-Type': 'application/json' }, data: { action: 'confirm' },
+    });
+
+    const detail = await (await request.get(`/api/leads/${lead.id}`, { headers: { cookie } })).json();
+    const kinds = (detail.history ?? []).map((e: { kind: string }) => e.kind);
+    expect(kinds, 'การเปิดใบความต้องการไม่ขึ้นในประวัติ').toContain('req');
+    expect(kinds, 'การยืนยันความต้องการไม่ขึ้นในประวัติ').toContain('req_confirmed');
+    expect(kinds, 'ควรมีบรรทัดสร้าง lead ปิดท้ายเสมอ').toContain('created');
+
+    /* บันทึกที่ระบบเขียนเองตอนเลื่อนสถานะต้องแยกชนิดออกจากบันทึกที่คนพิมพ์
+       ไม่งั้น "ติดต่อแล้ว N ครั้ง" จะนับการเปลี่ยนสถานะเป็นการติดต่อลูกค้า */
+    const auto = (detail.history ?? []).filter((e: { kind: string }) => e.kind === 'status');
+    expect(auto.length, 'ยืนยัน REQ แล้วควรมีบรรทัดเปลี่ยนสถานะ').toBeGreaterThan(0);
+    for (const e of auto as { text: string }[]) {
+      expect(e.text, 'บรรทัดเปลี่ยนสถานะไม่ควรมีรหัสภายในติดมา').not.toMatch(/\b(deal|confirm|REQ-\w+ )?c[a-z0-9]{20,}/);
+    }
+    expect(detail.summary.contacts, 'การเปลี่ยนสถานะไม่ใช่การติดต่อลูกค้า').toBe(0);
+
+    /* เรียงใหม่ไปเก่า — ไทม์ไลน์ที่เรียงมั่วอ่านไม่รู้เรื่อง */
+    const times = (detail.history ?? []).map((e: { at: number }) => e.at);
+    expect([...times].sort((a: number, b: number) => b - a)).toEqual(times);
+  });
+});
+
 /* สไลด์ 7 · "เพิ่ม ท่าเรือคลองเตย" — ตัวเลือกท่าเรือมีแหลมฉบัง มหาชัย
    มาบตาพุด แต่ไม่มีคลองเตย ทั้งที่เป็นท่าเรือที่ใกล้คลังในกรุงเทพฯ ที่สุด */
 test.describe('คอมเมนต์ลูกค้า · ท่าเรือคลองเตย', () => {

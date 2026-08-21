@@ -84,18 +84,107 @@ export const GET = handler(async (_req: Request, ctx: { params: Promise<{ id: st
     throw new ApiError('FORBIDDEN', 'บัญชีของคุณเข้าถึงได้เฉพาะ lead ที่ได้รับมอบหมาย', 403);
   }
 
-  const [notes, tasks, requirements, shortlists, visits, authors] = await Promise.all([
+  const [notes, tasks, requirements, shortlists, visits, deals, authors] = await Promise.all([
     db.leadNote.findMany({ where: { leadId: id }, orderBy: { createdAt: 'desc' } }),
     db.leadTask.findMany({ where: { leadId: id }, orderBy: [{ done: 'asc' }, { createdAt: 'asc' }] }),
     db.requirement.findMany({ where: { leadId: id }, orderBy: { createdAt: 'desc' } }),
     db.shortlist.findMany({ where: { leadId: id }, include: { items: true }, orderBy: { createdAt: 'desc' } }),
-    db.visit.findMany({ where: { leadId: id }, orderBy: { date: 'desc' } }),
+    db.visit.findMany({ where: { leadId: id }, orderBy: { date: 'desc' }, include: { stops: true } }),
+    /* สไลด์ 43 · "ปิดดีลแล้วไม่ขึ้นประวัติใน Leads ภาพรวม" — การปิดดีลเขียน
+       audit log กับเลื่อนสถานะ lead แต่ตัว lead ไม่เคยรู้ว่ามีดีลอยู่เลย
+       หน้านี้ไม่เคยถามถึงตาราง Deal สักครั้ง */
+    db.deal.findMany({ where: { leadId: id, orgId: user.orgId }, orderBy: { createdAt: 'desc' } }),
     db.user.findMany({ where: { orgId: user.orgId }, select: { id: true, name: true } }),
   ]);
   const nameOf = new Map(authors.map((u) => [u.id, u.name]));
 
+  /* รูปกับรหัสของทรัพย์ที่ถูกอ้างถึงในประวัติ — สไลด์ 43 (และ 32/39/42 ที่เขียน
+     เหมือนกัน) "จำเป็นต้องมีรูปเพราะ 1 ใช้ระบบรัน code ไม่รู้รหัส 2 คนทำงานหลาย
+     คน · ต้องมีรูปภาพเพื่อยืนยัน" — รหัส JKPBKK1005 ไม่ได้บอกอะไรกับคนที่ไม่ได้
+     เป็นคนลงเอง */
+  const propertyIds = [...new Set([
+    ...deals.map((d) => d.propertyId),
+    ...visits.flatMap((v) => v.stops.map((st) => st.propertyId)),
+  ].filter((x): x is string => !!x))];
+  const props = propertyIds.length
+    ? await db.property.findMany({
+      where: { orgId: user.orgId, id: { in: propertyIds } },
+      select: { id: true, publicCode: true, title: true, values: true },
+    })
+    : [];
+  const propOf = new Map(props.map((pr) => {
+    const raw = ((pr.values ?? {}) as Record<string, unknown>).photos;
+    const img = Array.isArray(raw) && typeof raw[0] === 'string' ? raw[0] : null;
+    return [pr.id, { code: pr.publicCode, title: pr.title, img }];
+  }));
+
+  /* ประวัติจริงของ lead นี้ — สไลด์ 43 "ไม่มีสรุปและประวัติการติดต่อ"
+     เดิมไทม์ไลน์คือโน้ตที่พิมพ์มือล้วน ๆ บวกบรรทัด "สร้าง lead" หนึ่งบรรทัด
+     สิ่งที่เกิดขึ้นจริงกับ lead — เปิด REQ, ยืนยัน REQ, ส่ง shortlist, นัดเข้าชม,
+     ปิดดีล — ไม่มีอันไหนโผล่เลย ทั้งที่ทุกอย่างมีแถวของตัวเองในฐานข้อมูล
+     ประกอบจากแถวจริง ไม่ใช่รอให้ใครมาพิมพ์บันทึกไว้ ประวัติเก่าจึงครบไปด้วย */
+  type Ev = {
+    kind: string; at: number; text: string; by: string;
+    property?: { code: string; title: string; img: string | null };
+  };
+  const events: Ev[] = [
+    { kind: 'created', at: lead.createdAt.getTime(), text: `สร้าง lead จาก ${lead.source || 'ฟอร์ม'}`, by: 'ระบบ' },
+    ...notes.map((n) => ({
+      /* บันทึกที่ระบบเขียนเองตอนเลื่อนสถานะ แยกออกจากบันทึกที่คนพิมพ์ — ไม่งั้น
+         "ติดต่อแล้ว 3 ครั้ง" จะนับการเปลี่ยนสถานะเป็นการติดต่อลูกค้าไปด้วย */
+      kind: n.text.startsWith('สถานะเปลี่ยนเป็น "') ? 'status' : 'note',
+      at: n.createdAt.getTime(), text: n.text,
+      by: n.userId ? nameOf.get(n.userId) ?? 'ทีมงาน' : 'ระบบ',
+    })),
+    ...requirements.flatMap((r) => [
+      { kind: 'req', at: r.createdAt.getTime(), text: `เปิดใบความต้องการ ${r.code}`, by: 'ทีมงาน' },
+      ...(r.confirmedAt ? [{ kind: 'req_confirmed', at: r.confirmedAt.getTime(), text: `ยืนยันความต้องการ ${r.code}`, by: 'ทีมงาน' }] : []),
+      ...(r.cancelledAt ? [{ kind: 'req_cancelled', at: r.cancelledAt.getTime(), text: `ยกเลิก ${r.code}${r.cancelReason ? ` — ${r.cancelReason}` : ''}`, by: 'ทีมงาน' }] : []),
+    ]),
+    ...shortlists.map((sl) => ({
+      kind: 'shortlist', at: sl.createdAt.getTime(),
+      text: `ส่งรายการคัดเลือก "${sl.name}" ${sl.items.length} ทรัพย์ให้ลูกค้า`, by: 'ทีมงาน',
+    })),
+    ...visits.map((v) => ({
+      kind: `visit_${v.status}`, at: v.date.getTime(),
+      text: `${v.status === 'done' ? 'เข้าชมแล้ว' : v.status === 'cancelled' ? 'ยกเลิกนัดเข้าชม' : 'นัดเข้าชม'} ${v.stops.length} จุด${v.note ? ` — ${v.note}` : ''}`,
+      by: 'ทีมงาน',
+      property: v.stops[0] ? propOf.get(v.stops[0].propertyId) : undefined,
+    })),
+    ...deals.flatMap((dl) => {
+      const pr = dl.propertyId ? propOf.get(dl.propertyId) : undefined;
+      const money = dl.amount ? ` ฿${dl.amount.toLocaleString('th-TH')}` : '';
+      return [
+        { kind: 'deal', at: dl.createdAt.getTime(), text: `เปิดดีล${dl.title ? ` ${dl.title}` : ''}`, by: 'ทีมงาน', property: pr },
+        ...(dl.closedAt ? [{
+          kind: dl.status === 'won' ? 'deal_won' : 'deal_lost',
+          at: dl.closedAt.getTime(),
+          text: `${dl.status === 'won' ? 'ปิดดีลสำเร็จ' : 'ปิดดีลไม่สำเร็จ'}${money}${dl.note ? ` — ${dl.note}` : ''}`,
+          by: 'ทีมงาน',
+          property: pr,
+        }] : []),
+      ];
+    }),
+  ].sort((a, b) => b.at - a.at);
+
+  /* สรุปการติดต่อ — ตอบคำถามที่คนเปิดหน้านี้ถามก่อนเสมอ: คุยกันไปกี่ครั้งแล้ว
+     ครั้งล่าสุดเมื่อไร ค้างอะไรอยู่ */
+  const contactKinds = new Set(['note', 'visit_done', 'shortlist']);
+  const contacts = events.filter((e) => contactKinds.has(e.kind));
+
   return ok({
     ...leadDto(lead, user),
+    history: events,
+    summary: {
+      contacts: contacts.length,
+      lastContactAt: contacts[0]?.at ?? null,
+      firstContactAt: contacts[contacts.length - 1]?.at ?? null,
+      openTasks: tasks.filter((t) => !t.done).length,
+      visitsDone: visits.filter((v) => v.status === 'done').length,
+      dealsWon: deals.filter((dl) => dl.status === 'won').length,
+      dealsLost: deals.filter((dl) => dl.status === 'lost').length,
+      dealsOpen: deals.filter((dl) => dl.status === 'negotiating').length,
+    },
     notes: notes.map((n) => ({
       id: n.id, text: n.text, createdAt: n.createdAt.getTime(),
       by: n.userId ? nameOf.get(n.userId) ?? 'ทีมงาน' : 'ระบบ',
@@ -108,6 +197,11 @@ export const GET = handler(async (_req: Request, ctx: { params: Promise<{ id: st
       requirements: requirements.map((r) => ({ id: r.id, code: r.code, status: r.status })),
       shortlists: shortlists.map((s) => ({ id: s.id, name: s.name, status: s.status, count: s.items.length })),
       visits: visits.map((v) => ({ id: v.id, date: v.date.getTime(), status: v.status })),
+      deals: deals.map((dl) => ({
+        id: dl.id, title: dl.title, status: dl.status, amount: dl.amount,
+        closedAt: dl.closedAt ? dl.closedAt.getTime() : null,
+        property: dl.propertyId ? propOf.get(dl.propertyId) ?? null : null,
+      })),
     },
   });
 });
