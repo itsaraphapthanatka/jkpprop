@@ -7,6 +7,10 @@
  * had drifted into a different card altogether — no photo count, no type, a
  * plain line of text where the others have a button, and stretched to the full
  * width of the page whenever there was only one of them. Same card now.
+ *
+ * แถวเลื่อนในหน้าแรกยังเป็นการ์ดของตัวเองอยู่ (components/home/Featured.tsx)
+ * เพราะขนาดกับตัวอักษรคนละชุด — แก้พฤติกรรมที่นี่แล้วต้องไปดูอีกใบด้วยทุกครั้ง
+ * (คลิกทั้งใบกับป้าย "ไม่ว่าง" เคยหลุดไปแล้วทั้งสองอย่าง)
  */
 import { useState } from 'react';
 import Link from '@/i18n/LocaleLink';

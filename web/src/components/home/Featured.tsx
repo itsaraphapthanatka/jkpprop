@@ -96,6 +96,19 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
         transition: 'transform .28s cubic-bezier(.2,.7,.3,1),box-shadow .28s,border-color .28s',
       }}
     >
+      {/* ลูกค้าแจ้งอีกรอบว่า "ยังคลิกที่ card ไม่ได้" — การ์ดของหน้าแรกเป็นคนละ
+          ตัวกับการ์ดในหน้ารายการ ตอนที่แก้ให้คลิกทั้งใบได้จึงแก้ไปแค่ฝั่งนั้น
+          ที่นี่ยังต้องเล็งปุ่ม "ดูรายละเอียด" อย่างเดียวเหมือนเดิม
+          ลิงก์ใบนี้คลุมทั้งการ์ดไว้ข้างหลัง ปุ่มหัวใจกับปุ่มดูรายละเอียดยกขึ้นมา
+          ทับด้านบน (zIndex 2) จึงยังกดแยกได้ตามเดิม
+          — การ์ดฝาแฝดอยู่ที่ components/listing/PropertyCard.tsx แก้ที่นี่แล้ว
+          ต้องดูอีกใบด้วยทุกครั้ง */}
+      <Link
+        href={`/property/${encodeURIComponent(it.code)}`}
+        aria-label={it.title}
+        data-card-link
+        style={{ position: 'absolute', inset: 0, zIndex: 1 }}
+      />
       <div style={{ position: 'relative', height: 285, overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0, transition: 'transform .5s cubic-bezier(.2,.7,.3,1)', transform: hover ? 'scale(1.07)' : 'none' }}>
           {it.img
@@ -113,10 +126,20 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
           onClick={onToggleFav}
           onMouseEnter={() => setFavHover(true)}
           onMouseLeave={() => setFavHover(false)}
-          style={{ position: 'absolute', top: 12, right: 12, width: 34, height: 34, borderRadius: 9999, background: 'var(--neon)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,.14)', transition: 'transform .2s', transform: favHover ? 'scale(1.12)' : 'none' }}
+          style={{ position: 'absolute', zIndex: 2, top: 12, right: 12, width: 34, height: 34, borderRadius: 9999, background: 'var(--neon)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,.14)', transition: 'transform .2s', transform: favHover ? 'scale(1.12)' : 'none' }}
         >
           <svg width="17" height="17" viewBox="0 0 24 24" fill={favFill} stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z" /></svg>
         </div>
+        {/* ทรัพย์ที่ทีมทำเครื่องหมายว่าไม่ว่าง — การ์ดใบนี้รับค่า available มาตลอด
+            แต่ไม่เคยเอามาแสดง หน้าแรกจึงโฆษณาว่าว่างเหมือนกันหมด */}
+        {it.available === false && (
+          <div
+            data-taken
+            style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', height: 28, padding: '0 13px', borderRadius: 9999, background: 'rgba(var(--ink-rgb),.78)', color: '#fff', fontSize: 12, fontWeight: 700, pointerEvents: 'none', backdropFilter: 'blur(6px)' }}
+          >
+            {d.listing.taken}
+          </div>
+        )}
         <div style={{ position: 'absolute', bottom: 12, right: 12, display: 'flex', alignItems: 'center', gap: 5, height: 24, padding: '0 9px', borderRadius: 7, background: 'rgba(var(--ink-rgb),.6)', color: '#fff', fontSize: 11, fontWeight: 600, pointerEvents: 'none', backdropFilter: 'blur(3px)' }}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="9" cy="11" r="2" /><path d="M21 15l-5-4-4 3" /></svg>{it.photos}
         </div>
@@ -143,7 +166,7 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
             href={`/property/${encodeURIComponent(it.code)}`}
             onMouseEnter={() => setDetailHover(true)}
             onMouseLeave={() => setDetailHover(false)}
-            style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 18px', borderRadius: 9999, background: detailHover ? 'var(--accent)' : 'var(--surface)', border: '1px solid var(--pine)', color: detailHover ? '#fff' : 'var(--pine)', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all .2s' }}
+            style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 18px', borderRadius: 9999, background: detailHover ? 'var(--accent)' : 'var(--surface)', border: '1px solid var(--pine)', color: detailHover ? '#fff' : 'var(--pine)', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all .2s' }}
           >
             {d.common.viewDetail}
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>

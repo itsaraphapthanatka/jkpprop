@@ -913,6 +913,66 @@ test.describe('the search box on the front page', () => {
   });
 });
 
+/* "ยังคลิกที่ card ไม่ได้" — รอบก่อนแก้ให้คลิกทั้งใบได้เฉพาะการ์ดในหน้ารายการ
+   แต่หน้าแรกใช้การ์ดคนละตัว (components/home/Featured.tsx) เลยไม่โดนแก้ไปด้วย
+   เทสต์นี้ไล่ทุกที่ที่มีการ์ด และคลิกจุดที่คนคลิกจริง — รูปกับหัวเรื่อง ไม่ใช่แค่
+   เช็คว่ามี <a> อยู่ในหน้า */
+test.describe('การ์ดทรัพย์ต้องคลิกได้ทั้งใบ ทุกที่ที่มีการ์ด', () => {
+  const surfaces: { name: string; url: string | (() => Promise<string>) }[] = [
+    { name: 'หน้าแรก · แถวทรัพย์มาใหม่', url: '/th' },
+    { name: 'หน้ารายการทรัพย์', url: '/th/listing' },
+  ];
+
+  for (const s of surfaces) {
+    test(`${s.name} — คลิกที่รูปแล้วเข้าหน้าทรัพย์`, async ({ page }) => {
+      await page.goto(typeof s.url === 'string' ? s.url : await s.url());
+      const card = page.locator('[data-card]').first();
+      await card.waitFor();
+      const code = await card.getAttribute('data-card');
+      // กลางรูป — จุดที่คนกดจริง ไม่ใช่มุมที่ไม่มีอะไรทับ
+      await card.click({ position: { x: 120, y: 100 } });
+      await expect(page).toHaveURL(new RegExp(`/property/${code}`));
+    });
+
+    test(`${s.name} — คลิกที่หัวเรื่องแล้วเข้าหน้าทรัพย์`, async ({ page }) => {
+      await page.goto(typeof s.url === 'string' ? s.url : await s.url());
+      const card = page.locator('[data-card]').first();
+      await card.waitFor();
+      const code = await card.getAttribute('data-card');
+      /* คลิกด้วยเมาส์ที่พิกัดกลางข้อความ ไม่ใช่สั่งคลิกที่ตัว element — ต้องการ
+         พฤติกรรมจริงคือ "อะไรอยู่บนสุดตรงนั้นรับคลิกไป" ซึ่งควรเป็นลิงก์คลุมใบ */
+      const title = card.getByText(code!, { exact: false }).first();
+      // boundingBox อ้างอิงกับ viewport — แถวในหน้าแรกอยู่ใต้จอ ต้องเลื่อนมาก่อน
+      await title.scrollIntoViewIfNeeded();
+      const box = await title.boundingBox();
+      await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2);
+      await expect(page).toHaveURL(new RegExp(`/property/${code}`));
+    });
+  }
+
+  test('แถว "ทรัพย์ที่คล้ายกัน" ในหน้าทรัพย์ก็คลิกทั้งใบได้', async ({ page }) => {
+    await page.goto('/th/listing');
+    await page.locator('[data-card]').first().click({ position: { x: 120, y: 100 } });
+    await expect(page).toHaveURL(/\/property\//);
+    const related = page.locator('#pd-related [data-card]').first();
+    if (await related.count()) {
+      const code = await related.getAttribute('data-card');
+      await related.click({ position: { x: 120, y: 100 } });
+      await expect(page).toHaveURL(new RegExp(`/property/${code}`));
+    }
+  });
+
+  /* ปุ่มหัวใจกับปุ่มดูรายละเอียดต้องยังกดแยกได้ — ลิงก์ที่คลุมทั้งใบไม่ควรกลืน */
+  test('หัวใจยังกดได้โดยไม่เด้งไปหน้าทรัพย์', async ({ page }) => {
+    await page.goto('/th');
+    const card = page.locator('[data-card]').first();
+    await card.waitFor();
+    await card.locator('[data-fav]').click();
+    await expect(card.locator('[data-fav]')).toHaveAttribute('data-on', '1');
+    await expect(page).toHaveURL(/\/th$/);
+  });
+});
+
 test.describe('the heart on a listing card', () => {
   /* It filled in and forgot: the state lived in the page's memory, so a reload
      emptied it, and there was nowhere to see what had been saved. */
