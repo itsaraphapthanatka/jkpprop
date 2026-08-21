@@ -181,7 +181,7 @@ describe('ลำดับคำในชื่อประกาศอัตโ�
   });
 
   test('ช่องที่ไม่มีค่าหายไปเฉย ๆ ไม่เหลือคำคั่นค้าง', () => {
-    const t = composeTitle({ ...parts, area: null, code: undefined, values: { deal_type: '', province: 'ชลบุรี' } }, 'th');
+    const t = composeTitle({ ...parts, area: null, code: '', values: { deal_type: '', province: 'ชลบุรี' } }, 'th');
     assert.equal(t, 'โกดัง ที่ ชลบุรี');
   });
 });

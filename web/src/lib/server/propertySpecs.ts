@@ -22,10 +22,28 @@ type Vals = Record<string, unknown>;
 /** field → label, in each locale. Thai matches lib/propertySchema so the
     public page and the admin form call the same thing by the same name. */
 const LABELS: Record<string, Record<Locale, string>> = {
+  /* สามแถวบนสุด — เว็บอ้างอิงที่ลูกค้าส่งมาเปิดตารางด้วย รหัส / สถานะ / ประเภท
+     ก่อนจะลงรายละเอียด ค่าพวกนี้ไม่ได้อยู่ใน values ของทรัพย์ทั้งหมด หน้าเพจ
+     เป็นคนใส่เข้ามา (รหัสกับประเภทเก็บอยู่คนละคอลัมน์ในฐานข้อมูล) */
+  property_code:   { th: 'รหัสทรัพย์',              en: 'Property code',        zh: '房源编号' },
+  deal_type:       { th: 'สถานะทรัพย์',             en: 'Listing status',       zh: '房源状态' },
+  property_type:   { th: 'ประเภททรัพย์',            en: 'Property type',        zh: '房源类型' },
   usable_area:     { th: 'พื้นที่ใช้สอย',           en: 'Usable area',          zh: '使用面积' },
   building_area_total: { th: 'พื้นที่อาคารรวม',    en: 'Total building area',  zh: '建筑总面积' },
   building_area:   { th: 'พื้นที่คลัง / ผลิต',       en: 'Warehouse area',       zh: '仓库面积' },
   land_area:       { th: 'ขนาดที่ดิน',             en: 'Land area',            zh: '土地面积' },
+  /* ช่องหมวด "พื้นที่" ทั้งบล็อก — ทีมกรอกไว้เกือบครบทั้ง 393 รายการ แต่ไม่เคย
+     มีชื่อเรียกในไฟล์นี้ ตารางสาธารณะจึงข้ามไปทุกแถว (พื้นที่อาคารรวมที่เป็น
+     ตัวเลขหลักของประกาศก็หายไปด้วย) */
+  building_total_wh:   { th: 'กว้าง x ลึก อาคารรวม', en: 'Building width x depth', zh: '建筑总宽 x 深' },
+  building_wh:     { th: 'กว้าง x ลึก พื้นที่คลัง / ผลิต', en: 'Warehouse width x depth', zh: '仓库宽 x 深' },
+  office_area_f1:  { th: 'พื้นที่ออฟฟิศ ชั้น 1',      en: 'Office area (1st floor)', zh: '一层办公面积' },
+  office_area_total: { th: 'พื้นที่ออฟฟิศรวม',      en: 'Total office area',    zh: '办公总面积' },
+  office_floors:   { th: 'จำนวนชั้นออฟฟิศ',         en: 'Office floors',        zh: '办公楼层数' },
+  building_floors: { th: 'จำนวนชั้นอาคาร',          en: 'Building floors',      zh: '建筑层数' },
+  land_wh:         { th: 'กว้าง x ลึก ที่ดิน',        en: 'Land width x depth',   zh: '土地宽 x 深' },
+  land_area_total: { th: 'ที่ดินรวม',                en: 'Land size',            zh: '土地总面积' },
+  door_wh:         { th: 'ประตู กว้าง x สูง',        en: 'Door width x height',  zh: '门宽 x 高' },
   clear_height:    { th: 'ความสูงใต้อาคาร',        en: 'Clear height',         zh: '净高' },
   floor_loading:   { th: 'รับน้ำหนักพื้น',          en: 'Floor loading',        zh: '楼板承重' },
   power_system:    { th: 'ขนาดหม้อแปลงไฟฟ้า',       en: 'Transformer size',     zh: '变压器容量' },
@@ -68,6 +86,14 @@ const LABELS: Record<string, Record<Locale, string>> = {
 /* units appended to a bare number, per locale */
 const UNITS: Record<string, Record<Locale, string>> = {
   usable_area:     { th: 'ตร.ม.',        en: 'sqm',        zh: '平方米' },
+  building_area_total: { th: 'ตร.ม.',    en: 'sqm',        zh: '平方米' },
+  building_area:   { th: 'ตร.ม.',        en: 'sqm',        zh: '平方米' },
+  office_area_f1:  { th: 'ตร.ม.',        en: 'sqm',        zh: '平方米' },
+  office_area_total: { th: 'ตร.ม.',      en: 'sqm',        zh: '平方米' },
+  building_total_wh: { th: 'ม.',         en: 'm',          zh: '米' },
+  building_wh:     { th: 'ม.',           en: 'm',          zh: '米' },
+  land_wh:         { th: 'ม.',           en: 'm',          zh: '米' },
+  door_wh:         { th: 'ม.',           en: 'm',          zh: '米' },
   land_area:       { th: 'ตร.ม.',        en: 'sqm',        zh: '平方米' },
   clear_height:    { th: 'เมตร',         en: 'm',          zh: '米' },
   building_height: { th: 'เมตร',         en: 'm',          zh: '米' },
@@ -79,7 +105,30 @@ const UNITS: Record<string, Record<Locale, string>> = {
   parking:         { th: 'คัน',          en: 'spaces',     zh: '个' },
 };
 
+/* หน่วยของโฉนด — ไร่/งาน/ตารางวา ไม่มีคำแปลตรงตัว ใช้คำทับศัพท์ที่ใช้กันจริง */
+const LAND_UNIT: Record<'rai' | 'ngan' | 'wa', Record<Locale, string>> = {
+  rai:  { th: 'ไร่',    en: 'rai',    zh: '莱' },
+  ngan: { th: 'งาน',   en: 'ngan',   zh: '岗' },
+  wa:   { th: 'ตร.ว.', en: 'sq wah', zh: '平方哇' },
+};
+
 const MONEY = new Set(['price_rent', 'price_sale', 'price_per_sqm', 'elec_rate', 'water_rate', 'common_fee']);
+
+/* 0 ตร.ม. / 0 ประตู / ฿0 ไม่ใช่ข้อมูล มันแปลว่า "ไม่มี" — แถวควรหายไปเหมือน
+   ช่องว่าง (ทรัพย์ที่ไม่มีออฟฟิศถูกกรอกพื้นที่ออฟฟิศเป็น 0 ทั้งสองช่อง จึงได้
+   สองแถวที่บอกว่า "0 ตร.ม." ต่อกัน) */
+const ZERO_IS_EMPTY = new Set([
+  'usable_area', 'land_area', 'building_area', 'building_area_total',
+  'office_area_f1', 'office_area_total', 'doors', 'parking',
+  'clear_height', 'building_height', 'price_rent', 'price_sale', 'price_per_sqm',
+]);
+
+/** หน่วยอังกฤษเก็บเป็นพหูพจน์ทั้งตาราง — "1 doors" อ่านแล้วสะดุด */
+const unitFor = (key: string, locale: Locale, n: number): string | undefined => {
+  const u = UNITS[key]?.[locale];
+  if (!u) return u;
+  return locale === 'en' && n === 1 && u.endsWith('s') ? u.slice(0, -1) : u;
+};
 
 const YES: Record<Locale, string> = { th: 'ได้', en: 'Yes', zh: '可以' };
 const NO: Record<Locale, string> = { th: 'ไม่ได้', en: 'No', zh: '不可以' };
@@ -123,6 +172,15 @@ function format(key: string, v: unknown, locale: Locale, over?: GeoOverrides): s
   /* ภาษีและค่าธรรมเนียมเก็บเป็นคู่ { payer, amount } — เดิมตกลงมาถึง String(v)
      แล้วกลายเป็น "[object Object]" บนหน้าเว็บสาธารณะ */
   if (typeof v === 'object') {
+    /* ที่ดินรวมเก็บเป็น { rai, ngan, wa } ตามหน่วยที่โฉนดใช้ — คนละรูปกับคู่
+       payer/amount ข้างล่าง ถ้าไม่ดักไว้ตรงนี้จะได้แถวว่างเปล่า */
+    const land = v as { rai?: unknown; ngan?: unknown; wa?: unknown };
+    if ('rai' in land || 'ngan' in land || 'wa' in land) {
+      const parts = (['rai', 'ngan', 'wa'] as const)
+        .filter((u) => typeof land[u] === 'number' && Number.isFinite(land[u] as number) && (land[u] as number) > 0)
+        .map((u) => `${num(land[u] as number, locale)} ${LAND_UNIT[u][locale]}`);
+      return parts.length ? parts.join(' ') : null;
+    }
     const g = v as { payer?: unknown; amount?: unknown };
     const payer = typeof g.payer === 'string' ? enumLabel(g.payer.trim(), locale) : '';
     const amt = typeof g.amount === 'number' && Number.isFinite(g.amount)
@@ -133,15 +191,19 @@ function format(key: string, v: unknown, locale: Locale, over?: GeoOverrides): s
   }
   if (typeof v === 'number') {
     if (!Number.isFinite(v)) return null;
-    if (MONEY.has(key)) return `฿${num(v, locale)}`;
-    const u = UNITS[key]?.[locale];
+    if (v === 0 && ZERO_IS_EMPTY.has(key)) return null;
+    /* ราคาต่อ ตร.ม. ที่หารมาจากราคากับพื้นที่ออกมาเป็น 234.375 — ปัดเป็นบาทเต็ม
+       ส่วนค่าไฟ/ค่าน้ำเก็บทศนิยมไว้ เพราะ 4.50 บาท/หน่วย คือราคาจริง */
+    if (MONEY.has(key)) return `฿${num(key === 'price_per_sqm' ? Math.round(v) : v, locale)}`;
+    const u = unitFor(key, locale, v);
     return u ? `${num(v, locale)} ${u}` : num(v, locale);
   }
   const s = String(v).trim();
   if (!s) return null;
   const u = UNITS[key]?.[locale];
-  // a stored "3,500" is still a measurement and still wants its unit
-  if (u && /^[\d,.]+$/.test(s)) return `${s} ${u}`;
+  /* a stored "3,500" is still a measurement and still wants its unit — and so
+     does a stored "20 x 40", which is how every กว้าง x ลึก field is typed */
+  if (u && /^[\d,.]+(\s*[xX×]\s*[\d,.]+)*$/.test(s)) return `${s} ${u}`;
   /* Free-text measurements arrive with the unit typed in — the imported sheet
      fills floor loading in as "3 ตัน". The number is language-neutral; only
      the word after it needs translating, and translating it into the field's
@@ -154,12 +216,30 @@ function format(key: string, v: unknown, locale: Locale, over?: GeoOverrides): s
 
 export type SpecRow = { key: string; label: string; value: string };
 
-/* what the table shows, in the order a tenant reads it */
+/* ลำดับแถวในตาราง "รายละเอียดทรัพย์" — เรียงตามเว็บอ้างอิงที่ลูกค้าส่งมา
+   (thaiindustrialproperty.com) คือ ตัวทรัพย์ → ทำเล → โซน → พื้นที่ →
+   สเปคอาคาร → เอกสาร → ราคา → ค่าสาธารณูปโภค → ภาษี → เงื่อนไขสัญญา
+
+   ในบล็อกพื้นที่ "กว้าง x ลึก" มาก่อนตัวเลขพื้นที่ของมันเสมอ ตามที่ลูกค้าชี้
+   ลูกศรไว้ในสไลด์ 26 และเป็นลำดับเดียวกับในฟอร์มหลังบ้าน */
 const TABLE_ORDER = [
-  'province', 'district', 'subdistrict', 'amphoe', 'tambon',
-  'usable_area', 'land_area', 'clear_height', 'building_height',
-  'floor_loading', 'power_system', 'power_phase', 'doors', 'parking',
-  'overhead_crane', 'cold_storage', 'factory_license', 'factory_license_type', 'zoning_color', 'zone',
+  // 1 · ตัวทรัพย์
+  'property_code', 'deal_type', 'property_type',
+  // 2 · ทำเลและโซน
+  'province', 'district', 'amphoe', 'subdistrict', 'tambon', 'zoning_color', 'zone',
+  // 3 · พื้นที่ — คู่ กว้าง x ลึก แล้วตามด้วยพื้นที่
+  'usable_area',
+  'building_total_wh', 'building_area_total',
+  'building_wh', 'building_area',
+  'office_floors', 'office_area_f1', 'office_area_total',
+  'building_floors',
+  'land_wh', 'land_area_total', 'land_area',
+  // 4 · สเปคอาคาร
+  'clear_height', 'building_height', 'floor_loading',
+  'power_phase', 'power_system',
+  'doors', 'door_wh', 'parking', 'overhead_crane', 'cold_storage',
+  // 5 · เอกสาร
+  'factory_license', 'factory_license_type',
   /* เรียงตามที่ลูกค้าร่างไว้: ราคา → ค่าสาธารณูปโภค (พร้อม "จ่ายกับใคร" ต่อท้าย
      แต่ละรายการ) → ภาษีและค่าธรรมเนียม → เงื่อนไขสัญญา */
   'price_rent', 'price_sale', 'price_per_sqm',
@@ -211,7 +291,12 @@ function customRows(extra: FieldDef[], values: Vals, locale: Locale, off: Set<st
 /** What the Field Builder says about this property's type, if anything. */
 export type SpecSchema = { disabled?: string[]; extra?: FieldDef[] };
 
-export function buildSpecs(values: Vals, locale: Locale, schema: SpecSchema = {}, over?: GeoOverrides) {
+/** รหัสทรัพย์กับประเภททรัพย์เก็บเป็นคอลัมน์ของตัวเอง ไม่ได้อยู่ใน values */
+export type SpecHead = { code?: string; typeLabel?: string };
+
+export function buildSpecs(values: Vals, locale: Locale, schema: SpecSchema = {}, over?: GeoOverrides, head: SpecHead = {}) {
+  if (head.code) values = { ...values, property_code: head.code };
+  if (head.typeLabel) values = { ...values, property_type: head.typeLabel };
   /* ลูกค้าแจ้งว่า "หน้าขายไม่แสดงราคาต่อ ตร.ม." — ช่องนี้มีอยู่ แต่จะขึ้นก็ต่อเมื่อ
      มีคนพิมพ์ตัวเลขเข้าไปเอง ซึ่งไม่มีใครพิมพ์ ทั้งที่คำนวณได้จากราคาขายกับพื้นที่
      ที่กรอกไว้แล้ว · ฝั่งเช่าคำนวณให้อยู่แล้วในหัวเรื่องราคา */

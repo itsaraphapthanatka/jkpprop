@@ -130,7 +130,8 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
     available: availability !== 'unavailable',
     // วงกลมพื้นที่ ไม่ใช่หมุดตำแหน่งจริง
     areaPin: found.pin,
-    specs: buildSpecs(values, locale, found.schema, geo),
+    /* สามแถวบนสุดของตาราง (รหัส / สถานะ / ประเภท) ตามเว็บอ้างอิงที่ลูกค้าส่งมา */
+    specs: buildSpecs(values, locale, found.schema, geo, { code: p.publicCode, typeLabel: propertyType(p.typeKey).label }),
     zoning: zoningRaw ? enumLabel(zoningRaw, locale) : null,
     // ค่าดิบไว้เทียบสี — ป้ายที่แปลแล้วใช้เป็นคีย์ไม่ได้
     zoningKey: zoningRaw || null,

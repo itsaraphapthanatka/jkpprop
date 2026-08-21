@@ -80,7 +80,7 @@ export default async function AdminPropertyViewPage({
   const area = displayArea(values);
   const location = displayLocation(values);
   const schema = await loadFieldOverride(property.orgId, property.typeKey);
-  const specs = buildSpecs(values, DEFAULT_LOCALE, schema);
+  const specs = buildSpecs(values, DEFAULT_LOCALE, schema, undefined, { code: property.publicCode, typeLabel: propertyType(property.typeKey).label });
   const chip = STATUS_CHIP[property.status] ?? { bg: 'var(--bg)', fg: 'var(--muted2)', label: property.status };
 
   const rent = Number(values.price_rent ?? NaN);

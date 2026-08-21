@@ -174,3 +174,79 @@ describe('ลำดับช่องในหมวดพื้นที่ (�
     });
   }
 });
+
+/* ลูกค้าส่งลิงก์เว็บ thaiindustrialproperty.com มาแล้วบอกว่า "อยากให้เรียง
+   รายละเอียดเหมือน web นี้" — ตารางของเขาเปิดด้วย รหัส / สถานะ / ประเภท
+   แล้วค่อยทำเล → โซน → พื้นที่ → สเปคอาคาร → ราคา → เงื่อนไข
+
+   ที่สำคัญกว่าลำดับคือหมวด "พื้นที่" ทั้งบล็อกไม่เคยขึ้นหน้าเว็บเลย ทั้งที่
+   ทีมกรอกไว้ 200 จาก 248 รายการ — พื้นที่อาคารรวมที่เป็นตัวเลขหลักของประกาศ
+   ก็หายไปด้วย */
+describe('ลำดับตารางรายละเอียดตามเว็บที่ลูกค้าอ้างอิง', () => {
+  const full = {
+    province: 'สมุทรปราการ', district: 'บางพลี', subdistrict: 'ราชาเทวะ',
+    zoning_color: 'ม่วง — อุตสาหกรรม', zone: ['กนอ.'],
+    building_total_wh: '20 x 40', building_area_total: 800,
+    building_wh: '14 x 20', building_area: 280,
+    office_floors: '1 ชั้น', office_area_f1: 40, office_area_total: 40,
+    building_floors: '1 ชั้น',
+    land_wh: '30 x 50', land_area_total: { rai: 2, ngan: 1, wa: 30 },
+    clear_height: 8, building_height: 10, floor_loading: '3 ตัน',
+    power_phase: '3 เฟส', doors: 2, door_wh: '4 x 4',
+    price_rent: 120000, deposit_months: 3, lease_term: 3,
+  };
+  const head = { code: 'JKPSPK1001', typeLabel: 'โกดัง / คลังสินค้า' };
+  const at = (rows: { key: string }[], key: string) => rows.findIndex((r) => r.key === key);
+
+  test('สามแถวแรกคือ รหัส → สถานะ → ประเภท', () => {
+    const rows = buildSpecs({ ...full, deal_type: 'ให้เช่า' }, 'th', {}, undefined, head).rows;
+    assert.deepEqual(rows.slice(0, 3).map((r) => r.key), ['property_code', 'deal_type', 'property_type']);
+    assert.equal(rows[0].value, 'JKPSPK1001');
+  });
+
+  test('รหัสกับประเภทไม่ขึ้นเองถ้าหน้าเพจไม่ได้ส่งมา', () => {
+    const rows = buildSpecs(full, 'th').rows;
+    assert.ok(!rows.some((r) => r.key === 'property_code' || r.key === 'property_type'));
+  });
+
+  test('เรียง ทำเล → โซน → พื้นที่ → สเปคอาคาร → ราคา → เงื่อนไข', () => {
+    const rows = buildSpecs(full, 'th', {}, undefined, head).rows;
+    const order = ['province', 'district', 'subdistrict', 'zoning_color', 'zone',
+      'building_area_total', 'building_area', 'land_area_total',
+      'clear_height', 'power_phase', 'price_rent', 'lease_term'];
+    for (let i = 1; i < order.length; i += 1) {
+      assert.ok(at(rows, order[i - 1]) < at(rows, order[i]),
+        `${order[i - 1]} ต้องมาก่อน ${order[i]} — ตอนนี้ ${rows.map((r) => r.key).join(' → ')}`);
+    }
+  });
+
+  test('หมวดพื้นที่ที่เคยหายไปทั้งบล็อกขึ้นครบ พร้อมหน่วย', () => {
+    const byKey = new Map(buildSpecs(full, 'th', {}, undefined, head).rows.map((r) => [r.key, r.value]));
+    assert.equal(byKey.get('building_area_total'), '800 ตร.ม.');
+    assert.equal(byKey.get('building_wh'), '14 x 20 ม.');
+    assert.equal(byKey.get('door_wh'), '4 x 4 ม.');
+    assert.equal(byKey.get('office_area_total'), '40 ตร.ม.');
+    // ไร่/งาน/ตร.ว. เก็บเป็นอ็อบเจกต์ เดิมตกไปทาง payer/amount แล้วได้แถวว่าง
+    assert.equal(byKey.get('land_area_total'), '2 ไร่ 1 งาน 30 ตร.ว.');
+  });
+
+  test('ทรัพย์ที่ไม่มีออฟฟิศไม่ต้องมีแถว "0 ตร.ม." สองแถว', () => {
+    const rows = buildSpecs({ ...full, office_area_f1: 0, office_area_total: 0 }, 'th', {}, undefined, head).rows;
+    assert.ok(!rows.some((r) => r.key.startsWith('office_area')), 'พื้นที่ 0 คือไม่มี ไม่ใช่ข้อมูล');
+    assert.ok(rows.some((r) => r.key === 'office_floors'), 'แต่ "จำนวนชั้นออฟฟิศ" ยังบอกได้');
+  });
+
+  test('หน่วยอังกฤษเป็นเอกพจน์เมื่อมีชิ้นเดียว', () => {
+    const one = buildSpecs({ doors: 1, parking: 1 }, 'en').rows;
+    assert.equal(one.find((r) => r.key === 'doors')!.value, '1 door');
+    const many = buildSpecs({ doors: 4 }, 'en').rows;
+    assert.equal(many.find((r) => r.key === 'doors')!.value, '4 doors');
+  });
+
+  test('ราคาต่อ ตร.ม. ที่หารมาปัดเป็นบาทเต็ม', () => {
+    const rows = buildSpecs({ price_per_sqm: 234.375, elec_rate: 4.5 }, 'th').rows;
+    assert.equal(rows.find((r) => r.key === 'price_per_sqm')!.value, '฿234');
+    // ค่าไฟยังเก็บทศนิยม เพราะ 4.50 บาท/หน่วย คือราคาจริง
+    assert.equal(rows.find((r) => r.key === 'elec_rate')!.value, '฿4.5');
+  });
+});
