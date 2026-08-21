@@ -1625,6 +1625,33 @@ test.describe('คอมเมนต์ลูกค้า · ท่าเรื�
     await page.waitForTimeout(1500);
     await expect(page.locator('[data-pin="ท่าเรือคลองเตย"]')).toBeVisible({ timeout: 15000 });
   });
+
+  /* หมุดอยู่บนแผนที่ไม่พอ — ป้ายชื่อต้องอ่านได้ด้วย ตัวจัดป้ายไม่ให้ทับกันไล่
+     ตามลำดับที่ Leaflet วาด ป้าย "ท่าเรือคลองเตย" จึงแพ้ "CBD กรุงเทพฯ" ที่วาด
+     ก่อนและถูกซ่อนตลอด แม้ตอนที่คนกดเลือก "ใกล้ท่าเรือ" อยู่ ท่าเรืออีกสามแห่ง
+     มีชื่อครบแต่คลองเตยไม่มี ทั้งที่เป็นท่าเรือที่ลูกค้าขอให้เพิ่ม */
+  test('กดเลือก "ใกล้ท่าเรือ" แล้วป้ายท่าเรือทุกแห่งอ่านได้ รวมคลองเตย', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/th');
+    await page.locator('#lf-map-plane').scrollIntoViewIfNeeded();
+    await page.waitForTimeout(2500);
+
+    await page.locator('[data-factor="port"]').click();
+    await page.waitForTimeout(900);
+
+    const readable = await page.locator('.belt-pin').evaluateAll((els) =>
+      els
+        .filter((el) => el.getAttribute('data-on') === '1')
+        .map((el) => ({
+          name: el.getAttribute('data-pin') ?? '',
+          shown: Number(getComputedStyle(el.querySelector('.belt-pin-label')!).opacity) > 0.5,
+        })));
+
+    expect(readable.length, 'เลือกท่าเรือแล้วต้องมีหมุดท่าเรือติดสว่าง').toBeGreaterThanOrEqual(4);
+    const hidden = readable.filter((r) => !r.shown).map((r) => r.name);
+    expect(hidden, `หมวดที่เลือกอยู่แต่ป้ายถูกซ่อน: ${hidden.join(' · ')}`).toEqual([]);
+    expect(readable.map((r) => r.name)).toContain('ท่าเรือคลองเตย');
+  });
 });
 
 /* สไลด์ 6 (เขียนใหม่หลังรอบก่อน) · "ขยายแผนที่ · มันทับกันจนดูไม่ออก"

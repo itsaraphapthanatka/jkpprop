@@ -117,6 +117,31 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
     }
   }, [styleFor]);
 
+  /* สไลด์ 6 · "มันทับกันจนดูไม่ออก" — หมุดในกรุงเทพฯ อยู่ชิดกันจนป้ายชื่อเกยกัน
+     การไล่ขยับทีละหมุดจะพังอีกทันทีที่ซูมหรือขนาดจอเปลี่ยน จึงวัดกรอบของป้ายจริง
+     หลังวาดเสร็จ แล้วซ่อนป้ายที่ทับของที่แสดงไปแล้ว จุดหมุดยังอยู่ครบ และป้ายที่
+     ซ่อนจะโผล่เมื่อเอาเมาส์ไปชี้
+
+     ป้ายของหมวดที่เลือกอยู่ได้จองที่ก่อนเสมอ (data-on="1") — เดิมไล่ตามลำดับที่
+     Leaflet วาด ป้าย "ท่าเรือคลองเตย" จึงแพ้ "CBD กรุงเทพฯ" ที่วาดก่อนและถูกซ่อน
+     ทั้งที่คนกดเลือก "ใกล้ท่าเรือ" อยู่ ท่าเรืออีกสามแห่งมีชื่อครบแต่คลองเตยไม่มี
+     ซึ่งเป็นท่าเรือที่ลูกค้าขอให้เพิ่มมาพอดี (สไลด์ 7) */
+  const declutter = React.useCallback(() => {
+    const pins = Array.from(host.current?.querySelectorAll<HTMLElement>('.belt-pin') ?? []);
+    for (const el of pins) el.classList.remove('belt-pin-quiet');
+    const order = [...pins].sort((a, b) =>
+      Number(b.getAttribute('data-on') === '1') - Number(a.getAttribute('data-on') === '1'));
+    const kept: DOMRect[] = [];
+    for (const el of order) {
+      const lb = el.querySelector<HTMLElement>('.belt-pin-label');
+      if (!lb) continue;
+      const r = lb.getBoundingClientRect();
+      const hits = kept.some((k) => r.left < k.right && r.right > k.left && r.top < k.bottom && r.bottom > k.top);
+      if (hits) el.classList.add('belt-pin-quiet');
+      else kept.push(r);
+    }
+  }, []);
+
   const setHovered = React.useCallback((key: string | null) => { hoverRef.current = key; repaint(); }, [repaint]);
   const select = React.useCallback((key: string | null) => { selectedRef.current = key; repaint(); }, [repaint]);
 
@@ -237,23 +262,6 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
 
       map.current = m;
       setBuilt((n) => n + 1);   // now there is something to paint
-      /* สไลด์ 6 · "มันทับกันจนดูไม่ออก" — หมุดในกรุงเทพฯ อยู่ชิดกันจนป้ายชื่อ
-         เกยกัน การไล่ขยับทีละหมุดจะพังอีกทันทีที่ซูมหรือขนาดจอเปลี่ยน จึงวัด
-         กรอบของป้ายจริงหลังวาดเสร็จ แล้วซ่อนป้ายที่ทับของที่แสดงไปแล้ว
-         จุดหมุดยังอยู่ครบ และป้ายที่ซ่อนจะโผล่เมื่อเอาเมาส์ไปชี้ */
-      const declutter = () => {
-        const pins = Array.from(host.current?.querySelectorAll<HTMLElement>('.belt-pin') ?? []);
-        for (const el of pins) el.classList.remove('belt-pin-quiet');
-        const kept: DOMRect[] = [];
-        for (const el of pins) {
-          const lb = el.querySelector<HTMLElement>('.belt-pin-label');
-          if (!lb) continue;
-          const r = lb.getBoundingClientRect();
-          const hits = kept.some((k) => r.left < k.right && r.right > k.left && r.top < k.bottom && r.bottom > k.top);
-          if (hits) el.classList.add('belt-pin-quiet');
-          else kept.push(r);
-        }
-      };
       m.on('zoomend', () => setTimeout(declutter, 60));
       cleanups.push(() => m.off('zoomend'));
 
@@ -284,7 +292,10 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
         el.setAttribute('data-on', on ? '1' : '0');
       }
     }
-  }, [factor, allowed, built, repaint]);
+    /* เลือกหมวดใหม่แล้วต้องจัดป้ายใหม่ด้วย ไม่งั้นผู้ชนะยังเป็นชุดเดิมจากตอนวาด
+       ครั้งแรก — กด "ใกล้ท่าเรือ" กี่ครั้งป้ายคลองเตยก็ไม่โผล่ */
+    declutter();
+  }, [factor, allowed, built, repaint, declutter]);
 
   React.useEffect(() => {
     for (const [name, mk] of Object.entries(markers.current)) {
