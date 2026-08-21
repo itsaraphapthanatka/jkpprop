@@ -54,7 +54,7 @@ export function ContentFooter({ email, phone, location, socials = [], pages = []
 
   return (
     <footer style={{ background: '#000000', color: '#C9C5BD', borderTopLeftRadius: '34px', borderTopRightRadius: '34px' }}>
-      <div className="rs-footer-cols" style={{ maxWidth: '1200px', margin: '0 auto', padding: '96px 24px 52px', display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1.4fr', gap: 48 }}>
+      <div className="rs-footer-cols" style={{ maxWidth: '1320px', margin: '0 auto', padding: '96px 24px 52px', display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1.4fr', gap: 48 }}>
         <div>
           <Image width={226} height={100} src="/assets/jkp-logo-white.png" alt="JKP Property" style={{ height: 46, width: 'auto', display: 'block' }} />
           <p style={{ margin: '16px 0 0', fontSize: 14, lineHeight: 1.7, color: '#8E8B84', maxWidth: 280 }}>
@@ -119,7 +119,7 @@ export function ContentFooter({ email, phone, location, socials = [], pages = []
         </div>
       </div>
       <div style={{ borderTop: '1px solid rgba(255,255,255,.1)' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '26px 24px', display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#8E8B84' }}>
+        <div style={{ maxWidth: '1320px', margin: '0 auto', padding: '26px 24px', display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#8E8B84' }}>
           <div>{d.footer.rights}</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24 }}>
             {/* linked only when the document exists — these were href="#",

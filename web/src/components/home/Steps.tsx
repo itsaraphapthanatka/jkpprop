@@ -37,7 +37,7 @@ export function Steps({ copy }: { copy: SectionCopy }) {
 
   return (
     <section data-anim="1" style={{ background: 'linear-gradient(180deg,var(--bg2) 0%,var(--bg2) 100%)' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '80px 24px' }}>
+      <div style={{ maxWidth: '1320px', margin: '0 auto', padding: '80px 24px' }}>
         <div style={{ textAlign: 'center', marginBottom: 14 }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
             <span style={{ width: 26, height: 2, background: 'var(--accent)', borderRadius: 2 }} />

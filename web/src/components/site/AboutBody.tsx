@@ -245,7 +245,7 @@ export function AboutBody({ copy, stats: live }: { copy: AboutCopy; stats?: Publ
 
       {/* FEATURED IN */}
       {copy.pr.enabled && (
-      <section style={{ maxWidth: '1200px', margin: '0 auto', padding: '72px 24px', textAlign: 'center' }}>
+      <section style={{ maxWidth: '1320px', margin: '0 auto', padding: '72px 24px', textAlign: 'center' }}>
         <div style={{ fontSize: '12.5px', fontWeight: 700, letterSpacing: '.06em', color: 'var(--muted2)', textTransform: 'uppercase' }}>{pick(copy.pr.eyebrow, d.about.pressEyebrow)}</div>
         <h2 style={{ margin: '8px 0 32px', fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>{pick(copy.pr.headline, d.about.pressHeading)}</h2>
         <div id="logo-row" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 44, flexWrap: 'wrap', opacity: 0.6 }}>

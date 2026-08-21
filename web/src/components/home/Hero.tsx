@@ -141,7 +141,7 @@ export function Hero({ copy, facets = { areas: [], colors: [], zones: [], featur
         }}
       />
 
-      <div style={{ position: 'relative', maxWidth: '1200px', margin: '0 auto', padding: '0 24px', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+      <div style={{ position: 'relative', maxWidth: '1320px', margin: '0 auto', padding: '0 24px', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
         <h1 style={{ margin: '0 auto', maxWidth: '760px', fontSize: '44px', lineHeight: 1.2, fontWeight: 700, color: '#FFFFFF' }}>
           {/* The stock headline is assembled from three dictionary pieces
               around a rotating property-type word, so there was nothing for a

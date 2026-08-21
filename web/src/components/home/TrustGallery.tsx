@@ -41,7 +41,7 @@ export function TrustGallery({ copy }: { copy: SectionCopy }) {
 
   return (
     <section data-anim="1" style={{ padding: '72px 0 88px', overflow: 'hidden' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
+      <div style={{ maxWidth: '1320px', margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           <span style={{ width: 26, height: 2, background: 'var(--accent)', borderRadius: 2 }} />
           <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.08em', color: 'var(--accent)', textTransform: 'uppercase' }}>{pick(copy.eyebrow, d.trust.eyebrow)}</span>

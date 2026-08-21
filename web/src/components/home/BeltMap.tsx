@@ -166,6 +166,12 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
         touchZoom: false,
         boxZoom: false,
         keyboard: false,
+        /* สไลด์ 6 · "ขยายแผนที่" — กล่องแผนที่ใหญ่อยู่แล้ว แต่ตัวแผนที่ข้างในเล็ก
+           เพราะ Leaflet ปัดระดับซูมเป็นจำนวนเต็ม fitBounds จึงเลือกระดับที่ "พอ
+           ใส่ได้" ระดับถัดไปล้นกรอบก็ถอยลงมาหนึ่งขั้น ซึ่งเล็กลงครึ่งหนึ่ง
+           จังหวัดเลยกินพื้นที่แค่ 48% ของกรอบ ที่เหลือเป็นที่ว่าง
+           zoomSnap:0 ให้ซูมเป็นทศนิยมได้ ภาพจึงเต็มกรอบพอดีจริง ๆ (85%) */
+        zoomSnap: 0,
       });
       m.fitBounds(BOUNDS, { padding: [8, 8] });
 

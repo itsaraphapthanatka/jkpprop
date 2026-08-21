@@ -1657,6 +1657,48 @@ test.describe('คอมเมนต์ลูกค้า · ท่าเรื�
 /* สไลด์ 6 (เขียนใหม่หลังรอบก่อน) · "ขยายแผนที่ · มันทับกันจนดูไม่ออก"
    หมุดในกรุงเทพฯ อยู่ชิดกันมาก — CBD กับท่าเรือคลองเตยห่างกันราวสามกิโลเมตร
    ป้ายชื่อจึงเกยกันจนอ่านไม่ออก */
+/* สไลด์ 5 "ขยายให้ใหญ่ขึ้น" · สไลด์ 6 "ขยายแผนที่"
+   หน้าแรกใช้กรอบเนื้อหา 1200px ขณะที่หน้ารายการกับหน้าทรัพย์ใช้ 1320px หน้าแรก
+   จึงดูแคบกว่าหน้าอื่นของเว็บเดียวกัน — ตอนนี้ใช้ความกว้างเดียวกันทั้งเว็บ */
+test.describe('คอมเมนต์ลูกค้า · ขยายหน้าและขยายแผนที่', () => {
+  test('ทุกหน้าใช้กรอบเนื้อหาความกว้างเดียวกัน', async ({ page }) => {
+    await page.setViewportSize({ width: 1600, height: 1000 });
+    const widths: Record<string, number> = {};
+    for (const [path, sel] of [['/th', '#lf-map-plane'], ['/th/listing', '#listing-grid']] as const) {
+      await page.goto(path);
+      await page.locator(sel).waitFor();
+      await page.waitForTimeout(1200);
+      widths[path] = await page.locator(sel).evaluate((el) => {
+        let n: HTMLElement | null = el as HTMLElement;
+        while (n && !/1[0-9]{3}px/.test(n.style.maxWidth || '')) n = n.parentElement;
+        return n ? n.getBoundingClientRect().width : 0;
+      });
+    }
+    expect(widths['/th'], 'หน้าแรกแคบกว่าหน้ารายการ').toBe(widths['/th/listing']);
+    expect(widths['/th']).toBeGreaterThanOrEqual(1320);
+  });
+
+  /* กล่องแผนที่ใหญ่ไม่ได้แปลว่าแผนที่ใหญ่ — Leaflet ปัดระดับซูมเป็นจำนวนเต็ม
+     fitBounds จึงถอยลงมาหนึ่งขั้น (เล็กลงครึ่งหนึ่ง) เมื่อขั้นถัดไปล้นกรอบ
+     รูปจังหวัดเลยกองอยู่กลางกรอบโดยมีที่ว่างล้อมรอบเกือบเท่าตัว */
+  test('รูปจังหวัดกินพื้นที่กรอบแผนที่จริง ไม่ใช่กองอยู่ตรงกลาง', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/th');
+    await page.locator('#lf-map-plane').scrollIntoViewIfNeeded();
+    await page.waitForTimeout(2800);
+
+    const box = (await page.locator('#lf-map-plane').boundingBox())!;
+    const span = await page.locator('#lf-map-plane path').evaluateAll((els) => {
+      const rs = els.map((e) => e.getBoundingClientRect()).filter((r) => r.width > 4);
+      if (!rs.length) return null;
+      return Math.max(...rs.map((r) => r.right)) - Math.min(...rs.map((r) => r.x));
+    });
+    expect(span, 'ไม่เจอรูปจังหวัดบนแผนที่').not.toBeNull();
+    const fill = span! / box.width;
+    expect(fill, `รูปจังหวัดกินแค่ ${(fill * 100).toFixed(0)}% ของกรอบ — แผนที่เล็กเกินไป`).toBeGreaterThan(0.75);
+  });
+});
+
 test.describe('คอมเมนต์ลูกค้า · แผนที่ใหญ่ขึ้นและป้ายไม่ทับกัน', () => {
   test('แผนที่สูงขึ้น และป้ายหมุดไม่ทับกัน', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });

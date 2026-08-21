@@ -80,7 +80,7 @@ export function WhyUs({ copy, kpi: kpiCopy, stats }: { copy: SectionCopy; kpi: S
 
   return (
     <div style={{ width: '100%', background: 'var(--bg)' }}>
-      <section data-anim="1" style={{ maxWidth: '1200px', margin: '0 auto', padding: '88px 24px' }}>
+      <section data-anim="1" style={{ maxWidth: '1320px', margin: '0 auto', padding: '88px 24px' }}>
         <div className="rs-split-r" style={{ display: 'grid', gridTemplateColumns: '0.92fr 1.08fr', gap: 52, alignItems: 'center' }}>
           {/* image card */}
           <div style={{ position: 'relative', height: '480px', borderRadius: '20px', overflow: 'hidden', background: 'var(--bg2)', boxShadow: '0 24px 50px rgba(var(--ink-rgb),.16)' }}>

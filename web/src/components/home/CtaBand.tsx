@@ -21,7 +21,7 @@ export function CtaBand({ copy, company }: { copy: SectionCopy; company: Company
   };
 
   return (
-    <section data-anim="1" style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px 24px 16px' }}>
+    <section data-anim="1" style={{ maxWidth: '1320px', margin: '0 auto', padding: '24px 24px 16px' }}>
       <div
         id="cta-band-grid"
         style={{

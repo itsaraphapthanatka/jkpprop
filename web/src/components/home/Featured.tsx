@@ -206,7 +206,7 @@ export function Featured({ items = [], copy }: { items?: FeaturedItem[]; copy: S
   const progressX = ((track - bar) * progress).toFixed(1) + 'px';
 
   return (
-    <section data-anim="1" style={{ maxWidth: '1200px', margin: '0 auto', padding: '88px 24px 8px' }}>
+    <section data-anim="1" style={{ maxWidth: '1320px', margin: '0 auto', padding: '88px 24px 8px' }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, marginBottom: 32, flexWrap: 'wrap' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

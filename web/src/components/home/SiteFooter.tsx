@@ -85,7 +85,7 @@ export function SiteFooter({ company, pages = [] }: { company: Company; pages?: 
       >
         <div
  className="rs-footer-cols"          style={{
-            maxWidth: '1200px',
+            maxWidth: '1320px',
             margin: '0 auto',
             padding: '96px 24px 52px',
             display: 'grid',
@@ -174,7 +174,7 @@ export function SiteFooter({ company, pages = [] }: { company: Company; pages?: 
           <div
             id="foot-bottom-row"
             style={{
-              maxWidth: '1200px',
+              maxWidth: '1320px',
               margin: '0 auto',
               padding: '26px 24px',
               display: 'flex',
