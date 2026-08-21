@@ -450,16 +450,24 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
       </div>
 
       {/* TOOLBAR */}
+      {/* จอมือถือ: ปุ่มตัวกรองกับจำนวนผลลัพธ์อยู่บรรทัดเดียวกัน ชิป (บันทึกไว้ /
+          คำค้น) ลงบรรทัดของตัวเอง แล้วแถวเรียงลำดับอยู่ล่างสุด — เดิมทั้งสาม
+          ก้อนซ้อนกันเป็นชั้น ๆ ไม่ตรงขอบไหนเลย และชื่อปุ่ม "ตัวกรองการค้นหา"
+          ตกบรรทัดกลางปุ่มจนปุ่มสูงกว่าของข้าง ๆ (ลูกค้า: "responsive เรียงไม่สวย")
+          ปุ่มกับจำนวนเป็นพี่น้องระดับเดียวกัน ไม่ใช่ห่อซ้อนอีกชั้น ที่จอใหญ่จึง
+          เรียงเหมือนเดิมทุกอย่าง ส่วนจอเล็กสั่งให้ชิปขึ้นบรรทัดใหม่ได้ตรง ๆ */}
       <div id="toolbar-row" style={{ maxWidth: '1320px', margin: '0 auto', padding: '14px 24px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div id="mobile-filter-btn" onClick={() => setMobileFilterOpen((v) => !v)} style={{ alignItems: 'center', gap: 7, height: 38, padding: '0 14px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+        <div id="toolbar-left" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div id="mobile-filter-btn" onClick={() => setMobileFilterOpen((v) => !v)} style={{ alignItems: 'center', gap: 7, height: 38, padding: '0 14px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9">
               <path d="M4 6h16M7 12h10M10 18h4" />
             </svg>
             {d.listing.filters}
           </div>
-          <div style={{ fontSize: 15, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <span>{d.listing.resultsFound} <span style={{ fontWeight: 800, color: 'var(--text)' }}>{totalCount}</span> {d.listing.results}</span>
+          <span id="toolbar-count" style={{ fontSize: 15, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+            {d.listing.resultsFound} <span style={{ fontWeight: 800, color: 'var(--text)' }}>{totalCount}</span> {d.listing.results}
+          </span>
+          <div id="toolbar-chips" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             {/* the saved ones, and a way back to them */}
             {favs.codes.length > 0 && (
               <span
@@ -484,7 +492,11 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
           </div>
         </div>
         <div id="sort-share-row" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: '13.5px', color: 'var(--muted2)' }}>{d.listing.sortBy}</span>
+          {/* คำว่า "เรียงตาม" ต้องติดกับกล่องเลือกเสมอ — ตอนแถวนี้กางเต็มความกว้าง
+              บนมือถือ space-between เคยดันสามชิ้นแยกกันคนละมุม คำอธิบายลอยอยู่
+              ซ้ายสุดห่างจากสิ่งที่มันอธิบาย */}
+          <div id="sort-group" style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          <span style={{ fontSize: '13.5px', color: 'var(--muted2)', whiteSpace: 'nowrap' }}>{d.listing.sortBy}</span>
           <div style={{ position: 'relative' }}>
             <div onClick={toggleSort} style={{ display: 'flex', alignItems: 'center', gap: 8, height: 40, padding: '0 14px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', minWidth: 130 }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
@@ -520,6 +532,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
                 })}
               </div>
             )}
+          </div>
           </div>
           {/* The three items behind this used to close the menu and nothing
               else. It is the same menu the property page uses now. */}

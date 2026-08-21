@@ -25,7 +25,12 @@ const listingCss = `
 }
 @media (max-width:640px){
   #listing-grid{grid-template-columns:1fr !important;}
-  #toolbar-row{flex-direction:column;align-items:flex-start !important;}
+  #toolbar-row{flex-direction:column;align-items:flex-start !important;gap:12px !important;}
+  /* ปุ่มตัวกรองกับจำนวนผลลัพธ์อยู่บรรทัดเดียวกัน — ปุ่มชิดซ้าย จำนวนชิดขวา */
+  #toolbar-left{width:100%;row-gap:10px;}
+  #toolbar-count{margin-left:auto;}
+  /* ชิปที่กดได้ลงบรรทัดของตัวเอง ชิดซ้ายให้ตรงขอบเดียวกับปุ่มด้านบน */
+  #toolbar-chips{width:100%;}
   #sort-share-row{width:100%;justify-content:space-between !important;}
   #pagination-row{flex-wrap:wrap;}
   #page-sheet{padding-bottom:48px !important;}

@@ -135,6 +135,52 @@ test.describe('คำที่หมุนในหัวเรื่องห�
   });
 });
 
+/* "responsive เรียงไม่สวย" — แถบเครื่องมือเหนือรายการทรัพย์บนมือถือ
+   ปุ่ม "ตัวกรองการค้นหา" ตกบรรทัดกลางปุ่มจนสูงกว่าของข้าง ๆ จำนวนผลลัพธ์กับชิป
+   "บันทึกไว้" ซ้อนกันเป็นชั้น ๆ และคำว่า "เรียงตาม" ถูกดันไปคนละมุมกับกล่องที่
+   มันอธิบาย ไม่มีอะไรตรงขอบเดียวกันสักอย่าง */
+test.describe('แถบเครื่องมือหน้ารายการบนจอมือถือ', () => {
+  for (const w of [320, 390]) {
+    test(`กว้าง ${w}px — เรียงเป็นแถวตรงขอบเดียวกัน`, async ({ page }) => {
+      await page.setViewportSize({ width: w, height: 900 });
+      await page.addInitScript(() => localStorage.setItem('jkp.favourites.v1', JSON.stringify(['JKPBKK1005'])));
+      await page.goto('/th/listing');
+      await page.evaluate(() => document.fonts.ready);
+      await page.locator('#toolbar-row').waitFor();
+      await page.waitForTimeout(1200);
+
+      const box = async (sel: string) => (await page.locator(sel).boundingBox())!;
+      const btn = await box('#mobile-filter-btn');
+      const count = await box('#toolbar-count');
+      const sortRow = await box('#sort-share-row');
+      const row = await box('#toolbar-row');
+
+      /* ปุ่มต้องเป็นบรรทัดเดียว — ตกบรรทัดเมื่อไรความสูงจะเด้งจาก 38 เป็นเกือบเท่าตัว */
+      expect(btn.height, 'ชื่อปุ่มตัวกรองตกบรรทัด ปุ่มเลยสูงผิดปกติ').toBeLessThan(46);
+
+      /* ปุ่มกับจำนวนผลลัพธ์อยู่บรรทัดเดียวกัน */
+      expect(Math.abs((btn.y + btn.height / 2) - (count.y + count.height / 2)),
+        'จำนวนผลลัพธ์ควรอยู่บรรทัดเดียวกับปุ่มตัวกรอง').toBeLessThan(12);
+
+      /* ทุกก้อนเริ่มที่ขอบซ้ายเดียวกัน และไม่มีอะไรล้นออกนอกแถว */
+      const chips = page.locator('#toolbar-chips');
+      const lefts = [btn.x, sortRow.x, ...(await chips.count() ? [(await box('#toolbar-chips')).x] : [])];
+      for (const x of lefts) expect(Math.abs(x - lefts[0]), `ขอบซ้ายไม่ตรงกัน: ${lefts.join(', ')}`).toBeLessThan(1.5);
+      expect(count.x + count.width, 'จำนวนผลลัพธ์ควรชิดขอบขวาเท่ากับแถวเรียงลำดับ')
+        .toBeGreaterThan(sortRow.x + sortRow.width - 1.5);
+      expect(count.x + count.width).toBeLessThan(row.x + row.width + 1.5);
+
+      /* คำว่า "เรียงตาม" ต้องติดกับกล่องเลือก ไม่ใช่ถูกดันไปคนละมุม */
+      const group = await box('#sort-group');
+      expect(group.width, '"เรียงตาม" กับกล่องเลือกไม่ควรกินเต็มความกว้างแถว')
+        .toBeLessThan(sortRow.width - 30);
+
+      const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(over, 'หน้าเลื่อนออกด้านข้าง').toBeLessThanOrEqual(1);
+    });
+  }
+});
+
 test.describe('layout', () => {
   test('the page never scrolls sideways', async ({ page }) => {
     // the responsive rules keyed off inline-style strings used to fail
