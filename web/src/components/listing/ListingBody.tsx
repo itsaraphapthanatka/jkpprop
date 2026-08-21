@@ -332,11 +332,35 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
   };
   const toggleSort = () => setSortOpen((v) => !v);
 
-  type Section = { key: SecKey; title: string; items: { label: string; value?: string; checked: boolean; select: () => void }[] };
+  type Section = {
+    key: SecKey; title: string;
+    /* จังหวัด/เขต/แขวง เป็น dropdown — รายการติ๊กยาวเป็นสามสิบกว่าบรรทัด
+       ทำให้แถบตัวกรองยาวจนหาหมวดอื่นไม่เจอ และการเลือกทีละหลายจังหวัดพร้อมกัน
+       ก็ไม่ใช่สิ่งที่คนหาทำเลทำจริง */
+    kind?: 'dropdown';
+    value?: string;
+    onPick?: (v: string) => void;
+    items: { label: string; value?: string; checked: boolean; select: () => void }[];
+  };
   const sections: Section[] = ([
-    { key: 'province', title: d.listing.province, items: provItems.map((label) => ({ label, checked: provSel.includes(label), select: () => { setProvSel((a) => toggleIn(a, label)); setDistSel([]); setSubSel([]); } })) },
-    { key: 'district', title: d.listing.district, items: distItems.map((label) => ({ label, checked: distSel.includes(label), select: () => { setDistSel((a) => toggleIn(a, label)); setSubSel([]); } })) },
-    { key: 'subdistrict', title: d.listing.subdistrict, items: subItems.map((label) => ({ label, checked: subSel.includes(label), select: () => setSubSel((a) => toggleIn(a, label)) })) },
+    {
+      key: 'province', title: d.listing.province, kind: 'dropdown',
+      value: provSel[0] ?? '',
+      onPick: (v) => { setProvSel(v ? [v] : []); setDistSel([]); setSubSel([]); },
+      items: provItems.map((label) => ({ label, checked: provSel.includes(label), select: () => undefined })),
+    },
+    {
+      key: 'district', title: d.listing.district, kind: 'dropdown',
+      value: distSel[0] ?? '',
+      onPick: (v) => { setDistSel(v ? [v] : []); setSubSel([]); },
+      items: distItems.map((label) => ({ label, checked: distSel.includes(label), select: () => undefined })),
+    },
+    {
+      key: 'subdistrict', title: d.listing.subdistrict, kind: 'dropdown',
+      value: subSel[0] ?? '',
+      onPick: (v) => setSubSel(v ? [v] : []),
+      items: subItems.map((label) => ({ label, checked: subSel.includes(label), select: () => undefined })),
+    },
     { key: 'zoning', title: d.listing.zoneColor, items: zoningItems.map((value) => ({ label: enumLabel(value, locale), value, checked: zoningSel.includes(value), select: () => setZoningSel((a) => toggleIn(a, value)) })) },
     { key: 'type', title: d.listing.type, items: typeItems.map((label) => ({ label, checked: typeSel.includes(label), select: () => setTypeSel((a) => toggleIn(a, label)) })) },
     { key: 'size', title: d.listing.size, items: SIZE_ITEMS.map((label) => ({ label, checked: sizeSel === label, select: () => setSizeSel((cur) => (cur === label ? null : label)) })) },
@@ -380,7 +404,26 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
           <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)' }}>{sec.title}</div>
           {secChev(secOpen[sec.key])}
         </div>
-        {secOpen[sec.key] && (
+        {secOpen[sec.key] && sec.kind === 'dropdown' && (
+          <select
+            data-filter-select={sec.key}
+            value={sec.value ?? ''}
+            onChange={(e) => sec.onPick?.(e.target.value)}
+            disabled={sec.items.length === 0}
+            style={{
+              marginTop: 10, width: '100%', height: 42, padding: '0 12px', borderRadius: 11,
+              border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)',
+              fontSize: '13.5px', fontFamily: 'inherit', outline: 'none',
+              opacity: sec.items.length === 0 ? 0.55 : 1,
+            }}
+          >
+            <option value="">{sec.items.length === 0 ? d.listing.emptyTitle : d.listing.allOf}</option>
+            {sec.items.map((it) => (
+              <option key={it.label} value={it.label}>{enumLabel(it.label, locale)}</option>
+            ))}
+          </select>
+        )}
+        {secOpen[sec.key] && sec.kind !== 'dropdown' && (
           <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
             {sec.items.map((it) => (
               <div key={enumLabel(it.label, locale)} data-filter-opt={sec.key} data-checked={it.checked ? '1' : '0'} onClick={it.select} style={checkStyle(it.checked)}>

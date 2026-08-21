@@ -1651,27 +1651,40 @@ test.describe('คอมเมนต์ลูกค้า · ค้นหาแ�
     await expect(page.locator(`[data-card="${items[0].code}"]`)).toBeVisible();
   });
 
-  test('ทำเลแยกเป็นจังหวัด เขต แขวง และแคบลงตามชั้น', async ({ page, request }) => {
+  test('ทำเลเป็น dropdown สามชั้น และแคบลงตามชั้น', async ({ page, request }) => {
     const items = (await (await request.get('/api/public/listings?locale=th&limit=500')).json()).items as
       { province: string; district: string; subdistrict: string }[];
     test.skip(!items.some((i) => i.district), 'ยังไม่มีทรัพย์ที่กรอกเขต');
+    const provs = new Set(items.map((i) => i.province).filter(Boolean));
+    test.skip(provs.size < 2, 'มีจังหวัดเดียว แคบลงแล้ววัดผลไม่ได้');
 
     await page.goto('/th/listing');
-    for (const title of ['จังหวัด', 'เขต / อำเภอ', 'แขวง / ตำบล']) {
-      await expect(page.getByText(title, { exact: true }).first(), `ขาดหมวด ${title}`).toBeVisible();
+    for (const key of ['province', 'district', 'subdistrict']) {
+      await expect(page.locator(`[data-filter-select="${key}"]`), `หมวด ${key} ต้องเป็น dropdown`).toBeVisible();
     }
 
-    /* เลือกจังหวัดแล้ว ตัวเลือกเขตต้องเหลือเฉพาะของจังหวัดนั้น */
-    const distBefore = await page.locator('[data-filter-opt="district"]').count();
-    const prov = items.find((i) => i.province)!.province;
-    const provsInData = new Set(items.map((i) => i.province).filter(Boolean));
-    test.skip(provsInData.size < 2, 'มีจังหวัดเดียว แคบลงแล้ววัดผลไม่ได้');
+    const distSel = page.locator('[data-filter-select="district"]');
+    const before = await distSel.locator('option').count();
 
-    await page.locator('[data-filter-opt="province"]').filter({ hasText: prov }).first().click();
-    await expect.poll(() => page.locator('[data-filter-opt="district"]').count(), { timeout: 10000 }).toBeLessThan(distBefore);
+    const prov = items.find((i) => i.province && i.district)!.province;
+    await page.locator('[data-filter-select="province"]').selectOption(prov);
 
+    /* ตัวเลือกเขตต้องเหลือเฉพาะของจังหวัดนั้น */
+    await expect.poll(() => distSel.locator('option').count(), { timeout: 10000 }).toBeLessThan(before);
     const want = items.filter((i) => i.province === prov).length;
-    const shown = await page.locator('[data-card]').count();
-    expect(shown, 'ผลลัพธ์ต้องเหลือเฉพาะจังหวัดที่เลือก').toBeLessThanOrEqual(Math.min(want, 9));
+    expect(await page.locator('[data-card]').count(), 'ผลลัพธ์ต้องเหลือเฉพาะจังหวัดที่เลือก').toBeLessThanOrEqual(Math.min(want, 9));
+
+    /* เลือกเขตต่อ แล้วแขวงต้องแคบตาม */
+    const dist = items.find((i) => i.province === prov && i.district)!.district;
+    const subSel = page.locator('[data-filter-select="subdistrict"]');
+    const subBefore = await subSel.locator('option').count();
+    await distSel.selectOption(dist);
+    await expect.poll(() => subSel.locator('option').count(), { timeout: 10000 }).toBeLessThanOrEqual(subBefore);
+
+    /* เปลี่ยนจังหวัดใหม่ ต้องล้างเขตกับแขวงที่เลือกไว้ */
+    const other = [...provs].find((x) => x !== prov)!;
+    await page.locator('[data-filter-select="province"]').selectOption(other);
+    await expect(distSel).toHaveValue('');
+    await expect(subSel).toHaveValue('');
   });
 });
