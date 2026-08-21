@@ -144,13 +144,15 @@ export function Hero({ copy, facets = { areas: [], colors: [], zones: [], featur
           <span style={{ display: 'block', overflow: 'hidden', paddingBottom: '.08em' }}>
             <span style={{ display: 'inline-block', animation: 'lineUp .85s cubic-bezier(.16,.8,.24,1) both' }}>
               {d.common.search}
-              <span id="hero-rotator" style={{ display: 'inline-flex', flexDirection: 'column', height: '1.18em', overflow: 'hidden', verticalAlign: 'bottom' }}>
+              {/* ความสูงทุกที่อ่านจาก --rot-step ตัวเดียว ที่ประกาศไว้ใน globals.css
+                  คู่กับคีย์เฟรม rotWords — แก้ตัวเลขที่เดียวแล้วตรงกันทั้งชุด */}
+              <span id="hero-rotator" style={{ display: 'inline-flex', flexDirection: 'column', height: 'var(--rot-step)', overflow: 'hidden', verticalAlign: 'bottom' }}>
                 <span style={{ display: 'block', color: 'var(--neon)', animation: 'rotWords 9s cubic-bezier(.7,0,.2,1) infinite' }}>
-                  <span style={{ display: 'block', height: '1.18em' }}>{enumLabel('โกดัง', locale)}</span>
-                  <span style={{ display: 'block', height: '1.18em' }}>{enumLabel('โรงงาน', locale)}</span>
-                  <span style={{ display: 'block', height: '1.18em' }}>{enumLabel('คลังสินค้า', locale)}</span>
-                  <span style={{ display: 'block', height: '1.18em' }}>{enumLabel('ที่ดิน', locale)}</span>
-                  <span style={{ display: 'block', height: '1.18em' }}>{enumLabel('โกดัง', locale)}</span>
+                  <span style={{ display: 'block', height: 'var(--rot-step)' }}>{enumLabel('โกดัง', locale)}</span>
+                  <span style={{ display: 'block', height: 'var(--rot-step)' }}>{enumLabel('โรงงาน', locale)}</span>
+                  <span style={{ display: 'block', height: 'var(--rot-step)' }}>{enumLabel('คลังสินค้า', locale)}</span>
+                  <span style={{ display: 'block', height: 'var(--rot-step)' }}>{enumLabel('ที่ดิน', locale)}</span>
+                  <span style={{ display: 'block', height: 'var(--rot-step)' }}>{enumLabel('โกดัง', locale)}</span>
                 </span>
               </span>
               {d.hero.headlineTail}

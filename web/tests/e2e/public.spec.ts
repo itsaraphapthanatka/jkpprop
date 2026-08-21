@@ -89,6 +89,52 @@ test.describe('listing and property', () => {
   }
 });
 
+/* "responsive เลื่อนขึ้นแล้วข้อความมันแสดงไม่ครบ มันตัดหัวไป"
+   คำที่หมุนอยู่ในหัวเรื่องหน้าแรกโดนกรอบเฉือนบนมือถือ — ความสูงของกรอบกับคำ
+   เขียนไว้ที่หนึ่ง (1.18em) กฎจอเล็กทับเหลือ 1.05em แต่คีย์เฟรมยังเลื่อนทีละ
+   1.18em ทุกคำที่หมุนไปจึงเลื่อนเกินไปเรื่อย ๆ จนคำโผล่มาครึ่งเดียว
+
+   เทสต์ไม่ได้ดูว่า "สวยไหม" แต่วัดว่าทุกจังหวะที่คำหยุดนิ่ง ระยะที่เลื่อนไป
+   ต้องเป็นจำนวนเต็มเท่าของความสูงหนึ่งคำพอดี — ถ้าตัวเลขสามที่ไม่ตรงกันเมื่อไร
+   ค่าจะกลายเป็นเศษทันที */
+test.describe('คำที่หมุนในหัวเรื่องหน้าแรกต้องไม่โดนตัด', () => {
+  test('ทุกจังหวะที่คำหยุด กรอบพอดีหนึ่งคำเป๊ะ', async ({ page }) => {
+    await page.goto('/th');
+    await page.evaluate(() => document.fonts.ready);
+    const rot = page.locator('#hero-rotator');
+    await rot.waitFor();
+
+    const read = () => rot.evaluate((el) => {
+      const inner = el.firstElementChild as HTMLElement;
+      const box = el.getBoundingClientRect();
+      const kid = (inner.firstElementChild as HTMLElement).getBoundingClientRect();
+      return { boxH: box.height, kidH: kid.height, shift: box.top - inner.getBoundingClientRect().top };
+    });
+
+    const first = await read();
+    expect(Math.abs(first.boxH - first.kidH), 'กรอบต้องสูงเท่าหนึ่งคำพอดี').toBeLessThan(0.5);
+
+    /* เก็บค่าตลอดหนึ่งรอบ (9 วินาที) แล้วเอาเฉพาะช่วงที่ค่านิ่ง — ช่วงกำลังเลื่อน
+       ระหว่างคำเป็นค่าระหว่างกลางตามธรรมชาติ ไม่ใช่ความผิดพลาด */
+    const seen: number[] = [];
+    for (let i = 0; i < 96; i += 1) {
+      seen.push((await read()).shift);
+      await page.waitForTimeout(100);
+    }
+    const settled: number[] = [];
+    for (let i = 2; i < seen.length; i += 1) {
+      const [a, b, c] = [seen[i - 2], seen[i - 1], seen[i]];
+      if (Math.abs(a - b) < 0.5 && Math.abs(b - c) < 0.5) settled.push(c);
+    }
+    expect(settled.length, 'ต้องจับช่วงที่คำหยุดนิ่งได้อย่างน้อยหนึ่งช่วง').toBeGreaterThan(3);
+
+    const off = settled
+      .map((v) => ({ v, steps: v / first.kidH }))
+      .filter((r) => Math.abs(r.steps - Math.round(r.steps)) > 0.02);
+    expect(off.map((r) => `${r.v.toFixed(1)}px = ${r.steps.toFixed(3)} คำ`), 'เลื่อนไปไม่ลงตัวกับความสูงคำ — คำจะโผล่มาครึ่งเดียว').toEqual([]);
+  });
+});
+
 test.describe('layout', () => {
   test('the page never scrolls sideways', async ({ page }) => {
     // the responsive rules keyed off inline-style strings used to fail
