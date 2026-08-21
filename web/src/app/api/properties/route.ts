@@ -7,7 +7,7 @@ import { requireUser, requireRole, scopeWhere } from '@/lib/server/auth';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
 import { nextPublicCode } from '@/lib/server/publicCode';
-import { propertyDto, displayProvince } from '@/lib/server/propertyDto';
+import { propertyDto, displayProvince, displayFullLocation } from '@/lib/server/propertyDto';
 import { missingTitles, parseI18n } from '@/lib/server/propertyI18n';
 import { PROPERTY_TYPES } from '@/lib/propertySchema';
 import type { Prisma } from '@prisma/client';
@@ -53,7 +53,13 @@ export const GET = handler(async (req: Request) => {
       select: { propertyId: true },
     })).map((l) => l.propertyId),
   );
-  let items = rows.map((p) => ({ ...propertyDto(p, user), available: !taken.has(p.id) }));
+  /* สไลด์ 22 · "แขวง เขต จังหวัด" — ตารางเคยแสดงแค่เขตกับจังหวัด ทีมจึงแยก
+     ทรัพย์ที่อยู่คนละแขวงแต่อำเภอเดียวกันไม่ออก */
+  let items = rows.map((p) => ({
+    ...propertyDto(p, user),
+    location: displayFullLocation((p.values ?? {}) as Record<string, unknown>),
+    available: !taken.has(p.id),
+  }));
   if (province && province !== 'ทั้งหมด') {
     items = items.filter((i) => displayProvince(i.values).includes(province));
   }

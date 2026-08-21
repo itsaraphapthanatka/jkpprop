@@ -248,7 +248,7 @@ export function PropertiesBody() {
   const shown = React.useMemo(() => {
     const view = new Map((items ?? []).map((r) => [r.id, toInventoryRow(r)]));
     const kept = (items ?? []).filter((r) => matchesFilters(view.get(r.id)!, inv));
-    const order = new Map(sortInventory([...view.values()]).map((v, i) => [v.code, i]));
+    const order = new Map(sortInventory([...view.values()], inv.sort).map((v, i) => [v.code, i]));
     return [...kept].sort((a, b) => (order.get(a.publicCode) ?? 0) - (order.get(b.publicCode) ?? 0));
   }, [items, inv]);
 

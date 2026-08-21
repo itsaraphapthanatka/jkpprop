@@ -115,6 +115,7 @@ export function SocialStatusBody() {
       const n = doneCount(recordOf(store, r.code), channels);
       return only === 'done' ? n === channels.length && n > 0 : n < channels.length;
     }).map((r) => ({ ...r, ...view(r) })),
+    inv.sort,
   ).map((r) => (listings ?? []).find((x) => x.code === r.code)!);
 
   /* แบ่งหน้าเหมือน Properties และ Listings — 393 แถวในหน้าเดียวเลื่อนหายาก

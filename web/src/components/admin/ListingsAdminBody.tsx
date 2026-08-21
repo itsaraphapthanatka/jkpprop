@@ -281,6 +281,7 @@ export function ListingsAdminBody() {
   });
   const filtered = sortInventory(
     all.filter((d) => (statusFilter === 'all' || d.status === statusFilter) && matchesFilters(view(d), inv)).map((d) => ({ ...d, ...view(d) })),
+    inv.sort,
   ).map((d) => all.find((r) => r.code === d.code)!);
 
   const selCount = Object.values(sel).filter(Boolean).length;

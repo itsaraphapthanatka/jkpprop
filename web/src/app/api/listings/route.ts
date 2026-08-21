@@ -4,7 +4,7 @@
 import { ok, handler } from '@/lib/server/api';
 import { requireUser, scopeWhere } from '@/lib/server/auth';
 import { db } from '@/lib/server/db';
-import { displayArea, displayProvince } from '@/lib/server/propertyDto';
+import { displayArea, displayProvince, displayFullLocation } from '@/lib/server/propertyDto';
 import { isFeatured } from '@/lib/server/publicListings';
 
 const fmtPrice = (values: Record<string, unknown>): { text: string; dealK: string; deal: string } => {
@@ -49,7 +49,8 @@ export const GET = handler(async () => {
         // the admin table used to guess the type from words in the title
         typeKey: p.typeKey,
         area: displayArea(values),
-        location: displayProvince(values) || '—',
+        // สไลด์ 22 · แขวง เขต จังหวัด — เดิมหน้านี้แสดงแค่จังหวัด
+        location: displayFullLocation(values) || displayProvince(values) || '—',
         /* ช่องที่เมนูค้นหาชุดร่วมต้องใช้ (สไลด์ 22) */
         zoning: String(values.zoning_color ?? ''),
         dealLabel: String(values.deal_type ?? ''),

@@ -24,8 +24,14 @@ export function placeMenu(r: DOMRect, opts: PlaceOpts = {}): MenuBox {
   const below = window.innerHeight - r.bottom - margin;
   const above = r.top - margin;
   /* a trigger near the bottom of the window has no room under it — open
-     upwards instead of letting the menu run off the fold */
-  const flip = below < 160 && above > below;
+     upwards instead of letting the menu run off the fold
+     
+     เดิมพลิกเฉพาะเมื่อเหลือที่ต่ำกว่า 160px ซึ่งพอดีกับตอนที่ตารางยาว 393 แถว
+     แล้วแถวสุดท้ายอยู่ติดขอบล่างเสมอ พอแบ่งหน้าเหลือ 25 แถว แถวสุดท้ายอยู่
+     กลางจอ เหลือที่ด้านล่างราวสองร้อยพิกเซล — ไม่พลิก แต่ก็ไม่พอ เมนูจึงถูก
+     ตัดจนรายการสุดท้าย ("ลบทรัพย์") ต้องเลื่อนหาเอาเอง
+     ตอนนี้พลิกเมื่อกางเต็มความสูงที่ขอไว้ไม่ได้ และด้านบนมีที่มากกว่า */
+  const flip = below < cap && above > below;
   const maxHeight = Math.max(120, Math.min(cap, flip ? above : below));
   const width = opts.width ?? Math.max(r.width, minWidth);
   const wanted = align === 'right' ? r.right - width : r.left;

@@ -39,9 +39,20 @@ export type InventoryFilterState = {
   price: string;
   avail: string;
   pic: string;
+  /** การเรียง — สไลด์ 22 "มีเรียงตามรหัสทรัพย์" */
+  sort: SortKey;
 };
 
-export const EMPTY_FILTERS: InventoryFilterState = { q: '', type: '', zoning: '', deal: '', size: '', price: '', avail: '', pic: '' };
+/** ว่างก่อนคือค่าตั้งต้นเดิม ส่วนรหัสทรัพย์คือสิ่งที่ลูกค้าขอเพิ่ม */
+export type SortKey = 'avail' | 'code' | 'codeDesc';
+
+export const EMPTY_FILTERS: InventoryFilterState = { q: '', type: '', zoning: '', deal: '', size: '', price: '', avail: '', pic: '', sort: 'avail' };
+
+export const SORT_LABEL: Record<SortKey, string> = {
+  avail: 'ว่างก่อน แล้วรหัส',
+  code: 'รหัสทรัพย์ (น้อย → มาก)',
+  codeDesc: 'รหัสทรัพย์ (มาก → น้อย)',
+};
 
 const ANY = 'ทั้งหมด';
 
@@ -85,9 +96,13 @@ export function matchesFilters(row: InventoryRow, f: InventoryFilterState): bool
   return true;
 }
 
-/** ลำดับที่ทั้งสามหน้าใช้เหมือนกัน — ว่างก่อน แล้วรหัสทรัพย์ */
-export const sortInventory = <T extends InventoryRow>(rows: T[]): T[] =>
-  [...rows].sort((a, b) => Number(b.available) - Number(a.available) || a.code.localeCompare(b.code, 'th'));
+/** ลำดับที่ทั้งสามหน้าใช้เหมือนกัน — ค่าตั้งต้นคือว่างก่อน แล้วรหัสทรัพย์ */
+export const sortInventory = <T extends InventoryRow>(rows: T[], mode: SortKey = 'avail'): T[] => {
+  const byCode = (a: T, b: T) => a.code.localeCompare(b.code, 'th', { numeric: true });
+  if (mode === 'code') return [...rows].sort(byCode);
+  if (mode === 'codeDesc') return [...rows].sort((a, b) => byCode(b, a));
+  return [...rows].sort((a, b) => Number(b.available) - Number(a.available) || byCode(a, b));
+};
 
 const chip = (hot: boolean): React.CSSProperties => ({
   display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 14px', borderRadius: 10,
@@ -168,9 +183,22 @@ export function InventoryFilters({ value, onChange, extra, picOptions = [] }: {
         );
       })}
 
+      {/* สไลด์ 22 · "มีเรียงตามรหัสทรัพย์" — เดิมเรียงตายตัวว่างก่อนแล้วรหัส
+          ไม่มีทางไล่ตามรหัสล้วน ซึ่งเป็นวิธีที่ทีมใช้ตรวจว่าคีย์ครบหรือยัง */}
+      <select
+        data-filter-sort
+        value={value.sort}
+        onChange={(e) => onChange({ ...value, sort: e.target.value as SortKey })}
+        style={{ height: 40, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontSize: 12.5, fontWeight: 600, fontFamily: 'inherit', outline: 'none' }}
+      >
+        {(Object.keys(SORT_LABEL) as SortKey[]).map((k) => (
+          <option key={k} value={k}>{`เรียง: ${SORT_LABEL[k]}`}</option>
+        ))}
+      </select>
+
       {extra}
 
-      {Object.values(value).some(Boolean) && (
+      {(Object.entries(value).some(([k, v]) => k !== 'sort' && v)) && (
         <div data-filter-clear onClick={() => onChange(EMPTY_FILTERS)} style={{ ...chip(false), border: 0, background: 'transparent', color: 'var(--muted)' }}>
           ล้างตัวกรอง
         </div>

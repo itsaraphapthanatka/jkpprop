@@ -4,7 +4,7 @@
 import type { Property, User } from '@prisma/client';
 import { PROPERTY_TYPES, propertyType } from '@/lib/propertySchema';
 import { hasPriv } from './auth';
-import { provinceLabel, districtLabel, type GeoOverrides } from '@/i18n/places';
+import { provinceLabel, districtLabel, subdistrictLabel, type GeoOverrides } from '@/i18n/places';
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/config';
 import { parseI18n } from './propertyI18n';
 
@@ -59,6 +59,19 @@ export function displayLocation(values: Vals, locale: Locale = DEFAULT_LOCALE, o
   const district = districtLabel(values.district ?? loc.amphoe, locale, over);
   const province = provinceLabel(values.province ?? loc.province, locale, over);
   return [district, province].filter(Boolean).join(', ');
+}
+
+/** ทำเลแบบเต็มสามชั้น — สไลด์ 22 "แขวง เขต จังหวัด"
+ *
+ *  หน้าเว็บฝั่งลูกค้าใช้แบบสองชั้นต่อไป (การ์ดยาวเกินถ้าใส่แขวงด้วย) ส่วน
+ *  ตารางหลังบ้านต้องเห็นครบ เพราะทีมใช้แยกทรัพย์ที่ชื่ออำเภอซ้ำกัน
+ */
+export function displayFullLocation(values: Vals, locale: Locale = DEFAULT_LOCALE, over?: GeoOverrides): string {
+  const loc = (values.location ?? {}) as Vals;
+  const sub = subdistrictLabel(values.subdistrict ?? loc.tambon, locale, over);
+  const district = districtLabel(values.district ?? loc.amphoe, locale, over);
+  const province = provinceLabel(values.province ?? loc.province, locale, over);
+  return [sub, district, province].filter(Boolean).join(', ');
 }
 
 /** the stored (Thai) province — filters and code prefixes match on this */

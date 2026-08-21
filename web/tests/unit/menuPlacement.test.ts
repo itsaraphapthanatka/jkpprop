@@ -54,3 +54,30 @@ describe('placeMenu', () => {
     assert.equal(b.width, 600);
   });
 });
+
+
+/* พอตารางแบ่งหน้าเหลือ 25 แถว แถวสุดท้ายไม่ได้อยู่ติดขอบล่างอีกต่อไป เมนูจึง
+   ไม่พลิกขึ้น แต่ที่ด้านล่างก็ไม่พอกางเต็ม รายการสุดท้ายเลยถูกตัด */
+describe('เมนูที่กางเต็มด้านล่างไม่ได้ ต้องพลิกขึ้น', () => {
+  const vh = 900;
+  const box = (top: number) => ({ top, bottom: top + 30, left: 100, right: 130, width: 30, height: 30 } as DOMRect);
+
+  test('เหลือที่ด้านล่างน้อยกว่าความสูงที่ขอ และด้านบนมีมากกว่า → พลิก', () => {
+    const r = box(650); // เหลือด้านล่าง ~220px ด้านบน ~642px
+    const m = placeMenu(r, { maxHeight: 300, width: 210 });
+    assert.ok(m.top < r.top, `ควรพลิกขึ้น แต่ได้ top=${m.top} (แถวอยู่ที่ ${r.top})`);
+    assert.ok(m.top + m.maxHeight <= vh, 'เมนูต้องไม่ล้นขอบล่าง');
+  });
+
+  test('ด้านล่างพอกางเต็ม → ไม่ต้องพลิก', () => {
+    const r = box(120);
+    const m = placeMenu(r, { maxHeight: 300, width: 210 });
+    assert.ok(m.top > r.top, 'ที่ด้านล่างพอ ควรกางลงตามปกติ');
+  });
+
+  test('ทั้งบนและล่างคับ → ยังไม่ล้นจอ', () => {
+    const r = box(430);
+    const m = placeMenu(r, { maxHeight: 300, width: 210 });
+    assert.ok(m.top >= 0 && m.top + m.maxHeight <= vh, `เมนูล้นจอ: top=${m.top} h=${m.maxHeight}`);
+  });
+});

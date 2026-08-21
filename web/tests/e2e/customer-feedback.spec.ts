@@ -1732,3 +1732,50 @@ test.describe('คอมเมนต์ลูกค้า · โซนและ�
     }
   });
 });
+
+/* สไลด์ 22 (สองบรรทัดที่เพิ่มมาทีหลัง)
+     "แขวง เขต จังหวัด"     ตารางหลังบ้านแสดงแค่เขตกับจังหวัด (Listings แสดงแค่
+                            จังหวัดอย่างเดียว) แยกทรัพย์คนละแขวงในอำเภอเดียวกันไม่ออก
+     "มีเรียงตามรหัสทรัพย์"  เรียงตายตัวว่างก่อนแล้วรหัส ไล่ตามรหัสล้วนไม่ได้ */
+test.describe('คอมเมนต์ลูกค้า · ทำเลสามชั้นและการเรียงในตารางหลังบ้าน', () => {
+  const signIn = async (page: import('@playwright/test').Page) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    return (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  };
+
+  test('ทำเลในตารางบอกครบ แขวง เขต จังหวัด', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    for (const api of ['/api/properties', '/api/listings']) {
+      const items = (await (await request.get(api, { headers: { cookie } })).json()).items as { location: string }[];
+      const withSub = items.filter((i) => (i.location ?? '').split(',').length >= 3).length;
+      expect(withSub, `${api} ต้องส่งทำเลสามชั้นมาให้`).toBeGreaterThan(0);
+    }
+  });
+
+  test('เรียงตามรหัสทรัพย์ได้ ทั้งสามหน้า', async ({ page }) => {
+    await signIn(page);
+    for (const [path, sel] of [
+      ['/admin/properties', 'tr.prop-row code'],
+      ['/admin/listings', '.lst-row code'],
+      ['/admin/social-status', '.soc-row code'],
+    ] as const) {
+      await page.goto(path);
+      const sort = page.locator('[data-filter-sort]');
+      await expect(sort, `${path} ต้องมีตัวเลือกการเรียง`).toBeVisible();
+
+      await sort.selectOption('code');
+      await expect.poll(async () => (await page.locator(sel).allInnerTexts()).length, { timeout: 15000 }).toBeGreaterThan(1);
+      const asc = (await page.locator(sel).allInnerTexts()).map((t) => t.trim());
+      const sorted = [...asc].sort((a, b) => a.localeCompare(b, 'th', { numeric: true }));
+      expect(asc, `${path} เรียงตามรหัสไม่ถูก`).toEqual(sorted);
+
+      /* กลับด้านแล้วต้องกลับจริง */
+      await sort.selectOption('codeDesc');
+      await expect.poll(async () => (await page.locator(sel).first().innerText()).trim(), { timeout: 10000 }).not.toBe(asc[0]);
+    }
+  });
+});
