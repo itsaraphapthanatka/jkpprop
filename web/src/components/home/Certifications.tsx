@@ -38,15 +38,26 @@ export function Certifications({ copy }: { copy: SectionCopy }) {
   const [chover, setChover] = useState<number | null>(null);
   const pick = (v: string, fallback: string) => v || fallback;
 
-  /* Icons stay in code — they are artwork, not copy. A row entered in the CMS
-     takes the icon at its position and falls back to the shield if the team
-     adds a fourth card. */
-  const certs = copy.items.length
-    ? copy.items.map((it, i) => ({
-      name: it.title ?? '', tag: it.role ?? '', desc: it.desc ?? '',
-      icon: certDefs[i]?.icon ?? certDefs[1].icon,
-    }))
-    : certDefs.map((cert, i) => ({ ...cert, ...d.certs.items[i] }));
+  /* ตราของ TREBA หรือ DBD เป็นโลโก้ของหน่วยงานจริง วาดเลียนแบบด้วย SVG ไม่ได้
+     ทีมจึงอัปโหลดรูปเองได้ที่ /admin/sections แถวไหนไม่ได้ใส่รูปก็ยังใช้ไอคอน
+     ตั้งต้นตามตำแหน่งเหมือนเดิม
+
+     จำนวนการ์ดยึดตาม itemsAny ไม่ใช่ items — ใบรับรองที่บริษัทถืออยู่มีเท่ากัน
+     ทุกภาษา ถ้ายึดตาม items คนอ่าน /en จะเห็นการ์ดตั้งต้นสามใบที่บริษัทอาจไม่ได้
+     ถืออยู่จริง เพราะแท็บอังกฤษยังไม่ได้กรอก ส่วนข้อความยังใช้ของภาษานั้นก่อน
+     แล้วค่อยตกมาที่แท็บไทย (ชื่อย่ออย่าง DBD เป็นวิสามานยนาม ไม่ต้องแปลอยู่แล้ว) */
+  const certs = copy.itemsAny.length
+    ? copy.itemsAny.map((base, i) => {
+      const own = copy.items[i] ?? {};
+      return {
+        name: own.title || base.title || '',
+        tag: own.role || base.role || '',
+        desc: own.desc || base.desc || '',
+        icon: certDefs[i]?.icon ?? certDefs[1].icon,
+        img: own.img || base.img || '',
+      };
+    })
+    : certDefs.map((cert, i) => ({ ...cert, ...d.certs.items[i], img: '' }));
 
   if (!copy.enabled || !certs.length) return null;
 
@@ -86,23 +97,39 @@ export function Certifications({ copy }: { copy: SectionCopy }) {
                 <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', alignItems: 'center', gap: 5, height: 24, padding: '0 10px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: 11, fontWeight: 700 }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>{d.certs.verified}
                 </div>
-                <div
-                  style={{
-                    width: 80,
-                    height: 80,
-                    margin: '0 auto',
-                    borderRadius: 9999,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: on ? 'var(--neon)' : 'var(--pine)',
-                    color: on ? 'var(--ink)' : 'var(--neon)',
-                    transition: 'all .3s',
-                    boxShadow: on ? '0 10px 26px rgba(var(--neon-rgb),.4)' : 'none',
-                  }}
-                >
-                  {c.icon}
-                </div>
+                {c.img ? (
+                  /* โลโก้ไม่ควรถูกครอบวงกลมหรือครอปทิ้งขอบ — วางเต็มความสูงเดียว
+                     กับวงไอคอนแล้วย่อให้พอดีกรอบ (contain) */
+                  <div data-cert-img style={{ height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={c.img}
+                      alt={c.name}
+                      loading="lazy"
+                      decoding="async"
+                      style={{ maxWidth: '100%', maxHeight: 80, objectFit: 'contain', transform: on ? 'scale(1.06)' : 'none', transition: 'transform .3s' }}
+                    />
+                  </div>
+                ) : (
+                  <div
+                    data-cert-icon
+                    style={{
+                      width: 80,
+                      height: 80,
+                      margin: '0 auto',
+                      borderRadius: 9999,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: on ? 'var(--neon)' : 'var(--pine)',
+                      color: on ? 'var(--ink)' : 'var(--neon)',
+                      transition: 'all .3s',
+                      boxShadow: on ? '0 10px 26px rgba(var(--neon-rgb),.4)' : 'none',
+                    }}
+                  >
+                    {c.icon}
+                  </div>
+                )}
                 <div style={{ marginTop: 20, fontSize: 20, fontWeight: 800, color: 'var(--text)', letterSpacing: '.02em' }}>{c.name}</div>
                 <div style={{ marginTop: 4, fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>{c.tag}</div>
                 <div style={{ marginTop: 12, fontSize: '13.5px', color: 'var(--muted)', lineHeight: 1.65 }}>{c.desc}</div>

@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { thumb } from '@/lib/mediaThumb';
 import { AdminShell } from '@/components/admin/AdminShell';
-import { apiGet, apiPut, ApiClientError } from '@/lib/apiClient';
+import { apiGet, apiPut, apiFetch, ApiClientError } from '@/lib/apiClient';
 import { SECTION_CATALOG, sectionDef, type SectionField } from '@/lib/sectionCatalog';
 import type { Locale } from '@/i18n/config';
 
@@ -91,13 +91,42 @@ const rowBtn = (disabled: boolean): React.CSSProperties => ({
 
 /* The same grid of uploaded images, wherever an image is being chosen —
    the section background, or one row of the list editor. */
-function MediaPicker({ items, current, onPick }: { items: { id: string; src: string; name: string }[]; current: string; onPick: (src: string) => void }) {
+function MediaPicker({ items, current, onPick, onUpload }: { items: { id: string; src: string; name: string }[]; current: string; onPick: (src: string) => void; onUpload: (file: File) => Promise<void> }) {
+  const fileRef = React.useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState('');
+
+  /* เดิมตัวเลือกรูปเลือกได้เฉพาะของที่มีอยู่แล้ว ถ้าคลังว่างก็บอกให้ไปเปิดอีก
+     หน้าหนึ่ง แล้วค่อยกลับมาเลือก — อัปโหลดจากตรงนี้ได้เลยแล้ว */
+  const take = async (f: File | undefined) => {
+    if (!f || busy) return;
+    setBusy(true);
+    setErr('');
+    try { await onUpload(f); } catch (e) { setErr(e instanceof ApiClientError ? e.message : `อัปโหลด ${f.name} ไม่สำเร็จ`); }
+    setBusy(false);
+  };
+
   return (
-    <div style={{ marginTop: 8, padding: 10, borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', maxHeight: 220, overflowY: 'auto' }}>
+    <div style={{ marginTop: 8, padding: 10, borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', maxHeight: 260, overflowY: 'auto' }}>
+      <input
+        ref={fileRef} type="file" /* ตรงกับที่ /api/media รับจริง — SVG เซิร์ฟเวอร์ยังไม่รองรับ */
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        style={{ display: 'none' }}
+        onChange={(e) => { void take(e.target.files?.[0]); e.target.value = ''; }}
+      />
+      <button
+        type="button" data-media-upload disabled={busy}
+        onClick={() => fileRef.current?.click()}
+        style={{ width: '100%', height: 36, marginBottom: 8, borderRadius: 10, border: '1.5px dashed var(--border)', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: 'var(--accent)', cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1 }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
+        {busy ? 'กำลังอัปโหลด…' : 'อัปโหลดรูปใหม่'}
+      </button>
+      {err && <div data-media-upload-error style={{ marginBottom: 8, fontSize: 11.5, color: '#B4231F' }}>{err}</div>}
       {items.length === 0 ? (
         <div style={{ fontSize: 12, color: 'var(--muted2)', padding: 8, lineHeight: 1.6 }}>
-          ยังไม่มีรูปในคลังสื่อ จึงยังไม่มีอะไรให้เลือก<br />
-          <a href="/admin/media" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontWeight: 700 }}>เปิดหน้าคลังสื่อเพื่ออัปโหลด →</a>
+          ยังไม่มีรูปในคลังสื่อ — กด “อัปโหลดรูปใหม่” ด้านบน<br />
+          หรือ <a href="/admin/media" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontWeight: 700 }}>เปิดหน้าคลังสื่อ →</a>
           {' '}หรือวาง URL รูปลงช่องด้านบนได้เลย
         </div>
       ) : (
@@ -261,6 +290,15 @@ export function SectionsBody() {
     if (picker === 'section') setImg(src);
     else if (typeof picker === 'number') setItemField(picker, 'img', src);
     setPicker(null);
+  };
+  /* อัปโหลดแล้วเลือกให้เลยในทีเดียว — ไม่ต้องเปิดคลังสื่ออีกแท็บ
+     ไม่ส่ง watermarkType เพราะโลโก้หรือตรารับรองไม่ควรถูกปั๊มลายน้ำทับ */
+  const uploadMedia = async (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    const r = await apiFetch<{ id: string; src: string; name: string }>('/api/media', { method: 'POST', body: form });
+    setMediaItems((prev) => [{ id: r.id, src: r.src, name: r.name }, ...prev]);
+    chooseMedia(r.src);
   };
 
   const saveSection = async () => {
@@ -446,7 +484,7 @@ export function SectionsBody() {
               />
               <div onClick={() => openPicker('section')} style={{ height: 44, padding: '0 16px', borderRadius: 11, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>เลือกรูป</div>
             </div>
-            {picker === 'section' && <MediaPicker items={mediaItems} current={img} onPick={chooseMedia} />}
+            {picker === 'section' && <MediaPicker items={mediaItems} current={img} onPick={chooseMedia} onUpload={uploadMedia} />}
 
             </>)}
 
@@ -561,7 +599,7 @@ export function SectionsBody() {
                                 />
                                 <div onClick={() => openPicker(i)} style={{ height: 38, padding: '0 12px', borderRadius: 10, border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>เลือก</div>
                               </div>
-                              {picker === i && <MediaPicker items={mediaItems} current={it.img ?? ''} onPick={chooseMedia} />}
+                              {picker === i && <MediaPicker items={mediaItems} current={it.img ?? ''} onPick={chooseMedia} onUpload={uploadMedia} />}
                             </>
                           ) : (
                             <input

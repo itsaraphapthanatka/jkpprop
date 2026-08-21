@@ -318,6 +318,43 @@ test.describe('home page sections', () => {
     // the surrounding "why us" block is untouched
     await expect(page.locator('#page-sheet')).toContainText('รองรับหลายภาษา');
   });
+
+  /* "section มาตรฐานและการรับรอง ให้ใส่รูปภาพแทน Icon ให้ลูกค้า upload รูปภาพเอง"
+     ตราของ TREBA หรือ DBD เป็นโลโก้ของหน่วยงานจริง ไอคอนที่วาดเลียนแบบไว้ใน
+     โค้ดใช้แทนไม่ได้ · ทดสอบทั้งวง: อัปโหลดจากในตัวเลือกรูป → บันทึก → หน้าแรก
+     ขึ้นรูปแทนไอคอน และรูปเดียวกันไปโผล่ที่ /en ด้วย */
+  test('การ์ดการรับรองใส่โลโก้ที่อัปโหลดเองได้ ไม่ต้องใช้ไอคอนในโค้ด', async ({ page }) => {
+    await signIn(page, OWNER);
+    await openHomeSection(page, 'ct');
+
+    await page.getByText('เพิ่มการรับรอง').click();
+    await page.getByPlaceholder('DBD').last().fill('DBD');
+    await page.getByPlaceholder('จดทะเบียนถูกต้องตามกฎหมาย').last().fill('จดทะเบียนกับกรมพัฒนาธุรกิจการค้า');
+
+    // ตัวเลือกรูปอัปโหลดได้ในตัว — เดิมต้องไปเปิด /admin/media อีกแท็บก่อน
+    await page.getByText('เลือก', { exact: true }).last().click();
+    await page.locator('[data-media-upload]').waitFor();
+    await page.locator('input[type="file"][accept*="image/png"]').last()
+      .setInputFiles('public/assets/jkp-logo-green.png');
+
+    // อัปโหลดเสร็จแล้วเลือกให้เลย ช่อง URL จึงมีค่าโดยไม่ต้องกดอะไรอีก
+    const src = page.getByPlaceholder('เลือกจากคลังสื่อ หรือวาง URL').last();
+    await expect(src).toHaveValue(/^\/api\/media\//, { timeout: 20000 });
+    await expect(page.locator('[data-media-upload-error]')).toHaveCount(0);
+    await save(page);
+
+    await page.goto('/th');
+    const card = page.locator('[data-cert-img]');
+    await expect(card).toHaveCount(1);
+    await expect(card.locator('img')).toHaveAttribute('src', /^\/api\/media\//);
+    // การ์ดใบที่มีรูปต้องไม่เหลือวงไอคอนซ้อนอยู่ด้วย
+    await expect(page.locator('[data-cert-icon]')).toHaveCount(0);
+
+    /* โลโก้เป็นรูปเดียวกันทุกภาษา — อัปโหลดที่แท็บไทยแล้วต้องขึ้นที่ /en ด้วย
+       ไม่ใช่ตกกลับไปเป็นไอคอนตั้งต้น */
+    await page.goto('/en');
+    await expect(page.locator('[data-cert-img] img')).toHaveCount(1);
+  });
 });
 
 test.describe('the section editor\'s controls are wired', () => {
