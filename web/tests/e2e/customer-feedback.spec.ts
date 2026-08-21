@@ -680,7 +680,8 @@ test.describe('คอมเมนต์ลูกค้า · แท็ก', () =
   test('หน้ารายการมีตัวกรองพื้นที่สีแยกจากทำเล', async ({ page }) => {
     await page.goto('/th/listing');
     await expect(page.getByText('พื้นที่สี (ผังเมือง)').first(), 'ต้องมีหมวดพื้นที่สี').toBeVisible();
-    await expect(page.getByText('ทำเล').first(), 'และหมวดทำเลแยกกัน').toBeVisible();
+    /* ทำเลแยกเป็นสามชั้นแล้ว (สไลด์ 9) — พื้นที่สีต้องยังเป็นคนละหมวดกับทำเล */
+    await expect(page.getByText('จังหวัด', { exact: true }).first(), 'และหมวดทำเลแยกต่างหาก').toBeVisible();
   });
 
   /* ตัวเลือกที่ติ๊กแล้วไม่เจออะไรเลยคือตัวเลือกที่ไม่ควรมี */
@@ -721,7 +722,7 @@ test.describe('คอมเมนต์ลูกค้า · ตัวกรอ�
     }
 
     await page.goto('/th/listing');
-    for (const title of ['ทำเล', 'พื้นที่สี (ผังเมือง)', 'ประเภทอสังหา', 'ขนาดพื้นที่', 'ช่วงราคา']) {
+    for (const title of ['จังหวัด', 'เขต / อำเภอ', 'แขวง / ตำบล', 'พื้นที่สี (ผังเมือง)', 'ประเภทอสังหา', 'ขนาดพื้นที่', 'ช่วงราคา']) {
       await expect(page.getByText(title, { exact: true }).first(), `หน้ารายการขาดหมวด ${title}`).toBeVisible();
     }
   });
@@ -1629,5 +1630,48 @@ test.describe('คอมเมนต์ลูกค้า · แผนที่�
       }
     }
     expect(overlaps, `ป้ายทับกัน: ${overlaps.join(' · ')}`).toEqual([]);
+  });
+});
+
+/* สไลด์ 9 · "เพิ่มช่องค้นหาและแยกจังหวัดเขตแขวง" (หน้า /th/listing)
+   หน้านี้ไม่มีช่องค้นหาเลย มีแต่ชิปแสดงคำที่พิมพ์มาจากหน้าแรก และตัวกรองทำเล
+   เป็นข้อความรวมก้อนเดียว ("บางพลี, สมุทรปราการ") แคบลงทีละชั้นไม่ได้ */
+test.describe('คอมเมนต์ลูกค้า · ค้นหาและทำเลสามชั้นในหน้ารายการ', () => {
+  test('มีช่องค้นหา และพิมพ์แล้วกรองจริง', async ({ page, request }) => {
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=500')).json()).items as { code: string }[];
+    test.skip(!items.length, 'ยังไม่มีทรัพย์');
+
+    await page.goto('/th/listing');
+    const box = page.locator('[data-listing-search]');
+    await expect(box, 'หน้ารายการต้องมีช่องค้นหาของตัวเอง').toBeVisible();
+
+    const before = await page.locator('[data-card]').count();
+    await box.fill(items[0].code);
+    await expect.poll(() => page.locator('[data-card]').count(), { timeout: 10000 }).toBeLessThan(before);
+    await expect(page.locator(`[data-card="${items[0].code}"]`)).toBeVisible();
+  });
+
+  test('ทำเลแยกเป็นจังหวัด เขต แขวง และแคบลงตามชั้น', async ({ page, request }) => {
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=500')).json()).items as
+      { province: string; district: string; subdistrict: string }[];
+    test.skip(!items.some((i) => i.district), 'ยังไม่มีทรัพย์ที่กรอกเขต');
+
+    await page.goto('/th/listing');
+    for (const title of ['จังหวัด', 'เขต / อำเภอ', 'แขวง / ตำบล']) {
+      await expect(page.getByText(title, { exact: true }).first(), `ขาดหมวด ${title}`).toBeVisible();
+    }
+
+    /* เลือกจังหวัดแล้ว ตัวเลือกเขตต้องเหลือเฉพาะของจังหวัดนั้น */
+    const distBefore = await page.locator('[data-filter-opt="district"]').count();
+    const prov = items.find((i) => i.province)!.province;
+    const provsInData = new Set(items.map((i) => i.province).filter(Boolean));
+    test.skip(provsInData.size < 2, 'มีจังหวัดเดียว แคบลงแล้ววัดผลไม่ได้');
+
+    await page.locator('[data-filter-opt="province"]').filter({ hasText: prov }).first().click();
+    await expect.poll(() => page.locator('[data-filter-opt="district"]').count(), { timeout: 10000 }).toBeLessThan(distBefore);
+
+    const want = items.filter((i) => i.province === prov).length;
+    const shown = await page.locator('[data-card]').count();
+    expect(shown, 'ผลลัพธ์ต้องเหลือเฉพาะจังหวัดที่เลือก').toBeLessThanOrEqual(Math.min(want, 9));
   });
 });

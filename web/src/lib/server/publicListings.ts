@@ -41,6 +41,10 @@ export type PublicListing = {
   /** province on its own, so the listing page can build its zone filter from
       real inventory instead of a hardcoded list */
   province: string;
+  /** เขต/อำเภอ และ แขวง/ตำบล แยกกัน — สไลด์ 9 "แยกจังหวัดเขตแขวง"
+      เดิมมีแต่ข้อความรวมก้อนเดียว ("บางพลี, สมุทรปราการ") แยกเป็นสามชั้นไม่ได้ */
+  district: string;
+  subdistrict: string;
   /** พื้นที่สีตามผังเมือง — ค่าดิบ ใช้ทั้งกรองและทำแท็กที่กดได้ */
   zoning: string;
   /** โซน (ปลอดอากร · กนอ. · DG) · คุณสมบัติ · รับน้ำหนักพื้น — ตัวกรองบน
@@ -169,6 +173,8 @@ export async function loadPublicListings(q: ListingQuery = {}): Promise<PublicLi
       img: photos[0] ? withVersion(photos[0], wmv.get(p.orgId) ?? 0) : null,
       photos: String(photos.length),
       province,
+      district: String(values.district ?? values.amphoe ?? ''),
+      subdistrict: String(values.subdistrict ?? values.tambon ?? ''),
       zoning: String(values.zoning_color ?? ''),
       zone: Array.isArray(values.zone) ? (values.zone as unknown[]).map(String) : [],
       features: Array.isArray(values.features) ? (values.features as unknown[]).map(String) : [],

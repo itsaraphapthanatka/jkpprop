@@ -23,7 +23,7 @@ import { enumLabel } from '@/i18n/enums';
 
 type SortKey = 'new' | 'price_asc' | 'price_desc' | 'size_asc' | 'size_desc';
 type Mode = 'rent' | 'sale';
-type SecKey = 'zone' | 'zoning' | 'estate' | 'type' | 'size' | 'price' | 'feature' | 'load';
+type SecKey = 'province' | 'district' | 'subdistrict' | 'zoning' | 'estate' | 'type' | 'size' | 'price' | 'feature' | 'load';
 
 /* zone options are derived from the inventory on the page, not listed here */
 
@@ -47,6 +47,8 @@ export type ListingItem = {
   img: string | null;
   photos: string;
   province: string;
+  district: string;
+  subdistrict: string;
   dealKey: 'rent' | 'sale' | 'both' | 'none';
   zoning: string;
   zone: string[];
@@ -73,6 +75,8 @@ type Listing = {
      that string was translated (the parser looked for the Thai word ล้าน). */
   priceValue: number;
   dealKey: 'rent' | 'sale' | 'both' | 'none';
+  district: string;
+  subdistrict: string;
   zoning: string;
   zone: string[];
   features: string[];
@@ -93,6 +97,8 @@ const toListing = (it: ListingItem): Listing => ({
   area: it.areaLabel || '—',
   areaSqm: it.area,
   province: it.province,
+  district: it.district,
+  subdistrict: it.subdistrict,
   dealKey: it.dealKey,
   zoning: it.zoning,
   zone: it.zone,
@@ -210,8 +216,12 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
   /* null = both. /listing must not hide every property for sale just because
      the pills default to one of them; preset pages still pin their own. */
   const [listingMode, setListingMode] = useState<Mode | null>(preset.listingMode ?? null);
-  const [secOpen, setSecOpen] = useState<Record<SecKey, boolean>>({ zone: true, zoning: true, estate: true, type: true, size: true, price: true, feature: true, load: true });
-  const [zoneSel, setZoneSel] = useState<string[]>(preset.areaSel ?? []);
+  const [secOpen, setSecOpen] = useState<Record<SecKey, boolean>>({ province: true, district: true, subdistrict: true, zoning: true, estate: true, type: true, size: true, price: true, feature: true, load: true });
+  /* สไลด์ 9 · "แยกจังหวัดเขตแขวง" — เดิมเป็นหมวดเดียวชื่อ "ทำเล" ที่ไล่ข้อความ
+     รวม ("บางพลี, สมุทรปราการ") เลือกได้ทีละก้อน แคบลงทีละชั้นไม่ได้ */
+  const [provSel, setProvSel] = useState<string[]>(preset.province ? [preset.province] : []);
+  const [distSel, setDistSel] = useState<string[]>([]);
+  const [subSel, setSubSel] = useState<string[]>([]);
   /* พื้นที่สีเป็นตัวกรองของตัวเอง — เดิมช่องที่ชื่อ "โซน" กลับไล่ชื่ออำเภอ
      ซึ่งคือคอมเมนต์ "โซนแสดงผลไม่ตรง" ในสไลด์ 12 */
   const [zoningSel, setZoningSel] = useState<string[]>(preset.zoningSel ?? []);
@@ -254,7 +264,9 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
        ซึ่งเลือกได้คำเดียว หน้าขายจึงว่างเปล่าทั้งที่มีของขายอยู่ */
     if (listingMode === 'rent' && !(it.dealKey === 'rent' || it.dealKey === 'both')) return false;
     if (listingMode === 'sale' && !(it.dealKey === 'sale' || it.dealKey === 'both')) return false;
-    if (zoneSel.length && !zoneSel.includes(it.loc)) return false;
+    if (provSel.length && !provSel.some((p) => it.province.includes(p) || p.includes(it.province))) return false;
+    if (distSel.length && !distSel.includes(it.district)) return false;
+    if (subSel.length && !subSel.includes(it.subdistrict)) return false;
     if (zoningSel.length && !zoningSel.includes(it.zoning)) return false;
     if (estateSel.length && !estateSel.some((z) => it.zone.includes(z))) return false;
     if (featureSel.length && !featureSel.every((x) => it.features.includes(x))) return false;
@@ -283,7 +295,12 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
 
   /* zone options come from the inventory actually on the page, so the filter
      can never offer a location that returns nothing */
-  const zoneItems = Array.from(new Set(all.map((it) => it.loc).filter((l) => l && l !== '—'))).sort();
+  /* ตัวเลือกแต่ละชั้นแคบตามชั้นบน — เลือกจังหวัดแล้วเห็นเฉพาะเขตในจังหวัดนั้น */
+  const inProv = provSel.length ? all.filter((it) => provSel.some((p) => it.province.includes(p) || p.includes(it.province))) : all;
+  const inDist = distSel.length ? inProv.filter((it) => distSel.includes(it.district)) : inProv;
+  const provItems = Array.from(new Set(all.map((it) => it.province).filter(Boolean))).sort();
+  const distItems = Array.from(new Set(inProv.map((it) => it.district).filter(Boolean))).sort();
+  const subItems = Array.from(new Set(inDist.map((it) => it.subdistrict).filter(Boolean))).sort();
   // เช่นเดียวกัน — เอาเฉพาะสีที่มีทรัพย์จริง ไม่ใช่รายการสีทั้งหมด
   const zoningItems = Array.from(new Set(all.map((it) => it.zoning).filter(Boolean))).sort();
   /* ประเภทก็มาจากของที่มีจริง เดิมเป็นสองคำที่พิมพ์ไว้ในไฟล์ และคำหนึ่งสะกด
@@ -298,7 +315,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
   const toggleSec = (key: SecKey) => setSecOpen((s) => ({ ...s, [key]: !s[key] }));
   const clearAll = () => {
     setQ('');
-    setZoneSel([]);
+    setProvSel([]); setDistSel([]); setSubSel([]);
     setTypeSel([]);
     setSizeSel(null);
     setPriceSel(null);
@@ -317,7 +334,9 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
 
   type Section = { key: SecKey; title: string; items: { label: string; value?: string; checked: boolean; select: () => void }[] };
   const sections: Section[] = ([
-    { key: 'zone', title: d.listing.zone, items: zoneItems.map((label) => ({ label, checked: zoneSel.includes(label), select: () => setZoneSel((a) => toggleIn(a, label)) })) },
+    { key: 'province', title: d.listing.province, items: provItems.map((label) => ({ label, checked: provSel.includes(label), select: () => { setProvSel((a) => toggleIn(a, label)); setDistSel([]); setSubSel([]); } })) },
+    { key: 'district', title: d.listing.district, items: distItems.map((label) => ({ label, checked: distSel.includes(label), select: () => { setDistSel((a) => toggleIn(a, label)); setSubSel([]); } })) },
+    { key: 'subdistrict', title: d.listing.subdistrict, items: subItems.map((label) => ({ label, checked: subSel.includes(label), select: () => setSubSel((a) => toggleIn(a, label)) })) },
     { key: 'zoning', title: d.listing.zoneColor, items: zoningItems.map((value) => ({ label: enumLabel(value, locale), value, checked: zoningSel.includes(value), select: () => setZoningSel((a) => toggleIn(a, value)) })) },
     { key: 'type', title: d.listing.type, items: typeItems.map((label) => ({ label, checked: typeSel.includes(label), select: () => setTypeSel((a) => toggleIn(a, label)) })) },
     { key: 'size', title: d.listing.size, items: SIZE_ITEMS.map((label) => ({ label, checked: sizeSel === label, select: () => setSizeSel((cur) => (cur === label ? null : label)) })) },
@@ -326,6 +345,26 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
     { key: 'feature', title: d.hero.features, items: facets.features.map((value) => ({ label: value, checked: featureSel.includes(value), select: () => setFeatureSel((a) => toggleIn(a, value)) })) },
     { key: 'load', title: d.hero.floorLoading, items: LOAD_STEPS.map((n) => ({ label: `${n} ${d.common.tonPerSqm}`, checked: loadSel === n, select: () => setLoadSel((cur) => (cur === n ? null : n)) })) },
   ] as Section[]).filter((sec) => sec.items.length > 0);
+
+  /* สไลด์ 9 · "เพิ่มช่องค้นหา" — หน้านี้ไม่มีช่องค้นหาเลย มีแต่ชิปแสดงคำที่
+     พิมพ์มาจากหน้าแรก ใครเข้ามาตรงหน้านี้จึงค้นด้วยชื่อหรือรหัสไม่ได้ */
+  const renderSearch = () => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: 44, padding: '0 14px', marginBottom: 14, borderRadius: 12, background: 'var(--bg)', border: '1px solid var(--border)' }}>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
+      <input
+        data-listing-search
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder={d.listing.searchPh}
+        style={{ flex: 1, minWidth: 0, border: 0, outline: 'none', background: 'transparent', fontSize: '13.5px', color: 'var(--text)', fontFamily: 'inherit' }}
+      />
+      {q && (
+        <span onClick={() => setQ('')} title={d.common.clear} style={{ display: 'flex', cursor: 'pointer', color: 'var(--muted3)' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M18 6L6 18M6 6l12 12" /></svg>
+        </span>
+      )}
+    </div>
+  );
 
   const renderModePills = () => (
     <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
@@ -459,6 +498,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
         {/* SIDEBAR (desktop) */}
         <aside id="filter-sidebar" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, padding: 20, position: 'sticky', top: 96 }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', marginBottom: 14 }}>{d.listing.filters}</div>
+          {renderSearch()}
           {renderModePills()}
           {renderSections()}
           <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
