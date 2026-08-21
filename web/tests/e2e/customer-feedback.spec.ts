@@ -1332,7 +1332,11 @@ test.describe('คอมเมนต์ลูกค้า · รูปหน้�
     return (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
   };
 
-  for (const [path, api] of [['/admin/properties', '/api/properties'], ['/admin/listings', '/api/listings']] as const) {
+  for (const [path, api] of [
+    ['/admin/properties', '/api/properties'],
+    ['/admin/listings', '/api/listings'],
+    ['/admin/social-status', '/api/listings'],
+  ] as const) {
     test(`${path} แสดงรูปหน้าปกของทรัพย์ที่มีรูป`, async ({ page, request }) => {
       const cookie = await signIn(page);
       const items = (await (await request.get(api, { headers: { cookie } })).json()).items as
@@ -1370,6 +1374,7 @@ test.describe('คอมเมนต์ลูกค้า · แบ่งหน�
   for (const [path, rowSel, api] of [
     ['/admin/properties', 'tr.prop-row', '/api/properties'],
     ['/admin/listings', 'table tbody tr', '/api/listings'],
+    ['/admin/social-status', '.soc-row', '/api/listings'],
   ] as const) {
     test(`${path} แบ่งหน้าจริง และเปลี่ยนหน้าแล้วได้ของคนละชุด`, async ({ page, request }) => {
       const cookie = await signIn(page);

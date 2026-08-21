@@ -4,6 +4,8 @@ import * as React from 'react';
 import { fetchListings, type ApiListing } from './ListingsAdminBody';
 import { InventoryFilters, EMPTY_FILTERS, matchesFilters, sortInventory, type InventoryFilterState, type InventoryRow } from './InventoryFilters';
 import { buildSummary } from '@/lib/summaryTemplate';
+import { TablePager, pageSlice, pageCountOf } from './TablePager';
+import { thumb } from '@/lib/mediaThumb';
 import {
   loadSocial, saveSocial, recordOf, postOf, doneCount, channelKey, todayISO,
   type SocialStore, type SocialRecord,
@@ -45,6 +47,7 @@ export function SocialStatusBody() {
      ช่องค้นหาข้อความ กรองหาของแบบเดียวกับอีกสองหน้าไม่ได้ */
   const [inv, setInv] = React.useState<InventoryFilterState>(EMPTY_FILTERS);
   const [only, setOnly] = React.useState<'all' | 'todo' | 'done'>('all');
+  const [page, setPage] = React.useState(1);
   const [openCode, setOpenCode] = React.useState<string | null>(null);
   /* values ของทรัพย์ที่เปิดอยู่ — ดึงตอนเปิดกล่อง ไม่ใช่ดึงมาทั้ง 393 รายการ
      ตั้งแต่โหลดหน้า */
@@ -113,6 +116,13 @@ export function SocialStatusBody() {
       return only === 'done' ? n === channels.length && n > 0 : n < channels.length;
     }).map((r) => ({ ...r, ...view(r) })),
   ).map((r) => (listings ?? []).find((x) => x.code === r.code)!);
+
+  /* แบ่งหน้าเหมือน Properties และ Listings — 393 แถวในหน้าเดียวเลื่อนหายาก
+     และตั้งแต่มีรูปหน้าปกก็คือโหลดรูปทั้งคลังพร้อมกัน */
+  React.useEffect(() => { setPage(1); }, [inv, only]);
+  const pageCount = pageCountOf(rows.length);
+  React.useEffect(() => { if (page > pageCount) setPage(pageCount); }, [page, pageCount]);
+  const rowsOnPage = pageSlice(rows, page);
 
   /* ---- quick tick straight from the table ---- */
   const quickToggle = (code: string, key: string) => {
@@ -221,16 +231,28 @@ export function SocialStatusBody() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => {
+              {rowsOnPage.map((r) => {
                 const rec = recordOf(store, r.code);
                 const n = doneCount(rec, channels);
                 const all = channels.length > 0 && n === channels.length;
                 return (
                   <tr key={r.code} className="soc-row" style={{ borderTop: '1px solid var(--border)' }}>
                     <td style={{ padding: '13px 16px' }}>
-                      <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)' }}>{r.title}</div>
-                      <div style={{ marginTop: 2, fontSize: '11.5px', color: 'var(--muted2)' }}>
-                        <code style={{ color: '#0D6C3B', fontWeight: 700 }}>{r.code}</code> · {r.location}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        {/* รูปหน้าปกเหมือนอีกสองตาราง — คนที่กำลังจะโพสต์ต้องเห็น
+                            ว่าเป็นทรัพย์ตัวไหนก่อนคัดลอกข้อความไปลง */}
+                        {r.img
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          ? <img src={thumb(r.img, 160)} alt="" data-row-cover style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+                          : <div data-row-cover="none" style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--tint)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted3)' }}>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="9" cy="11" r="2" /><path d="M21 15l-5-4-4 3" /></svg>
+                            </div>}
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)' }}>{r.title}</div>
+                          <div style={{ marginTop: 2, fontSize: '11.5px', color: 'var(--muted2)' }}>
+                            <code style={{ color: '#0D6C3B', fontWeight: 700 }}>{r.code}</code> · {r.location}
+                          </div>
+                        </div>
                       </div>
                     </td>
                     <td style={{ padding: '13px 16px' }}>
@@ -261,7 +283,7 @@ export function SocialStatusBody() {
                   </tr>
                 );
               })}
-              {rows.length === 0 && (
+              {rowsOnPage.length === 0 && (
                 <tr><td colSpan={4} style={{ padding: '28px 16px', textAlign: 'center', fontSize: 13, color: 'var(--muted3)' }}>
                   {listings === null ? 'กำลังโหลด…' : listings.length === 0 ? 'ยังไม่มีประกาศในระบบ' : 'ไม่พบรายการที่ตรงกับเงื่อนไข'}
                 </td></tr>
@@ -269,8 +291,11 @@ export function SocialStatusBody() {
             </tbody>
           </table>
         </div>
-        <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border)', fontSize: '12.5px', color: 'var(--muted)' }}>
-          แสดง {rows.length} จาก {(listings ?? []).length} ประกาศ · ติ๊กในตารางได้เลย หรือกด “ดูหมายเหตุ” เพื่อใส่วันที่และลิงก์
+        <div style={{ padding: '10px 18px 14px', borderTop: '1px solid var(--border)' }}>
+          <TablePager page={page} total={rows.length} onPage={setPage} unit="ประกาศ" />
+          <div style={{ marginTop: 4, fontSize: '11.5px', color: 'var(--muted3)' }}>
+            ติ๊กในตารางได้เลย หรือกด “ดูหมายเหตุ” เพื่อใส่วันที่และลิงก์
+          </div>
         </div>
       </div>
 

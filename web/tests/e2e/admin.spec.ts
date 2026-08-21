@@ -2079,7 +2079,8 @@ test.describe('the social status screen', () => {
     const real = (await (await request.get('/api/listings', { headers: { cookie } })).json()).items as { code: string; available: boolean }[];
 
     await page.goto('/admin/social-status');
-    await expect(page.getByText(`แสดง ${real.length} จาก ${real.length} ประกาศ`)).toBeVisible();
+    /* หน้านี้แบ่งหน้าแล้วเหมือนอีกสองตาราง ตัวเลขจึงอยู่ที่แถบแบ่งหน้า */
+    await expect(page.locator('[data-pager-count]')).toContainText(`จาก ${real.length} ประกาศ`);
     for (const ghost of ['ที่ดินอุตสาหกรรม วังน้อย', 'คลังห้องเย็น บางปะกง']) {
       await expect(page.getByText(ghost)).toHaveCount(0);
     }
