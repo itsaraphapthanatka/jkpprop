@@ -6,6 +6,7 @@ import { PROVINCES } from '@/lib/thaiProvinces';
 import { SIZE_ITEMS, PRICE_ITEMS } from '@/lib/listingFilters';
 import { ZONE_COLORS } from '@/lib/propertySchema';
 import { readFilterParams } from '@/lib/publicFilters';
+import { canonicalProvince } from '@/i18n/places';
 
 /* Title in the reader's language: this page shipped a hard-coded Thai one to
    every locale, including in search results. */
@@ -22,8 +23,14 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 export default async function ListingPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
   const raw = Array.isArray(sp.province) ? sp.province[0] : sp.province;
-  // only a province this site actually knows — the value is shown in the crumb
-  const province = PROVINCES.find((p) => p.th === (raw ?? '').trim())?.th;
+  /* only a province this site actually knows — the value is shown in the crumb
+
+     เทียบด้วยรูปมาตรฐาน ไม่ใช่ตัวอักษรตรง ๆ: แท็กจังหวัดบนหน้ารายละเอียดส่งค่า
+     ดิบที่ทีมกรอกไว้ ซึ่งเขียนว่า "กรุงเทพ" ทั้ง 203 รายการ ขณะที่ตารางจังหวัด
+     ใช้ชื่อทางการ "กรุงเทพมหานคร" — ไม่ตรงกันสักตัว ตัวกรองจึงถูกทิ้งเงียบ ๆ
+     แล้วหน้ารายการก็ขึ้นทรัพย์ทั้ง 393 รายการเหมือนไม่ได้กดอะไร
+     (สไลด์ 12 "กดแล้วไม่ไปตามแท็ค" — แท็กไปถูกหน้า แต่ไม่ได้กรอง) */
+  const province = PROVINCES.find((p) => p.th === canonicalProvince(raw))?.th;
   const one = (k: string) => { const v = sp[k]; return (Array.isArray(v) ? v[0] : v)?.trim() || undefined; };
 
   /* what the search box on the home page sends. Anything the listing page

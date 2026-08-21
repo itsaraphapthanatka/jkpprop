@@ -658,6 +658,41 @@ test.describe('คอมเมนต์ลูกค้า · แท็ก', () =
     }
   });
 
+  /* สไลด์ 12 "กดแล้วไม่ไปตามแท็ค" — เทสต์เดิมเช็คแค่แท็กพื้นที่สี แท็กจังหวัด
+     จึงพาไปหน้ารายการได้แต่ไม่ได้กรองอะไรเลยมานาน: แท็กส่งค่าดิบที่ทีมกรอกไว้
+     ซึ่งเขียนว่า "กรุงเทพ" ทั้ง 203 รายการ ส่วนตารางจังหวัดใช้ชื่อทางการ
+     "กรุงเทพมหานคร" — เทียบตัวอักษรตรง ๆ แล้วไม่ตรง ตัวกรองถูกทิ้งเงียบ ๆ
+     แล้วหน้ารายการก็ขึ้นทรัพย์ทั้งคลังเหมือนไม่ได้กดอะไร */
+  test('ทุกแท็กบนหน้าทรัพย์กรองผลลัพธ์จริง ไม่ใช่แค่พาไปหน้ารายการ', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const stamp = Date.now().toString(36);
+    const make = (values: Record<string, unknown>, typeKey: string) => request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { typeKey, title: `ทดสอบแท็ก ${stamp} ${typeKey}`, status: 'active', values },
+    }).then((r) => r.json());
+
+    /* สองใบที่ต่างกันครบทุกแท็ก — ถ้าตัวกรองทำงาน ใบที่สองต้องหายไปทุกครั้ง
+       เทียบแบบนี้แทนการนับจำนวน เพราะคลังจริงอาจเป็นทรัพย์ให้เช่าทั้งหมด
+       การกรอง "ให้เช่า" ก็จะได้จำนวนเท่าเดิมโดยที่ตัวกรองทำงานถูกต้อง
+
+       จังหวัดของใบแรกเขียนแบบที่ทีมกรอกจริง ไม่ใช่ชื่อทางการ — นั่นคือเคสที่พัง:
+       แท็กส่ง "กรุงเทพ" แต่ตารางจังหวัดเก็บ "กรุงเทพมหานคร" เทียบตัวอักษรตรง ๆ
+       แล้วไม่ตรง ตัวกรองเลยถูกทิ้งเงียบ ๆ และได้ทรัพย์ทั้งคลังกลับมา */
+    const mine = await make({ province: 'กรุงเทพ', deal_type: 'ให้เช่า', zoning_color: 'พื้นที่สีม่วง — อุตสาหกรรม' }, 'warehouse');
+    const other = await make({ province: 'ชลบุรี', deal_type: 'ขาย', zoning_color: 'พื้นที่สีเหลือง — ที่อยู่อาศัยหนาแน่นน้อย', price_sale: 9000000 }, 'factory');
+    try {
+      for (const key of ['type', 'deal', 'province', 'zoning']) {
+        await page.goto(`/th/property/${mine.publicCode}`);
+        await page.locator(`[data-tag="${key}"]`).click();
+        await page.waitForURL(/\/listing\?/);
+        await expect(page.locator(`[data-card="${mine.publicCode}"]`), `แท็ก ${key}: ทรัพย์ที่กดมาหายจากผลลัพธ์`).toBeVisible();
+        await expect(page.locator(`[data-card="${other.publicCode}"]`), `แท็ก ${key}: พาไปถูกหน้าแต่ไม่ได้กรอง — ทรัพย์คนละเงื่อนไขยังอยู่`).toHaveCount(0);
+      }
+    } finally {
+      for (const r of [mine, other]) await request.delete(`/api/properties/${r.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+
   test('หัวข้อพื้นที่สีบอกว่าพื้นที่สี ไม่ใช่ประเภทโซน', async ({ page, request }) => {
     const cookie = await signIn(page);
     const made = await (await request.post('/api/properties', {
