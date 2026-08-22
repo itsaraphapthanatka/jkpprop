@@ -32,6 +32,11 @@ model User {
   passwordHash       String
   name               String
   phone              String?
+  /* สไลด์ 45 · "ไม่มีหน้าที่ใส่ข้อมูลโปรไฟล์ของฉัน ควรตั้งชื่อได้ เบอร์โทร LINE
+     ที่อยู่ปัจจุบัน" — ชื่อกับเบอร์มีอยู่แล้ว อีกสองช่องเพิ่มใหม่
+     ใช้กับสมุดรายชื่อทีม (สไลด์ 45 ข้อ 3) ไม่ได้ส่งออกหน้าเว็บสาธารณะ */
+  line               String?
+  address            String?
   // RBAC (§12) — mirrors web/src/lib/rbac.ts
   role               String    @default("agent") // owner|manager|agent|co_agent|ops|marketing|translator
   scope              String    @default("own") // own|all

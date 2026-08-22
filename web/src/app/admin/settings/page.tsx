@@ -11,8 +11,15 @@ const ic = (paths: React.ReactNode, color: string) => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8">{paths}</svg>
 );
 
+/* สไลด์ 45 · "ระบบแจ้งเตือนล่วงหน้า กำหนดค่าตรงไหนครับ" — ตั้งค่าได้อยู่แล้ว
+   แต่การ์ดอยู่ใบสุดท้ายจากสิบเอ็ดใบ ลูกค้าเลื่อนไม่ถึงจึงคิดว่าไม่มี ย้ายขึ้นมา
+   อยู่กับของที่คนเข้ามาตั้งบ่อย */
 const CARDS = [
+  /* สไลด์ 45 · "ไม่มีหน้าที่ใส่ข้อมูลโปรไฟล์ของฉัน" — ใบแรกสุด เพราะเป็นของที่
+     ทุกบทบาทใช้ ไม่ใช่เฉพาะเจ้าของระบบเหมือนการ์ดส่วนใหญ่ในหน้านี้ */
+  { title: 'โปรไฟล์ของฉัน', desc: 'ชื่อ เบอร์โทร LINE ที่อยู่ — และดูข้อมูลติดต่อคนในทีม', meta: 'ทุกคนแก้ของตัวเองได้', href: '/admin/profile', iconBg: '#EEF4F3', icon: ic(<><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" /></>, '#034956') },
   { title: 'เปลี่ยนรหัสผ่าน', desc: 'ตั้งรหัสผ่านของบัญชีคุณเอง', meta: 'ออกจากระบบอุปกรณ์อื่นให้อัตโนมัติ', href: '/admin/change-password', iconBg: '#EEF4F3', icon: ic(<><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></>, '#034956') },
+  { title: 'การแจ้งเตือน', desc: 'เตือนสัญญาเช่าใกล้หมด — ตั้งล่วงหน้า 1/2/3 เดือน', meta: 'ขึ้นที่กระดิ่งด้านบน', href: '/admin/notifications', iconBg: '#F9E4E1', icon: ic(<><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 01-3.4 0" /></>, '#C0392B') },
   { title: 'ข้อมูลบริษัท', desc: 'ที่อยู่ เบอร์โทร อีเมล เวลาทำการ — ใช้ทั้งเว็บ', meta: 'แก้ที่เดียว ใช้ทุกหน้า', href: '/admin/company', iconBg: '#E8F3EC', icon: ic(<><path d="M3 21h18M5 21V7l7-4 7 4v14" /><path d="M9 21v-6h6v6" /></>, '#0D6C3B') },
   { title: 'Users & Roles', desc: 'จัดการผู้ใช้ + สิทธิ์ RBAC 7 บทบาท', meta: '7 roles · ขอบเขต + สิทธิ์พิเศษ', href: '/admin/users', iconBg: '#EEF4F3', icon: ic(<><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></>, '#034956') },
   { title: 'Geography & โซน', desc: 'จังหวัด/อำเภอ/ตำบล + นิคมอุตสาหกรรม', meta: '77 จังหวัด · 6 นิคม', href: '/admin/geography', iconBg: '#EEF4F3', icon: ic(<><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z" /><circle cx="12" cy="10" r="3" /></>, '#034956') },
@@ -21,7 +28,6 @@ const CARDS = [
   { title: 'SEO / GEO / AEO', desc: 'meta, schema, hreflang, AI answer', meta: '3 ภาษา', href: '/admin/seo', iconBg: '#EEF4F3', icon: ic(<><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20" /></>, '#034956') },
   { title: 'API Reference', desc: 'เอกสาร API ทั้งหมด + ทดลองยิง request ด้วย session ปัจจุบัน', meta: 'OpenAPI 3.1 · 70 operations', href: '/admin/api-docs', iconBg: '#F0ECF9', icon: ic(<><path d="M16 18l6-6-6-6" /><path d="M8 6l-6 6 6 6" /></>, '#7A3FB0') },
   { title: 'Audit Logs', desc: 'ประวัติ mutation ทั้งระบบ + before/after', meta: '2,847 รายการ', href: '/admin/audit', iconBg: '#FBF3E1', icon: ic(<><path d="M12 8v4l3 2" /><circle cx="12" cy="12" r="9" /></>, '#9A741C') },
-  { title: 'การแจ้งเตือน', desc: 'เตือนสัญญาเช่าใกล้หมด — ตั้งล่วงหน้า 1/2/3 เดือน', meta: 'ขึ้นที่กระดิ่งด้านบน', href: '/admin/notifications', iconBg: '#F9E4E1', icon: ic(<><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 01-3.4 0" /></>, '#C0392B') },
 ];
 
 const setCss = `

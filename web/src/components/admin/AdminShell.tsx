@@ -136,10 +136,12 @@ function SidebarUser() {
       <div style={{ width: 36, height: 36, borderRadius: 9999, background: '#273c33', color: '#2DFB91', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>
         {me ? me.name.trim().charAt(0) : '·'}
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
+      {/* สไลด์ 45 · กดชื่อตัวเองแล้วไปหน้าโปรไฟล์ — ที่แรกที่คนมองหาเวลาจะแก้
+          ข้อมูลตัวเอง คือชื่อตัวเองที่มุมล่างซ้าย */}
+      <Link href="/admin/profile" data-sidebar-me style={{ flex: 1, minWidth: 0, textDecoration: 'none' }}>
         <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{me ? me.name : 'กำลังโหลด…'}</div>
         <div style={{ fontSize: 11, color: '#5E6B63' }}>{roleLabel}</div>
-      </div>
+      </Link>
       <Link href="/admin/login" onClick={logout} aria-label="ออกจากระบบ" style={{ display: 'flex', flexShrink: 0, color: '#5E6B63' }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></svg>
       </Link>

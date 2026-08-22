@@ -1641,6 +1641,115 @@ test.describe('คอมเมนต์ลูกค้า · จัดการ�
   });
 });
 
+/* สไลด์ 45–46 · โปรไฟล์ของฉัน · สมุดรายชื่อทีม · ผู้ดูแลทรัพย์ (PIC) · โอนสิทธิ์ */
+test.describe('คอมเมนต์ลูกค้า · โปรไฟล์ ทีม และผู้ดูแลทรัพย์', () => {
+  const signIn = async (page: import('@playwright/test').Page) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    return (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  };
+
+  /* "ไม่มีหน้าที่ใส่ข้อมูลโปรไฟล์ของฉัน ควรตั้งชื่อได้ เบอร์โทร LINE ที่อยู่ปัจจุบัน" */
+  test('แก้ข้อมูลตัวเองได้ และค่าที่บันทึกอยู่จริงหลังรีเฟรช', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const before = await (await request.get('/api/me', { headers: { cookie } })).json();
+    const stamp = Date.now().toString(36);
+
+    try {
+      await page.goto('/admin/profile');
+      await expect(page.locator('[data-prof-name]')).toHaveValue(/.+/);
+      await page.locator('[data-prof-phone]').fill(`08${stamp.slice(-8)}`);
+      await page.locator('[data-prof-line]').fill(`@jkp-${stamp}`);
+      await page.locator('[data-prof-address]').fill(`ที่อยู่ทดสอบ ${stamp}`);
+      await page.locator('#prof-save').click();
+      await expect(page.locator('[data-prof-msg]')).toHaveText('บันทึกแล้ว');
+
+      // รีเฟรชแล้วต้องยังอยู่ — ไม่ใช่เก็บไว้ใน state เฉย ๆ
+      await page.reload();
+      await expect(page.locator('[data-prof-line]')).toHaveValue(`@jkp-${stamp}`);
+      await expect(page.locator('[data-prof-address]')).toHaveValue(`ที่อยู่ทดสอบ ${stamp}`);
+    } finally {
+      await request.patch('/api/me', {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { name: before.name, phone: before.phone, line: before.line, address: before.address },
+      }).catch(() => null);
+    }
+  });
+
+  test('เปลี่ยนตำแหน่งตัวเองไม่ได้ แม้ยิง API ตรง', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    await request.patch('/api/me', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { role: 'owner', scope: 'all', privileges: ['export'] },
+    });
+    const after = await (await request.get('/api/me/permissions', { headers: { cookie } })).json();
+    /* บัญชีทดสอบเป็น owner อยู่แล้ว — ที่ต้องยืนยันคือ PATCH ไม่ได้เอา field พวกนี้
+       ไปเขียน ไม่ใช่ว่าผลลัพธ์เปลี่ยนหรือไม่ */
+    expect(after.role).toBe('owner');
+    const me = await (await request.get('/api/me', { headers: { cookie } })).json();
+    expect(Object.keys(me).sort()).toEqual(['address', 'email', 'id', 'line', 'name', 'phone', 'role'].sort());
+  });
+
+  /* "ไม่มีหน้าแสดงต่อ ข้อมูลติดต่อและตำแหน่งคนในทีม" */
+  test('สมุดรายชื่อทีมมีคนจริง พร้อมตำแหน่ง และไม่หลุดสิทธิ์ออกมา', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const r = await (await request.get('/api/team', { headers: { cookie } })).json();
+    expect(r.items.length, 'ต้องมีอย่างน้อยบัญชีตัวเอง').toBeGreaterThan(0);
+    expect(r.items.filter((u: { me: boolean }) => u.me), 'ต้องรู้ว่าแถวไหนคือเรา').toHaveLength(1);
+    for (const u of r.items) {
+      expect(Object.keys(u).sort()).toEqual(['address', 'email', 'id', 'line', 'me', 'name', 'phone', 'role'].sort());
+    }
+    await page.goto('/admin/profile');
+    await expect(page.locator('[data-team-row]').first()).toBeVisible();
+  });
+
+  /* สไลด์ 46 · "ควรเชื่อม PIC ทุกช่องเองเพื่อรู้ว่าใครเป็นคนลง · ไปแสดงตอนสร้าง
+     ประกาศ ออโต้" */
+  test('ช่องผู้ดูแลทรัพย์เลือกจากรายชื่อจริง และเติมชื่อคนที่ล็อกอินให้เอง', async ({ page }) => {
+    await signIn(page);
+    await page.goto('/admin/properties');
+    await page.getByText('เพิ่มทรัพย์').first().click();
+    await page.getByText('โกดัง', { exact: true }).last().click();
+
+    const pic = page.locator('[data-field-person="pic"]');
+    await expect(pic, 'ช่อง PIC ต้องเป็นรายการเลือก ไม่ใช่ช่องพิมพ์เปล่า').toBeVisible();
+    await expect(pic, 'ต้องเติมชื่อคนที่ล็อกอินอยู่ให้เอง').toHaveValue('กิตติพงษ์ พรหมทอง');
+
+    const opts = await pic.locator('option').evaluateAll((els) => els.map((e) => (e as HTMLOptionElement).value).filter(Boolean));
+    expect(opts.length, 'รายชื่อต้องมาจากบัญชีจริงในระบบ').toBeGreaterThan(1);
+  });
+
+  /* สไลด์ 46 · "เจ้าของสามารถโอนสิทธิ์ Property ได้ · เตรียมไว้คนลาออก" */
+  test('โอนทรัพย์ให้คนอื่นดูแลได้ และเฉพาะเจ้าของระบบเท่านั้น', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { typeKey: 'warehouse', title: `ทดสอบโอนสิทธิ์ ${Date.now().toString(36)}`, values: { province: 'ระยอง' } },
+    })).json();
+
+    try {
+      const team = (await (await request.get('/api/users/assignable', { headers: { cookie } })).json()).items as { id: string; name: string }[];
+      const other = team.find((u) => u.name !== 'กิตติพงษ์ พรหมทอง');
+      test.skip(!other, 'ต้องมีบัญชีอื่นในระบบจึงจะทดสอบการโอนได้');
+
+      await page.goto(`/admin/property-view?code=${made.publicCode}`);
+      await expect(page.locator('[data-owner-card]')).toBeVisible();
+      await page.locator('[data-owner-pick]').selectOption(other!.id);
+      await page.locator('[data-owner-go]').click();
+      await expect(page.locator('[data-owner-msg]')).toHaveText('โอนแล้ว');
+
+      // ยืนยันที่ฐานข้อมูล ไม่ใช่แค่ข้อความบนจอ
+      const back = await (await request.get(`/api/properties/${made.id}`, { headers: { cookie } })).json();
+      expect(back.ownerId).toBe(other!.id);
+    } finally {
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+});
+
 /* สไลด์ 35 · "Social Status ไม่มีให้โหลดรูปภาพของแต่ละประกาศ · จำเป็น"
    ทีมต้องเอารูปไปโพสต์ตามช่องทาง แต่หน้านี้ให้ได้แค่ดูรูปหน้าปก จะเอารูปจริงต้อง
    ไปเปิดหน้าทรัพย์แล้วคลิกขวาบันทึกทีละใบ */

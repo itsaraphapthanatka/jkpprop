@@ -17,6 +17,8 @@ const STATUS_ON = statusStyle('#E8F3EC', '#0D6C3B');
 const STATUS_OFF = statusStyle('#F0EEE9', '#7A7974');
 
 type UserRow = {
+  /** id ของบัญชี — โอนทรัพย์ยกชุดต้องอ้างด้วย id ไม่ใช่อีเมล */
+  id: string;
   name: string; email: string; initial: string; avBg: string; avFg: string;
   role: RoleKey; scope: Scope; privs: PrivKey[]; expires?: string;
   lastLogin: string; active: boolean;
@@ -81,6 +83,7 @@ export function UsersBody() {
       setUsers(r.items.map((u, i) => {
         const [avBg, avFg] = AV_COLORS[i % AV_COLORS.length];
         return {
+          id: u.id,
           name: u.name, email: u.email, initial: (u.name.trim()[0] || '?').toUpperCase(),
           avBg, avFg,
           role: u.role, scope: u.scope, privs: u.privileges,
@@ -141,6 +144,28 @@ export function UsersBody() {
   };
 
   /* deactivating also kills that user's sessions server-side */
+  /* โอนทรัพย์ยกชุด — เลือกคนที่จะโอนออก แล้วเลือกผู้รับ */
+  const [transferFor, setTransferFor] = React.useState<UserRow | null>(null);
+  const [transferTo, setTransferTo] = React.useState('');
+  const [transferBusy, setTransferBusy] = React.useState(false);
+  const [transferMsg, setTransferMsg] = React.useState('');
+  const [transferErr, setTransferErr] = React.useState('');
+
+  const doTransfer = async () => {
+    if (!transferFor || !transferTo || transferBusy) return;
+    setTransferBusy(true);
+    setTransferErr('');
+    setTransferMsg('');
+    try {
+      const r = await apiPost<{ moved: number; to: string }>(`/api/users/${transferFor.id}/transfer`, { toUserId: transferTo });
+      setTransferMsg(`โอน ${r.moved} รายการให้ ${r.to} แล้ว`);
+      setTransferTo('');
+    } catch (e) {
+      setTransferErr(e instanceof ApiClientError ? e.message : 'โอนไม่สำเร็จ');
+    }
+    setTransferBusy(false);
+  };
+
   const toggleActive = async (u: UserRow) => {
     const id = idByEmail[u.email];
     const next = !u.active;
@@ -281,6 +306,19 @@ export function UsersBody() {
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" /></svg>
                             ตั้งค่าสิทธิ์
                           </button>
+                          {/* สไลด์ 46 · "เจ้าของสามารถโอนสิทธิ์ Property ได้ · เตรียมไว้
+                              คนลาออก" — คนลาออกหนึ่งคนมีทรัพย์เป็นร้อย โอนทีละใบ
+                              จากหน้าทรัพย์ไม่ไหว */}
+                          <button
+                            type="button"
+                            data-transfer-props={u.id}
+                            onClick={() => setTransferFor(u)}
+                            title={`โอนทรัพย์ทั้งหมดที่ ${u.name} ดูแลอยู่ ไปให้คนอื่น`}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 13px', marginLeft: 8, borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+                          >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 8h13l-3-3M20 16H7l3 3" /></svg>
+                            โอนทรัพย์
+                          </button>
                         </td>
                       </tr>
                     );
@@ -290,6 +328,50 @@ export function UsersBody() {
             </div>
           </div>
         </>
+      )}
+
+      {/* ---------- โอนทรัพย์ยกชุด (สไลด์ 46 · เตรียมไว้คนลาออก) ---------- */}
+      {transferFor && (
+        <div
+          data-transfer-modal
+          onClick={() => setTransferFor(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 900, background: 'rgba(var(--ink-rgb),.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 460, background: 'var(--surface)', borderRadius: 18, padding: 24 }}>
+            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)' }}>โอนทรัพย์ทั้งหมดของ {transferFor.name}</div>
+            <p style={{ margin: '8px 0 0', fontSize: '13px', color: 'var(--muted)', lineHeight: 1.7 }}>
+              ทรัพย์ทุกรายการที่บัญชีนี้ดูแลอยู่จะย้ายไปอยู่กับผู้รับโอนทั้งหมด
+              ใช้ตอนมีคนลาออก เพื่อไม่ให้ทรัพย์ค้างอยู่กับบัญชีที่ปิดไปแล้ว
+            </p>
+            <label htmlFor="usr-transfer-to" style={{ display: 'block', margin: '16px 0 6px', fontSize: 11, fontWeight: 700, color: 'var(--muted2)' }}>โอนให้</label>
+            <select
+              id="usr-transfer-to"
+              data-transfer-to
+              value={transferTo}
+              onChange={(e) => setTransferTo(e.target.value)}
+              style={{ width: '100%', height: 42, padding: '0 12px', borderRadius: 11, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontFamily: 'inherit', fontSize: '13px' }}
+            >
+              <option value="">เลือกผู้รับโอน…</option>
+              {users.filter((u) => u.active && u.id !== transferFor.id).map((u) => (
+                <option key={u.id} value={u.id}>{u.name}</option>
+              ))}
+            </select>
+            {transferMsg && <div data-transfer-msg style={{ marginTop: 10, fontSize: 12.5, fontWeight: 700, color: '#0D6C3B' }}>{transferMsg}</div>}
+            {transferErr && <div data-transfer-err style={{ marginTop: 10, fontSize: 12.5, color: '#C0392B' }}>{transferErr}</div>}
+            <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+              <button type="button" onClick={() => setTransferFor(null)} style={{ flex: 1, height: 44, borderRadius: 11, border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text)', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>ปิด</button>
+              <button
+                type="button"
+                data-transfer-go
+                onClick={doTransfer}
+                disabled={!transferTo || transferBusy}
+                style={{ flex: 1, height: 44, borderRadius: 11, border: 0, background: transferTo && !transferBusy ? '#0D6C3B' : 'var(--border)', color: transferTo && !transferBusy ? '#fff' : 'var(--muted2)', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: transferTo && !transferBusy ? 'pointer' : 'default' }}
+              >
+                {transferBusy ? 'กำลังโอน…' : 'โอนทรัพย์'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ---------- ROLES MATRIX ---------- */}

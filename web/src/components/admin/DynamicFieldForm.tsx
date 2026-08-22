@@ -186,6 +186,38 @@ export function DynamicFieldForm({ typeKey, code, initialValues, onValuesChange 
      "แขวง คันนายาว") และชื่อจังหวัดคนละแบบ ("กรุงเทพ" กับ "กรุงเทพมหานคร")
      ซึ่งไปโผล่เป็นตัวกรองที่หาไม่เจอบนหน้าเว็บ ตอนนี้ดึงรายการจริงจาก
      /admin/geography มาช่วยเติม — ยังพิมพ์เองได้ ชื่อใหม่จึงไม่ถูกปิดกั้น */
+  /* สไลด์ 46 · "โปรไฟล์ของแต่ละบัญชี ควรเชื่อม PIC ทุกช่องเองเพื่อรู้ว่าใครเป็น
+     คนลง · ไปแสดงตอนสร้างประกาศ ออโต้"
+     ช่อง PIC เคยเป็นช่องพิมพ์เปล่า ๆ ใครพิมพ์อะไรก็ได้ ข้อมูลจริงจึงมีทั้งชื่อเล่น
+     ชื่อจริง และเว้นว่าง — เอาไปกรองหรือหาว่าใครรับผิดชอบไม่ได้เลย
+     ตอนนี้เลือกจากรายชื่อบัญชีที่ยังใช้งานอยู่ และตอนสร้างใหม่เติมชื่อคนที่
+     ล็อกอินอยู่ให้เอง */
+  const [team, setTeam] = React.useState<string[]>([]);
+  const [meName, setMeName] = React.useState('');
+  /* เก็บเป็น ref ด้วย — เอฟเฟกต์ที่ล้างคำตอบตอนสลับประเภทต้องอ่านชื่อได้โดยไม่
+     ต้องผูกเป็น dependency ไม่งั้นแค่รู้ชื่อก็จะไปสั่งล้างคำตอบทั้งฟอร์ม */
+  const meNameRef = React.useRef('');
+  meNameRef.current = meName;
+  React.useEffect(() => {
+    let alive = true;
+    apiGet<{ items: { name: string }[] }>('/api/users/assignable')
+      .then((r) => { if (alive) setTeam(r.items.map((u) => u.name).filter(Boolean)); })
+      .catch(() => { /* เลือกไม่ได้ก็ยังพิมพ์เองได้ */ });
+    apiGet<{ name: string }>('/api/me/permissions')
+      .then((u) => { if (alive) setMeName(u.name ?? ''); })
+      .catch(() => { /* ไม่รู้ว่าใคร ก็ไม่เติมให้ */ });
+    return () => { alive = false; };
+  }, []);
+
+  /* เติมเฉพาะฟอร์มสร้างใหม่ (ไม่มีค่าเดิมมา) และเฉพาะตอนที่ยังว่างอยู่ —
+     ทรัพย์ที่แก้อยู่ต้องไม่ถูกเปลี่ยนผู้ดูแลเงียบ ๆ เพราะคนอื่นเปิดดู
+     กรณีนี้คือชื่อมาถึงหลังฟอร์มขึ้นแล้ว ส่วนกรณีสลับประเภทอยู่ในเอฟเฟกต์
+     ที่ล้างคำตอบด้านล่าง (มันรันทีหลัง ถ้าเติมที่นี่จะโดนล้างทิ้ง) */
+  React.useEffect(() => {
+    if (!meName || initRef.current.values) return;
+    setVals((v) => (String(v.pic ?? '').trim() ? v : { ...v, pic: meName }));
+  }, [meName]);
+
   const [geo, setGeo] = React.useState<{
     provinces: { th: string; districts: { name: string }[] }[];
     subMap: Record<string, { name: string }[]>;
@@ -221,7 +253,14 @@ export function DynamicFieldForm({ typeKey, code, initialValues, onValuesChange 
   const schemaV = useSchemaSync();
   React.useEffect(() => {
     setFields(resolveFields(typeKey).filter((f) => f.enabled));
-    setVals(typeKey === initRef.current.typeKey ? { ...(initRef.current.values ?? {}) } : {});
+    const own = typeKey === initRef.current.typeKey;
+    const base = own ? { ...(initRef.current.values ?? {}) } : {};
+    /* สไลด์ 46 · ฟอร์มสร้างใหม่เติมชื่อคนที่ล็อกอินอยู่ในช่องผู้ดูแลให้เอง
+       เติมตรงนี้เพราะเอฟเฟกต์นี้เป็นตัวตัดสินว่าคำตอบหลังสลับประเภทคืออะไร */
+    if (!initRef.current.values && meNameRef.current && !String(base.pic ?? '').trim()) {
+      base.pic = meNameRef.current;
+    }
+    setVals(base);
     setClosed({});
   }, [typeKey, schemaV]);
 
@@ -352,6 +391,22 @@ export function DynamicFieldForm({ typeKey, code, initialValues, onValuesChange 
           );
         }
         return (<div>{lbl(f)}<select value={str(f.key)} onChange={(e) => setV(f.key, e.target.value)} style={selectStyle}><option value="">เลือก…</option>{(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}</select>{note(f)}</div>);
+      case 'person': {
+        /* รายชื่อบัญชีจริง บวกค่าที่บันทึกไว้เดิม (ซึ่งอาจเป็นชื่อที่พิมพ์เองก่อน
+           มีรายการให้เลือก) — ไม่งั้นเปิดฟอร์มแล้วค่าเดิมหายไปเงียบ ๆ */
+        const cur = str(f.key);
+        const opts = Array.from(new Set([...team, ...(cur ? [cur] : [])]));
+        return (
+          <div>
+            {lbl(f)}
+            <select data-field-person={f.key} value={cur} onChange={(e) => setV(f.key, e.target.value)} style={selectStyle}>
+              <option value="">เลือก…</option>
+              {opts.map((o) => <option key={o} value={o}>{o}</option>)}
+            </select>
+            {note(f)}
+          </div>
+        );
+      }
       case 'multiselect':
         return (
           <div>

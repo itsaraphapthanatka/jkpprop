@@ -9,6 +9,7 @@ import { buildSpecs } from '@/lib/server/propertySpecs';
 import { loadFieldOverride } from '@/lib/server/fieldOverride';
 import { propertyType } from '@/lib/propertySchema';
 import { DEFAULT_LOCALE } from '@/i18n/config';
+import { OwnerTransfer } from '@/components/admin/OwnerTransfer';
 
 export const metadata: Metadata = { title: 'Property View · JKP CMS', robots: { index: false } };
 
@@ -86,6 +87,12 @@ export default async function AdminPropertyViewPage({
   const rent = Number(values.price_rent ?? NaN);
   const sale = Number(values.price_sale ?? values.price ?? NaN);
   const photos = Array.isArray(values.photos) ? (values.photos as string[]) : [];
+
+  /* ชื่อคนดูแล — คอลัมน์เก็บแค่ id หน้าไหนก็เลยไม่เคยแสดงว่าใคร */
+  const owner = property.ownerId
+    ? await db.user.findFirst({ where: { id: property.ownerId }, select: { name: true } }).catch(() => null)
+    : null;
+  const ownerName = owner?.name ?? '';
 
   const listings = await db.listing.findMany({
     where: { propertyId: property.id },
@@ -213,6 +220,11 @@ export default async function AdminPropertyViewPage({
               ))}
             </div>
             <Link href="/admin/listings" style={{ display: 'inline-block', marginTop: 12, fontSize: '12.5px', fontWeight: 700, color: 'var(--accent)' }}>จัดการประกาศ →</Link>
+          </div>
+
+          {/* สไลด์ 46 · ใครดูแลทรัพย์นี้ และเจ้าของระบบโอนให้คนอื่นได้ */}
+          <div style={card}>
+            <OwnerTransfer propertyId={property.id} ownerId={property.ownerId} ownerName={ownerName} />
           </div>
 
           <div style={card}>

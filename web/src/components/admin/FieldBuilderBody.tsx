@@ -16,12 +16,14 @@ const fbInput: React.CSSProperties = { height: 38, padding: '0 11px', borderRadi
 const KIND_LABEL: Record<FieldKind, string> = {
   dealtype: 'ประเภทประกาศ', text: 'ข้อความ', textarea: 'ข้อความยาว', number: 'ตัวเลข', price: 'ราคา', date: 'วันที่',
   select: 'ตัวเลือก (dropdown)', multiselect: 'เลือกหลายค่า', boolean: 'ใช่/ไม่',
+  person: 'เลือกคนในทีม',
   media: 'ไฟล์ / สื่อ', location: 'ที่อยู่ / พิกัด', map: 'แผนที่', summary: 'ข้อความสรุปอัตโนมัติ', group: 'กลุ่มย่อย',
 };
 const kindPath = (k: FieldKind) => {
   const m: Record<FieldKind, string> = {
     dealtype: '<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>',
     text: '<path d="M4 7V4h16v3M9 20h6M12 4v16"></path>',
+    person: '<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path><circle cx="12" cy="7" r="4"></circle>',
     textarea: '<path d="M4 6h16M4 10h16M4 14h12M4 18h8"></path>',
     number: '<path d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18"></path>',
     price: '<path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"></path>',

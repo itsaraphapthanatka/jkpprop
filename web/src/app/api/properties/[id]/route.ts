@@ -45,7 +45,7 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
   const p = await findScoped(id, user);
 
   const body = (await req.json().catch(() => null)) as
-    | { title?: string; status?: string; values?: Record<string, unknown>; publicCode?: string; i18n?: unknown; available?: boolean }
+    | { title?: string; status?: string; values?: Record<string, unknown>; publicCode?: string; i18n?: unknown; available?: boolean; ownerId?: string }
     | null;
   if (!body) throw new ApiError('VALIDATION', 'ข้อมูลไม่ถูกต้อง', 400);
   if (body.publicCode && body.publicCode !== p.publicCode) {
@@ -53,6 +53,21 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
   }
 
   const data: Prisma.PropertyUpdateInput = {};
+
+  /* สไลด์ 46 · "เจ้าของสามารถโอนสิทธิ์ Property ได้ · เตรียมไว้คนลาออก"
+     คอลัมน์ ownerId มีมาตั้งแต่แรกและตั้งค่าให้คนสร้างตอนสร้าง แต่ไม่เคยมีทาง
+     แก้เลย วันที่คนดูแลลาออก ทรัพย์ของเขาจะค้างอยู่กับบัญชีที่ปิดไปแล้ว
+     ให้เฉพาะเจ้าของระบบโอนได้ ตามที่สไลด์เขียน */
+  if (body.ownerId !== undefined) {
+    requireRole(user, 'owner');
+    const next = String(body.ownerId).trim();
+    if (next) {
+      const target = await db.user.findFirst({ where: { id: next, orgId: user.orgId, active: true } });
+      if (!target) throw new ApiError('VALIDATION', 'ไม่พบผู้ใช้ที่จะโอนให้ หรือบัญชีถูกปิดไปแล้ว', 400);
+    }
+    data.ownerId = next || null;
+  }
+
   if (typeof body.title === 'string' && body.title.trim()) data.title = body.title.trim();
   if (body.status && ['draft', 'active', 'hidden', 'archived'].includes(body.status)) data.status = body.status;
   // sent whole: the editor holds every language on screen, so a missing one is
@@ -94,6 +109,14 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
     user, orgId: user.orgId, action: 'property.update', entity: 'property', entityId: p.id,
     before, after: { title: updated.title, status: updated.status, values: updated.values, i18n: updated.i18n },
   });
+  /* การโอนสิทธิ์ลง audit แยกเป็นรายการของตัวเอง — ตอนตรวจย้อนหลังว่าทรัพย์ย้าย
+     มืออย่างไร ไม่ต้องไปงมในรายการแก้ไขทั่วไปที่มีวันละหลายสิบครั้ง */
+  if (body.ownerId !== undefined && p.ownerId !== updated.ownerId) {
+    await audit({
+      user, orgId: user.orgId, action: 'property.transfer', entity: 'property', entityId: p.id,
+      before: { ownerId: p.ownerId }, after: { ownerId: updated.ownerId, code: p.publicCode },
+    });
+  }
 
   const after = await db.listing.findFirst({ where: { propertyId: p.id }, select: { status: true } });
   return ok({ ...propertyDto(updated, user), available: after?.status !== 'unavailable' });
