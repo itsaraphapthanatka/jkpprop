@@ -66,6 +66,11 @@ export const GET = handler(async () => {
           const ph = values.photos;
           return Array.isArray(ph) && typeof ph[0] === 'string' ? (ph[0] as string) : null;
         })(),
+        /* สไลด์ 35 · ทีมต้องเอารูปไปโพสต์ตามช่องทาง ส่งครบทุกใบเพื่อให้หน้า
+           Social Status รวมเป็นไฟล์เดียวให้โหลดได้ */
+        photos: Array.isArray(values.photos)
+          ? (values.photos as unknown[]).filter((x): x is string => typeof x === 'string')
+          : [],
         deal: price.deal,
         dealK: price.dealK,
         price: price.text,

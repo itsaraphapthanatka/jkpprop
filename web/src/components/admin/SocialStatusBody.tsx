@@ -12,6 +12,65 @@ import {
 } from '@/lib/socialStore';
 import { apiGet, apiPut, apiPost, apiDelete } from '@/lib/apiClient';
 import { propertyType } from '@/lib/propertySchema';
+import { buildZip, extForMime, safeFileName, type ZipEntry } from '@/lib/zip';
+
+/* ปุ่มดาวน์โหลดรูปของประกาศหนึ่ง — สไลด์ 35 "Social Status ไม่มีให้โหลดรูปภาพ
+   ของแต่ละประกาศ · จำเป็น"
+   ทีมต้องเอารูปไปโพสต์ตามช่องทาง แต่หน้านี้ให้ได้แค่ดูรูปหน้าปก จะเอารูปจริงต้อง
+   ไปเปิดหน้าทรัพย์แล้วคลิกขวาบันทึกทีละใบ
+
+   รวมเป็นไฟล์ ZIP ไฟล์เดียว — โหลดทีละใบหลายไฟล์พร้อมกันเบราว์เซอร์จะบล็อก
+   และรูปที่ได้เป็นรูปที่ติดลายน้ำแล้ว เพราะดึงจากลิงก์เดียวกับที่หน้าเว็บใช้ */
+function PhotoDownload({ code, photos }: { code: string; photos: string[] }) {
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState('');
+
+  if (!photos.length) {
+    return <span style={{ fontSize: 11.5, color: 'var(--muted3)' }}>ยังไม่มีรูป</span>;
+  }
+
+  const run = async () => {
+    if (busy) return;
+    setBusy(true);
+    setErr('');
+    try {
+      const entries: ZipEntry[] = [];
+      for (const [i, src] of photos.entries()) {
+        const res = await fetch(src);
+        if (!res.ok) throw new Error(`โหลดรูปที่ ${i + 1} ไม่สำเร็จ`);
+        const buf = new Uint8Array(await res.arrayBuffer());
+        const ext = extForMime(res.headers.get('content-type') ?? '');
+        entries.push({ name: `${safeFileName(code)}-${String(i + 1).padStart(2, '0')}.${ext}`, bytes: buf });
+      }
+      const url = URL.createObjectURL(new Blob([buildZip(entries)], { type: 'application/zip' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${safeFileName(code)}-รูปภาพ.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'ดาวน์โหลดไม่สำเร็จ');
+    }
+    setBusy(false);
+  };
+
+  return (
+    <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+      <button
+        type="button"
+        data-photo-zip={code}
+        onClick={run}
+        disabled={busy}
+        title={`ดาวน์โหลดรูปทั้งหมด ${photos.length} รูป เป็นไฟล์ ZIP`}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 34, padding: '0 12px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: 12, fontWeight: 700, cursor: busy ? 'default' : 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', opacity: busy ? 0.6 : 1 }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><path d="M7 10l5 5 5-5M12 15V3" /></svg>
+        {busy ? 'กำลังรวม…' : `โหลดรูป ${photos.length}`}
+      </button>
+      {err && <span data-photo-zip-error style={{ fontSize: 11, color: '#C0392B' }}>{err}</span>}
+    </div>
+  );
+}
 
 /* Social Status — one row per listing showing which channels it has already
    been posted to. Open a row to read/edit the post text, copy it, and tick
@@ -230,6 +289,8 @@ export function SocialStatusBody() {
               <tr style={{ background: 'var(--bg)' }}>
                 <th style={th}>Listing</th>
                 <th style={th}>ช่องทางที่ลงประกาศแล้ว</th>
+                {/* สไลด์ 35 · "ไม่มีให้โหลดรูปภาพของแต่ละประกาศ · จำเป็น" */}
+                <th style={{ ...th, textAlign: 'center', width: 140 }}>รูปภาพ</th>
                 <th style={{ ...th, textAlign: 'center' }}>ความคืบหน้า</th>
                 <th style={{ ...th, width: 130 }} />
               </tr>
@@ -276,6 +337,9 @@ export function SocialStatusBody() {
                       </div>
                     </td>
                     <td style={{ padding: '13px 16px', textAlign: 'center' }}>
+                      <PhotoDownload code={r.code} photos={r.photos ?? (r.img ? [r.img] : [])} />
+                    </td>
+                    <td style={{ padding: '13px 16px', textAlign: 'center' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 10px', borderRadius: 9999, fontSize: '11.5px', fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", background: all ? '#E8F3EC' : 'var(--bg)', color: all ? '#0D6C3B' : 'var(--muted2)' }}>{n}/{channels.length}</span>
                     </td>
                     <td style={{ padding: '13px 16px', textAlign: 'right' }}>
@@ -288,7 +352,7 @@ export function SocialStatusBody() {
                 );
               })}
               {rowsOnPage.length === 0 && (
-                <tr><td colSpan={4} style={{ padding: '28px 16px', textAlign: 'center', fontSize: 13, color: 'var(--muted3)' }}>
+                <tr><td colSpan={5} style={{ padding: '28px 16px', textAlign: 'center', fontSize: 13, color: 'var(--muted3)' }}>
                   {listings === null ? 'กำลังโหลด…' : listings.length === 0 ? 'ยังไม่มีประกาศในระบบ' : 'ไม่พบรายการที่ตรงกับเงื่อนไข'}
                 </td></tr>
               )}

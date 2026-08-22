@@ -1641,6 +1641,51 @@ test.describe('คอมเมนต์ลูกค้า · จัดการ�
   });
 });
 
+/* สไลด์ 35 · "Social Status ไม่มีให้โหลดรูปภาพของแต่ละประกาศ · จำเป็น"
+   ทีมต้องเอารูปไปโพสต์ตามช่องทาง แต่หน้านี้ให้ได้แค่ดูรูปหน้าปก จะเอารูปจริงต้อง
+   ไปเปิดหน้าทรัพย์แล้วคลิกขวาบันทึกทีละใบ */
+test.describe('คอมเมนต์ลูกค้า · ดาวน์โหลดรูปจากหน้า Social Status', () => {
+  const signIn = async (page: import('@playwright/test').Page) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+  };
+
+  test('กดปุ่มแล้วได้ไฟล์ ZIP ที่แตกได้จริง และข้างในเป็นรูปของประกาศนั้น', async ({ page }) => {
+    await signIn(page);
+    await page.goto('/admin/social-status');
+    const btn = page.locator('[data-photo-zip]').first();
+    await expect(btn, 'ไม่มีปุ่มดาวน์โหลดรูปในตาราง').toBeVisible({ timeout: 20000 });
+
+    const code = await btn.getAttribute('data-photo-zip');
+    const [download] = await Promise.all([page.waitForEvent('download'), btn.click()]);
+    expect(download.suggestedFilename()).toBe(`${code}-รูปภาพ.zip`);
+
+    /* ให้ตัวแตกไฟล์ของเครื่องเป็นคนตัดสินว่าไฟล์ใช้ได้จริง ไม่ใช่แค่มีไฟล์หล่นมา */
+    const path = await download.path();
+    const { execFileSync } = await import('node:child_process');
+    const listing = execFileSync('unzip', ['-l', path]).toString();
+    expect(listing, 'ไฟล์ ZIP ว่างเปล่า').toMatch(new RegExp(`${code}-01\\.(jpg|png|webp|gif)`));
+    // ขนาดไฟล์ต้องมากกว่าศูนย์ — รูปเปล่าคือรูปที่โหลดไม่สำเร็จ
+    const bytes = Number((listing.match(/^\s*(\d+)\s+\d{2}-\d{2}-\d{4}/m) ?? [])[1] ?? 0);
+    expect(bytes, 'รูปในไฟล์มีขนาดศูนย์').toBeGreaterThan(1000);
+    await expect(page.locator('[data-photo-zip-error]')).toHaveCount(0);
+  });
+
+  test('ประกาศที่ยังไม่มีรูป บอกว่ายังไม่มีรูป ไม่ใช่ปุ่มที่กดแล้วได้ไฟล์เปล่า', async ({ page }) => {
+    await signIn(page);
+    await page.goto('/admin/social-status');
+    await expect(page.locator('[data-photo-zip]').first()).toBeVisible({ timeout: 20000 });
+
+    const rows = await page.locator('tbody tr').count();
+    const withBtn = await page.locator('[data-photo-zip]').count();
+    const noPhoto = await page.getByText('ยังไม่มีรูป').count();
+    expect(withBtn + noPhoto, 'ทุกแถวต้องบอกได้ว่ามีรูปให้โหลดหรือไม่').toBeGreaterThanOrEqual(rows);
+  });
+});
+
 /* สไลด์ 43 · "ปิดดีลแล้วไม่ขึ้นประวัติใน Leads ภาพรวม" · "ไม่มีสรุปและประวัติ
    การติดต่อ" · "ต้องมีรูปภาพเพื่อยืนยัน"
 

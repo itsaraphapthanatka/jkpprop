@@ -76,6 +76,8 @@ export type Row = {
   available: boolean;
   pic: string;
   img: string | null;
+  /** รูปทั้งหมดของทรัพย์ — หน้า Social Status รวมเป็นไฟล์เดียวให้โหลด (สไลด์ 35) */
+  photos?: string[];
 };
 
 /* `act` is what the item does; `href` is where it goes. Every item used to
