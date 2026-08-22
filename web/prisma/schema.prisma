@@ -132,6 +132,10 @@ model Property {
   // all form values keyed by FieldDef.key (§4) — schema tells the meaning
   values     Json     @default("{}")
   ownerId    String? // owning agent — row-level scope 'own'
+  /* สไลด์ 46 · "มีทรัพย์กลางที่แสดงเบอร์โทรและที่ตั้งของผู้ให้เช่าที่ทุกคนเห็นได้
+     — เจ้าของตั้งเท่านั้น" ปกติเบอร์กับที่ตั้งของผู้ให้เช่าเห็นได้เฉพาะคนที่ลง
+     ประกาศเอง (กับผู้จัดการและเจ้าของระบบ) ทรัพย์ที่ติดธงนี้เปิดให้ทุกคนเห็น */
+  contactShared Boolean @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

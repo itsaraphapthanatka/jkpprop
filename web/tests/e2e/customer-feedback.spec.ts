@@ -1750,6 +1750,93 @@ test.describe('คอมเมนต์ลูกค้า · โปรไฟล�
   });
 });
 
+/* สไลด์ 46 · ใครเห็นเบอร์และที่ตั้งของผู้ให้เช่าได้บ้าง
+   "แต่ละคนควรเห็นแค่เบอร์โทรและที่ตั้งของประกาศที่ตัวเองสร้าง นอกนั้นควรเห็นแค่
+   เบอร์โทร PIC ที่รับผิดชอบ — ยกเว้นผู้จัดการและเจ้าของ" และ "มีทรัพย์กลางที่
+   แสดงเบอร์โทรและที่ตั้งของผู้ให้เช่าที่ทุกคนเห็นได้ — เจ้าของตั้งเท่านั้น" */
+test.describe('คอมเมนต์ลูกค้า · เบอร์ผู้ให้เช่าเห็นได้เฉพาะเจ้าของประกาศ', () => {
+  const OWNER = { email: 'owner@jkp.local', password: 'jkp12345' };
+  const signIn = async (page: import('@playwright/test').Page, who: { email: string; password: string }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill(who.email);
+    await page.locator('#login-password').fill(who.password);
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    return (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  };
+
+  const LESSOR = { lessor_name: 'คุณเจ้าของทรัพย์', lessor_phone: '0891112222', lessor_company: 'บริษัททดสอบ' };
+
+  test('เอเจนต์เห็นเบอร์ของทรัพย์ที่ตัวเองลง แต่ไม่เห็นของคนอื่น และได้เบอร์ PIC แทน', async ({ page, request }) => {
+    const cookie = await signIn(page, OWNER);
+    const stamp = Date.now().toString(36);
+
+    /* สร้างเอเจนต์หนึ่งคนไว้ทดสอบ — เจ้าของกับผู้จัดการเห็นทุกใบอยู่แล้ว
+       จึงพิสูจน์กติกาไม่ได้ */
+    const invited = await (await request.post('/api/users/invite', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { name: `เอเจนต์ทดสอบ ${stamp}`, email: `agent-${stamp}@jkp.local`, role: 'agent', scope: 'own' },
+    })).json();
+    test.skip(!invited?.tempPassword, 'สร้างบัญชีทดสอบไม่สำเร็จ');
+
+    const mine = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { typeKey: 'warehouse', title: `ทรัพย์ของเจ้าของระบบ ${stamp}`, values: { province: 'ระยอง', pic: 'กิตติพงษ์ พรหมทอง', ...LESSOR } },
+    })).json();
+
+    try {
+      // เจ้าของระบบเห็นครบ
+      const asOwner = await (await request.get(`/api/properties/${mine.id}`, { headers: { cookie } })).json();
+      expect(asOwner.values.lessor_phone, 'เจ้าของระบบต้องเห็นเบอร์').toBe(LESSOR.lessor_phone);
+
+      // เอเจนต์คนอื่นไม่เห็น และต้องได้เบอร์ PIC แทน
+      const ctx = await page.context().browser()!.newContext();
+      const p2 = await ctx.newPage();
+      await p2.goto('/admin/login');
+      await p2.locator('#login-email').fill(`agent-${stamp}@jkp.local`);
+      await p2.locator('#login-password').fill(invited.tempPassword);
+      await p2.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+      /* บัญชีที่เพิ่งถูกเชิญต้องตั้งรหัสผ่านเองก่อน ระบบบล็อกทุกอย่างไว้จนกว่าจะตั้ง
+         (mustChangePassword) — ไม่ทำขั้นนี้ เซสชันจะตอบ 401 ทุกคำขอ */
+      await p2.waitForURL(/change-password/);
+      const newPw = `Agent-${stamp}-pw`;
+      await p2.locator('#currentPassword').fill(invited.tempPassword);
+      await p2.locator('#newPassword').fill(newPw);
+      await p2.locator('#confirmPassword').fill(newPw);
+      await p2.getByRole('button', { name: /บันทึกรหัสผ่านใหม่/ }).click();
+      await p2.waitForURL(/\/admin(?!\/change-password)/, { timeout: 15000 });
+      const cookie2 = (await ctx.cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+      const asAgent = await (await request.get(`/api/properties/${mine.id}`, { headers: { cookie: cookie2 } })).json();
+      /* scope 'own' ทำให้เปิดทรัพย์ของคนอื่นไม่ได้อยู่แล้ว — ถ้าเปิดได้ ต้องไม่มีเบอร์ */
+      if (!asAgent.error) {
+        expect(asAgent.values?.lessor_phone, 'เอเจนต์ไม่ควรเห็นเบอร์ของทรัพย์คนอื่น').toBeUndefined();
+        expect(asAgent.values?.lessor_hidden).toBe(true);
+      }
+
+      /* เปิดเป็นทรัพย์กลาง แล้วทุกคนต้องเห็น */
+      await request.patch(`/api/properties/${mine.id}`, {
+        headers: { cookie, 'Content-Type': 'application/json' }, data: { contactShared: true },
+      });
+      const shared = await (await request.get(`/api/properties/${mine.id}`, { headers: { cookie: cookie2 } })).json();
+      if (!shared.error) expect(shared.values?.lessor_phone, 'ทรัพย์กลางต้องเห็นเบอร์ได้').toBe(LESSOR.lessor_phone);
+
+      /* เอเจนต์ตั้งทรัพย์กลางเองไม่ได้ */
+      const denied = await request.patch(`/api/properties/${mine.id}`, {
+        headers: { cookie: cookie2, 'Content-Type': 'application/json' }, data: { contactShared: false },
+      });
+      expect(denied.status(), 'เฉพาะเจ้าของระบบเท่านั้นที่ตั้งทรัพย์กลางได้').toBe(403);
+
+      await ctx.close();
+    } finally {
+      await request.delete(`/api/properties/${mine.id}`, { headers: { cookie } }).catch(() => null);
+      await request.patch(`/api/users/${invited.id}/status`, {
+        headers: { cookie, 'Content-Type': 'application/json' }, data: { active: false },
+      }).catch(() => null);
+    }
+  });
+});
+
 /* สไลด์ 35 · "Social Status ไม่มีให้โหลดรูปภาพของแต่ละประกาศ · จำเป็น"
    ทีมต้องเอารูปไปโพสต์ตามช่องทาง แต่หน้านี้ให้ได้แค่ดูรูปหน้าปก จะเอารูปจริงต้อง
    ไปเปิดหน้าทรัพย์แล้วคลิกขวาบันทึกทีละใบ */

@@ -77,7 +77,15 @@ export default async function AdminPropertyViewPage({
     );
   }
 
-  const values = stripInternal(property.typeKey, (property.values ?? {}) as Record<string, unknown>, user);
+  /* สไลด์ 46 · เบอร์กับที่ตั้งของผู้ให้เช่าเห็นได้เฉพาะทรัพย์ของตัวเอง หรือทรัพย์
+     กลางที่เจ้าของระบบเปิดไว้ — นอกนั้นได้เบอร์ของ PIC ไปติดต่อแทน */
+  const picName = String(((property.values ?? {}) as Record<string, unknown>).pic ?? '').trim();
+  const picPhone = picName
+    ? (await db.user.findFirst({ where: { orgId: property.orgId, name: picName }, select: { phone: true } }).catch(() => null))?.phone ?? ''
+    : '';
+  const values = stripInternal(property.typeKey, (property.values ?? {}) as Record<string, unknown>, user, {
+    ownerId: property.ownerId, contactShared: property.contactShared, picPhone,
+  });
   const area = displayArea(values);
   const location = displayLocation(values);
   const schema = await loadFieldOverride(property.orgId, property.typeKey);
@@ -187,6 +195,18 @@ export default async function AdminPropertyViewPage({
                 </div>
               ))}
             </div>
+
+            {/* สไลด์ 46 · ทรัพย์ที่ไม่ใช่ของตัวเอง ไม่เห็นเบอร์ผู้ให้เช่า แต่ต้องมี
+                ทางติดต่อต่อได้ — "นอกนั้นควรเห็นแค่ เบอร์โทร PIC ที่รับผิดชอบ" */}
+            {values.lessor_hidden === true && (
+              <div data-lessor-hidden style={{ marginTop: 14, padding: '12px 14px', borderRadius: 12, background: '#FBF3E1', border: '1px solid rgba(154,116,28,.3)' }}>
+                <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#9A741C' }}>เบอร์และที่ตั้งของผู้ให้เช่าถูกซ่อนไว้</div>
+                <div style={{ marginTop: 3, fontSize: 11.5, color: '#9A741C', lineHeight: 1.65 }}>
+                  ทรัพย์นี้ไม่ได้อยู่ในความดูแลของคุณ — ติดต่อผู้ดูแล{picName ? ` (${picName})` : ''}
+                  {values.pic_phone ? <> ที่ <b data-pic-phone>{String(values.pic_phone)}</b></> : ' เพื่อขอข้อมูลติดต่อ'}
+                </div>
+              </div>
+            )}
           </div>
 
           {specs.features.length > 0 && (
@@ -224,7 +244,7 @@ export default async function AdminPropertyViewPage({
 
           {/* สไลด์ 46 · ใครดูแลทรัพย์นี้ และเจ้าของระบบโอนให้คนอื่นได้ */}
           <div style={card}>
-            <OwnerTransfer propertyId={property.id} ownerId={property.ownerId} ownerName={ownerName} />
+            <OwnerTransfer propertyId={property.id} ownerId={property.ownerId} ownerName={ownerName} contactShared={property.contactShared} />
           </div>
 
           <div style={card}>

@@ -11,6 +11,7 @@ import { db } from '@/lib/server/db';
 import { propertyDto } from '@/lib/server/propertyDto';
 import { parseI18n } from '@/lib/server/propertyI18n';
 import type { Prisma, User } from '@prisma/client';
+import { picPhoneOf, canShareContact } from '@/lib/server/lessorAccess';
 
 const PRICE_KEYS = ['price', 'price_rent', 'price_sale', 'price_per_sqm'];
 
@@ -35,7 +36,7 @@ export const GET = handler(async (_req: Request, ctx: { params: Promise<{ id: st
     throw new ApiError('FORBIDDEN', 'บัญชีของคุณเข้าถึงได้เฉพาะทรัพย์ของตัวเอง', 403);
   }
   const listing = await db.listing.findFirst({ where: { propertyId: p.id }, select: { status: true } });
-  return ok({ ...propertyDto(p, user), available: listing?.status !== 'unavailable' });
+  return ok({ ...propertyDto(p, user, await picPhoneOf(p)), available: listing?.status !== 'unavailable' });
 });
 
 export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: string }> }) => {
@@ -45,7 +46,7 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
   const p = await findScoped(id, user);
 
   const body = (await req.json().catch(() => null)) as
-    | { title?: string; status?: string; values?: Record<string, unknown>; publicCode?: string; i18n?: unknown; available?: boolean; ownerId?: string }
+    | { title?: string; status?: string; values?: Record<string, unknown>; publicCode?: string; i18n?: unknown; available?: boolean; ownerId?: string; contactShared?: boolean }
     | null;
   if (!body) throw new ApiError('VALIDATION', 'ข้อมูลไม่ถูกต้อง', 400);
   if (body.publicCode && body.publicCode !== p.publicCode) {
@@ -66,6 +67,15 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
       if (!target) throw new ApiError('VALIDATION', 'ไม่พบผู้ใช้ที่จะโอนให้ หรือบัญชีถูกปิดไปแล้ว', 400);
     }
     data.ownerId = next || null;
+  }
+
+  /* สไลด์ 46 · "มีทรัพย์กลางที่แสดงเบอร์โทรและที่ตั้งของผู้ให้เช่าที่ทุกคนเห็นได้
+     — เจ้าของตั้งเท่านั้น" */
+  if (body.contactShared !== undefined) {
+    if (!canShareContact(user)) {
+      throw new ApiError('FORBIDDEN', 'เฉพาะเจ้าของระบบเท่านั้นที่ตั้งทรัพย์กลางได้', 403);
+    }
+    data.contactShared = !!body.contactShared;
   }
 
   if (typeof body.title === 'string' && body.title.trim()) data.title = body.title.trim();

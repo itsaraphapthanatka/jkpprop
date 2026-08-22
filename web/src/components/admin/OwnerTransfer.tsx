@@ -16,10 +16,12 @@ import { apiGet, apiPatch, ApiClientError } from '@/lib/apiClient';
 
 type Person = { id: string; name: string; role: string };
 
-export function OwnerTransfer({ propertyId, ownerId, ownerName }: {
+export function OwnerTransfer({ propertyId, ownerId, ownerName, contactShared }: {
   propertyId: string;
   ownerId: string | null;
   ownerName: string;
+  /** ทรัพย์กลาง — ทุกคนเห็นเบอร์ผู้ให้เช่า (สไลด์ 46 · เจ้าของระบบตั้งเท่านั้น) */
+  contactShared: boolean;
 }) {
   const [me, setMe] = React.useState<{ role: string } | null>(null);
   const [people, setPeople] = React.useState<Person[] | null>(null);
@@ -28,6 +30,8 @@ export function OwnerTransfer({ propertyId, ownerId, ownerName }: {
   const [busy, setBusy] = React.useState(false);
   const [msg, setMsg] = React.useState('');
   const [err, setErr] = React.useState('');
+  const [shared, setShared] = React.useState(contactShared);
+  const [sharedBusy, setSharedBusy] = React.useState(false);
 
   React.useEffect(() => {
     apiGet<{ role: string }>('/api/me/permissions').then(setMe).catch(() => setMe(null));
@@ -56,6 +60,24 @@ export function OwnerTransfer({ propertyId, ownerId, ownerName }: {
       setErr(e instanceof ApiClientError ? e.message : 'โอนไม่สำเร็จ');
     }
     setBusy(false);
+  };
+
+  /* สไลด์ 46 · ทรัพย์กลาง — ปกติเบอร์ผู้ให้เช่าเห็นได้เฉพาะคนที่ลงประกาศเอง
+     ติดธงนี้แล้วทุกคนในทีมเห็นได้ ใช้กับทรัพย์ที่รับมาเป็นของส่วนกลาง */
+  const toggleShared = async () => {
+    if (sharedBusy) return;
+    const next = !shared;
+    setSharedBusy(true);
+    setErr('');
+    setMsg('');
+    try {
+      await apiPatch(`/api/properties/${propertyId}`, { contactShared: next });
+      setShared(next);
+      setMsg(next ? 'เปิดเป็นทรัพย์กลางแล้ว' : 'ปิดทรัพย์กลางแล้ว');
+    } catch (e) {
+      setErr(e instanceof ApiClientError ? e.message : 'เปลี่ยนไม่สำเร็จ');
+    }
+    setSharedBusy(false);
   };
 
   return (
@@ -95,6 +117,28 @@ export function OwnerTransfer({ propertyId, ownerId, ownerName }: {
           {err && <span data-owner-err style={{ fontSize: 11.5, color: '#C0392B' }}>{err}</span>}
           {/* คนลาออกทีเดียวมีทรัพย์เป็นร้อย โอนทีละใบไม่ไหว */}
           <Link href="/admin/users" style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--accent)' }}>โอนทรัพย์ทั้งหมดของคนหนึ่ง (หน้า Users) →</Link>
+
+          {/* ทรัพย์กลาง — เจ้าของระบบตั้งเท่านั้น ตามที่สไลด์เขียน */}
+          <div style={{ marginTop: 6, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+            <button
+              type="button"
+              data-contact-shared
+              aria-pressed={shared}
+              onClick={toggleShared}
+              disabled={sharedBusy}
+              style={{ display: 'flex', alignItems: 'flex-start', gap: 9, width: '100%', padding: 0, border: 0, background: 'transparent', textAlign: 'left', cursor: sharedBusy ? 'default' : 'pointer', fontFamily: 'inherit' }}
+            >
+              <span style={{ width: 17, height: 17, marginTop: 2, borderRadius: 5, flexShrink: 0, border: '1.5px solid ' + (shared ? '#0D6C3B' : 'var(--border)'), background: shared ? '#0D6C3B' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {shared && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4"><path d="M20 6L9 17l-5-5" /></svg>}
+              </span>
+              <span>
+                <span style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: 'var(--text)' }}>ทรัพย์กลาง — ให้ทุกคนเห็นเบอร์ผู้ให้เช่า</span>
+                <span style={{ display: 'block', marginTop: 2, fontSize: 11.5, color: 'var(--muted)', lineHeight: 1.6 }}>
+                  ปกติเบอร์และที่ตั้งของผู้ให้เช่าเห็นได้เฉพาะคนที่ลงประกาศเอง
+                </span>
+              </span>
+            </button>
+          </div>
         </div>
       )}
     </div>

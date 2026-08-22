@@ -159,6 +159,25 @@ export const openapi = {
         responses: { 200: okRes('ล้าง session แล้ว', obj({ ok: BOOL })) },
       },
     },
+    /* สไลด์ 45 · โปรไฟล์ของฉัน กับสมุดรายชื่อทีม */
+    '/api/me': {
+      get: {
+        tags: ['Auth'], summary: 'โปรไฟล์ของบัญชีที่ล็อกอินอยู่',
+        responses: { 200: okRes('ข้อมูลโปรไฟล์'), 401: errRes('ยังไม่ได้เข้าสู่ระบบ') },
+      },
+      patch: {
+        tags: ['Auth'], summary: 'แก้ข้อมูลติดต่อของตัวเอง',
+        description: 'แก้ได้เฉพาะ ชื่อ · เบอร์โทร · LINE · ที่อยู่ — บทบาทและสิทธิ์ไม่อยู่ในนี้ ต่อให้ส่งมาก็ไม่ถูกอ่าน',
+        responses: { 200: okRes('บันทึกแล้ว'), 400: errRes('ข้อมูลไม่ถูกต้อง'), 401: errRes('ยังไม่ได้เข้าสู่ระบบ') },
+      },
+    },
+    '/api/team': {
+      get: {
+        tags: ['Auth'], summary: 'รายชื่อและข้อมูลติดต่อคนในทีม',
+        description: 'เฉพาะบัญชีที่ยังใช้งานอยู่ · ไม่ส่งบทบาทเชิงสิทธิ์ ขอบเขต หรือวันหมดอายุออกไป',
+        responses: { 200: okRes('รายชื่อทีม'), 401: errRes('ยังไม่ได้เข้าสู่ระบบ') },
+      },
+    },
     '/api/me/permissions': {
       get: {
         tags: ['Auth'], summary: 'ผู้ใช้ปัจจุบัน + สิทธิ์ที่ใช้ได้จริง',
@@ -848,6 +867,16 @@ export const openapi = {
         parameters: [pathParam('id', 'id ของผู้ใช้')],
         requestBody: body(obj({ role: STR, scope: STR, privileges: arrayOf(STR), expiresAt: STR }, ['role'])),
         responses: { 200: okRes('บันทึกแล้ว'), ...WITH_404 },
+      },
+    },
+    /* สไลด์ 46 · "เจ้าของสามารถโอนสิทธิ์ Property ได้ · เตรียมไว้คนลาออก" */
+    '/api/users/{id}/transfer': {
+      post: {
+        tags: ['Admin'], summary: 'โอนทรัพย์ทั้งหมดของผู้ใช้คนนี้ไปให้อีกคน (owner)',
+        description: 'ใช้ตอนมีคนลาออก · ผู้รับโอนต้องเป็นบัญชีที่ยังใช้งานอยู่',
+        parameters: [pathParam('id', 'id ของผู้ใช้ที่จะโอนทรัพย์ออก')],
+        requestBody: body(obj({ toUserId: STR }, ['toUserId'])),
+        responses: { 200: okRes('โอนแล้ว'), ...WITH_404 },
       },
     },
     '/api/users/{id}/status': {

@@ -11,6 +11,7 @@ import { propertyDto, displayProvince, displayFullLocation } from '@/lib/server/
 import { missingTitles, parseI18n } from '@/lib/server/propertyI18n';
 import { PROPERTY_TYPES } from '@/lib/propertySchema';
 import type { Prisma } from '@prisma/client';
+import { picPhoneMap } from '@/lib/server/lessorAccess';
 
 /* UI filter chips send Thai labels — map both label and key */
 const TYPE_KEYS: Record<string, string[]> = {
@@ -55,8 +56,10 @@ export const GET = handler(async (req: Request) => {
   );
   /* สไลด์ 22 · "แขวง เขต จังหวัด" — ตารางเคยแสดงแค่เขตกับจังหวัด ทีมจึงแยก
      ทรัพย์ที่อยู่คนละแขวงแต่อำเภอเดียวกันไม่ออก */
+  /* สไลด์ 46 · เบอร์ PIC ของทุกแถวในคำสั่งเดียว — ถามทีละใบคือ 500 คำสั่ง */
+  const picPhones = await picPhoneMap(user.orgId, rows);
   let items = rows.map((p) => ({
-    ...propertyDto(p, user),
+    ...propertyDto(p, user, picPhones.get(String(((p.values ?? {}) as Record<string, unknown>).pic ?? '').trim()) ?? ''),
     location: displayFullLocation((p.values ?? {}) as Record<string, unknown>),
     available: !taken.has(p.id),
   }));

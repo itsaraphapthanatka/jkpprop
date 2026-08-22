@@ -10,6 +10,8 @@ import { db } from '@/lib/server/db';
 import { advanceLead } from '@/lib/server/leadPipeline';
 import { requirementInput, requirementDto, CANCEL_FIELDS } from '@/lib/server/requirements';
 import { displayArea, displayLocation, stripInternal } from '@/lib/server/propertyDto';
+import { canSeeLessor, picPhoneMap } from '@/lib/server/lessorAccess';
+import type { User } from '@prisma/client';
 
 const INCLUDE = {
   /* สไลด์ 37 · "ชื่อลูกค้าหรือบริษัทอยู่ตรงไหน · รู้ได้อย่างไรว่าทำแผนลูกค้า
@@ -22,7 +24,7 @@ const INCLUDE = {
    same thing. Each row is now a real property plus the last answer the team
    got from its landlord, and `available` is computed from the property's own
    status — a listing taken off the market can never read "ว่าง" again. */
-async function checksFor(orgId: string, requirementId: string) {
+async function checksFor(orgId: string, requirementId: string, user: User) {
   const checks = await db.availabilityCheck.findMany({
     where: { requirementId },
     orderBy: { checkedAt: 'desc' },
@@ -33,6 +35,7 @@ async function checksFor(orgId: string, requirementId: string) {
     where: { orgId, id: { in: checks.map((c) => c.propertyId) } },
   });
   const byId = new Map(props.map((p) => [p.id, p]));
+  const picPhones = await picPhoneMap(orgId, props);
 
   return checks.flatMap((c) => {
     const p = byId.get(c.propertyId);
@@ -59,8 +62,13 @@ async function checksFor(orgId: string, requirementId: string) {
         const raw = ((p.values ?? {}) as Record<string, unknown>).photos;
         return Array.isArray(raw) && typeof raw[0] === 'string' ? (raw[0] as string) : null;
       })(),
-      contactName: String(((p.values ?? {}) as Record<string, unknown>).lessor_name ?? ''),
-      contactPhone: String(((p.values ?? {}) as Record<string, unknown>).lessor_phone ?? ''),
+      /* สไลด์ 46 · "ในขั้นตอนทุกขั้นตอนที่เบอร์โทรและที่ตั้งของผู้ให้เช่า แต่ละคน
+         ควรเห็นแค่ของประกาศที่ตัวเองสร้าง นอกนั้นควรเห็นแค่เบอร์โทร PIC"
+         แผงเช็คว่างก็เป็นหนึ่งใน "ทุกขั้นตอน" นั้น */
+      contactName: canSeeLessor(user, p) ? String(((p.values ?? {}) as Record<string, unknown>).lessor_name ?? '') : '',
+      contactPhone: canSeeLessor(user, p) ? String(((p.values ?? {}) as Record<string, unknown>).lessor_phone ?? '') : '',
+      contactHidden: !canSeeLessor(user, p),
+      picPhone: canSeeLessor(user, p) ? '' : (picPhones.get(String(((p.values ?? {}) as Record<string, unknown>).pic ?? '').trim()) ?? ''),
       checkedAt: c.checkedAt.getTime(),
     }];
   });
@@ -80,7 +88,7 @@ export const GET = handler(async (_req: Request, ctx: { params: Promise<{ id: st
 
   return ok({
     ...requirementDto(row),
-    checks: await checksFor(user.orgId, id),
+    checks: await checksFor(user.orgId, id, user),
     shortlists: shortlists.map((s) => ({
       id: s.id, name: s.name, status: s.status, count: s.items.length,
       url: `/client-shortlist?token=${s.token}`, createdAt: s.createdAt.getTime(),
@@ -145,7 +153,7 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
   });
 
   const updated = await db.requirement.findFirst({ where: { id }, include: INCLUDE });
-  return ok({ ...requirementDto(updated!), checks: await checksFor(user.orgId, id) });
+  return ok({ ...requirementDto(updated!), checks: await checksFor(user.orgId, id, user) });
 });
 
 export const DELETE = handler(async (_req: Request, ctx: { params: Promise<{ id: string }> }) => {

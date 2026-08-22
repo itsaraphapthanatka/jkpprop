@@ -8,6 +8,7 @@ import { provinceLabel, districtLabel, subdistrictLabel, type GeoOverrides } fro
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/config';
 import { parseI18n } from './propertyI18n';
 import { canCompose, composeTitle, isAutoTitle } from '@/lib/propertyTitle';
+import { canSeeLessor, maskLessor, type PropertyAccess } from './lessorAccess';
 
 type Vals = Record<string, unknown>;
 
@@ -16,9 +17,22 @@ const INTERNAL_KEYS: Record<string, string[]> = Object.fromEntries(
   PROPERTY_TYPES.map((t) => [t.key, t.fields.filter((f) => f.internalOnly).map((f) => f.key)]),
 );
 
-export function stripInternal(typeKey: string, values: Vals, user: User | null): Vals {
+/* `access` = ทรัพย์ใบนี้เป็นของใครและเปิดเป็นทรัพย์กลางไว้หรือเปล่า
+   ไม่ส่งมา = ใช้กติกาเดิม (สิทธิ์ internal_note อย่างเดียว) — ปลายทางสาธารณะ
+   ส่ง user เป็น null อยู่แล้วจึงไม่กระทบ */
+export function stripInternal(
+  typeKey: string,
+  values: Vals,
+  user: User | null,
+  access?: PropertyAccess & { picPhone?: string },
+): Vals {
   // null user = public endpoint → always strip (FRONTEND_API_SPEC §3 🔒)
-  if (user && hasPriv(user, 'internal_note')) return values;
+  if (user && hasPriv(user, 'internal_note')) {
+    /* สไลด์ 46 · เบอร์กับที่ตั้งของผู้ให้เช่าเห็นได้เฉพาะทรัพย์ของตัวเอง
+       (หรือทรัพย์กลาง) นอกนั้นได้เบอร์ PIC ไปแทน */
+    if (access && !canSeeLessor(user, access)) return maskLessor(values, access.picPhone ?? '');
+    return values;
+  }
   const out = { ...values };
   for (const k of INTERNAL_KEYS[typeKey] ?? []) delete out[k];
   return stripCoords(out);
@@ -87,8 +101,10 @@ export function autoOrStored(title: string, code: string, typeKey: string, value
   return isAutoTitle(title, code) && canCompose(parts) ? composeTitle(parts, DEFAULT_LOCALE) : title;
 }
 
-export function propertyDto(p: Property, user: User | null) {
-  const values = stripInternal(p.typeKey, (p.values ?? {}) as Vals, user);
+export function propertyDto(p: Property, user: User | null, picPhone = '') {
+  const values = stripInternal(p.typeKey, (p.values ?? {}) as Vals, user, {
+    ownerId: p.ownerId, contactShared: p.contactShared, picPhone,
+  });
   return {
     id: p.id,
     publicCode: p.publicCode,
@@ -107,6 +123,7 @@ export function propertyDto(p: Property, user: User | null) {
     location: displayLocation(values),
     area: displayArea(values),
     ownerId: p.ownerId,
+    contactShared: p.contactShared,
     createdAt: p.createdAt.getTime(),
     updatedAt: p.updatedAt.getTime(),
   };
