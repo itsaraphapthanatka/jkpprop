@@ -308,6 +308,9 @@ export function PropertiesBody() {
      what the button always looked like it did. BOM first so Excel on Windows
      opens Thai without turning it into mojibake. */
   const exportCsv = () => {
+    /* items === null คือยังโหลดไม่เสร็จ ไม่ใช่ "ไม่มีทรัพย์" — กด Export ทันทีที่
+       เปิดหน้าเคยได้กล่องบอกว่าไม่มีอะไรให้ export ทั้งที่ของกำลังมา */
+    if (items === null) { window.alert('กำลังโหลดรายการอยู่ — รอสักครู่แล้วกดใหม่'); return; }
     const all = shown;
     // ticking rows and pressing Export should give those rows, not the page
     const rows = sel.size ? all.filter((r) => sel.has(r.id)) : all;

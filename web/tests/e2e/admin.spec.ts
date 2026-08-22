@@ -2066,6 +2066,8 @@ test.describe('the listings screen', () => {
 
   test('Export writes a CSV of the rows on screen', async ({ page }) => {
     await page.goto('/admin/listings');
+    // รอให้รายการโหลดเสร็จก่อน — กดตอนยังโหลดอยู่ไม่มีอะไรให้ export
+    await expect(page.locator('.lst-row').first()).toBeVisible();
     const [download] = await Promise.all([
       page.waitForEvent('download'),
       page.locator('#lst-export').click(),

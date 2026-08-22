@@ -45,7 +45,7 @@ export const GET = handler(async () => {
       const price = fmtPrice(values);
       return {
         id: p.id,
-        title: autoOrStored(p.title, p.publicCode, p.typeKey, (p.values ?? {}) as Record<string, unknown>),
+        title: autoOrStored(p.title, p.publicCode, p.typeKey, values),
         code: p.publicCode,
         // the admin table used to guess the type from words in the title
         typeKey: p.typeKey,

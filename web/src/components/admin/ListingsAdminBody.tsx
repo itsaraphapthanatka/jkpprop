@@ -351,6 +351,9 @@ export function ListingsAdminBody() {
   /* Export was a dropdown with two dead entries. CSV of what the filters are
      showing, BOM first so Excel on Windows reads the Thai. */
   const exportCsv = () => {
+    /* rows === null คือยังโหลดไม่เสร็จ ไม่ใช่ "ไม่มีประกาศ" — กด Export ทันทีที่
+       เปิดหน้าเคยได้กล่องบอกว่าไม่มีอะไรให้ export ทั้งที่ของกำลังมา */
+    if (rows === null) { window.alert('กำลังโหลดรายการอยู่ — รอสักครู่แล้วกดใหม่'); return; }
     if (!filtered.length) { window.alert('ไม่มีประกาศให้ export ตามเงื่อนไขที่เลือก'); return; }
     const cell = (v: unknown) => {
       const t = v === null || v === undefined ? '' : String(v);
