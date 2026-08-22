@@ -8,6 +8,7 @@ import { localizePath } from '@/i18n/config';
 import Image from 'next/image';
 import { useDict } from '@/i18n/useDict';
 import { SavedLink } from '@/components/site/SavedLink';
+import { TYPE_MENUS } from '@/lib/navMenus';
 
 /* ============================================================
    Shared header for the content pages (About / FAQ / Contact).
@@ -92,8 +93,9 @@ const ddItem: React.CSSProperties = { display: 'block', padding: '10px 12px', bo
 
 export function ContentHeader({ active }: { active?: 'about' | 'faq' }) {
   const d = useDict();
-  const [navFactory, setNavFactory] = useState(false);
-  const [navWarehouse, setNavWarehouse] = useState(false);
+  /* เก็บว่าเมนูไหนเปิดอยู่เป็นคีย์เดียว ไม่ใช่ boolean ต่อประเภท — เพิ่มประเภท
+     ใหม่แล้วไม่ต้องมาเพิ่ม state ตามอีก (แถบบนอีกสามชุดทำแบบนี้อยู่แล้ว) */
+  const [navOpen, setNavOpen] = useState<string | null>(null);
   const [langOpen, setLangOpen] = useState(false);
   // the URL is the source of truth for language — picking one navigates
   const router = useRouter();
@@ -101,8 +103,7 @@ export function ContentHeader({ active }: { active?: 'about' | 'faq' }) {
   const lang = useLocale() as Lang;
   const setLang = (next: Lang) => router.push(localizePath(pathname ?? '/', next));
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [mFactory, setMFactory] = useState(false);
-  const [mWarehouse, setMWarehouse] = useState(false);
+  const [drawerOpenKey, setDrawerOpenKey] = useState<string | null>(null);
 
   const topLink = (label: string, href: string, isActive: boolean) => (
     <a
@@ -133,35 +134,34 @@ export function ContentHeader({ active }: { active?: 'about' | 'faq' }) {
           </Link>
 
           <nav style={{ display: 'flex', alignItems: 'center', gap: 26 }}>
-            {/* โรงงาน */}
-            <div style={{ position: 'relative' }} onMouseEnter={() => setNavFactory(true)} onMouseLeave={() => setNavFactory(false)}>
-              <div className="nav-link" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 500, color: 'var(--muted)', cursor: 'pointer', padding: '4px 0' }}>
-                {d.nav.factory} {chev(navFactory)}
-              </div>
-              {navFactory && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, paddingTop: 10, width: 150 }}>
-                  <div style={ddPanel}>
-                    <Link className="dd-item" href="/factory-rent" style={ddItem}>{d.nav.factoryRent}</Link>
-                    <Link className="dd-item" href="/factory-sale" style={ddItem}>{d.nav.factorySale}</Link>
-                  </div>
+            {/* ตารางเดียวกับแถบบนของหน้าแรก · หน้ารายการ · หน้าทรัพย์ (lib/navMenus.ts)
+                เดิมหน้านี้เขียนเมนูเองและมีแค่โรงงานกับโกดัง คนที่เปิด "คำถามพบบ่อย"
+                หรือ "เกี่ยวกับเรา" จึงหาโชว์รูมกับที่ดินไม่เจอ ทั้งที่หน้าแรกมี */}
+            {TYPE_MENUS.map((m) => (
+              <div
+                key={m.key}
+                style={{ position: 'relative' }}
+                onMouseEnter={() => setNavOpen(m.key)}
+                onMouseLeave={() => setNavOpen((cur) => (cur === m.key ? null : cur))}
+              >
+                <div
+                  className="nav-link"
+                  data-nav-type={m.key}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 500, color: 'var(--muted)', cursor: 'pointer', padding: '4px 0', whiteSpace: 'nowrap' }}
+                >
+                  {m.label(d)} {chev(navOpen === m.key)}
                 </div>
-              )}
-            </div>
-
-            {/* โกดัง */}
-            <div style={{ position: 'relative' }} onMouseEnter={() => setNavWarehouse(true)} onMouseLeave={() => setNavWarehouse(false)}>
-              <div className="nav-link" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 500, color: 'var(--muted)', cursor: 'pointer', padding: '4px 0' }}>
-                {d.nav.warehouse} {chev(navWarehouse)}
-              </div>
-              {navWarehouse && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, paddingTop: 10, width: 150 }}>
-                  <div style={ddPanel}>
-                    <Link className="dd-item" href="/warehouse-rent" style={ddItem}>{d.nav.warehouseRent}</Link>
-                    <Link className="dd-item" href="/warehouse-sale" style={ddItem}>{d.nav.warehouseSale}</Link>
+                {navOpen === m.key && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, paddingTop: 10, minWidth: 150 }}>
+                    <div style={ddPanel}>
+                      {m.items.map(([href, label]) => (
+                        <Link key={href} className="dd-item" href={href} style={ddItem}>{label(d)}</Link>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            ))}
 
             {topLink(d.nav.faq, '/faq', active === 'faq')}
             {topLink(d.nav.about, '/about', active === 'about')}
@@ -260,26 +260,25 @@ export function ContentHeader({ active }: { active?: 'about' | 'faq' }) {
           </div>
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '10px 14px 20px' }}>
-          <div onClick={() => setMFactory((v) => !v)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '15px 10px', borderRadius: 12, cursor: 'pointer' }}>
-            <span style={{ fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>{d.nav.factory}</span>
-            {chev(mFactory, 14, 'var(--muted)')}
-          </div>
-          {mFactory && (
-            <div style={{ padding: '0 10px 10px 22px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Link href="/factory-rent" style={{ padding: '10px 12px', borderRadius: 10, fontSize: 14, fontWeight: 600, color: 'var(--muted)' }}>{d.nav.factoryRent}</Link>
-              <Link href="/factory-sale" style={{ padding: '10px 12px', borderRadius: 10, fontSize: 14, fontWeight: 600, color: 'var(--muted)' }}>{d.nav.factorySale}</Link>
-            </div>
-          )}
-          <div onClick={() => setMWarehouse((v) => !v)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '15px 10px', borderRadius: 12, cursor: 'pointer' }}>
-            <span style={{ fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>{d.nav.warehouse}</span>
-            {chev(mWarehouse, 14, 'var(--muted)')}
-          </div>
-          {mWarehouse && (
-            <div style={{ padding: '0 10px 10px 22px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Link href="/warehouse-rent" style={{ padding: '10px 12px', borderRadius: 10, fontSize: 14, fontWeight: 600, color: 'var(--muted)' }}>{d.nav.warehouseRent}</Link>
-              <Link href="/warehouse-sale" style={{ padding: '10px 12px', borderRadius: 10, fontSize: 14, fontWeight: 600, color: 'var(--muted)' }}>{d.nav.warehouseSale}</Link>
-            </div>
-          )}
+          {/* ลิ้นชักมือถือก็ใช้ตารางเดียวกัน — เดิมมีแค่โรงงานกับโกดังเหมือนจอใหญ่ */}
+          {TYPE_MENUS.map((m) => {
+            const open = drawerOpenKey === m.key;
+            return (
+              <div key={m.key}>
+                <div onClick={() => setDrawerOpenKey(open ? null : m.key)} data-drawer-type={m.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '15px 10px', borderRadius: 12, cursor: 'pointer' }}>
+                  <span style={{ fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>{m.label(d)}</span>
+                  {chev(open, 14, 'var(--muted)')}
+                </div>
+                {open && (
+                  <div style={{ padding: '0 10px 10px 22px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {m.items.map(([href, label]) => (
+                      <Link key={href} href={href} style={{ padding: '10px 12px', borderRadius: 10, fontSize: 14, fontWeight: 600, color: 'var(--muted)' }}>{label(d)}</Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
           <Link href="/faq" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>{d.nav.faq}</Link>
           <Link href="/about" style={{ display: 'block', padding: '15px 10px', borderRadius: 12, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)' }}>{d.nav.about}</Link>
           <SavedLink block />
