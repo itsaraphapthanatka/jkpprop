@@ -1750,6 +1750,31 @@ test.describe('คอมเมนต์ลูกค้า · โปรไฟล�
   });
 });
 
+/* "เปลี่ยนเป็นรูป" — รายการทรัพย์ที่เลือกได้ในหน้า Shortlist เป็นไอคอนบ้านสีเทา
+   เหมือนกันทุกแถว ทั้งที่เป็นจุดที่ต้องดูรูปมากที่สุด เพราะกำลังตัดสินใจว่าจะส่ง
+   ใบไหนให้ลูกค้า (รายการที่เพิ่มเข้าไปแล้วมีรูปอยู่ก่อนแล้ว) */
+test.describe('คอมเมนต์ลูกค้า · รูปในหน้า Shortlist', () => {
+  test('รายการทรัพย์ที่เลือกได้ แสดงรูปจริงไม่ใช่ไอคอน', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=40')).json()).items as { img: string | null }[];
+    test.skip(!items.some((i) => i.img), 'ยังไม่มีทรัพย์ที่มีรูป');
+
+    await page.goto('/admin/shortlists');
+    const withImg = page.locator('[data-cand-img]');
+    await expect(withImg.first(), 'รายการที่เลือกได้ยังไม่ขึ้นรูป').toBeVisible({ timeout: 20000 });
+    await expect(withImg.first()).toHaveAttribute('src', /^\/api\/media\//);
+
+    /* ทุกแถวต้องบอกได้ว่ามีรูปหรือไม่มี — ไม่ใช่ปล่อยว่าง */
+    const rows = await page.locator('[data-cand-img], [data-cand-noimg]').count();
+    expect(rows, 'ทุกแถวต้องมีทั้งรูปหรือป้ายว่ายังไม่มีรูป').toBeGreaterThan(0);
+  });
+});
+
 /* สไลด์ 46 · ใครเห็นเบอร์และที่ตั้งของผู้ให้เช่าได้บ้าง
    "แต่ละคนควรเห็นแค่เบอร์โทรและที่ตั้งของประกาศที่ตัวเองสร้าง นอกนั้นควรเห็นแค่
    เบอร์โทร PIC ที่รับผิดชอบ — ยกเว้นผู้จัดการและเจ้าของ" และ "มีทรัพย์กลางที่

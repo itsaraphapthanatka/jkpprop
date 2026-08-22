@@ -58,12 +58,12 @@ type ApiDetail = {
   id: string; name: string; token: string; status: string; url: string;
   leadId: string | null; requirement: ApiRequirement | null; items: ApiItem[];
 };
-type ApiProperty = { publicCode: string; title: string; status: string; location?: string; area?: number | null };
+type ApiProperty = { publicCode: string; title: string; status: string; location?: string; area?: number | null; values?: Record<string, unknown> };
 
 type Avail = 'available' | 'unavailable';
 
 type Row = { key: string; title: string; code: string; size: string; price: string; note: string; owner: string; phone: string; feedback: string | null; feedbackNote: string | null; img?: string | null };
-type CandidateVal = { id: string; title: string; code: string; size: string; price: string; owner: string; phone: string; blocked: boolean; canAdd: boolean; isAdded: boolean; dim: boolean; add: () => void };
+type CandidateVal = { id: string; title: string; code: string; size: string; price: string; owner: string; phone: string; blocked: boolean; canAdd: boolean; isAdded: boolean; dim: boolean; img: string | null; add: () => void };
 type ItemVal = Row & { rank: string; avail: Avail; remove: () => void };
 
 const nf = new Intl.NumberFormat('en-US');
@@ -213,6 +213,13 @@ export function ShortlistProvider({ children, shortlistId }: { children: React.R
       code: p.publicCode,
       title: p.title,
       size: p.area ? `${nf.format(p.area)} ตร.ม.` : '—',
+      /* รูปแรกของทรัพย์ — รายการที่เพิ่มเข้าไปแล้วมีรูปอยู่แล้ว แต่รายการที่ยัง
+         เลือกอยู่กลับเป็นไอคอนบ้านสีเทาเหมือนกันทุกแถว ซึ่งเป็นจุดที่ต้องดูรูป
+         มากที่สุด เพราะกำลังตัดสินใจว่าจะส่งใบไหนให้ลูกค้า */
+      img: (() => {
+        const ph = (p.values ?? {}).photos;
+        return Array.isArray(ph) && typeof ph[0] === 'string' ? (ph[0] as string) : null;
+      })(),
       price: '—',
       owner: '—',
       phone: '',
@@ -590,9 +597,20 @@ export function ShortlistMain() {
             <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
               {candidates.map((c) => (
                 <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 12px', borderRadius: 11, background: 'var(--bg)', opacity: c.dim ? 0.55 : undefined }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--tint)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3 21V8l9-5 9 5v13" /><path d="M3 21h18" /><path d="M7 21v-8h10v8" /></svg>
-                  </div>
+                  {c.img ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={thumb(c.img, 160)}
+                      alt={c.code}
+                      loading="lazy"
+                      data-cand-img={c.code}
+                      style={{ width: 36, height: 36, borderRadius: 9, objectFit: 'cover', border: '1px solid var(--border)', flexShrink: 0 }}
+                    />
+                  ) : (
+                    <div data-cand-noimg={c.code} title="ทรัพย์นี้ยังไม่มีรูป" style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--tint)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3 21V8l9-5 9 5v13" /><path d="M3 21h18" /><path d="M7 21v-8h10v8" /></svg>
+                    </div>
+                  )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.title}</div>
                     <code style={{ fontFamily: MONO, fontSize: 11, color: '#0D6C3B', fontWeight: 700 }}>{c.code}</code>{' '}<span style={{ fontSize: 11, color: 'var(--muted3)' }}>· {c.size}</span>
