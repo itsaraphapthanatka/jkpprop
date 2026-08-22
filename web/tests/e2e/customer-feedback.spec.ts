@@ -1861,6 +1861,191 @@ test.describe('คอมเมนต์ลูกค้า · รูปในห�
   });
 });
 
+/* "เพิ่ม column PIC ก่อน ในตาราง property, Listing, Social Status" — ทั้งสาม
+   ตารางมีตัวกรอง PIC มาตลอด แต่ไม่มีคอลัมน์ให้เห็นว่าใครดูแล กรองได้แต่มอง
+   ไม่เห็น เลยต้องจำเอาเองว่าเพิ่งกรองใครไว้ */
+test.describe('คอมเมนต์ลูกค้า · คอลัมน์ PIC ในสามตาราง', () => {
+  const PIC = 'คุณทดสอบพีไอซี';
+  let cookie = '';
+  let made: { id: string; publicCode: string } | null = null;
+
+  test.beforeEach(async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: {
+        typeKey: 'warehouse', title: `ทดสอบคอลัมน์ PIC ${Date.now().toString(36)}`, status: 'active',
+        values: { province: 'สมุทรปราการ', deal_type: 'ให้เช่า', pic: PIC },
+      },
+    })).json();
+  });
+
+  test.afterEach(async ({ request }) => {
+    if (made) await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
+    made = null;
+  });
+
+  /* ทั้งสามหน้าใช้ตัวช่วยเดียวกัน — ค้นด้วยรหัสก่อนเพราะตารางแบ่งหน้า 25 แถว
+     ต้องระบุ placeholder เต็ม เพราะแถบบนสุดของ /admin ก็มีช่องค้นหาเหมือนกัน
+     ซึ่งไม่ได้กรองตาราง */
+  const SEARCH = 'ค้นหาด้วยชื่อประกาศ หรือรหัสทรัพย์ (JKP…)';
+  const findRow = async (page: import('@playwright/test').Page, url: string) => {
+    await page.goto(url);
+    await page.getByPlaceholder(SEARCH).fill(made!.publicCode);
+    await page.waitForTimeout(700);
+  };
+
+  test('ตาราง Properties มีคอลัมน์ผู้ดูแล และขึ้นชื่อจริง', async ({ page }) => {
+    await findRow(page, '/admin/properties');
+    await expect(page.locator('thead'), 'ไม่มีหัวคอลัมน์ผู้ดูแล').toContainText('ผู้ดูแล (PIC)');
+    await expect(page.locator(`[data-pic="${PIC}"]`).first(), 'ไม่ขึ้นชื่อผู้ดูแลในแถว').toBeVisible({ timeout: 15000 });
+  });
+
+  test('ตาราง Listings มีคอลัมน์ผู้ดูแล และขึ้นชื่อจริง', async ({ page }) => {
+    await findRow(page, '/admin/listings');
+    await expect(page.locator('thead')).toContainText('ผู้ดูแล (PIC)');
+    await expect(page.locator(`[data-pic="${PIC}"]`).first()).toBeVisible({ timeout: 15000 });
+  });
+
+  test('ตาราง Social Status มีคอลัมน์ผู้ดูแล และขึ้นชื่อจริง', async ({ page }) => {
+    await findRow(page, '/admin/social-status');
+    await expect(page.locator('thead')).toContainText('ผู้ดูแล (PIC)');
+    await expect(page.locator(`[data-pic="${PIC}"]`).first()).toBeVisible({ timeout: 15000 });
+  });
+
+  test('ทรัพย์ที่ยังไม่มีคนดูแล บอกว่า "ยังไม่ระบุ" ไม่ใช่ปล่อยว่าง', async ({ page, request }) => {
+    const bare = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: {
+        typeKey: 'warehouse', title: `ทดสอบไม่มี PIC ${Date.now().toString(36)}`, status: 'active',
+        values: { province: 'สมุทรปราการ', deal_type: 'ให้เช่า' },
+      },
+    })).json();
+    try {
+      await page.goto('/admin/listings');
+      await page.getByPlaceholder(SEARCH).fill(bare.publicCode);
+      await page.waitForTimeout(700);
+      await expect(page.locator('[data-pic-none]').first()).toBeVisible({ timeout: 15000 });
+    } finally {
+      await request.delete(`/api/properties/${bare.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+});
+
+/* "Users & Roles ไม่มี ลบ user และไม่มีแก้ไข email" — เดิมทำได้แค่เชิญ ปิดใช้งาน
+   และตั้งสิทธิ์ อีเมลตั้งได้ครั้งเดียวตอนเชิญ พิมพ์ผิดก็แก้ไม่ได้ ต้องเชิญใหม่
+   แล้วปล่อยบัญชีผิดค้างไว้ ซึ่งลบก็ไม่ได้อีก */
+test.describe('คอมเมนต์ลูกค้า · แก้อีเมลและลบบัญชีผู้ใช้', () => {
+  const signIn = async (page: import('@playwright/test').Page) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    return (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  };
+  const invite = async (request: import('@playwright/test').APIRequestContext, cookie: string, tag: string) => {
+    const email = `pic-test-${tag}-${Date.now().toString(36)}@jkp.local`;
+    const r = await request.post('/api/users/invite', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { email, name: `ทดสอบ ${tag}`, role: 'agent' },
+    });
+    expect(r.ok(), 'เชิญผู้ใช้ทดสอบไม่สำเร็จ').toBe(true);
+    return { email, id: (await r.json()).id as string };
+  };
+
+  test('แก้อีเมลของผู้ใช้ได้จากหน้า Users & Roles', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const u = await invite(request, cookie, 'mail');
+    const next = `changed-${Date.now().toString(36)}@jkp.local`;
+    try {
+      await page.goto('/admin/users');
+      await page.locator(`[data-edit-email="${u.id}"]`).click();
+      await page.locator('[data-email-input]').fill(next);
+      await page.locator('[data-email-save]').click();
+      await expect(page.locator('[data-email-modal]')).toHaveCount(0, { timeout: 15000 });
+      await expect(page.getByText(next)).toBeVisible({ timeout: 15000 });
+
+      /* เปลี่ยนจริงในฐานข้อมูล ไม่ใช่แค่บนหน้าจอ */
+      const list = await (await request.get('/api/users', { headers: { cookie } })).json();
+      const row = (list.items as { id: string; email: string }[]).find((x) => x.id === u.id);
+      expect(row?.email, 'อีเมลในฐานข้อมูลยังไม่เปลี่ยน').toBe(next);
+    } finally {
+      await request.delete(`/api/users/${u.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+
+  test('อีเมลซ้ำกับบัญชีอื่น ต้องบอกตรง ๆ ไม่ใช่ error ของฐานข้อมูล', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const u = await invite(request, cookie, 'dup');
+    try {
+      await page.goto('/admin/users');
+      await page.locator(`[data-edit-email="${u.id}"]`).click();
+      await page.locator('[data-email-input]').fill('owner@jkp.local');
+      await page.locator('[data-email-save]').click();
+      await expect(page.locator('[data-email-err]')).toContainText('มีคนใช้แล้ว', { timeout: 15000 });
+    } finally {
+      await request.delete(`/api/users/${u.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+
+  test('ลบบัญชีผู้ใช้ได้ และหายไปจากรายชื่อจริง', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const u = await invite(request, cookie, 'del');
+    await page.goto('/admin/users');
+    await expect(page.getByText(u.email)).toBeVisible({ timeout: 15000 });
+    await page.locator(`[data-delete-user="${u.id}"]`).click();
+    await page.locator('[data-delete-go]').click();
+    await expect(page.locator('[data-delete-modal]')).toHaveCount(0, { timeout: 15000 });
+    await expect(page.getByText(u.email)).toHaveCount(0, { timeout: 15000 });
+
+    const list = await (await request.get('/api/users', { headers: { cookie } })).json();
+    expect((list.items as { id: string }[]).some((x) => x.id === u.id), 'ยังอยู่ในฐานข้อมูล').toBe(false);
+  });
+
+  test('คนที่ยังมีทรัพย์อยู่ ลบไม่ได้ — ต้องโอนออกก่อน', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const u = await invite(request, cookie, 'own');
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { typeKey: 'warehouse', title: `ทดสอบกันลบ ${Date.now().toString(36)}`, status: 'draft', values: { province: 'สมุทรปราการ', deal_type: 'ให้เช่า' } },
+    })).json();
+    try {
+      /* ผูกทรัพย์ใบนี้ไว้กับบัญชีที่จะลบ */
+      const r = await request.patch(`/api/properties/${made.id}`, {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { ownerId: u.id },
+      });
+      test.skip(!r.ok(), 'เปลี่ยนเจ้าของทรัพย์ผ่าน API ไม่ได้');
+
+      await page.goto('/admin/users');
+      await page.locator(`[data-delete-user="${u.id}"]`).click();
+      await page.locator('[data-delete-go]').click();
+      await expect(page.locator('[data-delete-err]'), 'ต้องบอกว่าให้โอนทรัพย์ออกก่อน').toContainText('โอนออก', { timeout: 15000 });
+      await expect(page.locator('[data-delete-modal]')).toBeVisible();
+    } finally {
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
+      await request.delete(`/api/users/${u.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+
+  test('ลบบัญชีตัวเองไม่ได้', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const me = await (await request.get('/api/me', { headers: { cookie } })).json();
+    const r = await request.delete(`/api/users/${me.id}`, { headers: { cookie } });
+    expect(r.ok(), 'เซิร์ฟเวอร์ต้องไม่ยอมให้ลบบัญชีตัวเอง').toBe(false);
+
+    /* บัญชียังอยู่จริง */
+    const list = await (await request.get('/api/users', { headers: { cookie } })).json();
+    expect((list.items as { id: string }[]).some((x) => x.id === me.id)).toBe(true);
+  });
+});
+
 /* "ประเภทประกาศ * ขาย ไม่ต้องแสดงราคาต่อ ตร.ม" — ประกาศขายไม่ควรมีช่องนี้
    ให้กรอก เพราะราคาต่อ ตร.ม. ของฝั่งขายคือ ราคาขาย ÷ พื้นที่ ซึ่งระบบคำนวณ
    ให้เองอยู่แล้ว ถามซ้ำมีแต่จะได้ตัวเลขที่ขัดกับราคาขายที่กรอกไว้ */

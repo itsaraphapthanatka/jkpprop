@@ -14,6 +14,7 @@ import { apiGet, apiPut, apiPost, apiDelete, apiFetch, ApiClientError } from '@/
 import { MediaLibraryPicker } from './MediaLibraryPicker';
 import { propertyType } from '@/lib/propertySchema';
 import { buildZip, extForMime, safeFileName, type ZipEntry } from '@/lib/zip';
+import { PicCell, PIC_TH } from './PicCell';
 
 /* รูปสำหรับโพสต์ของประกาศหนึ่ง — สไลด์ 35
    อัปโหลดใหม่ หรือหยิบจากคลังสื่อ (ไม่ต้องอัปซ้ำ) · ลบทีละใบได้
@@ -374,6 +375,10 @@ export function SocialStatusBody() {
             <thead>
               <tr style={{ background: 'var(--bg)' }}>
                 <th style={th}>Listing</th>
+                {/* ตัวกรอง PIC มีมาตลอด แต่ไม่เคยมีคอลัมน์ให้เห็นว่าใครดูแล
+                    หน้านี้ต้องรู้ว่าใครรับผิดชอบมากที่สุด เพราะคนที่ยังลงไม่ครบ
+                    คือคนที่ต้องไปตาม */}
+                <th style={{ ...th, whiteSpace: 'nowrap' }}>{PIC_TH}</th>
                 <th style={th}>ช่องทางที่ลงประกาศแล้ว</th>
                 {/* สไลด์ 35 · "ไม่มีให้โหลดรูปภาพของแต่ละประกาศ · จำเป็น" */}
                 <th style={{ ...th, textAlign: 'center', width: 140 }}>รูปภาพ</th>
@@ -406,6 +411,7 @@ export function SocialStatusBody() {
                         </div>
                       </div>
                     </td>
+                    <td style={{ padding: '13px 16px' }}><PicCell name={r.pic} /></td>
                     <td style={{ padding: '13px 16px' }}>
                       <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
                         {channels.length === 0 && <span style={{ fontSize: 12, color: 'var(--muted3)' }}>ยังไม่มีช่องทาง — กด “จัดการช่องทาง”</span>}
@@ -443,7 +449,7 @@ export function SocialStatusBody() {
                 );
               })}
               {rowsOnPage.length === 0 && (
-                <tr><td colSpan={5} style={{ padding: '28px 16px', textAlign: 'center', fontSize: 13, color: 'var(--muted3)' }}>
+                <tr><td colSpan={6} style={{ padding: '28px 16px', textAlign: 'center', fontSize: 13, color: 'var(--muted3)' }}>
                   {listings === null ? 'กำลังโหลด…' : listings.length === 0 ? 'ยังไม่มีประกาศในระบบ' : 'ไม่พบรายการที่ตรงกับเงื่อนไข'}
                 </td></tr>
               )}

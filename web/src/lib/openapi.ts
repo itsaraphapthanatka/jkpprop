@@ -860,6 +860,22 @@ export const openapi = {
         responses: { 201: okRes('สร้างแล้ว', obj({ id: STR, email: STR, tempPassword: STR })), ...AUTH_ERRORS },
       },
     },
+    /* ลูกค้าแจ้งว่า "Users & Roles ไม่มี ลบ user และไม่มีแก้ไข email" */
+    '/api/users/{id}': {
+      patch: {
+        tags: ['Admin'], summary: 'แก้อีเมลของผู้ใช้ (owner)',
+        description: 'อีเมลคือชื่อผู้ใช้ตอนเข้าสู่ระบบ · ต้องไม่ซ้ำกับบัญชีอื่นทั้งระบบ · เซสชันที่เปิดค้างไม่ถูกตัด',
+        parameters: [pathParam('id', 'id ของผู้ใช้')],
+        requestBody: body(obj({ email: STR }, ['email'])),
+        responses: { 200: okRes('แก้อีเมลแล้ว'), ...WITH_404 },
+      },
+      delete: {
+        tags: ['Admin'], summary: 'ลบบัญชีผู้ใช้ถาวร (owner)',
+        description: 'ลบตัวเอง เจ้าของคนสุดท้าย หรือคนที่ยังมีทรัพย์ / lead ค้างอยู่ ไม่ได้ — ต้องโอนออกก่อน · ประวัติใน Audit log ยังอยู่',
+        parameters: [pathParam('id', 'id ของผู้ใช้')],
+        responses: { 200: okRes('ลบแล้ว'), ...WITH_404 },
+      },
+    },
     '/api/users/{id}/permissions': {
       put: {
         tags: ['Admin'], summary: 'ตั้งสิทธิ์ผู้ใช้ (owner)',

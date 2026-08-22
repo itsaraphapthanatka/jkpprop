@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { AdminShell, AdminBreadcrumb } from '@/components/admin/AdminShell';
-import { apiGet, apiPut, apiPost, apiPatch, ApiClientError } from '@/lib/apiClient';
+import { apiGet, apiPut, apiPost, apiPatch, apiDelete, ApiClientError } from '@/lib/apiClient';
 import {
   ROLES, role as roleOf, PRIVILEGES, MATRIX, scopeLabel, privAllowed, initialPrivs,
   type RoleKey, type Scope, type PrivKey, type Cell,
@@ -143,6 +143,51 @@ export function UsersBody() {
     setEditing(null);
   };
 
+  /* ลูกค้าแจ้งว่า "ไม่มี ลบ user และไม่มีแก้ไข email" — เดิมอีเมลตั้งได้ครั้ง
+     เดียวตอนเชิญ พิมพ์ผิดก็แก้ไม่ได้ ต้องเชิญใหม่แล้วปล่อยบัญชีผิดค้างไว้
+     ซึ่งเป็นที่มาของบัญชีขยะที่ลบก็ไม่ได้อีก */
+  const [mailFor, setMailFor] = React.useState<UserRow | null>(null);
+  const [mailDraft, setMailDraft] = React.useState('');
+  const [mailBusy, setMailBusy] = React.useState(false);
+  const [mailErr, setMailErr] = React.useState('');
+
+  const openMail = (u: UserRow) => { setMailFor(u); setMailDraft(u.email); setMailErr(''); };
+  const saveMail = async () => {
+    if (!mailFor || mailBusy) return;
+    const next = mailDraft.trim().toLowerCase();
+    if (next === mailFor.email) { setMailFor(null); return; }
+    setMailBusy(true);
+    setMailErr('');
+    try {
+      await apiPatch(`/api/users/${mailFor.id}`, { email: next });
+      setMailFor(null);
+      await reload();
+    } catch (e) {
+      setMailErr(e instanceof ApiClientError ? e.message : 'แก้อีเมลไม่สำเร็จ');
+    }
+    setMailBusy(false);
+  };
+
+  /* ลบบัญชีถาวร — ต่างจาก "ปิดใช้งาน" ตรงที่ย้อนคืนไม่ได้ ฝั่งเซิร์ฟเวอร์กัน
+     ไม่ให้ลบตัวเอง ลบเจ้าของคนสุดท้าย หรือลบคนที่ยังมีทรัพย์/lead ค้างอยู่ */
+  const [delFor, setDelFor] = React.useState<UserRow | null>(null);
+  const [delBusy, setDelBusy] = React.useState(false);
+  const [delErr, setDelErr] = React.useState('');
+
+  const doDelete = async () => {
+    if (!delFor || delBusy) return;
+    setDelBusy(true);
+    setDelErr('');
+    try {
+      await apiDelete(`/api/users/${delFor.id}`);
+      setDelFor(null);
+      await reload();
+    } catch (e) {
+      setDelErr(e instanceof ApiClientError ? e.message : 'ลบบัญชีไม่สำเร็จ');
+    }
+    setDelBusy(false);
+  };
+
   /* deactivating also kills that user's sessions server-side */
   /* โอนทรัพย์ยกชุด — เลือกคนที่จะโอนออก แล้วเลือกผู้รับ */
   const [transferFor, setTransferFor] = React.useState<UserRow | null>(null);
@@ -269,7 +314,20 @@ export function UsersBody() {
                             <div style={{ width: 38, height: 38, borderRadius: 9999, background: u.avBg, color: u.avFg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, flexShrink: 0 }}>{u.initial}</div>
                             <div style={{ minWidth: 0 }}>
                               <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)' }}>{u.name}</div>
-                              <div style={{ fontSize: '11.5px', color: 'var(--muted3)' }}>{u.email}</div>
+                              {/* อีเมลเคยเป็นข้อความอ่านอย่างเดียว พิมพ์ผิดตอนเชิญแล้วแก้ไม่ได้ */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '11.5px', color: 'var(--muted3)' }}>
+                                <span>{u.email}</span>
+                                <button
+                                  type="button"
+                                  data-edit-email={u.id}
+                                  onClick={() => openMail(u)}
+                                  title={`แก้อีเมลของ ${u.name}`}
+                                  aria-label={`แก้อีเมลของ ${u.name}`}
+                                  style={{ display: 'inline-flex', alignItems: 'center', padding: 2, border: 0, background: 'none', color: 'var(--muted3)', cursor: 'pointer' }}
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" /></svg>
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </td>
@@ -301,7 +359,7 @@ export function UsersBody() {
                             {u.active ? 'ใช้งาน' : 'ปิดใช้งาน'}
                           </button>
                         </td>
-                        <td style={{ padding: '13px 16px', textAlign: 'right' }}>
+                        <td style={{ padding: '13px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                           <button type="button" className="users-edit" onClick={() => openEdit(u)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 13px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" /></svg>
                             ตั้งค่าสิทธิ์
@@ -318,6 +376,17 @@ export function UsersBody() {
                           >
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 8h13l-3-3M20 16H7l3 3" /></svg>
                             โอนทรัพย์
+                          </button>
+                          {/* ลบถาวร — ต่างจาก "ปิดใช้งาน" ที่ย้อนคืนได้ */}
+                          <button
+                            type="button"
+                            data-delete-user={u.id}
+                            onClick={() => { setDelErr(''); setDelFor(u); }}
+                            title={`ลบบัญชีของ ${u.name} ออกจากระบบถาวร`}
+                            aria-label={`ลบบัญชีของ ${u.name}`}
+                            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, marginLeft: 8, borderRadius: 9999, border: '1px solid #E4C4C0', background: 'var(--surface)', color: '#C0392B', cursor: 'pointer', fontFamily: 'inherit', verticalAlign: 'middle' }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" /></svg>
                           </button>
                         </td>
                       </tr>
@@ -368,6 +437,80 @@ export function UsersBody() {
                 style={{ flex: 1, height: 44, borderRadius: 11, border: 0, background: transferTo && !transferBusy ? '#0D6C3B' : 'var(--border)', color: transferTo && !transferBusy ? '#fff' : 'var(--muted2)', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: transferTo && !transferBusy ? 'pointer' : 'default' }}
               >
                 {transferBusy ? 'กำลังโอน…' : 'โอนทรัพย์'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---------- แก้อีเมล ---------- */}
+      {mailFor && (
+        <div
+          data-email-modal
+          onClick={() => setMailFor(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 900, background: 'rgba(var(--ink-rgb),.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 440, background: 'var(--surface)', borderRadius: 18, padding: 24 }}>
+            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)' }}>แก้อีเมลของ {mailFor.name}</div>
+            <p style={{ margin: '8px 0 0', fontSize: '13px', color: 'var(--muted)', lineHeight: 1.7 }}>
+              อีเมลนี้คือชื่อผู้ใช้ตอนเข้าสู่ระบบ เปลี่ยนแล้วต้องใช้อีเมลใหม่เข้าสู่ระบบครั้งถัดไป
+              รหัสผ่านและสิทธิ์ยังเหมือนเดิม และเซสชันที่เปิดค้างอยู่ไม่ถูกตัด
+            </p>
+            <label htmlFor="usr-email-new" style={{ display: 'block', margin: '16px 0 6px', fontSize: 11, fontWeight: 700, color: 'var(--muted2)' }}>อีเมลใหม่</label>
+            <input
+              id="usr-email-new"
+              data-email-input
+              type="email"
+              value={mailDraft}
+              onChange={(e) => setMailDraft(e.target.value)}
+              style={{ width: '100%', height: 42, padding: '0 12px', borderRadius: 11, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontFamily: 'inherit', fontSize: '13px' }}
+            />
+            {mailErr && <div data-email-err style={{ marginTop: 10, fontSize: 12.5, color: '#C0392B' }}>{mailErr}</div>}
+            <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+              <button type="button" onClick={() => setMailFor(null)} style={{ flex: 1, height: 44, borderRadius: 11, border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text)', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>ยกเลิก</button>
+              <button
+                type="button"
+                data-email-save
+                onClick={saveMail}
+                disabled={!mailDraft.trim() || mailBusy}
+                style={{ flex: 1, height: 44, borderRadius: 11, border: 0, background: mailDraft.trim() && !mailBusy ? '#0D6C3B' : 'var(--border)', color: mailDraft.trim() && !mailBusy ? '#fff' : 'var(--muted2)', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: mailDraft.trim() && !mailBusy ? 'pointer' : 'default' }}
+              >
+                {mailBusy ? 'กำลังบันทึก…' : 'บันทึกอีเมล'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---------- ลบบัญชี ---------- */}
+      {delFor && (
+        <div
+          data-delete-modal
+          onClick={() => setDelFor(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 900, background: 'rgba(var(--ink-rgb),.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 440, background: 'var(--surface)', borderRadius: 18, padding: 24 }}>
+            <div style={{ fontSize: 17, fontWeight: 800, color: '#C0392B' }}>ลบบัญชีของ {delFor.name}</div>
+            <p style={{ margin: '8px 0 0', fontSize: '13px', color: 'var(--muted)', lineHeight: 1.7 }}>
+              <b>{delFor.email}</b> จะถูกลบออกจากระบบถาวร ย้อนคืนไม่ได้ และเข้าสู่ระบบอีกไม่ได้
+              ประวัติที่บัญชีนี้เคยทำไว้ใน Audit log ยังอยู่ครบ
+            </p>
+            {/* ถ้าแค่อยากกันไม่ให้เข้าระบบ "ปิดใช้งาน" คือของที่ถูก และย้อนคืนได้ */}
+            <p style={{ margin: '10px 0 0', fontSize: '12.5px', color: 'var(--muted2)', lineHeight: 1.7 }}>
+              ถ้าแค่ต้องการกันไม่ให้เข้าระบบ ใช้ปุ่ม “ปิดใช้งาน” แทน — เก็บบัญชีไว้และเปิดคืนได้
+              ส่วนคนที่ยังมีทรัพย์หรือ lead อยู่ ต้องกด “โอนทรัพย์” ออกให้หมดก่อนจึงจะลบได้
+            </p>
+            {delErr && <div data-delete-err style={{ marginTop: 12, fontSize: 12.5, color: '#C0392B' }}>{delErr}</div>}
+            <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+              <button type="button" onClick={() => setDelFor(null)} style={{ flex: 1, height: 44, borderRadius: 11, border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text)', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>ยกเลิก</button>
+              <button
+                type="button"
+                data-delete-go
+                onClick={doDelete}
+                disabled={delBusy}
+                style={{ flex: 1, height: 44, borderRadius: 11, border: 0, background: delBusy ? 'var(--border)' : '#C0392B', color: delBusy ? 'var(--muted2)' : '#fff', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: delBusy ? 'default' : 'pointer' }}
+              >
+                {delBusy ? 'กำลังลบ…' : 'ลบถาวร'}
               </button>
             </div>
           </div>

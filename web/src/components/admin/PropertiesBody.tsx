@@ -10,6 +10,7 @@ import { thumb } from '@/lib/mediaThumb';
 import { apiGet, apiPost, apiPatch, apiDelete, ApiClientError } from '@/lib/apiClient';
 import { placeMenu, type MenuBox } from '@/lib/menuPlacement';
 import { relTime } from '@/lib/leadStore';
+import { PicCell, PIC_TH } from './PicCell';
 import Link from 'next/link';
 
 /* ============================================================
@@ -319,10 +320,11 @@ export function PropertiesBody() {
       const t = v === null || v === undefined ? '' : String(v);
       return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
     };
-    const head = ['รหัส', 'ชื่อทรัพย์', 'ประเภท', 'ทำเล', 'พื้นที่ (ตร.ม.)', 'สถานะ', 'อัปเดตล่าสุด'];
+    const head = ['รหัส', 'ชื่อทรัพย์', 'ประเภท', 'ทำเล', 'พื้นที่ (ตร.ม.)', 'สถานะ', 'ผู้ดูแล (PIC)', 'อัปเดตล่าสุด'];
     const body = rows.map((r) => [
       r.publicCode, r.title, r.typeLabel, r.location,
-      r.area ?? '', r.status, new Date(r.updatedAt).toISOString().slice(0, 10),
+      r.area ?? '', r.status, String((r.values ?? {}).pic ?? ''),
+      new Date(r.updatedAt).toISOString().slice(0, 10),
     ].map(cell).join(','));
     const csv = '\uFEFF' + [head.map(cell).join(','), ...body].join('\n');
 
@@ -490,6 +492,8 @@ export function PropertiesBody() {
                 <th style={{ ...thBase, textAlign: 'right' }}>พื้นที่</th>
                 <th style={{ ...thBase, textAlign: 'center' }}>สถานะ</th>
                 <th style={{ ...thBase, textAlign: 'center' }}>แปล</th>
+                {/* ตัวกรอง PIC มีมาตลอด แต่ไม่เคยมีคอลัมน์ให้เห็นว่าใครดูแล */}
+                <th style={{ ...thBase, whiteSpace: 'nowrap' }}>{PIC_TH}</th>
                 <th style={thBase}>อัปเดต</th>
                 <th style={{ padding: '13px 16px', width: 44 }} />
               </tr>
@@ -550,6 +554,7 @@ export function PropertiesBody() {
                         })}
                       </span>
                     </td>
+                    <td style={{ padding: '14px 16px' }}><PicCell name={String((r.values ?? {}).pic ?? '')} /></td>
                     <td style={{ padding: '14px 16px', fontSize: 12, color: 'var(--muted3)' }}>{relTime(r.updatedAt)}</td>
                     <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                       <div
@@ -573,7 +578,7 @@ export function PropertiesBody() {
               })}
               {items !== null && items.length === 0 && (
                 <tr style={{ borderTop: '1px solid var(--border)' }}>
-                  <td colSpan={9} style={{ padding: '28px 16px', textAlign: 'center', fontSize: 13, color: 'var(--muted3)' }}>ไม่พบทรัพย์ตามเงื่อนไขที่เลือก</td>
+                  <td colSpan={10} style={{ padding: '28px 16px', textAlign: 'center', fontSize: 13, color: 'var(--muted3)' }}>ไม่พบทรัพย์ตามเงื่อนไขที่เลือก</td>
                 </tr>
               )}
             </tbody>

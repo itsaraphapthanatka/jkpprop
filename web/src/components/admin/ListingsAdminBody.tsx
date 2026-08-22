@@ -10,6 +10,7 @@ import { placeMenu, type MenuBox } from '@/lib/menuPlacement';
 import { relTime } from '@/lib/leadStore';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { PicCell, PIC_TH } from './PicCell';
 
 /* ============================================================
    AdminListings.dc.html — ported <main> content (interactive):
@@ -361,8 +362,8 @@ export function ListingsAdminBody() {
       const t = v === null || v === undefined ? '' : String(v);
       return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
     };
-    const head = ['รหัส', 'ชื่อประกาศ', 'ทำเล', 'ดีล', 'ราคา', 'พื้นที่ (ตร.ม.)', 'สถานะ', 'แนะนำ'];
-    const body = filtered.map((d) => [d.code, d.title, d.location, d.deal, d.price, d.area ?? '', STATUS_LABEL[d.status], d.featured ? 'ใช่' : ''].map(cell).join(','));
+    const head = ['รหัส', 'ชื่อประกาศ', 'ทำเล', 'ดีล', 'ราคา', 'พื้นที่ (ตร.ม.)', 'สถานะ', 'แนะนำ', 'ผู้ดูแล (PIC)'];
+    const body = filtered.map((d) => [d.code, d.title, d.location, d.deal, d.price, d.area ?? '', STATUS_LABEL[d.status], d.featured ? 'ใช่' : '', d.pic ?? ''].map(cell).join(','));
     const csv = '\uFEFF' + [head.map(cell).join(','), ...body].join('\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const a = document.createElement('a');
@@ -592,6 +593,8 @@ export function ListingsAdminBody() {
                 <th style={{ ...thStyle, textAlign: 'right' }}>ราคา</th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>สถานะ</th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>Featured</th>
+                {/* ตัวกรอง PIC มีมาตลอด แต่ไม่เคยมีคอลัมน์ให้เห็นว่าใครดูแล */}
+                <th style={{ ...thStyle, textAlign: 'left', whiteSpace: 'nowrap' }}>{PIC_TH}</th>
                 <th style={{ ...thStyle, textAlign: 'left' }}>อัปเดต</th>
                 <th style={{ padding: '13px 16px', width: 44 }} />
               </tr>
@@ -631,6 +634,7 @@ export function ListingsAdminBody() {
                         ? (<svg width="17" height="17" viewBox="0 0 24 24" fill="#D9A62B" stroke="#D9A62B" strokeWidth="1"><path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 19.3 7.2 17l.9-5.4L4.2 7.7l5.4-.8z" /></svg>)
                         : (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#D4D1CA" strokeWidth="1.7"><path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 19.3 7.2 17l.9-5.4L4.2 7.7l5.4-.8z" /></svg>)}</span>
                     </td>
+                    <td style={{ padding: '14px 16px' }}><PicCell name={d.pic} /></td>
                     <td style={{ padding: '14px 16px', fontSize: 12, color: 'var(--muted3)' }}>{d.updated}</td>
                     <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                       <div
@@ -653,7 +657,7 @@ export function ListingsAdminBody() {
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} style={{ padding: '44px 16px', textAlign: 'center', color: 'var(--muted2)', fontSize: 13, lineHeight: 1.8 }}>
+                  <td colSpan={9} style={{ padding: '44px 16px', textAlign: 'center', color: 'var(--muted2)', fontSize: 13, lineHeight: 1.8 }}>
                     {rows === null ? 'กำลังโหลด…'
                       : loadErr ? <span style={{ color: '#C0392B' }}>{loadErr}</span>
                         : all.length === 0 ? <>ยังไม่มีประกาศในระบบ — <Link href="/admin/properties" style={{ color: '#0D6C3B', fontWeight: 700 }}>เพิ่มทรัพย์ที่หน้า Properties</Link> แล้วกลับมาตั้งดีลและราคา</>
