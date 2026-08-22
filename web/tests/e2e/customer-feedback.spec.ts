@@ -1861,6 +1861,66 @@ test.describe('คอมเมนต์ลูกค้า · รูปในห�
   });
 });
 
+/* "ประเภทประกาศ * ขาย ไม่ต้องแสดงราคาต่อ ตร.ม" — ประกาศขายไม่ควรมีช่องนี้
+   ให้กรอก เพราะราคาต่อ ตร.ม. ของฝั่งขายคือ ราคาขาย ÷ พื้นที่ ซึ่งระบบคำนวณ
+   ให้เองอยู่แล้ว ถามซ้ำมีแต่จะได้ตัวเลขที่ขัดกับราคาขายที่กรอกไว้ */
+test.describe('คอมเมนต์ลูกค้า · ประกาศขายไม่ต้องกรอกราคาต่อ ตร.ม.', () => {
+  const openWarehouseForm = async (page: import('@playwright/test').Page) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    await page.goto('/admin/properties');
+    await page.getByText('เพิ่มทรัพย์ใหม่').first().click();
+    await page.locator('#np-type-picker button', { hasText: 'โกดัง' }).first().click();
+    await page.locator('#np-modal').getByText('ราคาขาย').first().waitFor({ timeout: 15000 });
+  };
+  const dealBtn = (page: import('@playwright/test').Page, label: string) =>
+    page.locator('#np-modal button', { hasText: new RegExp(`^${label}$`) }).first();
+
+  test('เลือก "ขาย" แล้วช่องราคา / ตร.ม. หายไป แต่ราคาขายยังอยู่', async ({ page }) => {
+    await openWarehouseForm(page);
+    await dealBtn(page, 'ขาย').click();
+    const body = await page.locator('#np-modal').innerText();
+    expect(body.includes('ราคาขาย'), 'ประกาศขายต้องมีช่องราคาขาย').toBe(true);
+    expect(body.includes('ราคา / ตร.ม.'), 'ประกาศขายไม่ควรมีช่องราคาต่อ ตร.ม.').toBe(false);
+  });
+
+  test('ฝั่งเช่ายังกรอกราคาต่อ ตร.ม. ได้เหมือนเดิม', async ({ page }) => {
+    await openWarehouseForm(page);
+    await dealBtn(page, 'ให้เช่า').click();
+    const body = await page.locator('#np-modal').innerText();
+    expect(body.includes('ราคา / ตร.ม.'), 'ฝั่งเช่าต้องยังกรอกราคาต่อ ตร.ม. ได้').toBe(true);
+  });
+
+  test('หน้าเว็บของประกาศขายยังโชว์ราคาต่อ ตร.ม. ที่ระบบคำนวณให้', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    /* 40,000,000 ÷ 2,000 = 20,000 บาท/ตร.ม. — ไม่ได้กรอก price_per_sqm เลย */
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: {
+        typeKey: 'warehouse', title: `ทดสอบราคาต่อตารางเมตร ${Date.now().toString(36)}`, status: 'active',
+        values: { province: 'สมุทรปราการ', deal_type: 'ขาย', price_sale: 40000000, building_area_total: 2000 },
+      },
+    })).json();
+    try {
+      await page.goto(`/th/property/${encodeURIComponent(made.publicCode)}`);
+      const body = await page.locator('body').innerText();
+      expect(body.includes('ราคา / ตร.ม.'), 'หน้าขายต้องมีแถวราคาต่อ ตร.ม.').toBe(true);
+      expect(body.includes('20,000'), 'ต้องคำนวณ 40,000,000 ÷ 2,000 = 20,000 ให้เอง').toBe(true);
+    } finally {
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+});
+
 /* "พิมพ์ route sheet ปิดเบอร์โทร ไม่ให้แสดงเบอร์โทร" — ใบ route sheet ถูกพิมพ์
    ออกไปกับคนที่พาลูกค้าไปดู และมักอยู่ในมือลูกค้าด้วย เบอร์ผู้ให้เช่าจึงไม่ควร
    ติดไปกับกระดาษ (เรื่องเดียวกับสไลด์ 46 แต่คนละสื่อ) บนจอยังเห็นเหมือนเดิม */
