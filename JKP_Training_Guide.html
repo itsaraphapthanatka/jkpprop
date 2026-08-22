@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>คู่มืออบรมทีม JKP Property</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@500;600;700&family=Noto+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+
+<style>
+  /* โทนสีมาจากชุดสีของเว็บจริง (globals.css) — คนอบรมจะได้เห็นสีเดียวกับที่เห็นบนจอ */
+  :root {
+    --ink:      #022E38;
+    --accent:   #034956;
+    --pine:     #0D6C3B;
+    --amber:    #9A741C;
+    --alert:    #C0392B;
+    --ground:   #F5F7F6;
+    --surface:  #FFFFFF;
+    --rule:     #DDE5E3;
+    --muted:    #5C6A67;
+    --muted2:   #7C8987;
+    --tint:     #EAF1EF;
+    --tint2:    #F0F5F3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink:      #E8EFED;
+      --accent:   #5FD3D8;
+      --pine:     #57C98B;
+      --amber:    #E0B75A;
+      --alert:    #F08A80;
+      --ground:   #0E1614;
+      --surface:  #16211F;
+      --rule:     #27352F;
+      --muted:    #A2B0AC;
+      --muted2:   #7E8C88;
+      --tint:     #1B2A27;
+      --tint2:    #182421;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink:      #E8EFED;
+    --accent:   #5FD3D8;
+    --pine:     #57C98B;
+    --amber:    #E0B75A;
+    --alert:    #F08A80;
+    --ground:   #0E1614;
+    --surface:  #16211F;
+    --rule:     #27352F;
+    --muted:    #A2B0AC;
+    --muted2:   #7E8C88;
+    --tint:     #1B2A27;
+    --tint2:    #182421;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: 'Noto Sans Thai', 'Sarabun', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.85;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 940px; margin: 0 auto; padding: 56px 24px 96px; }
+
+  h1, h2, h3, .eyebrow, .num, th {
+    font-family: 'IBM Plex Sans Thai', 'Noto Sans Thai', system-ui, sans-serif;
+  }
+
+  /* ---- masthead ---- */
+  .mast { border-bottom: 2px solid var(--ink); padding-bottom: 22px; }
+  .eyebrow {
+    font-size: 12px; font-weight: 600; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  h1 {
+    margin: 10px 0 6px; font-size: clamp(28px, 4.4vw, 40px); font-weight: 700;
+    line-height: 1.25; letter-spacing: -.01em; text-wrap: balance;
+  }
+  .sub { margin: 0; max-width: 62ch; color: var(--muted); font-size: 15.5px; }
+  .meta {
+    margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px 10px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--muted2);
+  }
+  .meta span { border: 1px solid var(--rule); border-radius: 6px; padding: 3px 9px; }
+
+  /* ---- sections ---- */
+  section { margin-top: 52px; }
+  h2 {
+    display: flex; align-items: baseline; gap: 12px;
+    margin: 0 0 6px; font-size: 21px; font-weight: 700; letter-spacing: -.005em;
+  }
+  h2 .num {
+    font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
+    color: var(--accent); flex-shrink: 0; font-variant-numeric: tabular-nums;
+  }
+  .lede { margin: 0 0 20px 33px; max-width: 66ch; color: var(--muted); }
+  h3 {
+    margin: 30px 0 10px; font-size: 15.5px; font-weight: 600; color: var(--ink);
+  }
+
+  /* ---- journey stepper ---- */
+  .flow { display: flex; flex-direction: column; gap: 0; margin-left: 33px; }
+  .step { display: grid; grid-template-columns: 30px 1fr; gap: 16px; }
+  .spine { display: flex; flex-direction: column; align-items: center; }
+  .dot {
+    width: 30px; height: 30px; border-radius: 999px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--tint); color: var(--accent);
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
+    border: 1.5px solid var(--rule);
+  }
+  .step:last-child .line { display: none; }
+  .line { flex: 1; width: 2px; background: var(--rule); min-height: 14px; }
+  .body { padding-bottom: 26px; }
+  .step h3 { margin: 3px 0 4px; font-size: 16px; }
+  .who {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .04em;
+    color: var(--muted2); text-transform: uppercase;
+  }
+  .step p { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
+  .becomes {
+    display: inline-flex; align-items: center; gap: 7px; margin-top: 10px;
+    background: var(--tint2); border: 1px solid var(--rule); border-radius: 7px;
+    padding: 4px 10px; font-size: 12.5px; color: var(--ink);
+  }
+  .becomes code {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+    color: var(--pine); font-weight: 600;
+  }
+
+  /* ---- tables ---- */
+  .scroll { overflow-x: auto; margin-left: 33px; }
+  table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 14px; }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th {
+    font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted2); border-bottom: 1.5px solid var(--ink);
+    white-space: nowrap;
+  }
+  td:first-child { font-weight: 600; white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: 0; }
+  .mono { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+
+  /* ---- rule callouts ---- */
+  .rules { display: flex; flex-direction: column; gap: 12px; margin-left: 33px; }
+  .rule {
+    background: var(--surface); border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent); border-radius: 4px; padding: 14px 18px;
+  }
+  .rule.block { border-left-color: var(--alert); }
+  .rule.watch { border-left-color: var(--amber); }
+  .rule b { display: block; font-family: 'IBM Plex Sans Thai', sans-serif; font-weight: 600; }
+  .rule p { margin: 4px 0 0; color: var(--muted); font-size: 14px; max-width: 64ch; }
+
+  /* ---- checklist ---- */
+  ul.check { list-style: none; margin: 0 0 0 33px; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+  ul.check li {
+    display: grid; grid-template-columns: 18px 1fr; gap: 12px; align-items: start;
+    font-size: 14.5px;
+  }
+  ul.check li::before {
+    content: ""; width: 16px; height: 16px; margin-top: 6px;
+    border: 1.5px solid var(--accent); border-radius: 4px;
+  }
+  ul.check li span { color: var(--muted); }
+
+  /* ---- plain list ---- */
+  ul.plain { margin: 0 0 0 33px; padding-left: 20px; color: var(--muted); }
+  ul.plain li { margin-bottom: 7px; }
+  ul.plain b { color: var(--ink); font-weight: 600; }
+
+  code.k {
+    font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+    background: var(--tint2); border: 1px solid var(--rule);
+    border-radius: 5px; padding: 1px 6px; color: var(--accent);
+  }
+
+  footer {
+    margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--rule);
+    font-size: 13px; color: var(--muted2);
+  }
+
+  @media (max-width: 640px) {
+    .lede, .flow, .scroll, .rules, ul.check, ul.plain { margin-left: 0; }
+    h2 { flex-direction: column; gap: 2px; }
+  }
+  @media print {
+    body { background: #fff; }
+    .rule, table { break-inside: avoid; }
+    section { break-inside: avoid-page; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <div class="eyebrow">เอกสารสำหรับอบรมภายใน</div>
+    <h1>คู่มืออบรมทีม JKP Property</h1>
+    <p class="sub">
+      ระบบนี้ทำงานเป็นสายเดียวกันตั้งแต่ลูกค้าเห็นประกาศบนเว็บ จนถึงวันปิดดีล
+      เอกสารนี้อธิบายว่าใครทำอะไรตรงไหน กติกาที่ระบบบังคับไว้คืออะไร และจะอบรมทีมตามลำดับไหน
+    </p>
+    <div class="meta">
+      <span>jkppropertyagency.com</span>
+      <span>หลังบ้าน /admin</span>
+      <span>3 ภาษา · ไทย · EN · 中文</span>
+      <span>ปรับปรุง 22 ส.ค. 2569</span>
+    </div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span> หลักคิดของระบบ</h2>
+    <p class="lede">
+      สามข้อนี้อธิบายพฤติกรรมของระบบเกือบทั้งหมด ถ้าทีมเข้าใจสามข้อนี้ จะเดาได้เองว่าปุ่มไหนทำอะไร
+    </p>
+    <ul class="plain">
+      <li><b>หน้าเว็บแสดงเฉพาะสิ่งที่กรอกไว้จริง</b> — ไม่มีข้อมูลตัวอย่างซ่อนอยู่ ช่องไหนไม่ได้กรอก แถวนั้นจะหายไปเฉย ๆ ไม่ใช่ขึ้นค่าหลอก ๆ ถ้าหน้าเว็บว่าง แปลว่ายังไม่มีใครกรอก</li>
+      <li><b>สถานะเดินหน้าอย่างเดียว</b> — lead เลื่อนขั้นเองเมื่อมีเหตุการณ์จริงเกิดขึ้น (ยืนยันความต้องการ ส่งรายการคัดเลือก นัดชม ปิดดีล) ไม่ต้องไปกดเปลี่ยนสถานะเอง และระบบไม่ถอยกลับเอง</li>
+      <li><b>ทุกอย่างมีเจ้าของและร่องรอย</b> — ทรัพย์ทุกตัวมีผู้ดูแล (PIC) การกดดูเบอร์ลูกค้าถูกบันทึก และการปลดล็อกดีลที่ปิดแล้วต้องระบุเหตุผล</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span> เส้นทางงานขาย ตั้งแต่ลูกค้าเห็นเว็บจนปิดดีล</h2>
+    <p class="lede">
+      หกขั้นนี้คือลำดับจริงที่ระบบบังคับไว้ ข้ามขั้นไม่ได้ — ปุ่มขั้นถัดไปจะยังไม่เปิดจนกว่าขั้นก่อนหน้าจะเสร็จ
+      บรรทัดสีเขียวใต้แต่ละขั้นคือสถานะที่ lead จะกลายเป็นโดยอัตโนมัติ
+    </p>
+
+    <div class="flow">
+      <div class="step">
+        <div class="spine"><div class="dot">1</div><div class="line"></div></div>
+        <div class="body">
+          <div class="who">ลูกค้า · หน้าเว็บสาธารณะ</div>
+          <h3>ลูกค้าค้นหาและติดต่อเข้ามา</h3>
+          <p>
+            ค้นจากหน้าแรกหรือหน้ารายการทรัพย์ กรองด้วยประเภท ทำเล ขนาด ราคา พื้นที่สี รับน้ำหนักพื้น และความสูง
+            เมื่อเจอที่ถูกใจก็กรอกฟอร์มติดต่อ ระบบสร้าง lead ให้ทันที ไม่ต้องคีย์ซ้ำ
+          </p>
+          <div class="becomes">สถานะที่ได้ <code>new</code></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="spine"><div class="dot">2</div><div class="line"></div></div>
+        <div class="body">
+          <div class="who">เอเจนต์ / ธุรการ · Leads</div>
+          <h3>รับ lead แล้วคุยให้ได้ความต้องการ</h3>
+          <p>
+            เปิด <code class="k">/admin/leads</code> มอบหมายเจ้าของงาน โทรคุย แล้วบันทึกทุกครั้งที่ติดต่อ
+            แถบ “ประวัติและการติดต่อ” จะสรุปให้เองว่าคุยไปกี่ครั้ง ครั้งล่าสุดเมื่อไร และค้างงานอะไรอยู่
+            ถ้าลูกค้าอยากกรอกเอง กด <b>แชร์ลิงก์ให้ลูกค้ากรอก</b> แล้วส่งลิงก์ไปให้
+          </p>
+          <div class="becomes">สถานะที่ได้ <code>qualified</code></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="spine"><div class="dot">3</div><div class="line"></div></div>
+        <div class="body">
+          <div class="who">เอเจนต์ · Requirements</div>
+          <h3>เปิดใบความต้องการ แล้วยืนยัน</h3>
+          <p>
+            หนึ่ง lead เปิดใบความต้องการ (REQ) ได้ทีละใบ ต้องทำใบเดิมให้จบก่อนจึงเปิดใบใหม่ได้
+            กด <b>ยืนยัน</b> เมื่อคุยกับลูกค้าจบแล้ว ถ้าจะยกเลิกต้องเลือกว่าติดข้อไหนและเขียนเหตุผล —
+            ระบบบังคับ เพราะเหตุผลที่ยกเลิกคือสิ่งที่ทีมเอาไปใช้ต่อได้
+          </p>
+          <div class="becomes">สถานะที่ได้ <code>requirements_confirmed</code></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="spine"><div class="dot">4</div><div class="line"></div></div>
+        <div class="body">
+          <div class="who">เอเจนต์ · Shortlists</div>
+          <h3>เช็คว่าง แล้วจัดรายการคัดเลือกส่งลูกค้า</h3>
+          <p>
+            ก่อนใส่ทรัพย์เข้ารายการคัดเลือก ต้องโทรถามเจ้าของว่ายังว่างไหม แล้วบันทึกผลลงระบบ
+            <b>ทรัพย์ที่ผลล่าสุดไม่ใช่ “ว่าง” จะใส่ไม่ได้</b> ระบบปฏิเสธตั้งแต่ต้นทาง
+            เมื่อส่งแล้ว ลูกค้าเปิดลิงก์ดูเองได้และกดบอกได้ว่า สนใจ / ยังไม่ตัดสินใจ / ไม่สนใจ
+          </p>
+          <div class="becomes">สถานะที่ได้ <code>shortlisted</code></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="spine"><div class="dot">5</div><div class="line"></div></div>
+        <div class="body">
+          <div class="who">เอเจนต์ / ธุรการ · Visits</div>
+          <h3>นัดพาเข้าชม</h3>
+          <p>
+            ก่อนสร้างแผนเข้าชม ต้องติ๊กยืนยันว่าคุยกับลูกค้าแล้วและเงื่อนไขไม่เปลี่ยน
+            ถ้าเงื่อนไขเปลี่ยน ให้กลับไปแก้ใบความต้องการแล้วเริ่มขั้นที่ 3 ใหม่ — ไม่ใช่ฝืนนัดต่อ
+            หลังพาชมเสร็จ บันทึกผลรายทรัพย์ว่าลูกค้าว่าอย่างไร
+          </p>
+          <div class="becomes">สถานะที่ได้ <code>visit_scheduled</code></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="spine"><div class="dot">6</div></div>
+        <div class="body">
+          <div class="who">เอเจนต์ / ผู้จัดการ · Deals</div>
+          <h3>เจรจา ทำสัญญา ปิดดีล</h3>
+          <p>
+            เปิดดีล บันทึกข้อเสนอไปกลับได้หลายรอบ แนบเอกสารสัญญา แล้วปิดดีลว่าสำเร็จหรือไม่สำเร็จ
+            เมื่อปิดแล้ว <b>ตัวเลขการเงินจะถูกล็อก</b> แก้ไม่ได้จนกว่าจะปลดล็อกโดยผู้มีสิทธิ์และระบุเหตุผล
+            ถ้าเป็นดีลเช่าและกรอกวันสิ้นสุดสัญญาไว้ ระบบจะเปิดสัญญาเช่าให้เองเพื่อนับถอยหลังเตือนต่อสัญญา
+          </p>
+          <div class="becomes">สถานะที่ได้ <code>won</code> หรือ <code>lost</code></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span> งานอีกเส้นหนึ่ง — เอาทรัพย์ขึ้นเว็บ</h2>
+    <p class="lede">
+      เส้นนี้เดินคู่ขนานกับงานขาย ทำโดยธุรการและการตลาด ไม่ต้องรอ lead
+    </p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>หน้าจอ</th><th>ใช้ทำอะไร</th><th>จุดที่มักพลาด</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Properties</td>
+            <td>คีย์ทรัพย์เข้าระบบ — ประเภท ทำเล พื้นที่สี ขนาด สเปคอาคาร ราคา ผู้ติดต่อ รูป</td>
+            <td>รหัสทรัพย์ระบบรันให้เองตามจังหวัด ห้ามพิมพ์เอง · ช่องจำนวนเงินและขนาดใส่ตัวเลขเปล่า ระบบใส่จุลภาคให้</td>
+          </tr>
+          <tr>
+            <td>Listings</td>
+            <td>เผยแพร่ทรัพย์ขึ้นเว็บ และคุมสถานะ ว่าง / ไม่ว่าง</td>
+            <td>ทรัพย์ที่ปล่อยไปแล้วต้องกดเป็น “ไม่ว่าง” ไม่งั้นหน้าเว็บยังโฆษณาว่าว่างอยู่</td>
+          </tr>
+          <tr>
+            <td>Social Status</td>
+            <td>ข้อความและรูปสำหรับเอาไปโพสต์ช่องทางโซเชียล</td>
+            <td>ข้อความสร้างจากข้อมูลทรัพย์จริง ถ้าทรัพย์ยังกรอกไม่ครบ ข้อความก็จะสั้นตาม</td>
+          </tr>
+          <tr>
+            <td>คลังสื่อ</td>
+            <td>รูปทั้งหมดของระบบ · ตั้งลายน้ำที่ Settings → แบรนด์</td>
+            <td>ลบรูปที่ยังถูกใช้อยู่ หน้าเว็บจะกลายเป็นกรอบว่าง</td>
+          </tr>
+          <tr>
+            <td>CMS · Sections</td>
+            <td>ข้อความและรูปบนหน้าเว็บสาธารณะ แยกตามภาษา</td>
+            <td>ช่องที่เว้นว่างจะใช้ข้อความตั้งต้นของภาษานั้น ไม่ใช่ข้อความไทย</td>
+          </tr>
+          <tr>
+            <td>Settings → บริษัท</td>
+            <td>เบอร์ อีเมล ที่อยู่ และบัญชี Line / Facebook / Instagram / WeChat</td>
+            <td>ช่องไหนยังเป็นข้อความตัวอย่าง ระบบจะไม่ขึ้นปุ่มให้ — ต้องใส่บัญชีจริง</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">04</span> ใครเห็นอะไรได้บ้าง</h2>
+    <p class="lede">
+      บทบาทกำหนดว่าเห็นอะไร ส่วน “ขอบเขต” กำหนดว่าเห็นของใคร — เฉพาะงานตัวเอง หรือทั้งบริษัท
+      สิทธิ์พิเศษบางอย่างให้เป็นรายคนได้ ไม่ผูกกับบทบาท
+    </p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>บทบาท</th><th>ดูแลอะไร</th><th>ขอบเขตตั้งต้น</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>เจ้าของระบบ</td><td>ทุกอย่าง รวมผู้ใช้ การตั้งค่า ปลดล็อกดีล และดาวน์โหลด CSV</td><td>ทั้งบริษัท</td></tr>
+          <tr><td>ผู้จัดการ</td><td>ภาพรวมงานขาย มอบหมายงาน ปิดดีล ตั้งราคา เผยแพร่</td><td>ทั้งบริษัท</td></tr>
+          <tr><td>เอเจนต์ขาย</td><td>ลูกค้าของตัวเอง ตั้งแต่ lead จนปิดดีล</td><td>เฉพาะของตัวเอง</td></tr>
+          <tr><td>Co-agent ภายนอก</td><td>เห็นเฉพาะงานที่แชร์ให้ · ต้องกำหนดวันหมดอายุ</td><td>เฉพาะที่แชร์</td></tr>
+          <tr><td>ธุรการ / ปฏิบัติการ</td><td>ข้อมูลทรัพย์ นัดชม เอกสาร สัญญาเช่า การแจ้งเตือน</td><td>ทั้งบริษัท</td></tr>
+          <tr><td>การตลาด</td><td>เว็บไซต์ เนื้อหา SEO สื่อ และการลงประกาศ</td><td>ทั้งบริษัท</td></tr>
+          <tr><td>นักแปล</td><td>แปลเนื้อหาเป็น EN / 中文 เท่านั้น</td><td>ทั้งบริษัท</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">05</span> กติกาที่ระบบบังคับ</h2>
+    <p class="lede">
+      ข้อพวกนี้กดผ่านไม่ได้ ไม่ใช่คำแนะนำ — อธิบายในห้องอบรมก่อน จะได้ไม่เสียเวลาหาปุ่มที่ไม่มี
+    </p>
+    <div class="rules">
+      <div class="rule block">
+        <b>ไม่เช็คว่าง = ใส่รายการคัดเลือกไม่ได้</b>
+        <p>ทรัพย์ที่ผลเช็คล่าสุดไม่ใช่ “ว่าง” หรือเช็คไว้นานจนหมดอายุ ระบบจะไม่ยอมให้เพิ่มเข้า shortlist</p>
+      </div>
+      <div class="rule block">
+        <b>ยกเลิกใบความต้องการ ต้องบอกว่าติดข้อไหนและทำไม</b>
+        <p>เลือกข้อที่เป็นปัญหาและเขียนเหตุผล ทั้งสองช่องบังคับ</p>
+      </div>
+      <div class="rule block">
+        <b>หนึ่ง lead เปิดใบความต้องการค้างได้ใบเดียว</b>
+        <p>ต้องยืนยันหรือยกเลิกใบเดิมก่อน จึงเปิดใบใหม่ได้</p>
+      </div>
+      <div class="rule block">
+        <b>ปิดดีลแล้วการเงินถูกล็อก</b>
+        <p>แก้ยอดไม่ได้ ต้องปลดล็อกโดยผู้ที่ได้รับสิทธิ์ และต้องพิมพ์เหตุผล ทุกครั้งถูกบันทึก</p>
+      </div>
+      <div class="rule watch">
+        <b>เบอร์และอีเมลลูกค้าถูกปิดบังไว้</b>
+        <p>ขึ้นเป็น 081-xxx-8888 จนกว่าจะกดดู และการกดดูถูกบันทึกลง Audit log ตาม PDPA</p>
+      </div>
+      <div class="rule watch">
+        <b>รหัสทรัพย์ระบบรันให้เอง</b>
+        <p>ตามจังหวัด เช่น JKPBKK สำหรับกรุงเทพฯ JKPSPK สำหรับสมุทรปราการ ห้ามพิมพ์เอง</p>
+      </div>
+      <div class="rule">
+        <b>พิกัดจริงไม่ออกจากระบบ</b>
+        <p>หน้าเว็บสาธารณะแสดงเป็นวงพื้นที่กว้างราว 1.5 กม. ไม่ใช่หมุดตำแหน่งจริง ที่อยู่จริงแจ้งหลังนัดหมาย</p>
+      </div>
+      <div class="rule">
+        <b>ดาวน์โหลด CSV เป็นสิทธิ์ของเจ้าของระบบเท่านั้น</b>
+        <p>บทบาทอื่นถูกปฏิเสธ แม้จะรู้ทางลัด</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">06</span> แผนอบรม</h2>
+    <p class="lede">
+      แบ่งตามบทบาท ไม่ต้องอบรมทุกคนทุกเรื่อง — สอนเฉพาะเส้นที่แต่ละคนต้องเดินจริง
+      ทุกเซสชันให้ลงมือทำกับข้อมูลจริงบนเครื่อง ไม่ใช่ดูสไลด์
+    </p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>เซสชัน</th><th>ใคร</th><th class="mono">เวลา</th><th>ทำอะไรในห้อง</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ภาพรวม + เข้าสู่ระบบ</td>
+            <td>ทุกคน</td>
+            <td class="mono">30 นาที</td>
+            <td>เข้าสู่ระบบ เปลี่ยนรหัสผ่าน เดินเมนู เข้าใจหลักคิดสามข้อ และรู้ว่าตัวเองเห็นอะไรได้</td>
+          </tr>
+          <tr>
+            <td>คีย์ทรัพย์และเอาขึ้นเว็บ</td>
+            <td>ธุรการ · การตลาด</td>
+            <td class="mono">90 นาที</td>
+            <td>คีย์ทรัพย์จริงคนละหนึ่งตัวจนขึ้นเว็บได้ อัปโหลดรูป จัดลำดับรูป ตั้งรูปปก แล้วสลับเป็นไม่ว่าง</td>
+          </tr>
+          <tr>
+            <td>เส้นทางงานขาย</td>
+            <td>เอเจนต์ · ผู้จัดการ</td>
+            <td class="mono">120 นาที</td>
+            <td>เดินครบทั้งหกขั้นกับลูกค้าสมมุติหนึ่งราย ตั้งแต่รับ lead จนปิดดีล และลองกดสิ่งที่ระบบห้าม</td>
+          </tr>
+          <tr>
+            <td>เนื้อหาเว็บและสื่อ</td>
+            <td>การตลาด</td>
+            <td class="mono">60 นาที</td>
+            <td>แก้ข้อความหน้าแรก อัปโหลดโลโก้รับรอง ตั้งลายน้ำ และดูผลบนหน้าเว็บจริงทั้งสามภาษา</td>
+          </tr>
+          <tr>
+            <td>ผู้ใช้ สิทธิ์ และการแจ้งเตือน</td>
+            <td>เจ้าของ · ผู้จัดการ</td>
+            <td class="mono">45 นาที</td>
+            <td>เพิ่มผู้ใช้ กำหนดบทบาทและขอบเขต ให้สิทธิ์พิเศษรายคน ตั้งจำนวนเดือนที่เตือนก่อนสัญญาหมด และอ่าน Audit log</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>แบบฝึกหัดที่ควรให้ทำ (เพราะมักพลาดกันจริง)</h3>
+    <ul class="plain">
+      <li>ลองใส่ทรัพย์เข้ารายการคัดเลือก<b>โดยยังไม่เช็คว่าง</b> — ให้เห็นกับตาว่าระบบปฏิเสธ แล้วค่อยเช็คแล้วทำใหม่</li>
+      <li>ลอง<b>ยกเลิกใบความต้องการโดยไม่เขียนเหตุผล</b> — ให้เห็นว่าบันทึกไม่ผ่าน</li>
+      <li>ปิดดีลแล้ว<b>ลองแก้ยอด</b> — ให้เห็นว่าล็อกจริง แล้วให้ผู้จัดการสาธิตการปลดล็อกพร้อมเหตุผล</li>
+      <li><b>กดดูเบอร์ลูกค้า</b> แล้วเปิด Audit log ให้ดูว่ามีร่องรอย</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="num">07</span> ต้องเคลียร์ก่อนวันอบรม</h2>
+    <p class="lede">
+      ข้อพวกนี้เป็นข้อมูลที่ต้องกรอก ไม่ใช่งานพัฒนา — ถ้ายังไม่กรอก ในห้องอบรมจะเจอปุ่มที่ไม่ขึ้นและอธิบายยาก
+    </p>
+    <ul class="check">
+      <li><span>ใส่บัญชี Line / Facebook / Instagram / WeChat จริงที่ Settings → บริษัท (ตอนนี้ยังเป็นข้อความตัวอย่าง ระบบจึงซ่อนปุ่มไว้)</span></li>
+      <li><span>อัปโหลดโลโก้หน่วยงานรับรองที่ CMS → Sections → มาตรฐานและการรับรอง</span></li>
+      <li><span>ตรวจว่าทรัพย์ที่ปล่อยไปแล้วถูกตั้งเป็น “ไม่ว่าง” ครบ</span></li>
+      <li><span>สร้างบัญชีผู้ใช้ให้ครบทุกคนพร้อมบทบาทและขอบเขต แล้วให้ทุกคนเปลี่ยนรหัสผ่านก่อนเข้าห้อง</span></li>
+      <li><span>ตั้งจำนวนเดือนที่จะเตือนก่อนสัญญาเช่าหมด ที่ Settings → การแจ้งเตือน</span></li>
+      <li><span>เตรียมทรัพย์จริง 1 ตัวและลูกค้าสมมุติ 1 ราย ไว้ให้ทีมลองเดินครบเส้น</span></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="num">08</span> ที่ยังทำไม่เสร็จ — พูดให้ตรงในห้อง</h2>
+    <p class="lede">
+      บอกตั้งแต่ต้นว่าอะไรยังไม่มี ดีกว่าให้ทีมไปหาเองแล้วคิดว่าตัวเองกดผิด
+    </p>
+    <ul class="plain">
+      <li><b>หน้า “โปรไฟล์ของฉัน”</b> ยังไม่มี — ตอนนี้แก้ชื่อ เบอร์ และ Line ของตัวเองไม่ได้ ต้องให้เจ้าของระบบแก้ให้</li>
+      <li><b>หน้ารายชื่อและตำแหน่งคนในทีม</b> ยังไม่มี</li>
+      <li><b>Social Status</b> ยังอัปโหลดรูปแยกรายประกาศไม่ได้ ใช้รูปของทรัพย์เท่านั้น</li>
+      <li><b>สิทธิ์การเห็นเบอร์เจ้าของทรัพย์รายคน</b> (เห็นเฉพาะประกาศที่ตัวเองลง) ยังไม่ได้ทำ</li>
+      <li><b>โชว์รูมและที่ดิน</b> เมนูกับหน้าเปิดใช้ได้แล้ว แต่ยังไม่มีทรัพย์สองประเภทนี้ในระบบ กดเข้าไปจะพบ 0 รายการ</li>
+    </ul>
+  </section>
+
+  <footer>
+    เอกสารภายในสำหรับการอบรม · อ้างอิงจากระบบที่ใช้งานจริงบน jkppropertyagency.com ณ วันที่ปรับปรุง
+    หากมีการแก้ไขระบบหลังจากนี้ ให้ยึดหน้าจอจริงเป็นหลัก
+  </footer>
+
+</div>
+</body>
+</html>
