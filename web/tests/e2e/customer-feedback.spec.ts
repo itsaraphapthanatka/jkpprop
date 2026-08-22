@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, request as playwrightRequest } from '@playwright/test';
 
 /* คอมเมนต์จากลูกค้าในสไลด์ "Web 2026" — ชุดหน้าเว็บฝั่งลูกค้า
    หน้า 7  · "คลิกที่รูปภาพ ข้อความ หรือการ์ด ต้องเข้าได้ ตอนนี้ต้องคลิกที่รายละเอียดอย่างเดียว"
@@ -1937,16 +1937,55 @@ test.describe('คอมเมนต์ลูกค้า · ลายน้ำ�
       await request.delete(`/api/media/${siteId}`, { headers: { cookie } }).catch(() => null);
     }
 
-    /* รูปของประกาศจริง — ต้องยังมีลายน้ำ (ZIP ในหน้า Social Status ดึงจาก URL
-       เดียวกันนี้ ลายน้ำจึงติดไปด้วย) */
+    /* รูปของประกาศจริง — ที่หน้าบ้าน (ไม่ได้เข้าสู่ระบบ) ต้องมีลายน้ำ */
     const code = ((await (await request.get('/api/public/listings?locale=th&limit=1')).json()).items as { code: string }[])[0]?.code;
     test.skip(!code, 'ยังไม่มีทรัพย์ที่เผยแพร่');
     const photo = (await (await request.get(`/api/public/properties/${code}?locale=th`)).json()).photos?.[0] as string | undefined;
     test.skip(!photo, 'ทรัพย์แรกยังไม่มีรูป');
     const pid = photo!.match(/\/api\/media\/([a-z0-9]+)\//)?.[1];
-    const pShown = (await (await request.get(photo!)).body()).length;
     const pOrig = (await (await request.get(`/api/media/${pid}/raw?original=1`, { headers: { cookie } })).body()).length;
-    expect(pShown, 'รูปของประกาศต้องยังมีลายน้ำ').not.toBe(pOrig);
+
+    /* บริบทที่ไม่มีคุกกี้เลย — จำลองคนเข้าเว็บทั่วไป ไม่ใช่คนในทีม */
+    const anon = await playwrightRequest.newContext({ baseURL: new URL(page.url()).origin });
+    try {
+      const pPublic = (await (await anon.get(photo!)).body()).length;
+      expect(pPublic, 'รูปของประกาศที่หน้าบ้านต้องมีลายน้ำ').not.toBe(pOrig);
+    } finally {
+      await anon.dispose();
+    }
+  });
+
+  /* "ลายน้ำแสดงแค่รูปทรัพย์ ที่หน้าบ้าน" — คนในทีมที่เปิดหลังบ้านดูรูปเพื่อทำงาน
+     (ตรวจรูป เลือกรูปลง Shortlist คัดรูปไปโพสต์) ควรเห็นรูปจริง ไม่ใช่รูปที่มี
+     โลโก้บังอยู่ · แต่ ZIP ที่โหลดไปลงโซเชียลต้องมีลายน้ำ */
+  test('หลังบ้านเห็นรูปทรัพย์แบบไม่มีลายน้ำ แต่ ZIP ที่โหลดไปลงโซเชียลยังมี', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const b = await (await request.get('/api/branding')).json();
+    test.skip(!(b.watermark?.enabled && b.watermark?.src), 'ยังไม่ได้เปิดลายน้ำ');
+    const code = ((await (await request.get('/api/public/listings?locale=th&limit=1')).json()).items as { code: string }[])[0]?.code;
+    test.skip(!code, 'ยังไม่มีทรัพย์ที่เผยแพร่');
+    const photo = (await (await request.get(`/api/public/properties/${code}?locale=th`)).json()).photos?.[0] as string | undefined;
+    test.skip(!photo, 'ทรัพย์แรกยังไม่มีรูป');
+    const pid = photo!.match(/\/api\/media\/([a-z0-9]+)\//)?.[1];
+    const raw = `/api/media/${pid}/raw`;
+
+    const orig = (await (await request.get(`${raw}?original=1`, { headers: { cookie } })).body()).length;
+    const inAdmin = (await (await request.get(raw, { headers: { cookie } })).body()).length;
+    expect(inAdmin, 'หลังบ้านไม่ควรมีลายน้ำบัง').toBe(orig);
+
+    /* ปุ่มโหลด ZIP ในหน้า Social Status ขอ ?wm=1 มา แม้คนกดจะเข้าสู่ระบบอยู่ */
+    const forZip = (await (await request.get(`${raw}?wm=1`, { headers: { cookie } })).body()).length;
+    expect(forZip, 'รูปที่โหลดไปลงโซเชียลต้องมีลายน้ำ').not.toBe(orig);
+
+    /* รูปสะอาดของคนในทีมต้องไม่ถูกแคชกลาง (nginx / CDN) เก็บไปแจกให้คนนอก */
+    const cc = (await request.get(raw, { headers: { cookie } })).headers()['cache-control'] ?? '';
+    expect(cc, 'คำตอบที่ต่างกันตามคนขอ ต้องเป็น private').toContain('private');
   });
 });
 

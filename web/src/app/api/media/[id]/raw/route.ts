@@ -11,7 +11,8 @@
    carrying the settings version, so it is composited once per version, and
    public URLs carry ?v= so browser caches turn over too. */
 import { handler, ApiError } from '@/lib/server/api';
-import { currentUser } from '@/lib/server/auth';
+import { currentUser, SESSION_COOKIE } from '@/lib/server/auth';
+import { cookies } from 'next/headers';
 import { db } from '@/lib/server/db';
 import { getObject, putObject, originalKey, watermarkedKey, thumbKey, isThumbWidth, mediaIdFromSrc } from '@/lib/server/mediaStore';
 import { applyImageWatermark, canWatermark } from '@/lib/server/watermark';
@@ -27,6 +28,28 @@ type Wm = { cfg: WatermarkConfig; version: number };
    อาจใช้เวลาถึงหนึ่งนาทีจึงเห็นผล (แต่ URL เปลี่ยนตาม wmVersion ทันทีอยู่แล้ว) */
 const MEMO_TTL_MS = 60_000;
 const wmMemo = new Map<string, { at: number; wm: Wm | null }>();
+
+/* ลูกค้าแจ้งเพิ่มว่า "ลายน้ำแสดงแค่รูปทรัพย์ ที่หน้าบ้าน" — คนในทีมที่เปิดหลังบ้าน
+   ดูรูปเพื่อทำงาน (ตรวจรูป เลือกรูปลง Shortlist คัดรูปไปโพสต์) ควรเห็นรูปจริง
+   ไม่ใช่รูปที่มีโลโก้บังอยู่ · ตัดสินจาก "มีเซสชันที่ใช้ได้จริงไหม" ไม่ใช่แค่มีคุกกี้
+   ติดมา ไม่งั้นใครก็ตั้งคุกกี้มั่ว ๆ แล้วได้รูปสะอาดไป
+   ยกเว้น ?wm=1 ที่บังคับให้ปั๊ม — ZIP ในหน้า Social Status ใช้ตัวนี้ เพราะรูปที่
+   โหลดออกไปลงโซเชียลต้องมีลายน้ำ แม้คนกดจะเป็นคนในทีม */
+const sessionMemo = new Map<string, { at: number; ok: boolean }>();
+
+async function hasLiveSession(): Promise<boolean> {
+  /* ไม่มีคุกกี้ = คนนอกแน่นอน ตอบได้เลยโดยไม่ต้องแตะฐานข้อมูล ซึ่งเป็นเส้นทาง
+     ของคำขอเกือบทั้งหมด (คนเข้าเว็บทั่วไป) */
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (!token) return false;
+  const hit = sessionMemo.get(token);
+  if (hit && Date.now() - hit.at < MEMO_TTL_MS) return hit.ok;
+  /* currentUser() เช็คครบทั้งวันหมดอายุ บัญชีที่ถูกปิด และ co_agent ที่หมดอายุ
+     — เขียนเช็คเองซ้ำแล้วจะพลาดข้อใดข้อหนึ่งเมื่อกติกาเปลี่ยน */
+  const ok = !!(await currentUser());
+  sessionMemo.set(token, { at: Date.now(), ok });
+  return ok;
+}
 
 async function watermarkFor(orgId: string): Promise<Wm | null> {
   const hit = wmMemo.get(orgId);
@@ -100,7 +123,12 @@ export const GET = handler(async (req: Request, ctx: { params: Promise<{ id: str
   /* the logo stamp applies to the public copy only — never to an admin download,
      never to the logo asset itself (that would stamp the watermark on itself),
      and only to รูปของประกาศ (ดู isListingPhoto ข้างบน) */
-  const stampable = !wantsOriginal && canWatermark(asset.mime)
+  const forceWm = new URL(req.url).searchParams.get('wm') === '1';
+  /* คำนวณแยกไว้ เพราะต้องใช้ตอนตั้ง Cache-Control ด้วย: คำตอบของ URL เดียวกัน
+     ต่างกันตามว่าคนขอเข้าสู่ระบบอยู่หรือไม่ ถ้าปล่อยให้เป็น public แคชที่อยู่
+     ตรงกลาง (nginx / CDN) จะเก็บรูปสะอาดของคนในทีมไปแจกให้คนนอกได้ */
+  const signedIn = !wantsOriginal && !forceWm && await hasLiveSession();
+  const stampable = !wantsOriginal && !signedIn && canWatermark(asset.mime)
     && await isListingPhoto(asset.orgId, asset.id);
   if (stampable) {
     const wm = await watermarkFor(asset.orgId);
@@ -150,7 +178,8 @@ export const GET = handler(async (req: Request, ctx: { params: Promise<{ id: str
       headers: {
         'Content-Type': 'image/jpeg',
         'Content-Length': String(buf.length),
-        'Cache-Control': 'public, max-age=31536000, immutable',
+        /* ตัวย่อของคนที่เข้าสู่ระบบไม่มีลายน้ำ ห้ามให้แคชกลางเก็บไปแจกต่อ */
+        'Cache-Control': signedIn ? 'private, max-age=300' : 'public, max-age=31536000, immutable',
       },
     });
   }
@@ -168,7 +197,8 @@ export const GET = handler(async (req: Request, ctx: { params: Promise<{ id: str
          จึงให้ไปถามเซิร์ฟเวอร์ก่อนทุกครั้งแทน */
       'Cache-Control': wantsOriginal
         ? 'private, no-store'
-        : versioned ? 'public, max-age=31536000, immutable' : 'public, max-age=300, must-revalidate',
+        : signedIn ? 'private, max-age=300'
+          : versioned ? 'public, max-age=31536000, immutable' : 'public, max-age=300, must-revalidate',
     },
   });
 });

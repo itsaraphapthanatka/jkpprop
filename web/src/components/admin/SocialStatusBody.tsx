@@ -117,7 +117,9 @@ function PhotoDownload({ code, photos, forPost = false }: { code: string; photos
     try {
       const entries: ZipEntry[] = [];
       for (const [i, src] of photos.entries()) {
-        const res = await fetch(src);
+        /* ?wm=1 บังคับให้ติดลายน้ำ — หลังบ้านเสิร์ฟรูปสะอาดให้คนในทีมดูทำงาน
+           แต่รูปชุดนี้กำลังจะออกไปลงโซเชียล จึงต้องมีลายน้ำเหมือนที่หน้าเว็บ */
+        const res = await fetch(src + (src.includes('?') ? '&' : '?') + 'wm=1');
         if (!res.ok) throw new Error(`โหลดรูปที่ ${i + 1} ไม่สำเร็จ`);
         const buf = new Uint8Array(await res.arrayBuffer());
         const ext = extForMime(res.headers.get('content-type') ?? '');
