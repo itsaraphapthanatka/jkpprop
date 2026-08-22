@@ -1861,6 +1861,95 @@ test.describe('คอมเมนต์ลูกค้า · รูปในห�
   });
 });
 
+/* "เพิ่ม Tag ใน card เหมือนหน้า detail" — พื้นที่สีตามผังเมืองขึ้นเป็นแท็กบนรูป
+   ใหญ่ในหน้ารายละเอียดมาตลอด แต่การ์ดในหน้ารายการไม่เคยมี ทั้งที่เป็นข้อมูลที่
+   คนหาโรงงานคัดออกตั้งแต่ตอนกวาดตาดูรายการ ไม่ใช่ตอนเปิดเข้าไปอ่าน */
+test.describe('คอมเมนต์ลูกค้า · แท็กพื้นที่สีบนการ์ด', () => {
+  test('การ์ดในหน้ารายการมีแท็กพื้นที่สีพร้อมจุดสี เหมือนหน้ารายละเอียด', async ({ page, request }) => {
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=40')).json()).items as { code: string; zoning: string }[];
+    const withZone = items.find((i) => i.zoning);
+    test.skip(!withZone, 'ยังไม่มีทรัพย์ที่กรอกพื้นที่สีไว้');
+
+    await page.goto('/th/listing');
+    const card = page.locator(`[data-card="${withZone!.code}"]`);
+    await expect(card).toBeVisible({ timeout: 20000 });
+    const tag = card.locator('[data-card-zoning]');
+    await expect(tag, 'การ์ดยังไม่มีแท็กพื้นที่สี').toBeVisible();
+    await expect(tag).toHaveAttribute('data-card-zoning', withZone!.zoning);
+    /* จุดสีต้องมาด้วย — ลูกค้าย้ำสามที่ในเด็คว่า "พื้นที่สีทุกอันใส่ Icon สีด้วย" */
+    await expect(tag.locator('[data-zone-dot]'), 'แท็กไม่มีจุดสี').toBeVisible();
+  });
+
+  test('แท็กบนการ์ดกับบนหน้ารายละเอียด เป็นพื้นที่สีเดียวกัน', async ({ page, request }) => {
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=40')).json()).items as { code: string; zoning: string }[];
+    const withZone = items.find((i) => i.zoning);
+    test.skip(!withZone, 'ยังไม่มีทรัพย์ที่กรอกพื้นที่สีไว้');
+
+    await page.goto('/th/listing');
+    const onCard = await page.locator(`[data-card="${withZone!.code}"] [data-card-zoning]`).innerText();
+    await page.goto(`/th/property/${encodeURIComponent(withZone!.code)}`);
+    const onDetail = await page.locator('[data-hero-zoning]').innerText();
+    expect(onCard.trim(), 'ป้ายบนการ์ดกับหน้ารายละเอียดต้องตรงกัน').toBe(onDetail.trim());
+  });
+});
+
+/* "ลายน้ำขึ้นเฉพาะ Listing และ download ในหน้า Social Status เท่านั้น ภาพอื่น
+   บนเว็บไซต์ ไม่ต้องโชว์" — เดิมปั๊มลายน้ำให้ทุกไฟล์ที่เสิร์ฟออกหน้าเว็บ รูปหน้าปก
+   ของ "คำถามพบบ่อย" "เกี่ยวกับเรา" รูปทีมงาน และรูปออฟฟิศจึงโดนปั๊มไปด้วย */
+test.describe('คอมเมนต์ลูกค้า · ลายน้ำเฉพาะรูปของประกาศ', () => {
+  /* PNG 1x1 สีขาว — เล็กที่สุดที่ sharp ยังอ่านออก */
+  const PNG = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    'base64',
+  );
+
+  test('รูปที่ไม่ได้อยู่ในประกาศ ต้องไม่มีลายน้ำ ส่วนรูปประกาศต้องมี', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const b = await (await request.get('/api/branding')).json();
+    test.skip(!(b.watermark?.enabled && b.watermark?.src), 'ยังไม่ได้เปิดลายน้ำ');
+
+    /* รูปเว็บทั่วไป — อัปโหลดแล้วไม่ผูกกับประกาศใด ๆ เหมือนรูปหน้าปกของ
+       "เกี่ยวกับเรา" ที่ตั้งไว้ใน /admin/sections */
+    const up = await request.post('/api/media', {
+      headers: { cookie },
+      multipart: { file: { name: 'site-hero.png', mimeType: 'image/png', buffer: PNG }, watermarkType: 'none' },
+    });
+    expect(up.ok(), 'อัปโหลดรูปทดสอบไม่สำเร็จ').toBe(true);
+    const site = await up.json();
+    const siteId = String(site.src).match(/\/api\/media\/([a-z0-9]+)\//)?.[1] ?? site.id;
+
+    try {
+      const shown = (await (await request.get(`/api/media/${siteId}/raw`)).body()).length;
+      const orig = (await (await request.get(`/api/media/${siteId}/raw?original=1`, { headers: { cookie } })).body()).length;
+      expect(shown, 'รูปที่ไม่ใช่ของประกาศ ไม่ควรถูกปั๊มลายน้ำ').toBe(orig);
+
+      /* และต้องไม่สัญญา immutable หนึ่งปีกับ URL ที่ไม่มี ?v= — ไม่งั้นวันที่เลิก
+         ปั๊มลายน้ำ เบราว์เซอร์ที่เคยเปิดหน้าไว้จะถือของเก่าไว้ทั้งปี */
+      const head = await request.get(`/api/media/${siteId}/raw`);
+      expect(head.headers()['cache-control'] ?? '', 'URL ไม่มี ?v= ต้องไม่ immutable').not.toContain('immutable');
+    } finally {
+      await request.delete(`/api/media/${siteId}`, { headers: { cookie } }).catch(() => null);
+    }
+
+    /* รูปของประกาศจริง — ต้องยังมีลายน้ำ (ZIP ในหน้า Social Status ดึงจาก URL
+       เดียวกันนี้ ลายน้ำจึงติดไปด้วย) */
+    const code = ((await (await request.get('/api/public/listings?locale=th&limit=1')).json()).items as { code: string }[])[0]?.code;
+    test.skip(!code, 'ยังไม่มีทรัพย์ที่เผยแพร่');
+    const photo = (await (await request.get(`/api/public/properties/${code}?locale=th`)).json()).photos?.[0] as string | undefined;
+    test.skip(!photo, 'ทรัพย์แรกยังไม่มีรูป');
+    const pid = photo!.match(/\/api\/media\/([a-z0-9]+)\//)?.[1];
+    const pShown = (await (await request.get(photo!)).body()).length;
+    const pOrig = (await (await request.get(`/api/media/${pid}/raw?original=1`, { headers: { cookie } })).body()).length;
+    expect(pShown, 'รูปของประกาศต้องยังมีลายน้ำ').not.toBe(pOrig);
+  });
+});
+
 /* "เพิ่ม column PIC ก่อน ในตาราง property, Listing, Social Status" — ทั้งสาม
    ตารางมีตัวกรอง PIC มาตลอด แต่ไม่มีคอลัมน์ให้เห็นว่าใครดูแล กรองได้แต่มอง
    ไม่เห็น เลยต้องจำเอาเองว่าเพิ่งกรองใครไว้ */

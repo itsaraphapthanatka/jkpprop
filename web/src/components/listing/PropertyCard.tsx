@@ -17,6 +17,7 @@ import Link from '@/i18n/LocaleLink';
 import { useI18n } from '@/i18n/useDict';
 import { enumLabel } from '@/i18n/enums';
 import { PhotoPlaceholder } from '@/components/common/PhotoPlaceholder';
+import { ZoneDot } from '@/components/common/ZoneDot';
 
 export type CardListing = {
   code: string;
@@ -28,6 +29,11 @@ export type CardListing = {
   img: string | null;
   type: string;
   area: string;
+  /* สไลด์ · "เพิ่ม Tag ใน card เหมือนหน้า detail" — พื้นที่สีตามผังเมืองขึ้นเป็น
+     แท็กบนรูปใหญ่ในหน้ารายละเอียดมาตลอด แต่การ์ดไม่เคยมี ทั้งที่เป็นข้อมูลที่
+     คนหาโรงงานคัดออกตั้งแต่ตอนกวาดตาดูรายการ ไม่ใช่ตอนเปิดเข้าไปอ่าน
+     ค่าดิบ (ไม่ใช่ป้ายที่แปลแล้ว) เพราะต้องใช้เป็นคีย์เทียบสีด้วย */
+  zoning?: string;
   /** ปล่อยว่างไว้ได้ในการ์ดที่ยังไม่รู้สถานะ — ถือว่าว่างตามเดิม */
   available?: boolean;
 };
@@ -120,6 +126,21 @@ export function PropertyCard({ it, favFill, onToggleFav }: {
           <span style={{ width: 3, height: 3, borderRadius: 9999, background: 'var(--border)' }} />
           <span style={{ display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 9px', borderRadius: 6, background: 'var(--tint)', color: 'var(--accent)', fontSize: '10.5px', fontWeight: 600 }}>{enumLabel(it.type, locale)}</span>
         </div>
+        {/* แท็กพื้นที่สี ชุดเดียวกับที่หน้ารายละเอียดใช้ (components/property/Gallery.tsx)
+            อยู่คนละบรรทัดเพราะชื่อเต็มอย่าง "พื้นที่สีเขียว — ชนบท/เกษตรกรรม" ยาว
+            เกินกว่าจะต่อท้ายรหัสกับประเภทได้ในการ์ดกว้าง 400px */}
+        {it.zoning && (
+          <div style={{ marginTop: 7 }}>
+            <span
+              data-card-zoning={it.zoning}
+              title={enumLabel(it.zoning, locale)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, maxWidth: '100%', height: 22, padding: '0 10px', borderRadius: 6, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--muted)', fontSize: '10.5px', fontWeight: 600 }}
+            >
+              <ZoneDot value={it.zoning} size={11} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{enumLabel(it.zoning, locale)}</span>
+            </span>
+          </div>
+        )}
         <div style={{ marginTop: 8, fontSize: '15.5px', fontWeight: 700, color: 'var(--text)', lineHeight: 1.4, minHeight: 44 }}>{it.title}</div>
         <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted)', fontSize: 13 }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7A7974" strokeWidth="2">

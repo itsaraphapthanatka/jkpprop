@@ -8,6 +8,7 @@ import { propertyType } from '@/lib/propertySchema';
 import { enumLabel } from '@/i18n/enums';
 import type { SectionCopy } from '@/lib/server/sectionCopy';
 import { useFavourites } from '@/lib/favourites';
+import { ZoneDot } from '@/components/common/ZoneDot';
 
 /* Cards come from the database via the home page (a server component), not
    from a list in this file. They used to be a copy of the design prototype's
@@ -24,6 +25,8 @@ export type FeaturedItem = {
   typeKey: string;
   img: string | null;
   photos: string;
+  /** พื้นที่สีตามผังเมือง — แท็กเดียวกับหน้ารายละเอียดและการ์ดในหน้ารายการ */
+  zoning?: string;
 };
 
 type Listing = {
@@ -37,6 +40,7 @@ type Listing = {
   area: string;
   img: string | null;
   type: string;
+  zoning?: string;
   available: boolean;
 };
 
@@ -52,6 +56,7 @@ const toListing = (it: FeaturedItem): Listing => ({
   img: it.img,
   // ชื่อประเภทมาจาก schema ชุดเดียว ไม่ใช่การเดาจาก typeKey ทีละที่
   type: propertyType(it.typeKey).label,
+  zoning: it.zoning,
   available: it.available,
 });
 
@@ -150,6 +155,20 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
           <span style={{ width: 4, height: 4, borderRadius: 9999, background: 'var(--border)' }} />
           <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 10px', borderRadius: 6, background: 'var(--tint)', color: 'var(--accent)', fontSize: 11, fontWeight: 600 }}>{enumLabel(it.type, locale)}</span>
         </div>
+        {/* แท็กชุดเดียวกับการ์ดในหน้ารายการ (listing/PropertyCard.tsx) — แก้ที่นั่น
+            แล้วต้องมาดูใบนี้ด้วยทุกครั้ง */}
+        {it.zoning && (
+          <div style={{ marginTop: 8 }}>
+            <span
+              data-card-zoning={it.zoning}
+              title={enumLabel(it.zoning, locale)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, maxWidth: '100%', height: 23, padding: '0 10px', borderRadius: 6, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--muted)', fontSize: 11, fontWeight: 600 }}
+            >
+              <ZoneDot value={it.zoning} size={11} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{enumLabel(it.zoning, locale)}</span>
+            </span>
+          </div>
+        )}
         <div style={{ marginTop: 10, fontSize: 17, fontWeight: 700, color: 'var(--text)', lineHeight: 1.4, minHeight: 48 }}>{it.title}</div>
         <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--muted)', fontSize: 14 }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7A7974" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z" /><circle cx="12" cy="10" r="3" /></svg>{it.loc}
