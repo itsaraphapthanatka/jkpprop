@@ -49,6 +49,8 @@ export type Dictionary = {
     avgDistance: string; topProvinces: string; inArea: string;
     unsureTitle: string; adviceHeading: string; adviceBody: string;
     adviceQuestion: string; adviceCta: string; getAdvice: string; contactExpert: string; mapAlt: string;
+    /** ปุ่มซูมบนแผนที่ทำเล */
+    zoomIn: string; zoomOut: string; zoomReset: string;
   };
   steps: { eyebrow: string; heading: string; sub: string; step: string; items: { title: string; desc: string }[] };
   whyUs: {
@@ -214,6 +216,7 @@ const th: Dictionary = {
     adviceQuestion: 'ปัจจัยไหนสำคัญที่สุดสำหรับคุณ?',
     adviceCta: 'รับคำแนะนำทำเลฟรี', getAdvice: 'ขอคำแนะนำ',
     contactExpert: 'ติดต่อผู้เชี่ยวชาญของเรา', mapAlt: 'แผนที่ทำเล',
+    zoomIn: 'ขยายแผนที่', zoomOut: 'ย่อแผนที่', zoomReset: 'กลับมุมมองเต็ม',
   },
   steps: {
     eyebrow: 'ขั้นตอนง่ายๆ', heading: 'ค้นหาทรัพย์ใน 4 ขั้นตอน',
@@ -443,6 +446,7 @@ const en: Dictionary = {
     adviceQuestion: 'What matters most to you?',
     adviceCta: 'Get a free location recommendation', getAdvice: 'Ask for advice',
     contactExpert: 'Talk to one of our specialists', mapAlt: 'Map of Thailand',
+    zoomIn: 'Zoom in', zoomOut: 'Zoom out', zoomReset: 'Reset view',
   },
   steps: {
     eyebrow: 'How it works', heading: 'Find a property in four steps',
@@ -672,6 +676,7 @@ const zh: Dictionary = {
     adviceQuestion: '您最看重哪一点？',
     adviceCta: '免费获取选址建议', getAdvice: '咨询建议',
     contactExpert: '联系我们的专家', mapAlt: '泰国地图',
+    zoomIn: '放大', zoomOut: '缩小', zoomReset: '恢复全图',
   },
   steps: {
     eyebrow: '服务流程', heading: '四步找到合适房源',

@@ -1033,11 +1033,20 @@ test.describe('the location finder map', () => {
     expect(await lit('rayong')).toBe('1');
   });
 
-  test('a province names itself when the cursor is on it', async ({ page }) => {
+  /* ลูกค้า: "เมาส์ไม่ต้อง hover ให้ click แล้วแสดงข้อมูลดีกว่า" — เดิมแค่เลื่อน
+     เมาส์ผ่านก็มีการ์ดเด้งตามตลอดทาง กวนสายตาและบังจังหวัดข้าง ๆ */
+  test('ชี้จังหวัดแล้วยังไม่มีการ์ด ต้องกดก่อน', async ({ page }) => {
     await page.goto('/th');
     await page.locator('#lf-map-plane').scrollIntoViewIfNeeded();
+    await page.waitForTimeout(1200);
+
     await page.locator('[data-province="chonburi"]').hover();
-    await expect(page.locator('#lf-map-plane').getByText('ชลบุรี')).toBeVisible();
+    await page.waitForTimeout(400);
+    expect(await page.locator('.belt-card, .belt-card-pop').count(), 'ชี้เฉย ๆ ไม่ควรมีการ์ด').toBe(0);
+
+    await page.locator('[data-province="chonburi"]').click();
+    await expect(page.locator('.belt-card-pop')).toBeVisible();
+    await expect(page.locator('.belt-card-pop')).toContainText('ชลบุรี');
   });
 
   /* The map used to zoom to whichever provinces a factor covered, so the
@@ -1091,19 +1100,20 @@ test.describe('the location finder map', () => {
 
     await page.goto('/th');
     await page.locator('#lf-map-plane').scrollIntoViewIfNeeded();
-    await page.locator('[data-pin="ท่าเรือแหลมฉบัง"]').hover();
+    await page.locator('[data-pin="ท่าเรือแหลมฉบัง"]').click();
 
-    const card = page.locator('.belt-card');
+    const card = page.locator('.belt-card-pop');
     await expect(card).toBeVisible();
     await expect(card).toContainText('ท่าเรือแหลมฉบัง');
     await expect(card).toContainText('ชลบุรี');
     await expect(card).toContainText(String(inChonburi));   // the real number, not a figure from the design
 
-    // and the province it stands in is picked out while the cursor is there
-    const chonburi = page.locator('[data-province="chonburi"]');
-    const hovered = await chonburi.getAttribute('fill-opacity') ?? await chonburi.evaluate((el) => getComputedStyle(el).fillOpacity);
-    await page.locator('[data-pin="ดอนเมือง"]').hover();
-    await expect.poll(async () => chonburi.evaluate((el) => getComputedStyle(el).fillOpacity)).not.toBe(hovered);
+    /* กดหมุดแล้วจังหวัดที่หมุดตั้งอยู่ต้องถูกเลือกไว้ให้เห็น — เทียบกับจังหวัด
+       ที่ไม่เกี่ยวข้อง ไม่ใช่เทียบกับตัวเองก่อน/หลังชี้ เพราะการเลือกอยู่ยาว */
+    const fill = (key: string) => page.locator(`[data-province="${key}"]`).evaluate((el) => Number(getComputedStyle(el).fillOpacity));
+    await page.mouse.move(2, 2);
+    await expect.poll(async () => (await fill('chonburi')) > (await fill('ayutthaya')),
+      { message: 'กดหมุดแล้วจังหวัดที่หมุดอยู่ไม่ได้ถูกเน้น' }).toBe(true);
   });
 
   /* Clicking a province left the browser's focus ring on it: a blue rectangle

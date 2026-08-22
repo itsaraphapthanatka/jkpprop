@@ -242,17 +242,56 @@ test.describe('คอมเมนต์ลูกค้า · แผนที่�
     await page.waitForTimeout(1200);
 
     const box = (await plane.boundingBox())!;
-    // ลากเมาส์พาดแผนที่เร็ว ๆ แบบที่คนใช้จริงทำ
+    /* ลากเมาส์พาดแผนที่เร็ว ๆ แบบที่คนใช้จริงทำ — ตอนนี้การ์ดขึ้นเมื่อกดเท่านั้น
+       ปัญหา "การ์ดค้างเต็มจอ" จึงหายไปพร้อมกับการ์ดแบบชี้ */
     let everOpened = 0;
     for (let i = 0; i <= 12; i++) {
       await page.mouse.move(box.x + (box.width * i) / 12, box.y + box.height * (0.35 + (i % 3) * 0.12));
-      everOpened = Math.max(everOpened, await page.locator('.belt-card').count());
+      everOpened = Math.max(everOpened, await page.locator('.belt-card, .belt-card-pop').count());
     }
-    /* ถ้าไม่มีการ์ดเปิดเลยระหว่างลาก เทสต์นี้ก็ไม่ได้ตรวจอะไร */
-    expect(everOpened, 'ลากผ่านแล้วต้องมีการ์ดขึ้นอย่างน้อยหนึ่งใบ').toBeGreaterThan(0);
     await page.waitForTimeout(500);
-    const cards = await page.locator('.belt-card').count();
+    expect(everOpened, 'ชี้ผ่านเฉย ๆ ไม่ควรมีการ์ดขึ้นเลย').toBe(0);
+
+    /* แต่กดแล้วต้องได้การ์ด และได้ทีละใบ */
+    await page.locator('[data-province="chonburi"]').click();
+    await expect(page.locator('.belt-card-pop')).toBeVisible();
+    await page.locator('[data-province="rayong"]').click();
+    await page.waitForTimeout(400);
+    const cards = await page.locator('.belt-card-pop').count();
     expect(cards, `การ์ดค้างบนแผนที่ ${cards} ใบ`).toBeLessThanOrEqual(1);
+  });
+
+  /* ลูกค้า: "แผนที่ ทำ Zoom in, zoom out"
+     เหตุผลที่เคยล็อกแผนที่ไว้คือลากหลุดกรอบแล้วหาทางกลับไม่เจอ เพราะไม่มีปุ่มซูม
+     หรือปุ่มรีเซ็ต ตอนนี้มีทั้งสามปุ่ม จึงเปิดให้ขยับได้โดยมีทางกลับเสมอ */
+  test('ปุ่มซูมเข้า/ออก และปุ่มกลับมุมมองเต็ม ทำงานจริง', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/th');
+    await page.locator('#lf-map-plane').scrollIntoViewIfNeeded();
+    await page.waitForTimeout(2500);
+
+    const size = async () => (await page.locator('[data-province="chonburi"]').boundingBox())!.width;
+    const zoomIn = page.locator('[data-map-zoom]').first();
+    const zoomOut = page.locator('[data-map-zoom]').nth(1);
+    const reset = () => page.locator('[data-map-zoom]').nth(2);
+
+    const base = await size();
+    expect(await page.locator('[data-map-zoom]').count(), 'ตอนเริ่มควรมีแค่ปุ่มเข้า/ออก').toBe(2);
+
+    await zoomIn.click();
+    await page.waitForTimeout(600);
+    expect(await size(), 'กดขยายแล้วแผนที่ไม่ใหญ่ขึ้น').toBeGreaterThan(base * 1.1);
+    await expect(reset(), 'ซูมแล้วต้องมีปุ่มกลับมุมมองเต็ม').toBeVisible();
+
+    await reset().click();
+    await page.waitForTimeout(600);
+    expect(Math.abs((await size()) - base), 'กดกลับมุมมองเต็มแล้วไม่กลับที่เดิม').toBeLessThan(4);
+    expect(await page.locator('[data-map-zoom]').count(), 'กลับมาเต็มกรอบแล้วปุ่มรีเซ็ตควรหายไป').toBe(2);
+
+    /* ย่อต่ำกว่ามุมมองเต็มไม่ได้ — จะเหลือแต่ที่ว่างรอบเข็มขัดอุตสาหกรรม */
+    await zoomOut.click();
+    await page.waitForTimeout(600);
+    expect(Math.abs((await size()) - base), 'ย่อทะลุมุมมองเต็มลงไปได้').toBeLessThan(4);
   });
 
   /* สไลด์ 6 · "ล็อคไม่ให้แผนที่เลื่อนได้" — แผนที่นี้เป็นตัวเลือกจังหวัด

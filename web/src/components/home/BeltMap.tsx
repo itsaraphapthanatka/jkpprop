@@ -98,6 +98,11 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
   /* One place decides how a province looks, because four things now have an
      opinion about it: what the reader picked, what the cursor is on, what the
      factor covers, and everything else. */
+  /* ปุ่มซูมเป็นของ React แต่ตัวแผนที่ถูกสร้างในเอฟเฟกต์ — ผูกกันด้วย ref
+     เพื่อไม่ให้ปุ่มต้องรอให้แผนที่ถูกสร้างเสร็จก่อนถึงจะเรนเดอร์ได้ */
+  const zoomApi = React.useRef<{ in: () => void; out: () => void; reset: () => void } | null>(null);
+  const [zoomed, setZoomed] = React.useState(false);
+
   const hoverRef = React.useRef<string | null>(null);
   const selectedRef = React.useRef<string | null>(null);
 
@@ -154,9 +159,12 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
       const L = (await import('leaflet')).default;
       if (dead || !host.current) return;
 
-      /* สไลด์ 6 · "ล็อคไม่ให้แผนที่เลื่อนได้" — แผนที่นี้เป็นตัวเลือกจังหวัด
-         ไม่ใช่แผนที่ให้สำรวจ พอลากหรือซูมได้ คนก็เลื่อนหลุดกรอบแล้วหาทางกลับ
-         ไม่เจอ ปิดทุกทางที่ทำให้มุมมองขยับ เหลือแค่ชี้แล้วคลิก */
+      /* สไลด์ 6 · "ล็อคไม่ให้แผนที่เลื่อนได้" — เหตุผลเดิมคือลากหลุดกรอบแล้ว
+         หาทางกลับไม่เจอ เพราะไม่มีปุ่มซูมหรือปุ่มรีเซ็ต
+         ตอนนี้ลูกค้าขอปุ่มซูมเข้า/ออก จึงเปิดให้ขยับได้ แต่มีทางกลับเสมอ:
+         ที่ระดับซูมพื้นฐานยังลากไม่ได้เหมือนเดิม (ภาพเต็มกรอบอยู่แล้ว ลากไปก็มี
+         แต่ที่ว่าง) พอกดซูมเข้าถึงลากได้ และมีปุ่มรีเซ็ตกลับมุมมองเต็มตลอด
+         ล้อเมาส์ยังปิดไว้ — หน้าเว็บต้องเลื่อนผ่านแผนที่ได้ */
       const m = L.map(host.current, {
         zoomControl: false,
         attributionControl: true,
@@ -172,8 +180,40 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
            จังหวัดเลยกินพื้นที่แค่ 48% ของกรอบ ที่เหลือเป็นที่ว่าง
            zoomSnap:0 ให้ซูมเป็นทศนิยมได้ ภาพจึงเต็มกรอบพอดีจริง ๆ (85%) */
         zoomSnap: 0,
+        /* ปิดอนิเมชันซูม — บนหน้านี้ Leaflet รอ transitionend ของ pane เพื่อจบ
+           การซูม แต่ transition ไม่เคยจบ (กฎ CSS ของเว็บทับอยู่) เหตุการณ์
+           zoomend จึงไม่ยิง ปุ่มรีเซ็ตไม่โผล่ และการลากไม่ถูกปลดล็อก
+           ซูมแบบไม่มีอนิเมชันคำนวณใหม่ทันทีและยิงเหตุการณ์ครบตามที่ควร */
+        zoomAnimation: false,
       });
       m.fitBounds(BOUNDS, { padding: [8, 8] });
+
+      /* ซูมพื้นฐาน = ระดับที่ภาพพอดีกรอบ ห้ามซูมออกต่ำกว่านี้ เพราะจะเหลือแต่
+         ที่ว่างรอบเข็มขัดอุตสาหกรรม
+         ค่านี้อ่านตอนกรอบนิ่งแล้วเท่านั้น (ดู refit ข้างล่าง) — อ่านทันทีหลัง
+         fitBounds ครั้งแรกจะได้ค่าของกรอบที่ยังไม่ถูกจัดขนาด แล้ว minZoom ที่ตั้ง
+         จากค่านั้นจะล็อกจนกดซูมไม่ขยับ */
+      const baseZoom = { z: m.getZoom() };
+
+      /* ลากได้เฉพาะตอนซูมเข้า — ที่ระดับพื้นฐานไม่มีอะไรให้ลากไปดู */
+      /* เผื่อไว้ 0.05 — fitBounds คำนวณระดับใหม่ทุกครั้ง ค่าที่ได้ต่างจากเดิม
+         ระดับเศษเสี้ยว ถ้าเทียบแบบเป๊ะ ปุ่ม "กลับมุมมองเต็ม" จะค้างอยู่ทั้งที่
+         กลับมาเต็มกรอบแล้ว */
+      const zoomedIn = () => m.getZoom() > baseZoom.z + 0.05;
+      const syncDrag = () => {
+        if (zoomedIn()) m.dragging.enable();
+        else m.dragging.disable();
+        setZoomed(zoomedIn());
+      };
+      /* เรียก syncDrag เองหลังทุกปุ่ม ไม่รอเหตุการณ์ zoomend — Leaflet ไม่ยิง
+         เหตุการณ์ให้ทุกกรณี (เช่น fitBounds ที่ได้ระดับเดิม) แล้วปุ่มรีเซ็ตจะค้าง
+         อยู่ทั้งที่กลับมาเต็มกรอบแล้ว และการลากจะไม่ถูกล็อกกลับ */
+      zoomApi.current = {
+        in: () => { m.zoomIn(0.8); syncDrag(); },
+        out: () => { m.zoomOut(0.8); syncDrag(); },
+        reset: () => { m.fitBounds(BOUNDS, { padding: [8, 8] }); syncDrag(); },
+      };
+      m.on('zoomend', syncDrag);
 
       L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
@@ -191,10 +231,9 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
           fillOpacity: 0.42,
           className: `belt-prov belt-${p.key}`,
         }).addTo(m);
-        poly.bindTooltip(
-          cardHtml({ name: provinceLabel(p.th, locale), province: '', count: provinceCount(p.key), countLabel }),
-          { className: 'belt-card', sticky: true, direction: 'top', opacity: 1 },
-        );
+        /* ลูกค้า: "เมาส์ไม่ต้อง hover ให้ click แล้วแสดงข้อมูลดีกว่า" — เดิมแค่
+           เลื่อนเมาส์ผ่านก็มีการ์ดเด้งตามตลอดทาง กวนสายตาและปิดจังหวัดข้าง ๆ
+           ตอนนี้ชี้ได้แค่เน้นสี ข้อมูลขึ้นเมื่อกดเท่านั้น */
         poly.bindPopup(
           cardHtml({ name: provinceLabel(p.th, locale), province: '', count: provinceCount(p.key), countLabel, go: provinceHint, href: hrefFor(p) }),
           { className: 'belt-card-pop', closeButton: true, autoPan: false },
@@ -202,23 +241,15 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
         /* Clicking used to leave the page at once. It picks the area out
            instead, and the card it opens is where the reader decides to go. */
         poly.on('click', () => select(p.key));
-        poly.on('mouseover', () => { closeCards(poly); setHovered(p.key); });
+        poly.on('mouseover', () => setHovered(p.key));
         poly.on('mouseout', () => setHovered(null));
         poly.getElement()?.setAttribute('data-province', p.key);
         layers.current[p.key] = poly;
       }
 
-      /* ลูกค้าเรียกอาการนี้ว่า "แผนที่เละ" — การ์ดของแต่ละจังหวัดค้างเปิดพร้อมกัน
-         เต็มจอ เพราะ Leaflet ปิด tooltip เมื่อได้ mouseout เท่านั้น พอเลื่อนเมาส์
-         เร็ว ๆ ข้ามหลายจังหวัด (หรือรูปหลายเหลี่ยมถูกวาดใหม่ตอนเปลี่ยนสี)
-         mouseout บางตัวไม่มาถึง การ์ดนั้นก็ค้างอยู่ตลอด ยิ่งแผนที่ใหญ่ยิ่งค้างเยอะ
-         ทุกครั้งที่เปิดการ์ดใหม่ จึงไล่ปิดของเดิมทั้งหมดก่อน */
-      const closeCards = (keep?: L.Layer) => {
-        m.eachLayer((l) => {
-          if (l !== keep && 'closeTooltip' in l) (l as L.Polygon).closeTooltip();
-        });
-      };
-      m.on('mouseout', () => closeCards());
+      /* อาการ "แผนที่เละ" ที่ลูกค้าเคยแจ้ง — การ์ดหลายใบค้างเปิดพร้อมกันตอน
+         ลากเมาส์พาดเร็ว ๆ — หายไปพร้อมกับการ์ดแบบชี้ ตอนนี้เปิดได้ทีละใบด้วย
+         การกด และ Leaflet ปิดใบเดิมให้เองเมื่อเปิดใบใหม่ */
 
       for (const pin of pins) {
         const mk = L.marker([pin.lat, pin.lng], {
@@ -241,10 +272,10 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
            province; clicking opens them. */
         const prov = PROVINCE[pin.province];
         const base = { cat: pin.catLabel, name: pin.name, province: provinceLabel(prov?.th ?? '', locale), count: pin.count, countLabel };
-        mk.bindTooltip(cardHtml(base), { className: 'belt-card', direction: 'top', offset: [0, -20], opacity: 1 });
+        // ชี้ได้แค่เน้น ข้อมูลขึ้นเมื่อกด — เหมือนกับจังหวัด
         mk.bindPopup(cardHtml({ ...base, go: provinceHint, href: prov ? hrefFor(prov) : undefined }),
           { className: 'belt-card-pop', closeButton: true, autoPan: false, offset: [0, -20] });
-        mk.on('mouseover', () => { closeCards(mk); cb.current.onPinHover(pin.name); setHovered(pin.province); });
+        mk.on('mouseover', () => { cb.current.onPinHover(pin.name); setHovered(pin.province); });
         mk.on('mouseout', () => { cb.current.onPinHover(null); setHovered(null); });
         mk.on('click', () => select(pin.province));
         mk.getElement()?.setAttribute('data-pin', pin.name);
@@ -274,7 +305,16 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
       /* the panel animates in; leaflet needs telling once the box has settled
          พอล็อกไม่ให้ลากแล้ว ต้องจัดกรอบใหม่ทุกครั้งที่ขนาดกล่องเปลี่ยน ไม่งั้น
          ภาพจะค้างอยู่คนละที่โดยที่คนดูขยับกลับเองไม่ได้ */
-      const refit = () => { m.invalidateSize(); m.fitBounds(BOUNDS, { padding: [8, 8] }); setTimeout(declutter, 80); };
+      const refit = () => {
+        m.invalidateSize();
+        m.fitBounds(BOUNDS, { padding: [8, 8] });
+        /* ตอนนี้กรอบนิ่งแล้ว ระดับที่ได้คือระดับพื้นฐานจริง */
+        baseZoom.z = m.getZoom();
+        m.setMinZoom(baseZoom.z);
+        m.setMaxZoom(baseZoom.z + 4);
+        syncDrag();
+        setTimeout(declutter, 80);
+      };
       setTimeout(refit, 250);
       window.addEventListener('resize', refit);
       cleanups.push(() => window.removeEventListener('resize', refit));
@@ -333,7 +373,42 @@ export function BeltMap({ factor, pins, activePin, onPinHover, locale, label, on
     );
   }
 
-  return <div id="lf-map-plane" ref={host} role="img" aria-label={label} style={{ position: 'absolute', inset: 0 }} />;
+  /* ปุ่มซูมเป็นของเราเอง ไม่ใช่ปุ่มมาตรฐานของ Leaflet — จะได้ใช้สีและทรงเดียว
+     กับปุ่มอื่นบนแผนที่ และมีปุ่ม "กลับมุมมองเต็ม" ซึ่ง Leaflet ไม่มีให้ */
+  return (
+    <>
+      <div id="lf-map-plane" ref={host} role="img" aria-label={label} style={{ position: 'absolute', inset: 0 }} />
+      <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 850, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <ZoomBtn label={d.locations.zoomIn} onClick={() => zoomApi.current?.in()} d="M12 5v14M5 12h14" />
+        <ZoomBtn label={d.locations.zoomOut} onClick={() => zoomApi.current?.out()} d="M5 12h14" />
+        {/* โผล่เฉพาะตอนที่มุมมองขยับไปแล้ว — ปุ่มรีเซ็ตที่ไม่มีอะไรให้รีเซ็ตคือปุ่มตาย */}
+        {zoomed && (
+          <ZoomBtn label={d.locations.zoomReset} onClick={() => zoomApi.current?.reset()} d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5" />
+        )}
+      </div>
+    </>
+  );
+}
+
+function ZoomBtn({ label, onClick, d: path }: { label: string; onClick: () => void; d: string }) {
+  return (
+    <button
+      type="button"
+      data-map-zoom={label}
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      style={{
+        width: 36, height: 36, borderRadius: 10, border: '1px solid var(--border)',
+        background: 'rgba(255,255,255,.94)', backdropFilter: 'blur(6px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'pointer', color: 'var(--accent)', padding: 0,
+        boxShadow: '0 4px 12px rgba(0,0,0,.14)',
+      }}
+    >
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d={path} /></svg>
+    </button>
+  );
 }
 
 const escapeHtml = (s: string) =>
