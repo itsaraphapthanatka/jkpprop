@@ -336,7 +336,8 @@ export function VisitBody() {
             </div>
           </div>
           {visit.customerPhone && (
-            <a href={`tel:${visit.customerPhone.replace(/[^+\d]/g, '')}`} data-visit-lead-phone style={{ display: 'flex', alignItems: 'center', gap: 7, height: 36, padding: '0 14px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: '12.5px', fontWeight: 700, textDecoration: 'none' }}>
+            /* เบอร์หายไปตอนพิมพ์ — ดู data-print-nophone ใน globals.css */
+            <a href={`tel:${visit.customerPhone.replace(/[^+\d]/g, '')}`} data-visit-lead-phone data-print-nophone style={{ display: 'flex', alignItems: 'center', gap: 7, height: 36, padding: '0 14px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: '12.5px', fontWeight: 700, textDecoration: 'none' }}>
               {visit.customerPhone}
             </a>
           )}
@@ -455,9 +456,12 @@ export function VisitBody() {
                       </a>
                     )}
                     {st.contactPhone && (
+                      /* ตอนพิมพ์เหลือแค่ชื่อคนที่ต้องโทรหา ไม่มีตัวเลข — ใบนี้ออกไปกับ
+                         ลูกค้าด้วย ถ้าเบอร์ผู้ให้เช่าติดไปก็ติดต่อตรงได้เลย */
                       <a href={`tel:${st.contactPhone.replace(/[^+\d]/g, '')}`} data-stop-phone style={stopBtn}>
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z" /></svg>
-                        {st.contactName || 'โทรหาเจ้าของ'} · {st.contactPhone}
+                        <span data-print-nophone>{st.contactName || 'โทรหาเจ้าของ'} · {st.contactPhone}</span>
+                        <span data-print-only>{st.contactName ? `โทรหา ${st.contactName} — เบอร์ดูในระบบ` : 'เบอร์ผู้ติดต่อดูในระบบ'}</span>
                       </a>
                     )}
                     {st.mapUrl && (

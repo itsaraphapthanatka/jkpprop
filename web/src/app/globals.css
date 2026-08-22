@@ -197,3 +197,14 @@ svg[fill="none"] { stroke-width:1.7px !important; }
 .leaflet-container .leaflet-interactive:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 .leaflet-container { background:#F4F6F5; font:inherit; }
 .leaflet-control-attribution { font-size:10px; background:rgba(255,255,255,.75); }
+
+/* ---- พิมพ์ route sheet (หน้า /admin/visits/[id]) ----
+   ใบนี้ถูกพิมพ์ออกไปพร้อมกับคนที่พาลูกค้าไปดูทรัพย์ และมักวางอยู่บนรถหรือ
+   ส่งต่อกันในทีม เบอร์ผู้ให้เช่าจึงไม่ควรติดไปกับกระดาษ — ถ้าลูกค้าเห็นก็ติดต่อ
+   ตรงได้เลย ซึ่งเป็นเรื่องเดียวกับที่สไลด์ 46 สั่งให้ปิดบังบนหน้าจอ
+   บนจอทุกอย่างยังเหมือนเดิม ตัดเฉพาะตอนพิมพ์ และยังบอกว่าติดต่อใครได้อยู่ */
+[data-print-only] { display:none; }
+@media print {
+  [data-print-nophone] { display:none !important; }
+  [data-print-only] { display:inline !important; }
+}

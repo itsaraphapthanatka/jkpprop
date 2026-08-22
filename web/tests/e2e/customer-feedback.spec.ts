@@ -1861,6 +1861,66 @@ test.describe('คอมเมนต์ลูกค้า · รูปในห�
   });
 });
 
+/* "พิมพ์ route sheet ปิดเบอร์โทร ไม่ให้แสดงเบอร์โทร" — ใบ route sheet ถูกพิมพ์
+   ออกไปกับคนที่พาลูกค้าไปดู และมักอยู่ในมือลูกค้าด้วย เบอร์ผู้ให้เช่าจึงไม่ควร
+   ติดไปกับกระดาษ (เรื่องเดียวกับสไลด์ 46 แต่คนละสื่อ) บนจอยังเห็นเหมือนเดิม */
+test.describe('คอมเมนต์ลูกค้า · route sheet ที่พิมพ์ออกมาต้องไม่มีเบอร์', () => {
+  test('พิมพ์แล้วเบอร์ผู้ให้เช่าและเบอร์ลูกค้าหายไป แต่ยังบอกว่าโทรหาใคร', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const LESSOR = '081-777-6655';
+    const LEAD_PHONE = '081-222-3344';
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: {
+        typeKey: 'warehouse', title: `ทดสอบพิมพ์ใบเดินทาง ${Date.now().toString(36)}`, status: 'active',
+        values: {
+          province: 'สมุทรปราการ', deal_type: 'ให้เช่า',
+          lessor_name: 'คุณเจ้าของ', lessor_phone: LESSOR,
+          location_map: { lat: 13.64, lng: 100.59 },
+        },
+      },
+    })).json();
+    const lead = await (await request.post('/api/leads', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { name: `บ. ทดสอบพิมพ์ ${Date.now().toString(36)}`, phone: LEAD_PHONE },
+    })).json();
+    const when = new Date();
+    when.setDate(when.getDate() + 4);
+    const visit = await (await request.post('/api/visits', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { leadId: lead.id, date: when.toISOString(), codes: [made.publicCode] },
+    })).json();
+
+    try {
+      await page.goto(`/admin/visits/${visit.id}`);
+      const stop = page.locator(`[data-stop="${made.publicCode}"]`);
+      await expect(stop).toBeVisible();
+
+      /* บนจอ — เบอร์ต้องยังอยู่ ไม่งั้นคนพาไปดูโทรไม่ได้ */
+      await expect(stop.locator('[data-stop-phone]')).toContainText(LESSOR);
+      await expect(page.locator('[data-visit-lead-phone]')).toBeVisible();
+
+      /* บนกระดาษ — ต้องไม่มีเบอร์เหลืออยู่เลย */
+      await page.emulateMedia({ media: 'print' });
+      const printed = await page.locator('body').innerText();
+      expect(printed, 'เบอร์ผู้ให้เช่าไม่ควรติดไปกับใบที่พิมพ์').not.toContain(LESSOR);
+      expect(printed, 'เบอร์ลูกค้าไม่ควรติดไปกับใบที่พิมพ์').not.toContain(LEAD_PHONE);
+      expect(printed, 'ตัดเบอร์ออกแต่ยังต้องบอกว่าโทรหาใคร').toContain('คุณเจ้าของ');
+      await page.emulateMedia({ media: 'screen' });
+    } finally {
+      await request.delete(`/api/visits/${visit.id}`, { headers: { cookie } }).catch(() => null);
+      await request.delete(`/api/leads/${lead.id}`, { headers: { cookie } }).catch(() => null);
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+});
+
 /* "เปลี่ยนเป็นรูป" · หน้า Dashboard — กล่อง "ทรัพย์ที่อัปเดตล่าสุด" เป็นไอคอน
    บ้านสีเทาเหมือนกันทุกแถว เพราะ query ไม่ได้ดึง values มาเลยไม่มีรูปให้แสดง
    (อาการเดียวกับหน้าดีลและ Shortlist) พร้อมกันนี้บรรทัดกิจกรรมล่าสุดเคยขึ้น
