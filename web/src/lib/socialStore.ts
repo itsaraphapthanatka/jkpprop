@@ -11,6 +11,8 @@ export type ChannelPost = { done: boolean; date?: string; url?: string };
 
 export type SocialRecord = {
   text?: string; // manual override of the generated template
+  /* สไลด์ 35 · รูปที่เตรียมไว้สำหรับโพสต์ประกาศนี้โดยเฉพาะ — ไม่มีก็ใช้รูปทรัพย์ */
+  photos?: string[];
   channels: Record<string, ChannelPost>;
 };
 

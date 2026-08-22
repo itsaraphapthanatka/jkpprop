@@ -339,11 +339,32 @@ export function RequirementBody({ id }: { id: string }) {
       <code style={{ ...monoCode, fontSize: 12, fontWeight: 700, color: chip.fg, background: chip.bg, padding: '2px 8px', borderRadius: 6 }}>{data.statusLabel}</code>
     </span>
   );
+  /* สไลด์ 41 · "3 ขั้นตอนนี้ ปุ่มไปต่อใช้งานแล้วงงมาก ไม่รู้เลยว่ากดอันไหนเพื่อไป
+     ขั้นตอนถัดไป"
+     หน้า Shortlist กับ Visits มีปุ่ม "ถัดไป" ที่รู้ว่าตัวเองอยู่ขั้นไหนแล้ว แต่หน้า
+     REQ ยังไม่มี — พอยืนยันเสร็จปุ่มหลักก็หายไป ขั้นถัดไป (เช็คว่าง แล้วสร้าง
+     shortlist) ซ่อนอยู่ในเนื้อหน้าโดยไม่มีอะไรชี้ ปุ่มนี้ชี้ทีละขั้นแบบเดียวกัน */
+  const nextStep: { n: number; label: string; go: () => void } | null = cancelled ? null
+    : data.status === 'submitted'
+      ? { n: 1, label: 'ยืนยัน requirement', go: () => void act({ action: 'confirm' }, 'ยืนยัน requirement แล้ว — lead เลื่อนสถานะให้อัตโนมัติ') }
+      : !availableChecks.length
+        ? { n: 2, label: 'เช็คว่างกับเจ้าของ', go: () => { setCheckErr(''); setCheckOpen(true); } }
+        : !data.shortlists.length
+          ? { n: 3, label: 'สร้าง Shortlist', go: () => void buildShortlist() }
+          : { n: 4, label: 'เปิด Shortlist', go: () => router.push(`/admin/shortlists?id=${data.shortlists[0].id}`) };
+
   const actionsNode = (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-      {data.status === 'submitted' && (
-        <div id="req-confirm" onClick={() => void act({ action: 'confirm' }, 'ยืนยัน requirement แล้ว — lead เลื่อนสถานะให้อัตโนมัติ')} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M20 6L9 17l-5-5" /></svg>ยืนยัน requirement
+      {nextStep && (
+        <div
+          id="req-next"
+          data-next-step={nextStep.n}
+          onClick={nextStep.go}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+        >
+          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, borderRadius: 9999, background: 'rgba(255,255,255,.22)', fontSize: 11, fontWeight: 800 }}>{nextStep.n}</span>
+          ถัดไป: {nextStep.label}
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
         </div>
       )}
       {cancelled ? (

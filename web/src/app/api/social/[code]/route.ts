@@ -13,14 +13,19 @@ export const PUT = handler(async (req: Request, ctx: { params: Promise<{ code: s
   requireRole(user, 'owner', 'manager', 'agent', 'marketing');
   const { code } = await ctx.params;
 
-  const body = (await req.json().catch(() => null)) as { text?: string | null; channels?: Record<string, ChannelPost> } | null;
+  const body = (await req.json().catch(() => null)) as { text?: string | null; photos?: unknown; channels?: Record<string, ChannelPost> } | null;
   if (!body) throw new ApiError('VALIDATION', 'ข้อมูลไม่ถูกต้อง', 400);
 
   const text = typeof body.text === 'string' && body.text.trim() ? body.text.slice(0, 8000) : null;
+  /* สไลด์ 35 · รูปสำหรับโพสต์ของประกาศนี้ — เก็บ src ที่เสิร์ฟได้เลย เหมือนช่อง
+     รูปทรัพย์ · จำกัดจำนวนไว้กันกดพลาดจนแถวบวม */
+  const photos = Array.isArray(body.photos)
+    ? body.photos.filter((x): x is string => typeof x === 'string' && x.trim().length > 0).slice(0, 30)
+    : undefined;
   await db.socialRecord.upsert({
     where: { orgId_code: { orgId: user.orgId, code } },
-    create: { orgId: user.orgId, code, text },
-    update: { text },
+    create: { orgId: user.orgId, code, text, ...(photos ? { photos } : {}) },
+    update: { text, ...(photos ? { photos } : {}) },
   });
 
   const channels = body.channels && typeof body.channels === 'object' ? body.channels : {};

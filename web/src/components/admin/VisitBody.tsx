@@ -75,6 +75,11 @@ const VISIT_EVT = 'jkp:visit-loaded';
    The id is module-scoped because the topbar and the body are separate
    components with no shared provider. */
 let pinnedVisitId: string | undefined;
+/* ปุ่ม "ถัดไป" อยู่ในแถบด้านบน (VisitActions) แต่กล่องเปิดดีลอยู่ในเนื้อหน้า
+   (VisitBody) ซึ่งเป็นคนละคอมโพเนนต์ — เนื้อหน้าฝากฟังก์ชันเปิดกล่องไว้ตรงนี้
+   ให้แถบด้านบนเรียกใช้ แบบเดียวกับปุ่ม Export ในหน้า Properties/Listings */
+let openDealDialogRef: (() => void) | null = null;
+
 export function setPinnedVisit(id?: string) {
   if (id !== pinnedVisitId) { pinnedVisitId = id; visitCache = null; }
 }
@@ -190,10 +195,41 @@ export function VisitActions() {
           </div>
         </div>
       )}
-      <div onClick={complete} title={visit ? undefined : 'ยังไม่มีแผนเข้าชมให้ปิด'}
-        style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 18px', borderRadius: 9999, background: !visit ? 'var(--border)' : completed ? '#273c33' : '#0D6C3B', color: visit ? '#fff' : 'var(--muted3)', fontSize: 13, fontWeight: 700, cursor: visit ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M20 6L9 17l-5-5" /></svg>{completed ? 'ปิด plan แล้ว' : 'ปิด plan (completed)'}
-      </div>
+      {/* สไลด์ 41 · "3 ขั้นตอนนี้ ปุ่มไปต่อใช้งานแล้วงงมาก ไม่รู้เลยว่ากดอันไหนเพื่อ
+          ไปขั้นตอนถัดไป" — ปุ่มหลักบอกเลขขั้นและชื่อขั้นตรง ๆ แบบเดียวกับหน้า
+          Shortlist และ REQ ปิดแผนแล้วปุ่มเปลี่ยนเป็น "เปิดดีล" ซึ่งเป็นขั้นถัดไป
+          จริง ๆ (เดิมซ่อนอยู่กลางหน้า ต้องเลื่อนหา) */}
+      {visit && !cancelled && (
+        completed ? (
+          <div
+            id="visit-next"
+            data-next-step="2"
+            onClick={() => openDealDialogRef?.()}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, borderRadius: 9999, background: 'rgba(255,255,255,.22)', fontSize: 11, fontWeight: 800 }}>2</span>
+            ถัดไป: เปิดดีล (เจรจา)
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+          </div>
+        ) : (
+          <div
+            id="visit-next"
+            data-next-step="1"
+            onClick={complete}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, borderRadius: 9999, background: 'rgba(255,255,255,.22)', fontSize: 11, fontWeight: 800 }}>1</span>
+            ถัดไป: ปิดแผน (พาชมเสร็จแล้ว)
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+          </div>
+        )
+      )}
+      {/* ยังไม่มีแผน หรือแผนถูกยกเลิกไปแล้ว — บอกสถานะ ไม่ใช่ปุ่มที่กดไม่ได้ */}
+      {(!visit || cancelled) && (
+        <span style={{ display: 'flex', alignItems: 'center', height: 40, padding: '0 16px', borderRadius: 9999, background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--muted3)', fontSize: '12.5px', fontWeight: 700, whiteSpace: 'nowrap' }}>
+          {cancelled ? 'แผนนี้ยกเลิกแล้ว' : 'ยังไม่มีแผนเข้าชม'}
+        </span>
+      )}
     </div>
   );
 }
@@ -254,6 +290,15 @@ export function VisitBody() {
     setDealCode(stops.find((s) => s.result === 'สนใจมาก')?.code ?? stops[0]?.code ?? '');
     setDealOpen(true);
   };
+
+  /* ฝากไว้ให้ปุ่ม "ถัดไป" ในแถบด้านบนเรียกได้ — ผ่าน ref เพื่อให้เรียกครั้งไหนก็ได้
+     ตัวล่าสุดเสมอ โดยไม่ต้องผูก dependency กับฟังก์ชันที่สร้างใหม่ทุกเรนเดอร์ */
+  const openDealLatest = React.useRef(openDealDialog);
+  openDealLatest.current = openDealDialog;
+  React.useEffect(() => {
+    openDealDialogRef = () => openDealLatest.current();
+    return () => { openDealDialogRef = null; };
+  }, []);
 
   const createDeal = () => {
     if (!dealCode) { setDealErr('เลือกทรัพย์ที่จะเปิดดีล'); return; }

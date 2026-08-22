@@ -417,6 +417,11 @@ model SocialRecord {
   orgId String
   code  String // listing public_code
   text  String? // manual caption override; null = use buildSummary()
+  /* สไลด์ 35 · "Social Status ไม่มีให้โหลดรูปภาพของแต่ละประกาศ · จำเป็น"
+     รูปที่เตรียมไว้สำหรับโพสต์ประกาศนี้โดยเฉพาะ — คนละชุดกับรูปทรัพย์ เพราะรูป
+     โพสต์มักครอปมาแล้ว มีข้อความทับ หรือเป็นรูปที่เลือกมาเฉพาะบางใบ
+     ไม่มีก็ใช้รูปทรัพย์ตามเดิม */
+  photos String[] @default([])
 
   @@id([orgId, code])
 }

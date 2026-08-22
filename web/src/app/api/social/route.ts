@@ -16,7 +16,7 @@ export const GET = handler(async () => {
   ]);
 
   const out: Record<string, SocialRecord> = {};
-  for (const r of records) out[r.code] = { ...(r.text !== null ? { text: r.text } : {}), channels: {} };
+  for (const r of records) out[r.code] = { ...(r.text !== null ? { text: r.text } : {}), ...(r.photos.length ? { photos: r.photos } : {}), channels: {} };
   for (const p of posts) {
     if (!out[p.code]) out[p.code] = { channels: {} };
     out[p.code].channels[p.channelKey] = {

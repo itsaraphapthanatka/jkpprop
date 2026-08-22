@@ -1750,6 +1750,92 @@ test.describe('คอมเมนต์ลูกค้า · โปรไฟล�
   });
 });
 
+/* สไลด์ 41 · "3 ขั้นตอนนี้ ปุ่มไปต่อใช้งานแล้วงงมาก ไม่รู้เลยว่ากดอันไหนเพื่อไป
+   ขั้นตอนถัดไป" — Shortlist · REQ · Visits ต้องมีปุ่มหลักปุ่มเดียวที่บอกเลขขั้น
+   และชื่อขั้นถัดไปตรง ๆ เหมือนกันทั้งสามหน้า */
+test.describe('คอมเมนต์ลูกค้า · ปุ่ม "ถัดไป" ของสามขั้นตอน', () => {
+  const signIn = async (page: import('@playwright/test').Page) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    return (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  };
+
+  test('ทั้งสามหน้ามีปุ่มถัดไปที่บอกเลขขั้นและชื่อขั้น', async ({ page, request }) => {
+    const cookie = await signIn(page);
+
+    /* REQ — ต้องมีใบที่เปิดอยู่จริงจึงจะเห็นปุ่ม */
+    const reqs = (await (await request.get('/api/requirements', { headers: { cookie } })).json()).items as { id: string; status: string }[];
+    const open = reqs.find((r) => r.status !== 'cancelled');
+    if (open) {
+      await page.goto(`/admin/requirements/${open.id}`);
+      const next = page.locator('#req-next');
+      await expect(next, 'หน้า REQ ไม่มีปุ่มถัดไป').toBeVisible({ timeout: 20000 });
+      await expect(next).toContainText('ถัดไป:');
+      expect(Number(await next.getAttribute('data-next-step')), 'ปุ่มต้องบอกว่าอยู่ขั้นที่เท่าไร').toBeGreaterThan(0);
+    }
+
+    await page.goto('/admin/shortlists');
+    const slNext = page.locator('#sl-next');
+    await expect(slNext, 'หน้า Shortlist ไม่มีปุ่มถัดไป').toBeVisible({ timeout: 20000 });
+    await expect(slNext).toContainText('ถัดไป:');
+
+    await page.goto('/admin/visits');
+    await page.waitForTimeout(2000);
+    const vNext = page.locator('#visit-next');
+    if (await vNext.count()) {
+      await expect(vNext).toContainText('ถัดไป:');
+      expect(['1', '2']).toContain(await vNext.getAttribute('data-next-step'));
+    }
+  });
+});
+
+/* สไลด์ 35 (ครึ่งหลัง) · "Social Status ไม่มีให้โหลดรูปภาพของแต่ละประกาศ · จำเป็น"
+   รูปโพสต์เป็นคนละชุดกับรูปทรัพย์ — มักครอปมาแล้ว มีข้อความทับ หรือเลือกเฉพาะบางใบ */
+test.describe('คอมเมนต์ลูกค้า · รูปสำหรับโพสต์รายประกาศ', () => {
+  test('ใส่รูปโพสต์แยกได้ บันทึกอยู่จริง และปุ่มโหลดรูปหยิบชุดนั้นไปให้', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=20')).json()).items as { code: string; img: string | null }[];
+    const target = items.find((i) => i.img);
+    test.skip(!target, 'ยังไม่มีทรัพย์ที่มีรูป');
+
+    /* ใช้รูปที่มีอยู่แล้วในคลังเป็นรูปโพสต์ — เทสต์นี้พิสูจน์เส้นทางข้อมูล
+       ไม่ใช่การอัปโหลด (ซึ่งมีเทสต์ของตัวเองอยู่แล้ว) */
+    const before = await (await request.get('/api/social', { headers: { cookie } })).json();
+    try {
+      await request.put(`/api/social/${encodeURIComponent(target!.code)}`, {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { text: null, photos: [target!.img], channels: {} },
+      });
+
+      const after = await (await request.get('/api/social', { headers: { cookie } })).json();
+      expect(after.records[target!.code]?.photos, 'รูปโพสต์ไม่ถูกบันทึก').toEqual([target!.img]);
+
+      await page.goto('/admin/social-status');
+      /* ตารางแบ่งหน้า 25 แถว — ค้นด้วยรหัสให้เหลือแถวเดียวเหมือนที่คนใช้จริงทำ */
+      await page.getByPlaceholder('ค้นหาด้วยชื่อประกาศ หรือรหัสทรัพย์ (JKP…)').fill(target!.code);
+      const btn = page.locator(`[data-photo-zip="${target!.code}"]`);
+      await expect(btn).toBeVisible({ timeout: 20000 });
+      /* ป้ายใต้ปุ่มต้องบอกว่ากำลังจะได้รูปชุดไหน */
+      await expect(btn.locator('..')).toContainText('รูปโพสต์');
+    } finally {
+      const prev = before.records?.[target!.code];
+      await request.put(`/api/social/${encodeURIComponent(target!.code)}`, {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { text: prev?.text ?? null, photos: prev?.photos ?? [], channels: prev?.channels ?? {} },
+      }).catch(() => null);
+    }
+  });
+});
+
 /* "เปลี่ยนเป็นรูป" — รายการทรัพย์ที่เลือกได้ในหน้า Shortlist เป็นไอคอนบ้านสีเทา
    เหมือนกันทุกแถว ทั้งที่เป็นจุดที่ต้องดูรูปมากที่สุด เพราะกำลังตัดสินใจว่าจะส่ง
    ใบไหนให้ลูกค้า (รายการที่เพิ่มเข้าไปแล้วมีรูปอยู่ก่อนแล้ว) */

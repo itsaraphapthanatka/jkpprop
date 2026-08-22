@@ -10,9 +10,89 @@ import {
   loadSocial, saveSocial, recordOf, postOf, doneCount, channelKey, todayISO,
   type SocialStore, type SocialRecord,
 } from '@/lib/socialStore';
-import { apiGet, apiPut, apiPost, apiDelete } from '@/lib/apiClient';
+import { apiGet, apiPut, apiPost, apiDelete, apiFetch, ApiClientError } from '@/lib/apiClient';
+import { MediaLibraryPicker } from './MediaLibraryPicker';
 import { propertyType } from '@/lib/propertySchema';
 import { buildZip, extForMime, safeFileName, type ZipEntry } from '@/lib/zip';
+
+/* รูปสำหรับโพสต์ของประกาศหนึ่ง — สไลด์ 35
+   อัปโหลดใหม่ หรือหยิบจากคลังสื่อ (ไม่ต้องอัปซ้ำ) · ลบทีละใบได้
+   ถ้าไม่ใส่เลย ปุ่มโหลดรูปจะใช้รูปทรัพย์ตามเดิม */
+function SocialPhotos({ value, onChange, fallback }: {
+  value: string[];
+  onChange: (v: string[]) => void;
+  /** จำนวนรูปทรัพย์ที่จะถูกใช้แทนถ้าไม่ได้ใส่รูปโพสต์ */
+  fallback: number;
+}) {
+  const fileRef = React.useRef<HTMLInputElement | null>(null);
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState('');
+  const [picking, setPicking] = React.useState(false);
+
+  const upload = async (files: FileList) => {
+    setBusy(true);
+    setErr('');
+    const added: string[] = [];
+    for (const file of Array.from(files)) {
+      try {
+        const form = new FormData();
+        form.append('file', file);
+        const r = await apiFetch<{ src: string }>('/api/media', { method: 'POST', body: form });
+        added.push(r.src);
+      } catch (e) {
+        setErr(e instanceof ApiClientError ? e.message : `อัปโหลด ${file.name} ไม่สำเร็จ`);
+      }
+    }
+    if (added.length) onChange([...value, ...added]);
+    setBusy(false);
+  };
+
+  return (
+    <div>
+      <input
+        ref={fileRef} type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif"
+        style={{ display: 'none' }}
+        onChange={(e) => { if (e.target.files?.length) void upload(e.target.files); e.target.value = ''; }}
+      />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 12, border: '1.5px dashed var(--border)', background: 'var(--bg)' }}>
+        <div style={{ flex: 1, minWidth: 0, fontSize: '12.5px', color: err ? '#C0392B' : 'var(--muted)', lineHeight: 1.6 }}>
+          {err || (value.length
+            ? <>ใส่ไว้ <b style={{ color: 'var(--text)' }}>{value.length} รูป</b> — ปุ่มโหลดรูปในตารางจะได้ชุดนี้</>
+            : <>ยังไม่ได้ใส่ — ปุ่มโหลดรูปจะใช้<b style={{ color: 'var(--text)' }}> รูปทรัพย์ {fallback ? `(${fallback} รูป)` : '(ยังไม่มี)'}</b> แทน</>)}
+        </div>
+        <button type="button" data-soc-pick onClick={() => setPicking(true)} style={{ height: 32, padding: '0 12px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', flexShrink: 0, fontFamily: 'inherit' }}>เลือกจากคลัง</button>
+        <button type="button" data-soc-upload onClick={() => fileRef.current?.click()} disabled={busy} style={{ height: 32, padding: '0 13px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 11.5, fontWeight: 700, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.7 : 1, flexShrink: 0, border: 0, fontFamily: 'inherit' }}>{busy ? 'กำลังอัปโหลด…' : 'อัปโหลด'}</button>
+      </div>
+
+      {picking && (
+        <MediaLibraryPicker
+          attached={value}
+          onAttach={(srcs) => onChange([...value, ...srcs.filter((x) => !value.includes(x))])}
+          onClose={() => setPicking(false)}
+        />
+      )}
+
+      {value.length > 0 && (
+        <div data-soc-photos style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(104px,1fr))', gap: 8 }}>
+          {value.map((src, i) => (
+            <div key={src} style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border)', aspectRatio: '4 / 3', background: 'var(--bg)' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={thumb(src, 160)} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              <button
+                type="button"
+                aria-label={`ลบรูปที่ ${i + 1}`}
+                onClick={() => onChange(value.filter((x) => x !== src))}
+                style={{ position: 'absolute', top: 5, right: 5, width: 22, height: 22, borderRadius: 9999, border: 0, background: 'rgba(2,14,8,.62)', color: '#fff', fontSize: 12, lineHeight: 1, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /* ปุ่มดาวน์โหลดรูปของประกาศหนึ่ง — สไลด์ 35 "Social Status ไม่มีให้โหลดรูปภาพ
    ของแต่ละประกาศ · จำเป็น"
@@ -21,7 +101,7 @@ import { buildZip, extForMime, safeFileName, type ZipEntry } from '@/lib/zip';
 
    รวมเป็นไฟล์ ZIP ไฟล์เดียว — โหลดทีละใบหลายไฟล์พร้อมกันเบราว์เซอร์จะบล็อก
    และรูปที่ได้เป็นรูปที่ติดลายน้ำแล้ว เพราะดึงจากลิงก์เดียวกับที่หน้าเว็บใช้ */
-function PhotoDownload({ code, photos }: { code: string; photos: string[] }) {
+function PhotoDownload({ code, photos, forPost = false }: { code: string; photos: string[]; forPost?: boolean }) {
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState('');
 
@@ -61,12 +141,18 @@ function PhotoDownload({ code, photos }: { code: string; photos: string[] }) {
         data-photo-zip={code}
         onClick={run}
         disabled={busy}
-        title={`ดาวน์โหลดรูปทั้งหมด ${photos.length} รูป เป็นไฟล์ ZIP`}
+        title={forPost
+          ? `ดาวน์โหลดรูปสำหรับโพสต์ ${photos.length} รูป เป็นไฟล์ ZIP`
+          : `ดาวน์โหลดรูปทรัพย์ ${photos.length} รูป เป็นไฟล์ ZIP — ยังไม่ได้ใส่รูปสำหรับโพสต์`}
         style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 34, padding: '0 12px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: 12, fontWeight: 700, cursor: busy ? 'default' : 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', opacity: busy ? 0.6 : 1 }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.9"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><path d="M7 10l5 5 5-5M12 15V3" /></svg>
         {busy ? 'กำลังรวม…' : `โหลดรูป ${photos.length}`}
       </button>
+      {/* บอกว่ารูปที่จะได้เป็นรูปโพสต์หรือรูปทรัพย์ — สองชุดนี้ไม่เหมือนกัน */}
+      <span style={{ fontSize: 10, color: forPost ? '#0D6C3B' : 'var(--muted3)', fontWeight: forPost ? 700 : 500 }}>
+        {forPost ? 'รูปโพสต์' : 'รูปทรัพย์'}
+      </span>
       {err && <span data-photo-zip-error style={{ fontSize: 11, color: '#C0392B' }}>{err}</span>}
     </div>
   );
@@ -146,7 +232,7 @@ export function SocialStatusBody() {
     saveSocial(next);
     if (code) {
       const rec = next.records[code] || { channels: {} };
-      void apiPut(`/api/social/${encodeURIComponent(code)}`, { text: rec.text ?? null, channels: rec.channels })
+      void apiPut(`/api/social/${encodeURIComponent(code)}`, { text: rec.text ?? null, photos: rec.photos ?? [], channels: rec.channels })
         .catch(() => { /* stays in the local cache */ });
     }
   };
@@ -198,7 +284,7 @@ export function SocialStatusBody() {
   /* ---- row dialog ---- */
   const openRow = (code: string) => {
     const rec = recordOf(store, code);
-    setDraft({ text: rec.text, channels: { ...rec.channels } });
+    setDraft({ text: rec.text, photos: rec.photos ? [...rec.photos] : [], channels: { ...rec.channels } });
     setDraftText(rec.text ?? generated(code));
     setUseAuto(rec.text === undefined);
     setOpenCode(code);
@@ -222,7 +308,7 @@ export function SocialStatusBody() {
   const saveRow = () => {
     if (!openCode) return;
     const text = useAuto ? undefined : draftText;
-    persist({ ...store, records: { ...store.records, [openCode]: { text, channels: draft.channels } } }, openCode);
+    persist({ ...store, records: { ...store.records, [openCode]: { text, photos: draft.photos ?? [], channels: draft.channels } } }, openCode);
     setOpenCode(null);
   };
   const setDraftPost = (key: string, patch: Partial<{ done: boolean; date: string; url: string }>) => {
@@ -337,7 +423,12 @@ export function SocialStatusBody() {
                       </div>
                     </td>
                     <td style={{ padding: '13px 16px', textAlign: 'center' }}>
-                      <PhotoDownload code={r.code} photos={r.photos ?? (r.img ? [r.img] : [])} />
+                      {/* รูปโพสต์ที่ใส่ไว้เองมาก่อน — ถ้าไม่มีค่อยใช้รูปทรัพย์ (สไลด์ 35) */}
+                      <PhotoDownload
+                        code={r.code}
+                        photos={rec.photos?.length ? rec.photos : (r.photos ?? (r.img ? [r.img] : []))}
+                        forPost={!!rec.photos?.length}
+                      />
                     </td>
                     <td style={{ padding: '13px 16px', textAlign: 'center' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 10px', borderRadius: 9999, fontSize: '11.5px', fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", background: all ? '#E8F3EC' : 'var(--bg)', color: all ? '#0D6C3B' : 'var(--muted2)' }}>{n}/{channels.length}</span>
@@ -407,6 +498,18 @@ export function SocialStatusBody() {
                   แก้ไขตรงนี้จะบันทึกเป็น<b> ข้อความโพสต์ของประกาศนี้เท่านั้น</b> — ไม่กระทบข้อความในหน้า <b>แก้ไขทรัพย์ → หมายเหตุ : รายละเอียดทรัพย์ (รวม)</b>
                   {useAuto ? ' · ตอนนี้ยังตามข้อความอัตโนมัติ ถ้าข้อมูลทรัพย์เปลี่ยน ข้อความจะอัปเดตตาม' : ' · ตอนนี้ใช้ข้อความที่แก้เอง จะไม่เปลี่ยนตามข้อมูลทรัพย์แล้ว'}
                 </div>
+              </div>
+
+              {/* สไลด์ 35 · "Social Status ไม่มีให้โหลดรูปภาพของแต่ละประกาศ · จำเป็น"
+                  รูปโพสต์มักครอปมาแล้ว มีข้อความทับ หรือเลือกมาเฉพาะบางใบ จึงเป็น
+                  คนละชุดกับรูปทรัพย์ · ไม่ใส่ก็ใช้รูปทรัพย์ตามเดิม */}
+              <div>
+                <label style={label}>รูปสำหรับโพสต์ประกาศนี้</label>
+                <SocialPhotos
+                  value={draft.photos ?? []}
+                  onChange={(v) => setDraft((d) => ({ ...d, photos: v }))}
+                  fallback={(openValues?.photos as string[] | undefined)?.length ?? openRow_.img ? 1 : 0}
+                />
               </div>
 
               <div>
