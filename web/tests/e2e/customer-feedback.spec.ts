@@ -1861,6 +1861,46 @@ test.describe('คอมเมนต์ลูกค้า · รูปในห�
   });
 });
 
+/* "เปลี่ยนเป็นรูป" · หน้า Dashboard — กล่อง "ทรัพย์ที่อัปเดตล่าสุด" เป็นไอคอน
+   บ้านสีเทาเหมือนกันทุกแถว เพราะ query ไม่ได้ดึง values มาเลยไม่มีรูปให้แสดง
+   (อาการเดียวกับหน้าดีลและ Shortlist) พร้อมกันนี้บรรทัดกิจกรรมล่าสุดเคยขึ้น
+   ชื่อ action ดิบกับรหัสภายใน เช่น "media.delete mediaAsset/cmt49p88…" */
+test.describe('คอมเมนต์ลูกค้า · รูปในหน้า Dashboard', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+  });
+
+  test('ทรัพย์ที่อัปเดตล่าสุด แสดงรูปจริงไม่ใช่ไอคอน', async ({ page, request }) => {
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=40')).json()).items as { img: string | null }[];
+    test.skip(!items.some((i) => i.img), 'ยังไม่มีทรัพย์ที่มีรูป');
+
+    await page.goto('/admin');
+    const withImg = page.locator('[data-dash-img]');
+    await expect(withImg.first(), 'ทรัพย์ที่อัปเดตล่าสุดยังไม่ขึ้นรูป').toBeVisible({ timeout: 20000 });
+    await expect(withImg.first()).toHaveAttribute('src', /^\/api\/media\//);
+
+    /* ทุกแถวต้องบอกได้ว่ามีรูปหรือยังไม่มี — ไม่ใช่ปล่อยว่าง */
+    const rows = await page.locator('[data-dash-img], [data-dash-noimg]').count();
+    expect(rows, 'ทุกแถวต้องมีทั้งรูปหรือป้ายว่ายังไม่มีรูป').toBeGreaterThan(0);
+  });
+
+  test('กิจกรรมล่าสุดเป็นภาษาคน ไม่ใช่ชื่อ action กับรหัสภายใน', async ({ page }) => {
+    await page.goto('/admin');
+    const feed = page.locator('[data-activity-feed]');
+    await expect(feed).toBeVisible({ timeout: 20000 });
+    const text = (await feed.innerText()).trim();
+    test.skip(!text, 'ยังไม่มีกิจกรรมให้ตรวจ');
+
+    /* รหัสภายในเป็น cuid ขึ้นต้นด้วย c ตามด้วยตัวอักษรเลขยาว ๆ — ห้ามหลุดมาให้ผู้ใช้เห็น */
+    expect(text, 'ยังมีรหัสภายในโผล่ในบรรทัดกิจกรรม').not.toMatch(/\bc[a-z0-9]{20,}\b/);
+    expect(text, 'ยังขึ้นชื่อ action ดิบแบบ property.update').not.toMatch(/\b[a-z]+\.[a-z_]+\b/);
+  });
+});
+
 /* สไลด์ 46 · ใครเห็นเบอร์และที่ตั้งของผู้ให้เช่าได้บ้าง
    "แต่ละคนควรเห็นแค่เบอร์โทรและที่ตั้งของประกาศที่ตัวเองสร้าง นอกนั้นควรเห็นแค่
    เบอร์โทร PIC ที่รับผิดชอบ — ยกเว้นผู้จัดการและเจ้าของ" และ "มีทรัพย์กลางที่

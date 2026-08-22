@@ -3,6 +3,7 @@
 import type { User } from '@prisma/client';
 import { db } from './db';
 import { scopeWhere, hasPriv } from './auth';
+import { actionLabel } from './auditLabel';
 
 const DAY = 86400000;
 
@@ -44,7 +45,9 @@ export async function buildDashboard(user: User) {
       where: { orgId, status: 'active' },
       orderBy: { updatedAt: 'desc' },
       take: 4,
-      select: { publicCode: true, title: true, updatedAt: true },
+      /* values ด้วย — รูปทรัพย์อยู่ในนั้น รายการนี้เคยเป็นไอคอนบ้านสีเทา
+         เหมือนกันทุกแถว จำไม่ได้ว่าใบไหนคือใบไหน */
+      select: { publicCode: true, title: true, updatedAt: true, values: true },
     }),
     db.leadTask.findMany({
       where: { done: false, lead: { orgId, ...leadScope } },
@@ -83,16 +86,23 @@ export async function buildDashboard(user: User) {
       due: t.due ? t.due.getTime() : null,
       overdue: !!t.due && t.due.getTime() < Date.now(),
     })),
+    /* เดิมบรรทัดกิจกรรมเป็นชื่อ action ดิบกับรหัสภายใน เช่น
+         กิตติพงษ์ พรหมทอง  media.delete  mediaAsset/cmt49p88x0000od0179vbbvse
+       ซึ่งคนใช้งานอ่านไม่รู้เรื่อง และรหัสก็ไม่ได้ช่วยอะไรเพราะกดไปไหนไม่ได้
+       ตอนนี้แปลเป็นคำไทยและตัดรหัสทิ้ง — ของเต็มยังดูได้ที่หน้า Audit log */
     activity: activity.map((a) => ({
       who: a.userName || 'ระบบ',
-      action: a.action,
-      target: a.entityId ? `${a.entity}/${a.entityId}` : a.entity,
+      action: actionLabel(a.action, a.entity),
       time: agoLabel(a.createdAt),
     })),
     topListings: properties.map((p) => ({
       code: p.publicCode,
       title: p.title,
       updated: agoLabel(p.updatedAt),
+      img: (() => {
+        const ph = ((p.values ?? {}) as Record<string, unknown>).photos;
+        return Array.isArray(ph) && typeof ph[0] === 'string' ? (ph[0] as string) : null;
+      })(),
     })),
   };
 }

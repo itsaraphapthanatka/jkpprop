@@ -5,6 +5,7 @@ import { AdminShell } from '@/components/admin/AdminShell';
 import { currentUser } from '@/lib/server/auth';
 import { buildDashboard } from '@/lib/server/dashboard';
 import Link from 'next/link';
+import { thumb } from '@/lib/mediaThumb';
 
 export const metadata: Metadata = { title: 'Dashboard · JKP CMS', robots: { index: false } };
 
@@ -99,12 +100,12 @@ export default async function AdminDashboardPage() {
               <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>กิจกรรมล่าสุด</div>
               <span style={{ fontSize: 12, color: 'var(--muted2)' }}>{data.activity.length} รายการล่าสุด</span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div data-activity-feed style={{ display: 'flex', flexDirection: 'column' }}>
               {data.activity.map((a, i) => (
                 <div key={i} style={{ display: 'flex', gap: 14, padding: '13px 0', borderBottom: '1px solid var(--border)' }}>
                   <div style={{ width: 34, height: 34, borderRadius: 9999, background: '#EEF4F3', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{aic(<><path d="M12 5v14" /><path d="M5 12h14" /></>, '#034956')}</div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5 }}><b>{a.who}</b> {a.action} <b>{a.target}</b></div>
+                    <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5 }}><b>{a.who}</b> {a.action}</div>
                     <div style={{ marginTop: 2, fontSize: '11.5px', color: 'var(--muted3)' }}>{a.time}</div>
                   </div>
                 </div>
@@ -126,9 +127,19 @@ export default async function AdminDashboardPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {data.topListings.map((l) => (
                 <div key={l.code} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 10, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--accent)' }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3 21V8l9-5 9 5v13" /><path d="M3 21h18" /><path d="M7 21v-8h10v8" /></svg>
-                  </div>
+                  {l.img ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={thumb(l.img, 160)}
+                      alt={l.code}
+                      data-dash-img={l.code}
+                      style={{ width: 42, height: 42, borderRadius: 10, objectFit: 'cover', border: '1px solid var(--border)', flexShrink: 0 }}
+                    />
+                  ) : (
+                    <div data-dash-noimg={l.code} title="ทรัพย์นี้ยังไม่มีรูป" style={{ width: 42, height: 42, borderRadius: 10, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--accent)' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3 21V8l9-5 9 5v13" /><path d="M3 21h18" /><path d="M7 21v-8h10v8" /></svg>
+                    </div>
+                  )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.title}</div>
                     <code style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: 'var(--muted3)' }}>{l.code}</code>
