@@ -11,6 +11,7 @@ import {
   type SocialStore, type SocialRecord,
 } from '@/lib/socialStore';
 import { apiGet, apiPut, apiPost, apiDelete } from '@/lib/apiClient';
+import { propertyType } from '@/lib/propertySchema';
 
 /* Social Status — one row per listing showing which channels it has already
    been posted to. Open a row to read/edit the post text, copy it, and tick
@@ -96,7 +97,9 @@ export function SocialStatusBody() {
     const row = (listings ?? []).find((r) => r.code === code);
     if (!row) return '';
     return buildSummary({
-      typeLabel: row.title,
+      /* ช่องนี้คือ "ประเภททรัพย์" ไม่ใช่ชื่อประกาศ — เดิมส่งชื่อทั้งดุ้นมา หัวข้อความ
+         จึงเป็นชื่อประกาศตามด้วยครึ่งหลังของตัวเองซ้ำอีกรอบ */
+      typeLabel: propertyType(row.typeKey).label,
       code: row.code,
       values: vals ?? valuesFor(row),
     }).text;

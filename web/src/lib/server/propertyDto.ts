@@ -7,6 +7,7 @@ import { hasPriv } from './auth';
 import { provinceLabel, districtLabel, subdistrictLabel, type GeoOverrides } from '@/i18n/places';
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/config';
 import { parseI18n } from './propertyI18n';
+import { canCompose, composeTitle, isAutoTitle } from '@/lib/propertyTitle';
 
 type Vals = Record<string, unknown>;
 
@@ -80,6 +81,12 @@ export function displayProvince(values: Vals): string {
   return String(values.province ?? loc.province ?? '');
 }
 
+/** ชื่อที่เครื่องสร้างไว้ ประกอบใหม่ตามลำดับปัจจุบัน · ชื่อที่คนตั้งเองคงไว้ */
+export function autoOrStored(title: string, code: string, typeKey: string, values: Vals): string {
+  const parts = { typeLabel: propertyType(typeKey).label, values, area: displayArea(values), code };
+  return isAutoTitle(title, code) && canCompose(parts) ? composeTitle(parts, DEFAULT_LOCALE) : title;
+}
+
 export function propertyDto(p: Property, user: User | null) {
   const values = stripInternal(p.typeKey, (p.values ?? {}) as Vals, user);
   return {
@@ -87,7 +94,12 @@ export function propertyDto(p: Property, user: User | null) {
     publicCode: p.publicCode,
     typeKey: p.typeKey,
     typeLabel: propertyType(p.typeKey).label,
-    title: p.title,
+    /* ชื่อที่เอาไปแสดง — ถ้าเป็นชื่อที่เครื่องสร้างไว้ในลำดับเก่า ประกอบใหม่ตาม
+       ลำดับที่ลูกค้ากำหนด (สไลด์ 24) หลังบ้านกับหน้าเว็บจะได้เห็นชื่อเดียวกัน */
+    title: autoOrStored(p.title, p.publicCode, p.typeKey, values),
+    /* ชื่อที่เก็บอยู่จริงในฐานข้อมูล — ฟอร์มแก้ไขต้องเห็นของจริง ไม่ใช่ของที่
+       ประกอบให้ดู ไม่งั้นกดบันทึกทีเดียวชื่อที่ประกอบจะกลายเป็นชื่อถาวร */
+    storedTitle: p.title,
     // the EN/ZH title and description, so the editor can load what is stored
     i18n: parseI18n(p.i18n),
     status: p.status,

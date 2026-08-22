@@ -7,7 +7,7 @@
  * and all. */
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { composeTitle, canCompose, displayTitle } from '../../src/lib/propertyTitle.ts';
+import { composeTitle, canCompose, displayTitle, isAutoTitle } from '../../src/lib/propertyTitle.ts';
 import { districtLabel, subdistrictLabel, provinceLabel, builtinLabels, KNOWN_PLACES } from '../../src/i18n/places.ts';
 import { enumLabel, untranslated } from '../../src/i18n/enums.ts';
 
@@ -71,8 +71,15 @@ describe('ชื่อสถานที่ที่ข้อมูลจริ�
     assert.equal(districtLabel('เขต ลาดกระบัง', 'en'), 'Lat Krabang');
   });
 
-  test('ภาษาไทยเก็บรูปเดิมไว้ทั้งคำนำหน้า', () => {
-    assert.equal(subdistrictLabel('แขวง คันนายาว', 'th'), 'แขวง คันนายาว');
+  /* คำว่า "แขวง" / "ตำบล" ติดมากับค่าที่ทีมกรอก 200 จาก 201 รายการ พอเอาไปวางใน
+     ที่ที่มีป้ายกำกับอยู่แล้วจึงซ้ำ — ตารางขึ้น "แขวง / ตำบล : แขวง ลำผักชี" และ
+     ชื่อประกาศขึ้น "ที่ แขวง ลำผักชี, หนองจอก, กรุงเทพ" ตัดคำนำหน้าตอนแสดงผล
+     ไม่ได้แก้ข้อมูลที่เก็บไว้ (สไลด์ 24) */
+  test('ภาษาไทยตัดคำนำหน้า แขวง/ตำบล ที่ติดมากับค่า', () => {
+    assert.equal(subdistrictLabel('แขวง คันนายาว', 'th'), 'คันนายาว');
+    assert.equal(subdistrictLabel('ตำบล ราชาเทวะ', 'th'), 'ราชาเทวะ');
+    assert.equal(subdistrictLabel('คันนายาว', 'th'), 'คันนายาว', 'ไม่มีคำนำหน้าก็ต้องไม่เพี้ยน');
+    // เขต/อำเภอ ข้อมูลจริงไม่มีคำนำหน้าติดมา และป้ายในตารางก็คนละคำ ปล่อยไว้
     assert.equal(districtLabel('ลาดกระบัง', 'th'), 'ลาดกระบัง');
   });
 
@@ -183,5 +190,45 @@ describe('ลำดับคำในชื่อประกาศอัตโ�
   test('ช่องที่ไม่มีค่าหายไปเฉย ๆ ไม่เหลือคำคั่นค้าง', () => {
     const t = composeTitle({ ...parts, area: null, code: '', values: { deal_type: '', province: 'ชลบุรี' } }, 'th');
     assert.equal(t, 'โกดัง ที่ ชลบุรี');
+  });
+});
+
+/* สไลด์ 24 · "ชื่อประกาศทำเป็นใส่ออโต้ เรียงตามนี้เหมือนกัน"
+   ทรัพย์ที่นำเข้ามา 200 รายการมีชื่ออยู่แล้ว — ชื่อพวกนั้นเครื่องสร้างเหมือนกัน
+   แต่เป็นลำดับเก่า ตัวประกอบชื่อทำงานเฉพาะตอนไม่มีชื่อเก็บไว้ ชื่อเก่าจึงค้างอยู่
+   ในลำดับเดิมตลอด ทั้งที่ลูกค้าสั่งให้เรียงใหม่ */
+describe('แยกชื่อที่เครื่องสร้าง ออกจากชื่อที่คนตั้งเอง (สไลด์ 24)', () => {
+  test('ชื่อที่ลงท้ายด้วยรหัสทรัพย์ของตัวเอง คือชื่อที่เครื่องสร้าง', () => {
+    for (const t of [
+      'โกดัง ให้เช่า 1,272 ตร.ม. ตำบล ราชาเทวะ, บางพลี, สมุทรปราการ (รหัส : JKPSPK1002)',
+      'โกดัง ให้เช่า 1,272 ตร.ม. ตำบล ราชาเทวะ (รหัส: JKPSPK1002)',
+      'โกดัง 1,272 ตร.ม. ให้เช่า ที่ ราชาเทวะ (JKPSPK1002)',
+    ]) assert.equal(isAutoTitle(t, 'JKPSPK1002'), true, t);
+  });
+
+  test('ชื่อที่คนตั้งเองไม่ถูกแตะ', () => {
+    for (const t of [
+      'โกดังทำเลทอง ติดถนนบางนา-ตราด พร้อมเข้าอยู่',
+      'JKPSPK1002 โกดังใกล้สนามบิน',            // มีรหัสแต่ไม่ได้ลงท้ายด้วยรหัส
+      'โกดัง ให้เช่า (รหัส : JKPSPK9999)',       // รหัสคนละตัวกับทรัพย์นี้
+      '',
+    ]) assert.equal(isAutoTitle(t, 'JKPSPK1002'), false, t || '(ว่าง)');
+  });
+
+  test('ไม่มีรหัสทรัพย์ ก็ตัดสินไม่ได้ ถือว่าไม่ใช่ชื่อเครื่อง', () => {
+    assert.equal(isAutoTitle('โกดัง ให้เช่า (JKPSPK1002)', ''), false);
+  });
+
+  test('ชื่อเก่าที่ประกอบใหม่ ได้ลำดับตามที่ลูกค้ากำหนด', () => {
+    const parts = {
+      typeLabel: 'โกดัง',
+      values: { deal_type: 'ให้เช่า', subdistrict: 'ราชาเทวะ', district: 'บางพลี', province: 'สมุทรปราการ' },
+      area: 1272,
+      code: 'JKPSPK1002',
+    };
+    assert.equal(
+      composeTitle(parts, 'th'),
+      'โกดัง 1,272 ตร.ม. ให้เช่า ที่ ราชาเทวะ, บางพลี, สมุทรปราการ (JKPSPK1002)',
+    );
   });
 });

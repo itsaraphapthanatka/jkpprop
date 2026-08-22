@@ -6,6 +6,7 @@ import { requireUser, scopeWhere } from '@/lib/server/auth';
 import { db } from '@/lib/server/db';
 import { displayArea, displayProvince, displayFullLocation } from '@/lib/server/propertyDto';
 import { isFeatured } from '@/lib/server/publicListings';
+import { autoOrStored } from '@/lib/server/propertyDto';
 
 const fmtPrice = (values: Record<string, unknown>): { text: string; dealK: string; deal: string } => {
   const deal = String(values.deal_type ?? '');
@@ -44,7 +45,7 @@ export const GET = handler(async () => {
       const price = fmtPrice(values);
       return {
         id: p.id,
-        title: p.title,
+        title: autoOrStored(p.title, p.publicCode, p.typeKey, (p.values ?? {}) as Record<string, unknown>),
         code: p.publicCode,
         // the admin table used to guess the type from words in the title
         typeKey: p.typeKey,

@@ -18,7 +18,10 @@ type ApiProperty = {
   id: string;
   publicCode: string;
   typeKey: string;
+  /** ชื่อที่เอาไปแสดง — อาจถูกประกอบใหม่ตามลำดับปัจจุบัน */
   title: string;
+  /** ชื่อที่เก็บอยู่จริงในฐานข้อมูล — ช่องแก้ไขต้องใช้ตัวนี้ */
+  storedTitle?: string;
   status: string;
   values: Record<string, unknown>;
   i18n?: Record<string, { title: string; description: string }>;
@@ -91,7 +94,9 @@ export function PropertyEditBody() {
         setRecord(p);
         setAvailable(p.available !== false);
         setSelType(p.typeKey);
-        setTitle(p.title);
+        /* ชื่อที่เก็บอยู่จริง ไม่ใช่ชื่อที่ประกอบให้ดูในตาราง — ไม่งั้นกดบันทึก
+           ทีเดียว ชื่อที่ประกอบจะถูกเขียนทับลงฐานข้อมูลกลายเป็นชื่อถาวร */
+        setTitle(p.storedTitle ?? p.title);
         setI18n((p.i18n ?? {}) as Record<string, { title: string; description: string }>);
         valsRef.current = p.values;
       })

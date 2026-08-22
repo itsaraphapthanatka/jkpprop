@@ -8,7 +8,7 @@
  * rather than showing an empty card.
  */
 import { DEFAULT_LOCALE, LOCALES, type Locale } from '@/i18n/config';
-import { displayTitle } from '@/lib/propertyTitle';
+import { composeTitle, canCompose, displayTitle, isAutoTitle } from '@/lib/propertyTitle';
 import type { GeoOverrides } from '@/i18n/places';
 import { propertyType } from '@/lib/propertySchema';
 import { displayArea } from './propertyDto';
@@ -57,16 +57,23 @@ export function localTitleFor(
   locale: Locale,
   over?: GeoOverrides,
 ): string {
-  if (locale === DEFAULT_LOCALE) return p.title;
+  const parts = {
+    typeLabel: propertyType(p.typeKey).label,
+    values,
+    area: displayArea(values),
+    code: p.publicCode,
+  };
+  /* สไลด์ 24 · ชื่อที่เครื่องสร้างไว้ในลำดับเก่า ประกอบใหม่ตอนแสดงผล ไม่ใช่ไป
+     เขียนทับข้อมูลที่ทีมเก็บไว้ — ชื่อที่คนตั้งเองไม่ถูกแตะ */
+  if (locale === DEFAULT_LOCALE) {
+    return isAutoTitle(p.title, p.publicCode) && canCompose(parts)
+      ? composeTitle(parts, locale, over)
+      : p.title;
+  }
   return displayTitle(
     p.title,
     parseI18n(p.i18n)[locale as Exclude<Locale, 'th'>]?.title,
-    {
-      typeLabel: propertyType(p.typeKey).label,
-      values,
-      area: displayArea(values),
-      code: p.publicCode,
-    },
+    parts,
     locale,
     over,
   );

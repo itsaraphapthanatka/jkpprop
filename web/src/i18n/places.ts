@@ -278,10 +278,14 @@ export function districtLabel(name: unknown, locale: Locale, over?: GeoOverrides
 /** The subdistrict, romanised where we know it. The stored prefix is dropped. */
 export function subdistrictLabel(name: unknown, locale: Locale, over?: GeoOverrides): string {
   const raw = clean(name);
-  if (!raw || locale === DEFAULT_LOCALE) return raw;
+  /* ข้อมูลที่นำเข้ามาเก็บคำว่า "แขวง" / "ตำบล" ติดมากับชื่อ 200 จาก 201 รายการ
+     พอเอาไปวางในที่ที่มีป้ายกำกับอยู่แล้วจึงซ้ำ — ตารางขึ้น "แขวง / ตำบล :
+     แขวง ลำผักชี" และชื่อประกาศขึ้น "ที่ แขวง ลำผักชี, หนองจอก, กรุงเทพ"
+     ตัดคำนำหน้าตอนแสดงผล ไม่ใช่ไปแก้ข้อมูลที่ทีมกรอกไว้ */
+  const bare = raw.replace(/^(แขวง|ตำบล|ต\.)\s*/, '');
+  if (!raw || locale === DEFAULT_LOCALE) return bare;
   const own = pick(over?.subdistrict, geoKey(raw), locale);
   if (own) return own;
-  const bare = raw.replace(/^(แขวง|ตำบล|ต\.)\s*/, '');
   if (locale === 'zh') return SUBDISTRICT_ZH[bare] ?? SUBDISTRICT_EN[bare] ?? raw;
   return SUBDISTRICT_EN[bare] ?? raw;
 }

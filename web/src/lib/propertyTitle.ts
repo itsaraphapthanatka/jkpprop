@@ -61,6 +61,23 @@ export function composeTitle({ typeLabel, values, area, code }: TitleParts, loca
     .filter(Boolean).join(' ');
 }
 
+/* ชื่อที่ระบบสร้างเอง กับชื่อที่คนพิมพ์เอง
+ *
+ * สไลด์ 24 · "ชื่อประกาศทำเป็นใส่ออโต้ เรียงตามนี้เหมือนกัน" — ทรัพย์ 200 รายการ
+ * ที่นำเข้ามามีชื่ออยู่แล้ว ชื่อพวกนั้นถูกสร้างด้วยเครื่องเหมือนกัน แต่เป็นลำดับเก่า
+ *
+ *   เก่า  โกดัง ให้เช่า 1,272 ตร.ม. ตำบล ราชาเทวะ, บางพลี, สมุทรปราการ (รหัส : JKPSPK1002)
+ *   ใหม่  โกดัง 1,272 ตร.ม. ให้เช่า ที่ ราชาเทวะ, บางพลี, สมุทรปราการ (JKPSPK1002)
+ *
+ * ตัวประกอบชื่อทำงานเฉพาะตอนไม่มีชื่อเก็บไว้ ชื่อเก่าจึงค้างอยู่ในลำดับเดิมตลอด
+ * ชื่อที่ลงท้ายด้วยรหัสทรัพย์ของตัวเองคือชื่อที่เครื่องสร้าง — ประกอบใหม่ได้
+ * ส่วนชื่อที่คนตั้งเองไม่มีรหัสต่อท้าย ไม่ถูกแตะ */
+export function isAutoTitle(title: string, code: string): boolean {
+  const t = title.trim();
+  if (!t || !code) return false;
+  return t.endsWith(`(${code})`) || t.endsWith(`(รหัส : ${code})`) || t.endsWith(`(รหัส: ${code})`);
+}
+
 /* Whether composing is even worth it: with no type and no address the result
    would be little more than the code, and the Thai title says more than that. */
 export function canCompose(parts: TitleParts): boolean {

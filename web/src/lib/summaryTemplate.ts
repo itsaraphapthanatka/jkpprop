@@ -1,3 +1,4 @@
+import { composeTitle } from '@/lib/propertyTitle';
 /* ============================================================
    The "social media status" text — one property's details rendered as a
    ready-to-post block. Lives here (not inside a component) because two
@@ -11,6 +12,15 @@ export type Summary = {
   text: string;
   filled: number; // how many rows actually got a value
   total: number;
+};
+
+/** ขนาดที่เอาไปขึ้นหัวข้อความ — พื้นที่อาคารรวมก่อน แล้วค่อยพื้นที่ใช้สอย */
+const areaOf = (v: SummaryValues): number | null => {
+  for (const k of ['building_area_total', 'usable_area', 'building_area'] as const) {
+    const n = Number(v[k]);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return null;
 };
 
 export type SummaryInput = {
@@ -44,13 +54,16 @@ export function buildSummary({ typeLabel, code, values: v }: SummaryInput): Summ
     sub(v, 'land_area_total', 'wa') && `${sub(v, 'land_area_total', 'wa')} ตร.ว.`,
   ].filter(Boolean).join(' ');
   const place = [str(v, 'subdistrict'), str(v, 'district'), str(v, 'province')].filter(Boolean).join(', ');
-  const head = [
-    typeLabel,
-    str(v, 'deal_type'),
-    str(v, 'building_area_total') && `${str(v, 'building_area_total')} ตร.ม.`,
-    [str(v, 'district'), str(v, 'province')].filter(Boolean).join(', '),
-    code ? `(${code})` : '',
-  ].filter(Boolean).join(' ');
+  /* บรรทัดหัวคือชื่อประกาศ ประกอบด้วยตัวเดียวกับที่หน้าเว็บใช้ (lib/propertyTitle)
+     จึงเรียงตามลำดับที่ลูกค้ากำหนดไว้ในสไลด์ 24 และใส่จุลภาคคั่นหลักพันเหมือนกัน
+
+     เดิมประกอบเองตรงนี้ในลำดับเก่า และหน้า Social Status ส่งชื่อประกาศทั้งดุ้น
+     มาเป็น typeLabel หัวข้อความจึงกลายเป็นชื่อประกาศตามด้วยครึ่งหลังของตัวเอง
+     ซ้ำกันสองรอบในบรรทัดเดียว */
+  const head = composeTitle(
+    { typeLabel, values: v, area: areaOf(v), code: code ?? '' },
+    'th',
+  );
   const office = [str(v, 'office_floors'), str(v, 'office_area_total') && `${str(v, 'office_area_total')} ตร.ม.`].filter(Boolean).join(' ');
 
   const rows: [string, string][] = [
