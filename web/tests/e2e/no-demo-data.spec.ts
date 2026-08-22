@@ -104,10 +104,12 @@ test.describe('หน้าแผนเข้าชมเมื่อยัง�
 
     await page.goto('/admin/visits');
     await page.waitForTimeout(700);
-    await page.getByText('ปิด plan (completed)').click();
-    await page.waitForTimeout(600);
+    /* สไลด์ 41 · ปุ่มหลักกลายเป็น "ถัดไป: …" ที่บอกเลขขั้น และจะไม่ขึ้นเลยเมื่อ
+       ไม่มีแผนให้ทำอะไรต่อ — เดิมเป็นปุ่มที่กดได้แล้วรายงานว่าปิดสำเร็จ */
+    await expect(page.locator('#visit-next'), 'ไม่มีแผนแต่ยังมีปุ่มขั้นถัดไปให้กด').toHaveCount(0);
     await expect(page.getByText('ปิด plan แล้ว'), 'ปุ่มบอกว่าปิดแล้วทั้งที่ไม่มีแผน').toHaveCount(0);
-    await expect(page.getByText('ยังไม่มีแผนเข้าชม')).toBeVisible();
+    // ขึ้นทั้งในแถบด้านบนและในเนื้อหน้า — ขอแค่ผู้ใช้เห็นข้อความนี้จริง
+              await expect(page.getByText('ยังไม่มีแผนเข้าชม').first()).toBeVisible();
   });
 });
 
