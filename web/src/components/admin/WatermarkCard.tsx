@@ -25,6 +25,65 @@ const btn = (on: boolean): React.CSSProperties => ({
 
 /* a neutral stand-in so the preview works before any property has photos */
 const SAMPLE = 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=900&q=70';
+/* แผ่นเลื่อนสองแกน — ลากจุดไปวางตรงไหนก็ได้ในกรอบ พร้อมเส้นไขว้บอกแนว
+   ลูกค้าส่งภาพตัวอย่างมาว่าอยากได้แบบนี้ แทนแถบเลื่อนสองอันแยกกัน
+   กดลูกศรบนคีย์บอร์ดขยับทีละ 1% (Shift = 10%) เพื่อจัดให้ตรงเป๊ะได้ */
+function XYPad({ x, y, onChange }: { x: number; y: number; onChange: (x: number, y: number) => void }) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const [grab, setGrab] = React.useState(false);
+
+  const put = (clientX: number, clientY: number) => {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const pct = (v: number, span: number) => Math.round(Math.min(100, Math.max(0, (v / span) * 100)));
+    onChange(pct(clientX - r.left, r.width), pct(clientY - r.top, r.height));
+  };
+
+  const nudge = (e: React.KeyboardEvent) => {
+    const step = e.shiftKey ? 10 : 1;
+    const d: Record<string, [number, number]> = {
+      ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step],
+    };
+    const m = d[e.key];
+    if (!m) return;
+    e.preventDefault();
+    onChange(Math.min(100, Math.max(0, x + m[0])), Math.min(100, Math.max(0, y + m[1])));
+  };
+
+  return (
+    <div
+      ref={ref}
+      id="wm-pad"
+      role="application"
+      aria-label={`ตำแหน่งลายน้ำ แนวนอน ${x}% แนวตั้ง ${y}% — ใช้ปุ่มลูกศรเพื่อขยับ`}
+      tabIndex={0}
+      onKeyDown={nudge}
+      onPointerDown={(e) => { e.preventDefault(); (e.target as Element).setPointerCapture?.(e.pointerId); setGrab(true); put(e.clientX, e.clientY); }}
+      onPointerMove={(e) => { if (grab) put(e.clientX, e.clientY); }}
+      onPointerUp={() => setGrab(false)}
+      onPointerCancel={() => setGrab(false)}
+      style={{
+        position: 'relative', width: '100%', aspectRatio: '4/3', borderRadius: 12,
+        border: '1.5px solid var(--border)', background: 'var(--bg)',
+        cursor: grab ? 'grabbing' : 'crosshair', touchAction: 'none', overflow: 'hidden',
+      }}
+    >
+      {/* เส้นไขว้ลากผ่านจุด — บอกแนวว่าตรงกับขอบไหน */}
+      <div aria-hidden style={{ position: 'absolute', left: 0, right: 0, top: `${y}%`, height: 1, background: 'var(--border)' }} />
+      <div aria-hidden style={{ position: 'absolute', top: 0, bottom: 0, left: `${x}%`, width: 1, background: 'var(--border)' }} />
+      <div
+        aria-hidden data-wm-handle
+        style={{
+          position: 'absolute', left: `${x}%`, top: `${y}%`, transform: 'translate(-50%,-50%)',
+          width: 20, height: 20, borderRadius: 9999, background: '#0D6C3B',
+          border: '3px solid var(--surface)', boxShadow: '0 1px 6px rgba(var(--ink-rgb),.28)',
+        }}
+      />
+    </div>
+  );
+}
+
 function Slider({ name, value, min, max, unit, onChange }: { name: string; value: number; min: number; max: number; unit: string; onChange: (n: number) => void }) {
   return (
     <div>
@@ -186,10 +245,7 @@ export function WatermarkCard() {
             {/* เดิมเป็นตาราง 9 ช่อง เลือกได้แค่มุมกับกึ่งกลาง ลูกค้าขอ "ปรับให้เป็น
                 แบบเลื่อน" — วางตรงไหนก็ได้ ทั้งลากบนภาพตัวอย่างและเลื่อนแถบ */}
             {cfg.anchor !== 'tiled' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <Slider name="แนวนอน — ซ้ายไปขวา" value={cfg.x} min={WM_LIMITS.x.min} max={WM_LIMITS.x.max} unit="%" onChange={(x) => set({ x })} />
-                <Slider name="แนวตั้ง — บนลงล่าง" value={cfg.y} min={WM_LIMITS.y.min} max={WM_LIMITS.y.max} unit="%" onChange={(y) => set({ y })} />
-              </div>
+              <XYPad x={cfg.x} y={cfg.y} onChange={(x, y) => set({ x, y })} />
             )}
             <div style={{ marginTop: 12 }}>
               <button type="button" id="wm-tiled" onClick={() => set({ anchor: cfg.anchor === 'tiled' ? 'free' : 'tiled' })} aria-pressed={cfg.anchor === 'tiled'} style={btn(cfg.anchor === 'tiled')}>

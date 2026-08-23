@@ -1941,7 +1941,7 @@ test.describe('คอมเมนต์ลูกค้า · เลื่อน�
     'base64',
   );
 
-  test('ไม่มีตาราง 9 ช่องแล้ว มีแถบเลื่อนแนวนอนกับแนวตั้งแทน', async ({ page }) => {
+  test('ไม่มีตาราง 9 ช่องแล้ว มีแผ่นลากจุดแทน', async ({ page }) => {
     await page.goto('/admin/login');
     await page.locator('#login-email').fill('owner@jkp.local');
     await page.locator('#login-password').fill('jkp12345');
@@ -1951,11 +1951,37 @@ test.describe('คอมเมนต์ลูกค้า · เลื่อน�
     await page.locator('#wm-preview').waitFor({ timeout: 25000 });
 
     await expect(page.locator('#wm-grid'), 'ตาราง 9 ช่องต้องไม่มีแล้ว').toHaveCount(0);
-    const card = page.locator('#wm-preview').locator('xpath=ancestor::div[2]');
-    await expect(card).toContainText('แนวนอน');
-    await expect(card).toContainText('แนวตั้ง');
+    await expect(page.locator('#wm-pad'), 'ต้องมีแผ่นลากจุด').toBeVisible();
+    await expect(page.locator('[data-wm-handle]'), 'ต้องมีจุดให้ลาก').toBeVisible();
     /* "เรียงทั้งภาพ" ยังอยู่ เพราะเป็นคนละแบบกับการวางจุดเดียว */
     await expect(page.locator('#wm-tiled')).toBeVisible();
+  });
+
+  test('ลากจุดบนแผ่นแล้วตำแหน่งเปลี่ยนตาม และกดลูกศรขยับทีละ 1%', async ({ page }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    await page.goto('/admin/branding');
+    await page.locator('#wm-pad').waitFor({ timeout: 25000 });
+    await page.locator('#wm-pad').scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
+
+    const pad = page.locator('#wm-pad');
+    const b = (await pad.boundingBox())!;
+    await page.mouse.move(b.x + b.width * 0.28, b.y + b.height * 0.22);
+    await page.mouse.down();
+    await page.mouse.move(b.x + b.width * 0.28, b.y + b.height * 0.22, { steps: 4 });
+    await page.mouse.up();
+    await expect(page.getByText(/^ตำแหน่ง — /), 'ลากแล้วตำแหน่งต้องเปลี่ยนตาม').toContainText('28% × 22%');
+
+    /* คีย์บอร์ดต้องขยับได้ด้วย — จัดให้ตรงเป๊ะด้วยเมาส์อย่างเดียวยาก */
+    await pad.focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(page.getByText(/^ตำแหน่ง — /)).toContainText('29% × 22%');
+    await page.keyboard.press('Shift+ArrowDown');
+    await expect(page.getByText(/^ตำแหน่ง — /)).toContainText('29% × 32%');
   });
 
   test('ลากโลโก้บนภาพตัวอย่างแล้วตำแหน่งเปลี่ยนตาม', async ({ page, request }) => {
