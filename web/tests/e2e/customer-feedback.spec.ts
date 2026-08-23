@@ -625,14 +625,25 @@ test.describe('คอมเมนต์ลูกค้า · เมนูค้�
     const want = pics.filter((p) => p === one).length;
     test.skip(want === items.length, 'ทุกรายการเป็นของคนเดียวกัน กรองแล้ววัดผลไม่ได้');
 
+    /* ตารางแบ่งหน้า 25 แถว การนับแถวที่เห็นจึงเทียบกับยอดรวมไม่ได้ — เทสต์เดิม
+       เขียนแบบนั้นไว้และผ่านมาตลอดเพราะบังเอิญมีของน้อยกว่าหนึ่งหน้า พอข้อมูล
+       แตะ 25 พอดีก็ตกทันทีทั้งที่ตัวกรองทำงานถูก · วัดจากยอดรวมที่หน้าบอกแทน
+       แล้วเช็คว่าทุกแถวที่เห็นเป็นของคนนั้นจริง */
+    const PAGE = 25;
     await page.goto('/admin/listings');
     const rows = page.locator('table tbody tr');
-    await expect.poll(() => rows.count(), { timeout: 15000 }).toBeGreaterThan(want);
+    await expect.poll(() => rows.count(), { timeout: 15000 }).toBeGreaterThan(0);
 
     await page.locator('[data-filter="pic"]').click();
     await page.locator(`[data-filter-opt="${one}"]`).click();
     await expect(page.locator('[data-filter="pic"][data-on="1"]')).toBeVisible();
-    await expect.poll(() => rows.count()).toBe(want);
+    await expect.poll(() => rows.count(), { timeout: 15000 }).toBe(Math.min(want, PAGE));
+
+    /* ทุกแถวที่เห็นต้องเป็นของผู้ดูแลคนนั้น ไม่ใช่แค่จำนวนบังเอิญตรง */
+    const shown = await page.locator('[data-pic], [data-pic-none]').evaluateAll(
+      (els) => els.map((e) => e.getAttribute('data-pic') ?? ''),
+    );
+    expect(new Set(shown), `ยังมีของคนอื่นปนมา: ${[...new Set(shown)].join(', ')}`).toEqual(new Set([one]));
   });
 
   test('กรองพื้นที่สีแล้วรายการหดจริง ไม่ใช่ปุ่มเปลี่ยนสีเฉย ๆ', async ({ page }) => {
