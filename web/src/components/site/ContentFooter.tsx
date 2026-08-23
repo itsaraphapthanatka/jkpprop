@@ -5,6 +5,7 @@ import { useDict } from '@/i18n/useDict';
 import { SocialLinks } from './SocialLinks';
 import { openConsentSettings } from '@/lib/consent';
 import type { Social } from '@/lib/server/company';
+import { FOOTER_PROPERTY_LINKS } from '@/lib/navMenus';
 
 /* ============================================================
    Shared in-flow footer for the content pages (About / FAQ /
@@ -67,9 +68,9 @@ export function ContentFooter({ email, phone, location, socials = [], pages = []
         <div>
           <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 16 }}>{d.footer.properties}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 11, fontSize: 14 }}>
-            <Link href="/factory-rent" style={{ color: '#C9C5BD' }}>{d.nav.factoryRent}</Link>
-            <Link href="/warehouse-rent" style={{ color: '#C9C5BD' }}>{d.nav.warehouseRent}</Link>
-            <Link href="/factory-sale" style={{ color: '#C9C5BD' }}>{d.nav.factorySale}</Link>
+            {FOOTER_PROPERTY_LINKS.map(([href, label]) => (
+              <Link key={href} href={href} data-footer-prop={href} style={{ color: '#C9C5BD' }}>{label(d)}</Link>
+            ))}
           </div>
         </div>
         <div>

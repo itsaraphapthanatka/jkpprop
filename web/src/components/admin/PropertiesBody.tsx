@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { DynamicFieldForm } from './DynamicFieldForm';
-import { PROPERTY_TYPES, enabledPropertyTypes } from '@/lib/propertySchema';
+import { PROPERTY_TYPES, enabledPropertyTypes, propertyType } from '@/lib/propertySchema';
 import { useSchemaSync } from '@/lib/schemaSync';
 import { TablePager, pageSlice, pageCountOf } from './TablePager';
 import { InventoryFilters, EMPTY_FILTERS, matchesFilters, sortInventory, type InventoryFilterState, type InventoryRow } from './InventoryFilters';
@@ -11,6 +11,7 @@ import { apiGet, apiPost, apiPatch, apiDelete, ApiClientError } from '@/lib/apiC
 import { placeMenu, type MenuBox } from '@/lib/menuPlacement';
 import { relTime } from '@/lib/leadStore';
 import { PicCell, PIC_TH } from './PicCell';
+import { composeTitle, canCompose } from '@/lib/propertyTitle';
 import { buildPropertyCsv } from '@/lib/propertyExportCsv';
 import Link from 'next/link';
 
@@ -286,6 +287,33 @@ export function PropertiesBody() {
   const setTr = (k: 'en' | 'zh', patch: Partial<{ title: string; description: string }>) =>
     setNewI18n((prev) => ({ ...prev, [k]: { ...(prev[k] ?? { title: '', description: '' }), ...patch } }));
   const newVals = React.useRef<Record<string, unknown>>({});
+  /* คุณ Jacky แจ้งว่า "ชื่อเวลาเพิ่ม Property ยังไม่ออโต้" และย้ำอีกรอบว่า
+     "ให้เติมชื่อทรัพย์ แบบข้อความด้านล่างอัตโนมัติ ระหว่างที่ใส่ข้อมูลในช่องอื่น"
+     (เด็ค Web 2026 ข้อ 12) — ระบบมีตัวประกอบชื่ออยู่แล้ว แต่ใช้ตอนแสดงผล
+     เท่านั้น ช่องชื่อตอนสร้างใหม่จึงว่างและต้องพิมพ์เอง
+
+     เก็บค่าฟอร์มเป็น state คู่กับ ref เพื่อให้ชื่อขยับตามที่พิมพ์ · ref ยังใช้
+     ตอนบันทึกเหมือนเดิม จะได้ไม่ต้องรื้อเส้นทางบันทึกที่ทำงานอยู่แล้ว */
+  const [newValsLive, setNewValsLive] = React.useState<Record<string, unknown>>({});
+  /* พอคนพิมพ์ชื่อเอง ระบบต้องหยุดเขียนทับทันที ไม่งั้นพิมพ์ไปก็โดนลบไป */
+  const titleTouched = React.useRef(false);
+
+  /* ประกอบชื่อจากข้อมูลที่กรอกไปแล้ว ด้วยตัวเดียวกับที่หน้าเว็บใช้แสดงผล
+     ชื่อที่ได้จึงตรงกับที่ลูกค้าเห็นจริง ไม่ใช่สูตรคนละชุด
+     รหัสทรัพย์ยังไม่ออกตอนนี้ (ออกตอนบันทึก) composeTitle จึงเว้นวงเล็บท้ายไว้ */
+  React.useEffect(() => {
+    if (titleTouched.current || !selType) return;
+    const v = newValsLive;
+    const area = [v.building_area_total, v.usable_area, v.building_area, v.land_area]
+      .find((x) => typeof x === 'number' && Number.isFinite(x)) as number | undefined;
+    const parts = {
+      typeLabel: propertyType(selType).label,
+      values: v,
+      area: area ?? null,
+      code: '',
+    };
+    setNewTitle(canCompose(parts) ? composeTitle(parts, 'th') : '');
+  }, [newValsLive, selType]);
   const [saving, setSaving] = React.useState(false);
   const [saveError, setSaveError] = React.useState('');
   const saveNew = async () => {
@@ -697,7 +725,18 @@ export function PropertiesBody() {
                     <span style={{ fontSize: '12.5px', color: 'var(--accent)' }}>รหัสทรัพย์ออกให้อัตโนมัติเมื่อบันทึก — <code style={{ fontWeight: 700 }}>JKP + รหัสจังหวัด + เลขลำดับของจังหวัดนั้น</code> เช่น <code style={{ fontWeight: 700 }}>JKPSPK1132</code> · กรอกจังหวัดก่อน ไม่งั้นจะได้ <code style={{ fontWeight: 700 }}>JKPXXX…</code></span>
                   </div>
 
-                  <div><label style={fieldLabel}>ชื่อทรัพย์ (ไทย) *</label><input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="เช่น บ้านเดี่ยว 2 ชั้น หมู่บ้านเดอะแกรนด์" style={drawerInput} /></div>
+                  <div>
+                    <label style={fieldLabel}>ชื่อทรัพย์ (ไทย) *</label>
+                    <input
+                      value={newTitle}
+                      onChange={(e) => { titleTouched.current = true; setNewTitle(e.target.value); }}
+                      placeholder="ระบบเติมให้อัตโนมัติเมื่อกรอกประเภทและทำเล — พิมพ์ทับได้"
+                      style={drawerInput}
+                    />
+                    {!titleTouched.current && newTitle && (
+                      <div style={{ marginTop: 5, fontSize: 11.5, color: 'var(--muted3)' }}>ระบบเติมให้จากข้อมูลที่กรอก — พิมพ์ทับได้ทุกเมื่อ</div>
+                    )}
+                  </div>
 
                   {/* schema-driven fields for the selected type */}
                   <div style={{ borderTop: '1px solid var(--border)', paddingTop: 18 }}>
@@ -705,7 +744,7 @@ export function PropertiesBody() {
                       <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text)' }}>รายละเอียด: {PROPERTY_TYPES.find((p) => p.key === selType)?.label}</div>
                       <Link href="/admin/field-builder" style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--accent)', textDecoration: 'none' }}>ปรับฟิลด์ที่ Field Builder →</Link>
                     </div>
-                    <DynamicFieldForm typeKey={selType} onValuesChange={(v) => { newVals.current = v; }} />
+                    <DynamicFieldForm typeKey={selType} onValuesChange={(v) => { newVals.current = v; setNewValsLive(v); }} />
                   </div>
                 </div>
               )}

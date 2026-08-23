@@ -36,3 +36,20 @@ export function orderMenus(order: readonly string[] = []): readonly TypeMenu[] {
   const seen = new Set(picked.map((m) => m.key));
   return [...picked, ...TYPE_MENUS.filter((m) => !seen.has(m.key))];
 }
+
+/* ลิงก์คอลัมน์ "อสังหาริมทรัพย์" ที่ฟุตเตอร์ — คุณ Jacky แจ้งว่า "ประเภทไม่ครบ"
+   (เด็ค Web 2026 ข้อ 7) เดิมมีแค่สามลิงก์ ทั้งที่เว็บมีแปดหน้าปลายทาง
+   ลำดับตามที่สั่งมา: ที่ดิน → โกดัง → โรงงาน → โชว์รูม (เช่าก่อนขายทุกคู่)
+
+   อยู่ที่นี่เพราะฟุตเตอร์มีสองชุดในโค้ด (หน้าแรกกับหน้าเนื้อหา) และเคยลอกกัน
+   ไว้แล้วค่อย ๆ เพี้ยน — แบบเดียวกับที่แถบบนเคยหลุดไปชุดหนึ่ง */
+export const FOOTER_PROPERTY_LINKS: readonly (readonly [string, (d: Dictionary) => string])[] = [
+  ['/land-rent', (d) => d.nav.landRent],
+  ['/land-sale', (d) => d.nav.landSale],
+  ['/warehouse-rent', (d) => d.nav.warehouseRent],
+  ['/warehouse-sale', (d) => d.nav.warehouseSale],
+  ['/factory-rent', (d) => d.nav.factoryRent],
+  ['/factory-sale', (d) => d.nav.factorySale],
+  ['/showroom-rent', (d) => d.nav.showroomRent],
+  ['/showroom-sale', (d) => d.nav.showroomSale],
+];

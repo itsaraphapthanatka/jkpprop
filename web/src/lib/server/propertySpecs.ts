@@ -223,29 +223,47 @@ export type SpecRow = { key: string; label: string; value: string };
    ในบล็อกพื้นที่ "กว้าง x ลึก" มาก่อนตัวเลขพื้นที่ของมันเสมอ ตามที่ลูกค้าชี้
    ลูกศรไว้ในสไลด์ 26 และเป็นลำดับเดียวกับในฟอร์มหลังบ้าน */
 const TABLE_ORDER = [
-  // 1 · ตัวทรัพย์
+  /* ลำดับที่คุณ Jacky สั่งมาเป็นข้อ ๆ 22 แถว (เด็ค Web 2026 ข้อ 3 · 23 ส.ค.)
+     "แสดงผลและเรียงลำดับตามนี้" — เป็นรายการปิด ไม่ใช่แค่ลำดับ แถวที่เคยมี
+     แต่ไม่อยู่ในรายการจึงถูกตัดออก: พื้นที่สี · โซน · จำนวนประตู ·
+     ประตูกว้างxสูง · พื้นที่ออฟฟิศชั้น 1 · ภาษีหัก ณ ที่จ่าย · ภาษีที่ดิน ·
+     VAT · ค่าโอนกรรมสิทธิ์ · ที่ดิน · ความสูงอาคาร
+     (พื้นที่สีกับโซนยังขึ้นเป็นป้ายบนรูปใหญ่และบนการ์ดเหมือนเดิม)
+
+     price_sale เพิ่มเองต่อจาก price_rent — รายการที่สั่งมาเป็นทรัพย์ให้เช่า
+     ถ้ายึดตามตัวอักษร ประกาศขายจะไม่มีราคาแสดงเลย
+
+     แถวที่ไม่อยู่ในรายการ 22 ข้อ ยังต่อท้ายไว้ (ดู TAIL ข้างล่าง) ยังไม่ลบทิ้ง
+     เพราะบางแถวเป็นของที่สั่งมาเองในรอบก่อน — เครนกับใบ ร.ง.4 มาจากสไลด์ 27
+     และพื้นที่สีกับโซนมาจากข้อ 8 · ลบของที่เคยสั่งเองโดยไม่ถามคือความเสี่ยงที่
+     ไม่คุ้ม ตัดทิ้งได้ทันทีเมื่อยืนยัน */
+  // 1–6 · ตัวทรัพย์และทำเล
   'property_code', 'deal_type', 'property_type',
-  // 2 · ทำเลและโซน
-  'province', 'district', 'amphoe', 'subdistrict', 'tambon', 'zoning_color', 'zone',
-  // 3 · พื้นที่ — คู่ กว้าง x ลึก แล้วตามด้วยพื้นที่
-  'usable_area',
-  'building_total_wh', 'building_area_total',
-  'building_wh', 'building_area',
-  'office_floors', 'office_area_f1', 'office_area_total',
-  'building_floors',
-  'land_wh', 'land_area_total', 'land_area',
-  // 4 · สเปคอาคาร
-  'clear_height', 'building_height', 'floor_loading',
-  'power_phase', 'power_system',
-  'doors', 'door_wh', 'parking', 'overhead_crane', 'cold_storage',
-  // 5 · เอกสาร
-  'factory_license', 'factory_license_type',
-  /* เรียงตามที่ลูกค้าร่างไว้: ราคา → ค่าสาธารณูปโภค (พร้อม "จ่ายกับใคร" ต่อท้าย
-     แต่ละรายการ) → ภาษีและค่าธรรมเนียม → เงื่อนไขสัญญา */
+  'province', 'district', 'subdistrict',
+  // 7–9 · อาคารรวม
+  'building_floors', 'building_area_total', 'building_total_wh',
+  // 10–11 · พื้นที่คลัง / ผลิต
+  'building_area', 'building_wh',
+  // 12–13 · ออฟฟิศ
+  'office_floors', 'office_area_total',
+  // 14–16 · สเปค
+  'clear_height', 'floor_loading', 'cold_storage',
+  // 17 · ระบบไฟ
+  'power_system',
+  // 18–22 · ราคาและเงื่อนไขสัญญา
   'price_rent', 'price_sale', 'price_per_sqm',
-  'elec_rate', 'elec_bill_pay', 'water_rate', 'water_bill_pay', 'common_fee', 'common_bill_pay',
-  'withholding_tax', 'land_tax', 'vat', 'stamp_duty', 'transfer_fee_resp',
   'deposit_months', 'advance_months', 'lease_term',
+
+  /* ---- ต่อท้าย: แถวที่ไม่อยู่ในรายการ 22 ข้อ ----
+     ตัดบล็อกนี้ทิ้งทั้งก้อนเมื่อยืนยันว่าไม่ต้องการแล้ว */
+  'zoning_color', 'zone',
+  'usable_area', 'office_area_f1', 'land_wh', 'land_area_total', 'land_area',
+  'building_height', 'power_phase',
+  'doors', 'door_wh', 'parking', 'overhead_crane',
+  'factory_license', 'factory_license_type',
+  'elec_rate', 'elec_bill_pay', 'water_rate', 'water_bill_pay',
+  'common_fee', 'common_bill_pay',
+  'withholding_tax', 'land_tax', 'vat', 'stamp_duty', 'transfer_fee_resp',
 ];
 
 /* การ์ดสรุปสี่ใบเหนือตาราง — เอาคีย์แรก ๆ ที่มีค่า

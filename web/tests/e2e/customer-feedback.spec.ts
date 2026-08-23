@@ -1953,13 +1953,88 @@ const ensureLogo = async (request: import('@playwright/test').APIRequestContext,
   /* ถ้าไม่ได้เปิดจริง เทสต์ที่ตามมาจะตกแบบงง ๆ — ดักตรงนี้ให้บอกสาเหตุชัด */
   const now = (await (await request.get('/api/branding')).json()).watermark;
   expect(now.enabled && now.src, `ลายน้ำยังไม่เปิดหลังตั้งค่า: ${JSON.stringify(now)}`).toBeTruthy();
+  const logoId = String(logo.src).match(/\/api\/media\/([a-z0-9]+)\//)?.[1];
   return async () => {
     await request.put('/api/branding', {
       headers: { cookie, 'Content-Type': 'application/json' },
       data: { ...(await (await request.get('/api/branding')).json()), watermark: cur },
     }).catch(() => null);
+    /* ลบไฟล์ที่เทสต์อัปโหลดไว้ ไม่งั้นคลังสื่อจะบวมขึ้นทุกรอบที่รัน และไปทำให้
+       เทสต์แบ่งหน้าของคลังสื่อตกเพราะหน้าแรกกับหน้าสองขึ้นชื่อไฟล์เดียวกัน */
+    if (logoId) await request.delete(`/api/media/${logoId}`, { headers: { cookie } }).catch(() => null);
   };
 };
+
+/* เด็ค Web 2026 (23 ส.ค.) ข้อ 7 · "ประเภทไม่ครบครับ" — ลูกศรชี้คอลัมน์
+   "อสังหาริมทรัพย์" ที่ฟุตเตอร์ ซึ่งมีแค่สามลิงก์ ทั้งที่เว็บมีแปดหน้าปลายทาง */
+test.describe('คอมเมนต์ลูกค้า · ลิงก์ประเภททรัพย์ที่ฟุตเตอร์', () => {
+  const WANT = ['/land-rent', '/land-sale', '/warehouse-rent', '/warehouse-sale',
+    '/factory-rent', '/factory-sale', '/showroom-rent', '/showroom-sale'];
+
+  /* ฟุตเตอร์มีสองชุดในโค้ด (หน้าแรกกับหน้าเนื้อหา) — เคยลอกกันแล้วเพี้ยน
+     แบบเดียวกับแถบบนที่หลุดไปชุดหนึ่ง จึงไล่ทั้งสองที่ */
+  for (const [name, url] of [['หน้าแรก', '/th'], ['หน้าเนื้อหา', '/th/about']] as const) {
+    test(`${name}: ฟุตเตอร์มีครบแปดลิงก์ เรียงตามที่สั่ง`, async ({ page }) => {
+      await page.goto(url);
+      const links = page.locator('[data-footer-prop]');
+      await expect(links.first()).toBeVisible({ timeout: 20000 });
+      expect(await links.evaluateAll((els) => els.map((e) => e.getAttribute('data-footer-prop'))),
+        `${name}: ลิงก์ที่ฟุตเตอร์ไม่ตรง`).toEqual(WANT);
+    });
+  }
+
+  test('ทุกลิงก์เปิดได้จริง ไม่ใช่ปลายทางที่ไม่มีอยู่', async ({ request }) => {
+    for (const href of WANT) {
+      expect((await request.get(`/th${href}`)).status(), `${href} เปิดไม่ได้`).toBe(200);
+    }
+  });
+});
+
+/* เด็ค Web 2026 (23 ส.ค.) ข้อ 12 · "ให้เติมชื่อทรัพย์ แบบข้อความด้านล่าง
+   อัตโนมัติ ระหว่างที่ใส่ข้อมูลในช่องอื่น" — ระบบมีตัวประกอบชื่ออยู่แล้ว แต่ใช้
+   ตอนแสดงผลเท่านั้น ช่องชื่อตอนสร้างใหม่จึงว่างและต้องพิมพ์เอง */
+test.describe('คอมเมนต์ลูกค้า · ชื่อทรัพย์เติมอัตโนมัติตอนสร้างใหม่', () => {
+  const openForm = async (page: import('@playwright/test').Page) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    await page.goto('/admin/properties');
+    await page.getByText('เพิ่มทรัพย์ใหม่').first().click();
+    await page.locator('#np-type-picker button', { hasText: 'โกดัง' }).first().click();
+    await page.locator('#np-modal').getByText('ราคาขาย').first().waitFor({ timeout: 15000 });
+  };
+  const field = (page: import('@playwright/test').Page, label: string) =>
+    page.locator(`xpath=//label[starts-with(normalize-space(.), "${label}")]/following::input[1]`).first();
+
+  test('กรอกทำเลแล้วชื่อขึ้นเอง ตามรูปแบบเดียวกับที่หน้าเว็บแสดง', async ({ page }) => {
+    await openForm(page);
+    const title = page.locator('#np-modal input').first();
+    expect(await title.inputValue(), 'ยังไม่กรอกอะไร ชื่อควรว่าง').toBe('');
+
+    await field(page, 'จังหวัด').fill('สมุทรปราการ');
+    await expect.poll(() => title.inputValue(), { timeout: 8000 }).toContain('สมุทรปราการ');
+    await expect.poll(() => title.inputValue()).toContain('โกดัง');
+
+    await field(page, 'เขต / อำเภอ').fill('บางพลี');
+    await field(page, 'แขวง / ตำบล').fill('ราชาเทวะ');
+    /* เรียง แขวง → เขต → จังหวัด เหมือนที่หน้าเว็บแสดง */
+    await expect.poll(() => title.inputValue(), { timeout: 8000 }).toBe('โกดัง ที่ ราชาเทวะ, บางพลี, สมุทรปราการ');
+  });
+
+  test('พิมพ์ชื่อเองแล้ว ระบบต้องหยุดเขียนทับ', async ({ page }) => {
+    await openForm(page);
+    const title = page.locator('#np-modal input').first();
+    await field(page, 'จังหวัด').fill('สมุทรปราการ');
+    await expect.poll(() => title.inputValue(), { timeout: 8000 }).toContain('สมุทรปราการ');
+
+    await title.fill('ชื่อที่พิมพ์เอง');
+    await field(page, 'จังหวัด').fill('กรุงเทพมหานคร');
+    await page.waitForTimeout(800);
+    expect(await title.inputValue(), 'พิมพ์เองแล้วต้องไม่โดนเขียนทับ').toBe('ชื่อที่พิมพ์เอง');
+  });
+});
 
 /* สไลด์ 5 · "ทำตัว setup เรียงลำดับเมนูที่หลังบ้าน" — ลำดับเมนูบนแถบบนสุดเคย
    เขียนตายตัวอยู่ในโค้ด อยากสลับต้องรอรอบ deploy */
@@ -2162,6 +2237,7 @@ test.describe('คอมเมนต์ลูกค้า · เลื่อน�
     await expect(page).toHaveURL(/\/admin(?!\/login)/);
     const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
     const before = (await (await request.get('/api/branding')).json()).watermark;
+    let uploaded: string | null = null;
 
     try {
       await page.goto('/admin/branding');
@@ -2169,6 +2245,8 @@ test.describe('คอมเมนต์ลูกค้า · เลื่อน�
       await page.locator('#wm-file').setInputFiles({ name: 'wm.png', mimeType: 'image/png', buffer: PNG });
       const mark = page.locator('[data-wm-mark]');
       await mark.waitFor({ timeout: 20000 });
+      /* จำไว้ลบตอนจบ — ไม่งั้นคลังสื่อบวมขึ้นทุกรอบที่รันเทสต์ */
+      uploaded = (await mark.getAttribute('src'))?.match(/\/api\/media\/([a-z0-9]+)\//)?.[1] ?? null;
 
       /* ต้องเลื่อนให้เห็นก่อน — พิกัดของเมาส์อ้างอิงกรอบที่มองเห็น ถ้าการ์ดอยู่
          ใต้ขอบจอ เมาส์จะไปไม่ถึงและแกนตั้งจะไม่ขยับเลย */
@@ -2195,6 +2273,7 @@ test.describe('คอมเมนต์ลูกค้า · เลื่อน�
         headers: { cookie, 'Content-Type': 'application/json' },
         data: { ...(await (await request.get('/api/branding')).json()), watermark: before },
       }).catch(() => null);
+      if (uploaded) await request.delete(`/api/media/${uploaded}`, { headers: { cookie } }).catch(() => null);
     }
   });
 
@@ -2320,10 +2399,15 @@ test.describe('คอมเมนต์ลูกค้า · อัปโหล�
       await page.reload();
       await expect(page.locator('[data-brand-logo]'), 'รีเฟรชแล้วโลโก้ต้องยังอยู่').toBeVisible({ timeout: 20000 });
     } finally {
+      const shown = await page.locator('[data-brand-logo]').getAttribute('src').catch(() => null);
       await request.put('/api/branding', {
         headers: { cookie, 'Content-Type': 'application/json' },
         data: { ...(await (await request.get('/api/branding')).json()), logo: before },
       }).catch(() => null);
+      /* ลบไฟล์ที่เทสต์อัปโหลด ไม่งั้นคลังสื่อบวมทุกรอบและไปทำให้เทสต์แบ่งหน้า
+         ของคลังสื่อตก เพราะหน้าแรกกับหน้าสองขึ้นชื่อไฟล์เดียวกัน */
+      const id = shown?.match(/\/api\/media\/([a-z0-9]+)\//)?.[1];
+      if (id) await request.delete(`/api/media/${id}`, { headers: { cookie } }).catch(() => null);
     }
   });
 });

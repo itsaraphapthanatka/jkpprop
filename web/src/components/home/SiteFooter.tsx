@@ -7,6 +7,7 @@ import { useDict } from '@/i18n/useDict';
 import type { Company } from '@/lib/server/company';
 import { SocialLinks } from '@/components/site/SocialLinks';
 import { openConsentSettings } from '@/lib/consent';
+import { FOOTER_PROPERTY_LINKS } from '@/lib/navMenus';
 
 /* Contact details come from /admin/company. They were literals here —
    `info@thaiindustrialproperty.com` on a domain the company does not own, and
@@ -106,9 +107,9 @@ export function SiteFooter({ company, pages = [] }: { company: Company; pages?: 
           <div>
             <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 16 }}>{d.footer.properties}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 11, fontSize: 14 }}>
-              <Link href="/factory-rent" style={{ color: '#C9C5BD' }}>{d.nav.factoryRent}</Link>
-              <Link href="/warehouse-rent" style={{ color: '#C9C5BD' }}>{d.nav.warehouseRent}</Link>
-              <Link href="/factory-sale" style={{ color: '#C9C5BD' }}>{d.nav.factorySale}</Link>
+              {FOOTER_PROPERTY_LINKS.map(([href, label]) => (
+                <Link key={href} href={href} data-footer-prop={href} style={{ color: '#C9C5BD' }}>{label(d)}</Link>
+              ))}
             </div>
           </div>
           <div>

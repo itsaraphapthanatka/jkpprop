@@ -209,14 +209,33 @@ describe('ลำดับตารางรายละเอียดตาม�
     assert.ok(!rows.some((r) => r.key === 'property_code' || r.key === 'property_type'));
   });
 
-  test('เรียง ทำเล → โซน → พื้นที่ → สเปคอาคาร → ราคา → เงื่อนไข', () => {
+  /* ลำดับที่คุณ Jacky สั่งมาเป็นข้อ ๆ 22 แถว (เด็ค Web 2026 ข้อ 3 · 23 ส.ค.)
+     แทนลำดับเดิมที่จัดเป็นหมวด ทำเล → โซน → พื้นที่ → สเปค → ราคา */
+  test('เรียงตาม 22 ข้อที่สั่งมา', () => {
     const rows = buildSpecs(full, 'th', {}, undefined, head).rows;
-    const order = ['province', 'district', 'subdistrict', 'zoning_color', 'zone',
-      'building_area_total', 'building_area', 'land_area_total',
-      'clear_height', 'power_phase', 'price_rent', 'lease_term'];
+    const order = [
+      'property_code', 'deal_type', 'property_type',
+      'province', 'district', 'subdistrict',
+      'building_floors', 'building_area_total', 'building_total_wh',
+      'building_area', 'building_wh',
+      'office_floors', 'office_area_total',
+      'clear_height', 'floor_loading',
+      'power_system', 'price_rent', 'price_per_sqm',
+      'deposit_months', 'lease_term',
+    ].filter((k) => at(rows, k) !== -1);
     for (let i = 1; i < order.length; i += 1) {
       assert.ok(at(rows, order[i - 1]) < at(rows, order[i]),
         `${order[i - 1]} ต้องมาก่อน ${order[i]} — ตอนนี้ ${rows.map((r) => r.key).join(' → ')}`);
+    }
+  });
+
+  /* แถวที่ไม่อยู่ใน 22 ข้อ ยังอยู่ต่อท้าย ยังไม่ได้ตัดทิ้ง — บางแถวมาจากคำขอ
+     รอบก่อน (เครนกับ ร.ง.4 จากสไลด์ 27 · พื้นที่สีกับโซนจากข้อ 8) */
+  test('แถวนอกรายการ 22 ข้อ ไปต่อท้าย ไม่หายไป', () => {
+    const rows = buildSpecs(full, 'th', {}, undefined, head).rows;
+    for (const key of ['zoning_color', 'zone', 'land_area_total', 'door_wh']) {
+      assert.ok(at(rows, key) !== -1, `${key} หายไปจากตาราง`);
+      assert.ok(at(rows, key) > at(rows, 'lease_term'), `${key} ต้องอยู่หลัง 22 ข้อที่สั่งมา`);
     }
   });
 
