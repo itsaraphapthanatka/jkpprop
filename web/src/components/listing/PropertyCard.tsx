@@ -34,6 +34,10 @@ export type CardListing = {
      คนหาโรงงานคัดออกตั้งแต่ตอนกวาดตาดูรายการ ไม่ใช่ตอนเปิดเข้าไปอ่าน
      ค่าดิบ (ไม่ใช่ป้ายที่แปลแล้ว) เพราะต้องใช้เป็นคีย์เทียบสีด้วย */
   zoning?: string;
+  /* โซนอุตสาหกรรม (กนอ. · Free Zone · DG) — คนละอย่างกับพื้นที่สีผังเมือง
+     และเป็นตัวคัดออกอันดับต้น ๆ ของคนหาโรงงาน แต่การ์ดไม่เคยแสดง ทั้งที่
+     หน้ารายละเอียดขึ้นเป็นป้ายบนรูปใหญ่และตัวกรองก็ใช้ค่านี้ */
+  zone?: string[];
   /** ปล่อยว่างไว้ได้ในการ์ดที่ยังไม่รู้สถานะ — ถือว่าว่างตามเดิม */
   available?: boolean;
 };
@@ -129,6 +133,16 @@ export function PropertyCard({ it, favFill, onToggleFav }: {
         {/* แท็กพื้นที่สี ชุดเดียวกับที่หน้ารายละเอียดใช้ (components/property/Gallery.tsx)
             อยู่คนละบรรทัดเพราะชื่อเต็มอย่าง "พื้นที่สีเขียว — ชนบท/เกษตรกรรม" ยาว
             เกินกว่าจะต่อท้ายรหัสกับประเภทได้ในการ์ดกว้าง 400px */}
+        {!!it.zone?.length && (
+          <div style={{ marginTop: 7, display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+            {it.zone.map((z) => (
+              <span
+                key={z} data-card-zone={z} title={enumLabel(z, locale)}
+                style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 10px', borderRadius: 6, background: 'rgba(var(--accent-rgb),.1)', color: 'var(--accent)', fontSize: '10.5px', fontWeight: 700 }}
+              >{enumLabel(z, locale)}</span>
+            ))}
+          </div>
+        )}
         {it.zoning && (
           <div style={{ marginTop: 7 }}>
             <span

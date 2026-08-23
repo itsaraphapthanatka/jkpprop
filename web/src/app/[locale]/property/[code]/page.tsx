@@ -100,7 +100,7 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
       code: r.code, deal: r.deal, title: r.title, loc: r.loc, price: r.price, img: r.img,
       // the card shows these too; the old related card simply left them out
       photos: r.photos, type: propertyType(r.typeKey).label, area: r.areaLabel,
-      zoning: r.zoning, available: r.available,
+      zoning: r.zoning, zone: r.zone, available: r.available,
     }));
 
   // ชื่อพื้นที่ตามที่ทีมตั้งไว้ใน /admin/geography ชนะตารางในโค้ด

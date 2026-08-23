@@ -1881,6 +1881,24 @@ test.describe('คอมเมนต์ลูกค้า · แท็กพื�
     await expect(tag.locator('[data-zone-dot]'), 'แท็กไม่มีจุดสี').toBeVisible();
   });
 
+  /* "โซนไม่ขึ้น" — โซนอุตสาหกรรม (กนอ. · Free Zone · DG) เป็นคนละอย่างกับพื้นที่สี
+     ผังเมือง และเป็นตัวคัดออกอันดับต้น ๆ ของคนหาโรงงาน · หน้ารายละเอียดขึ้นเป็น
+     ป้ายบนรูปใหญ่ ตัวกรองก็ใช้ค่านี้ แต่การ์ดไม่เคยแสดง */
+  test('การ์ดแสดงโซนอุตสาหกรรม ไม่ใช่แค่พื้นที่สี', async ({ page, request }) => {
+    const items = (await (await request.get('/api/public/listings?locale=th&limit=400')).json()).items as { code: string; zone: string[] }[];
+    const z = items.find((i) => (i.zone?.length ?? 0) > 0);
+    test.skip(!z, 'ยังไม่มีทรัพย์ที่กรอกโซนไว้');
+
+    await page.goto(`/th/listing?q=${encodeURIComponent(z!.code)}`);
+    const card = page.locator(`[data-card="${z!.code}"]`);
+    await expect(card).toBeVisible({ timeout: 20000 });
+    const chips = card.locator('[data-card-zone]');
+    await expect(chips, 'การ์ดยังไม่แสดงโซน').toHaveCount(z!.zone.length);
+    for (const name of z!.zone) {
+      await expect(card.locator(`[data-card-zone="${name}"]`), `ไม่มีชิป "${name}"`).toBeVisible();
+    }
+  });
+
   test('แท็กบนการ์ดกับบนหน้ารายละเอียด เป็นพื้นที่สีเดียวกัน', async ({ page, request }) => {
     const items = (await (await request.get('/api/public/listings?locale=th&limit=40')).json()).items as { code: string; zoning: string }[];
     const withZone = items.find((i) => i.zoning);

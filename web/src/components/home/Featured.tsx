@@ -27,6 +27,8 @@ export type FeaturedItem = {
   photos: string;
   /** พื้นที่สีตามผังเมือง — แท็กเดียวกับหน้ารายละเอียดและการ์ดในหน้ารายการ */
   zoning?: string;
+  /** โซนอุตสาหกรรม (กนอ. · Free Zone · DG) */
+  zone?: string[];
 };
 
 type Listing = {
@@ -41,6 +43,7 @@ type Listing = {
   img: string | null;
   type: string;
   zoning?: string;
+  zone?: string[];
   available: boolean;
 };
 
@@ -57,6 +60,7 @@ const toListing = (it: FeaturedItem): Listing => ({
   // ชื่อประเภทมาจาก schema ชุดเดียว ไม่ใช่การเดาจาก typeKey ทีละที่
   type: propertyType(it.typeKey).label,
   zoning: it.zoning,
+  zone: it.zone,
   available: it.available,
 });
 
@@ -157,6 +161,13 @@ function ListingCard({ it, favFill, onToggleFav }: { it: Listing; favFill: strin
         </div>
         {/* แท็กชุดเดียวกับการ์ดในหน้ารายการ (listing/PropertyCard.tsx) — แก้ที่นั่น
             แล้วต้องมาดูใบนี้ด้วยทุกครั้ง */}
+        {!!it.zone?.length && (
+          <div style={{ marginTop: 8, display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+            {it.zone.map((z) => (
+              <span key={z} data-card-zone={z} style={{ display: 'inline-flex', alignItems: 'center', height: 23, padding: '0 10px', borderRadius: 6, background: 'rgba(var(--accent-rgb),.1)', color: 'var(--accent)', fontSize: 11, fontWeight: 700 }}>{enumLabel(z, locale)}</span>
+            ))}
+          </div>
+        )}
         {it.zoning && (
           <div style={{ marginTop: 8 }}>
             <span
