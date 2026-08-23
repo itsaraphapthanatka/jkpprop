@@ -496,7 +496,12 @@ model Branding {
   // derivatives and browser caches are invalidated by URL rather than purged.
   wmEnabled Boolean  @default(false)
   wmSrc     String? // media src of the uploaded logo
-  wmAnchor  String   @default("bottom-right") // 9-point anchor | tiled
+  /* free = วางตาม wmX/wmY · tiled = เรียงเต็มภาพ
+     ค่าเก่าเป็นชื่อมุมทั้ง 9 (bottom-right ฯลฯ) — migration แปลงเป็น x/y ให้แล้ว */
+  wmAnchor  String   @default("free") // free | tiled
+  /* ตำแหน่งเป็น % ของที่ว่างในภาพ 0 = ชิดซ้าย/บน · 100 = ชิดขวา/ล่าง */
+  wmX       Int      @default(100)
+  wmY       Int      @default(100)
   wmScale   Int      @default(18) // % of photo width
   wmOpacity Int      @default(70) // %
   wmMargin  Int      @default(3) // % of photo width

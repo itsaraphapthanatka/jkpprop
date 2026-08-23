@@ -46,7 +46,7 @@ describe('watermark settings', () => {
   test('fingerprint changes when any rendered property changes', () => {
     const base = cfg();
     assert.equal(wmFingerprint(base), wmFingerprint(cfg()));
-    for (const patch of [{ anchor: 'center' as const }, { scale: 30 }, { opacity: 50 }, { margin: 9 }, { enabled: false }]) {
+    for (const patch of [{ x: 0 }, { y: 0 }, { anchor: 'tiled' as const }, { scale: 30 }, { opacity: 50 }, { margin: 9 }, { enabled: false }]) {
       assert.notEqual(wmFingerprint(base), wmFingerprint(cfg(patch)), JSON.stringify(patch));
     }
   });
@@ -55,25 +55,36 @@ describe('watermark settings', () => {
 describe('placement', () => {
   const W = 1000, H = 500, LW = 100, LH = 50;
 
-  test('each corner sits against its own edge, inset by the margin', () => {
+  /* 0 / 100 คือชิดขอบ (เว้นระยะขอบไว้) ส่วน 50 คือกึ่งกลางที่ว่าง */
+  test('สุดสไลเดอร์ทั้งสองด้าน = ชิดขอบ โดยเว้นระยะขอบไว้', () => {
     const m = 100; // margin 10% of 1000
-    assert.deepEqual(wmPlacement(W, H, LW, LH, cfg({ anchor: 'top-left', margin: 10 })), { left: m, top: m });
-    assert.deepEqual(wmPlacement(W, H, LW, LH, cfg({ anchor: 'top-right', margin: 10 })), { left: W - LW - m, top: m });
-    assert.deepEqual(wmPlacement(W, H, LW, LH, cfg({ anchor: 'bottom-left', margin: 10 })), { left: m, top: H - LH - m });
-    assert.deepEqual(wmPlacement(W, H, LW, LH, cfg({ anchor: 'bottom-right', margin: 10 })), { left: W - LW - m, top: H - LH - m });
+    assert.deepEqual(wmPlacement(W, H, LW, LH, cfg({ x: 0, y: 0, margin: 10 })), { left: m, top: m });
+    assert.deepEqual(wmPlacement(W, H, LW, LH, cfg({ x: 100, y: 0, margin: 10 })), { left: W - LW - m, top: m });
+    assert.deepEqual(wmPlacement(W, H, LW, LH, cfg({ x: 0, y: 100, margin: 10 })), { left: m, top: H - LH - m });
+    assert.deepEqual(wmPlacement(W, H, LW, LH, cfg({ x: 100, y: 100, margin: 10 })), { left: W - LW - m, top: H - LH - m });
   });
 
-  test('centre ignores the margin on the centred axis', () => {
-    assert.deepEqual(wmPlacement(W, H, LW, LH, cfg({ anchor: 'center', margin: 10 })), { left: 450, top: 225 });
-    assert.deepEqual(wmPlacement(W, H, LW, LH, cfg({ anchor: 'top-center', margin: 10 })), { left: 450, top: 100 });
-    assert.deepEqual(wmPlacement(W, H, LW, LH, cfg({ anchor: 'middle-left', margin: 10 })), { left: 100, top: 225 });
+  test('50% คือกึ่งกลางของที่ว่าง ไม่ว่าระยะขอบเท่าไร', () => {
+    assert.deepEqual(wmPlacement(W, H, LW, LH, cfg({ x: 50, y: 50, margin: 10 })), { left: 450, top: 225 });
+    assert.deepEqual(wmPlacement(W, H, LW, LH, cfg({ x: 50, y: 50, margin: 0 })), { left: 450, top: 225 });
+  });
+
+  /* ค่าที่บันทึกไว้ก่อนมีสไลเดอร์เก็บเป็นชื่อมุม ต้องยังลงตำแหน่งเดิมเป๊ะ */
+  test('ค่าเก่าที่เป็นชื่อมุม ยังลงตำแหน่งเดิม', () => {
+    const legacy = (anchor: string) => normalizeWatermark({ src: '/x', enabled: true, anchor, margin: 10 });
+    assert.deepEqual(wmPlacement(W, H, LW, LH, legacy('top-left')), { left: 100, top: 100 });
+    assert.deepEqual(wmPlacement(W, H, LW, LH, legacy('bottom-right')), { left: W - LW - 100, top: H - LH - 100 });
+    assert.deepEqual(wmPlacement(W, H, LW, LH, legacy('center')), { left: 450, top: 225 });
+    assert.equal(legacy('middle-right').anchor, 'free');
   });
 
   test('never places the logo outside the photo, however big the margin', () => {
-    for (const anchor of WM_ANCHORS) {
-      const { left, top } = wmPlacement(200, 120, 180, 100, cfg({ anchor, margin: 20 }));
-      assert.ok(left >= 0 && left + 180 <= 200, `${anchor} left=${left}`);
-      assert.ok(top >= 0 && top + 100 <= 120, `${anchor} top=${top}`);
+    for (const x of [0, 50, 100]) {
+      for (const y of [0, 50, 100]) {
+        const { left, top } = wmPlacement(200, 120, 180, 100, cfg({ x, y, margin: 20 }));
+        assert.ok(left >= 0 && left + 180 <= 200, `x=${x} left=${left}`);
+        assert.ok(top >= 0 && top + 100 <= 120, `y=${y} top=${top}`);
+      }
     }
   });
 });
@@ -136,7 +147,7 @@ describe('compositing', () => {
 
   test('tiled covers more of the photo than a single corner mark', async () => {
     const [p, l] = [await photo(600, 600), await logo(60, 60)];
-    const corner = await sharp(await applyImageWatermark(p, 'image/jpeg', l, cfg({ anchor: 'bottom-right' }))).stats();
+    const corner = await sharp(await applyImageWatermark(p, 'image/jpeg', l, cfg({ x: 100, y: 100 }))).stats();
     const tiled = await sharp(await applyImageWatermark(p, 'image/jpeg', l, cfg({ anchor: 'tiled' }))).stats();
     // the red logo lifts the mean of the red channel; tiling lifts it further
     assert.ok(tiled.channels[0].mean > corner.channels[0].mean, `${tiled.channels[0].mean} vs ${corner.channels[0].mean}`);

@@ -20,14 +20,15 @@ const DEFAULTS = {
 /* the six columns that make up the watermark, as the shared config shape */
 type BrandingRow = {
   wmEnabled: boolean; wmSrc: string | null; wmAnchor: string;
+  wmX: number; wmY: number;
   wmScale: number; wmOpacity: number; wmMargin: number; wmVersion: number;
 };
 const wmFromRow = (b: BrandingRow): WatermarkConfig => normalizeWatermark({
-  enabled: b.wmEnabled, src: b.wmSrc, anchor: b.wmAnchor,
+  enabled: b.wmEnabled, src: b.wmSrc, anchor: b.wmAnchor, x: b.wmX, y: b.wmY,
   scale: b.wmScale, opacity: b.wmOpacity, margin: b.wmMargin,
 });
 const wmToColumns = (c: WatermarkConfig) => ({
-  wmEnabled: c.enabled, wmSrc: c.src, wmAnchor: c.anchor,
+  wmEnabled: c.enabled, wmSrc: c.src, wmAnchor: c.anchor, wmX: c.x, wmY: c.y,
   wmScale: c.scale, wmOpacity: c.opacity, wmMargin: c.margin,
 });
 

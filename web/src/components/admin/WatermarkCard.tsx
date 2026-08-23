@@ -3,9 +3,9 @@
 import * as React from 'react';
 import { apiGet, apiPut, ApiClientError } from '@/lib/apiClient';
 import {
-  WM_ANCHOR_LABEL, WM_DEFAULTS, WM_LIMITS,
-  normalizeWatermark, wmFingerprint, wmPlacement,
-  type WatermarkConfig, type WmAnchor,
+  WM_DEFAULTS, WM_LIMITS,
+  normalizeWatermark, wmFingerprint, wmPlacement, wmPositionLabel,
+  type WatermarkConfig,
 } from '@/lib/watermarkConfig';
 
 /* Watermark editor (FR-ADM-09b) — upload the agency logo once, choose where
@@ -25,12 +25,6 @@ const btn = (on: boolean): React.CSSProperties => ({
 
 /* a neutral stand-in so the preview works before any property has photos */
 const SAMPLE = 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=900&q=70';
-const GRID: WmAnchor[][] = [
-  ['top-left', 'top-center', 'top-right'],
-  ['middle-left', 'center', 'middle-right'],
-  ['bottom-left', 'bottom-center', 'bottom-right'],
-];
-
 function Slider({ name, value, min, max, unit, onChange }: { name: string; value: number; min: number; max: number; unit: string; onChange: (n: number) => void }) {
   return (
     <div>
@@ -119,6 +113,22 @@ export function WatermarkCard() {
   const markH = Math.round(markW / (logoRatio || 2));
   const pos = box.w && cfg.src ? wmPlacement(box.w, box.h, markW, markH, cfg) : { left: 0, top: 0 };
 
+  /* ลากโลโก้บนภาพตัวอย่างได้ตรง ๆ — คำนวณกลับจากพิกัดเป็น x/y เปอร์เซ็นต์
+     ด้วยสมการเดียวกับ wmPlacement เพื่อให้ตัวอย่างกับรูปจริงตรงกันเสมอ */
+  const dragTo = (clientX: number, clientY: number) => {
+    const el = boxRef.current;
+    if (!el || cfg.anchor === 'tiled') return;
+    const r = el.getBoundingClientRect();
+    const m = Math.round((cfg.margin / 100) * r.width);
+    const spanX = Math.max(1, r.width - markW - m * 2);
+    const spanY = Math.max(1, r.height - markH - m * 2);
+    const pct = (v: number, span: number) => Math.round(Math.min(100, Math.max(0, (v / span) * 100)));
+    set({
+      x: pct(clientX - r.left - m - markW / 2, spanX),
+      y: pct(clientY - r.top - m - markH / 2, spanY),
+    });
+  };
+
   return (
     <div style={card}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 4 }}>
@@ -172,20 +182,17 @@ export function WatermarkCard() {
           </div>
 
           <div>
-            <label style={label}>ตำแหน่ง — {WM_ANCHOR_LABEL[cfg.anchor]}</label>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-              <div id="wm-grid" role="radiogroup" aria-label="ตำแหน่งลายน้ำ" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,34px)', gridTemplateRows: 'repeat(3,34px)', gap: 5 }}>
-                {GRID.flat().map((a) => {
-                  const on = cfg.anchor === a;
-                  return (
-                    <button key={a} type="button" onClick={() => set({ anchor: a })} aria-pressed={on} title={WM_ANCHOR_LABEL[a]}
-                      style={{ borderRadius: 8, cursor: 'pointer', padding: 0, border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? 'rgba(13,108,59,.10)' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <span style={{ width: 9, height: 9, borderRadius: 2, background: on ? '#0D6C3B' : 'var(--muted3)' }} />
-                    </button>
-                  );
-                })}
+            <label style={label}>ตำแหน่ง — {wmPositionLabel(cfg)}</label>
+            {/* เดิมเป็นตาราง 9 ช่อง เลือกได้แค่มุมกับกึ่งกลาง ลูกค้าขอ "ปรับให้เป็น
+                แบบเลื่อน" — วางตรงไหนก็ได้ ทั้งลากบนภาพตัวอย่างและเลื่อนแถบ */}
+            {cfg.anchor !== 'tiled' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <Slider name="แนวนอน — ซ้ายไปขวา" value={cfg.x} min={WM_LIMITS.x.min} max={WM_LIMITS.x.max} unit="%" onChange={(x) => set({ x })} />
+                <Slider name="แนวตั้ง — บนลงล่าง" value={cfg.y} min={WM_LIMITS.y.min} max={WM_LIMITS.y.max} unit="%" onChange={(y) => set({ y })} />
               </div>
-              <button type="button" onClick={() => set({ anchor: 'tiled' })} aria-pressed={cfg.anchor === 'tiled'} style={btn(cfg.anchor === 'tiled')}>
+            )}
+            <div style={{ marginTop: 12 }}>
+              <button type="button" id="wm-tiled" onClick={() => set({ anchor: cfg.anchor === 'tiled' ? 'free' : 'tiled' })} aria-pressed={cfg.anchor === 'tiled'} style={btn(cfg.anchor === 'tiled')}>
                 เรียงทั้งภาพ
               </button>
             </div>
@@ -209,8 +216,14 @@ export function WatermarkCard() {
             )}
             {cfg.enabled && cfg.src && cfg.anchor !== 'tiled' && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={cfg.src} alt="" aria-hidden onLoad={(e) => { const el = e.currentTarget; if (el.naturalHeight) setLogoRatio(el.naturalWidth / el.naturalHeight); }}
-                style={{ position: 'absolute', left: pos.left, top: pos.top, width: markW, opacity: cfg.opacity / 100 }} />
+              <img
+                src={cfg.src} alt="" data-wm-mark
+                onLoad={(e) => { const el = e.currentTarget; if (el.naturalHeight) setLogoRatio(el.naturalWidth / el.naturalHeight); }}
+                onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); dragTo(e.clientX, e.clientY); }}
+                onPointerMove={(e) => { if (e.currentTarget.hasPointerCapture(e.pointerId)) dragTo(e.clientX, e.clientY); }}
+                onPointerUp={(e) => e.currentTarget.releasePointerCapture(e.pointerId)}
+                title="ลากเพื่อย้ายตำแหน่ง"
+                style={{ position: 'absolute', left: pos.left, top: pos.top, width: markW, opacity: cfg.opacity / 100, cursor: 'grab', touchAction: 'none' }} />
             )}
             {!cfg.src && (
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(2,14,8,.45)', color: '#fff', fontSize: 12, fontWeight: 700, textAlign: 'center', padding: 16 }}>
@@ -219,7 +232,7 @@ export function WatermarkCard() {
             )}
           </div>
           <div style={{ marginTop: 6, fontSize: 11, color: 'var(--muted3)', lineHeight: 1.5 }}>
-            เปลี่ยนตำแหน่งแล้วกดบันทึก ระบบจะสร้างภาพใหม่ให้ทรัพย์ที่มีอยู่แล้วทั้งหมดโดยอัตโนมัติ
+            ลากโลโก้บนภาพนี้เพื่อย้ายตำแหน่ง หรือใช้แถบเลื่อนก็ได้ · เปลี่ยนตำแหน่งแล้วกดบันทึก ระบบจะสร้างภาพใหม่ให้ทรัพย์ที่มีอยู่แล้วทั้งหมดโดยอัตโนมัติ
           </div>
         </div>
       </div>

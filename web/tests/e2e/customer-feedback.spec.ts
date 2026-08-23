@@ -1893,6 +1893,105 @@ test.describe('คอมเมนต์ลูกค้า · แท็กพื�
   });
 });
 
+/* "ปรับให้เป็นแบบเลื่อน" — ตำแหน่งลายน้ำเคยเลือกได้แค่ 9 จุดจากตาราง 3×3
+   วางตรงกลางค่อนขวานิดเดียวก็ทำไม่ได้ · ตอนนี้เลื่อนแถบ หรือลากโลโก้บนภาพ
+   ตัวอย่างได้ตรง ๆ */
+test.describe('คอมเมนต์ลูกค้า · เลื่อนตำแหน่งลายน้ำได้อิสระ', () => {
+  const PNG = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAGQAAAAyCAYAAACqNX6+AAAAQklEQVR4nO3NMQEAAAgDoC252H8OFsi7EqBJcnQGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPwZcBUBASr3wUcAAAAASUVORK5CYII=',
+    'base64',
+  );
+
+  test('ไม่มีตาราง 9 ช่องแล้ว มีแถบเลื่อนแนวนอนกับแนวตั้งแทน', async ({ page }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    await page.goto('/admin/branding');
+    await page.locator('#wm-preview').waitFor({ timeout: 25000 });
+
+    await expect(page.locator('#wm-grid'), 'ตาราง 9 ช่องต้องไม่มีแล้ว').toHaveCount(0);
+    const card = page.locator('#wm-preview').locator('xpath=ancestor::div[2]');
+    await expect(card).toContainText('แนวนอน');
+    await expect(card).toContainText('แนวตั้ง');
+    /* "เรียงทั้งภาพ" ยังอยู่ เพราะเป็นคนละแบบกับการวางจุดเดียว */
+    await expect(page.locator('#wm-tiled')).toBeVisible();
+  });
+
+  test('ลากโลโก้บนภาพตัวอย่างแล้วตำแหน่งเปลี่ยนตาม', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    const before = (await (await request.get('/api/branding')).json()).watermark;
+
+    try {
+      await page.goto('/admin/branding');
+      await page.locator('#wm-preview').waitFor({ timeout: 25000 });
+      await page.locator('#wm-file').setInputFiles({ name: 'wm.png', mimeType: 'image/png', buffer: PNG });
+      const mark = page.locator('[data-wm-mark]');
+      await mark.waitFor({ timeout: 20000 });
+
+      /* ต้องเลื่อนให้เห็นก่อน — พิกัดของเมาส์อ้างอิงกรอบที่มองเห็น ถ้าการ์ดอยู่
+         ใต้ขอบจอ เมาส์จะไปไม่ถึงและแกนตั้งจะไม่ขยับเลย */
+      await page.locator('#wm-preview').scrollIntoViewIfNeeded();
+      await page.waitForTimeout(300);
+      const box = (await page.locator('#wm-preview').boundingBox())!;
+      await mark.hover();
+      await page.mouse.down();
+      await page.mouse.move(box.x + box.width * 0.06, box.y + box.height * 0.06, { steps: 10 });
+      await page.mouse.up();
+
+      /* ลากไปมุมบนซ้าย — ป้ายตำแหน่งต้องบอกค่าที่ต่ำทั้งสองแกน */
+      const label = await page.getByText(/^ตำแหน่ง — /).innerText();
+      const nums = [...label.matchAll(/(\d+)%/g)].map((m) => Number(m[1]));
+      /* ลากไปมุมบนซ้าย — ต้องได้ทั้งสองแกน ไม่ใช่แกนเดียว (แกนตั้งเคยไม่ขยับ) */
+      if (nums.length === 2) {
+        expect(nums[0], `แกนนอนควรใกล้ซ้าย: ${label}`).toBeLessThan(35);
+        expect(nums[1], `แกนตั้งควรใกล้บน: ${label}`).toBeLessThan(35);
+      } else {
+        expect(label, `ต้องไปอยู่มุมบนซ้าย ไม่ใช่ ${label}`).toContain('ซ้ายบน');
+      }
+    } finally {
+      await request.put('/api/branding', {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { ...(await (await request.get('/api/branding')).json()), watermark: before },
+      }).catch(() => null);
+    }
+  });
+
+  test('ค่าเก่าที่เคยตั้งเป็นมุม ยังอยู่ที่เดิมหลังเปลี่ยนมาเป็นแบบเลื่อน', async ({ request, page }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    const before = (await (await request.get('/api/branding')).json()).watermark;
+
+    try {
+      /* ยิงค่าแบบเก่าเข้าไปตรง ๆ เหมือนของที่บันทึกไว้ก่อนอัปเดต */
+      const brand = await (await request.get('/api/branding')).json();
+      await request.put('/api/branding', {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { ...brand, watermark: { ...before, anchor: 'top-left' } },
+      });
+      const saved = (await (await request.get('/api/branding')).json()).watermark;
+      expect(saved.anchor, 'ควรถูกแปลงเป็นแบบวางเอง').toBe('free');
+      expect(saved.x, 'ซ้ายบน → x = 0').toBe(0);
+      expect(saved.y, 'ซ้ายบน → y = 0').toBe(0);
+    } finally {
+      await request.put('/api/branding', {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { ...(await (await request.get('/api/branding')).json()), watermark: before },
+      }).catch(() => null);
+    }
+  });
+});
+
 /* "แก้ที่หลังบ้าน แล้ว ลายน้ำไม่เปลี่ยน" — เคยจำค่าตั้งลายน้ำไว้ 60 วินาทีเพื่อ
    ประหยัดคิวรี ผลคือบันทึกแล้ว wmVersion เด้ง URL เปลี่ยน เบราว์เซอร์ขอรูปใหม่
    แต่เซิร์ฟเวอร์ยังปั๊มด้วยค่าเก่า แล้วเก็บผลนั้นไว้ถาวรใต้คีย์ของ version ใหม่
