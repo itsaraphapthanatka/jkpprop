@@ -9,7 +9,7 @@ import { PROPERTY_TYPES, propertyType } from '../../src/lib/propertySchema.ts';
 import { buildSpecs } from '../../src/lib/server/propertySpecs.ts';
 
 const values = {
-  province: 'ชลบุรี', usable_area: 2700, parking: '20 คัน',
+  province: 'ชลบุรี', floor_loading: '3 ตัน', clear_height: 8,
   custom_warehouse_number_1: 4200,
 };
 const extra = [{
@@ -20,19 +20,22 @@ const extra = [{
 const labels = (rows: { label: string }[]) => rows.map((r) => r.label);
 
 describe('the spec table follows the Field Builder', () => {
+  /* ตารางรายละเอียดเหลือ 22 แถวตามที่ลูกค้าสั่ง (เด็ค Web 2026 ข้อ 3 · ยืนยัน
+     23 ส.ค.) ที่จอดรถกับพื้นที่ใช้สอยจึงไม่อยู่ในตารางแล้ว — เทสต์ Field Builder
+     ย้ายมาวัดกับแถวที่ยังอยู่ */
   test('with no override, nothing changes', () => {
     const rows = labels(buildSpecs(values, 'th').rows);
-    assert.ok(rows.includes('ที่จอดรถ'));
+    assert.ok(rows.includes('รับน้ำหนักพื้น'));
   });
 
   test('a field switched off leaves the page, even with a value stored', () => {
-    const rows = labels(buildSpecs(values, 'th', { disabled: ['parking'] }).rows);
-    assert.ok(!rows.includes('ที่จอดรถ'), 'a disabled field must not reach the public page');
-    assert.ok(rows.includes('พื้นที่ใช้สอย'), 'the others stay');
+    const rows = labels(buildSpecs(values, 'th', { disabled: ['floor_loading'] }).rows);
+    assert.ok(!rows.includes('รับน้ำหนักพื้น'), 'a disabled field must not reach the public page');
+    assert.ok(rows.includes('ความสูงใต้คาน'), 'the others stay');
   });
 
   test('the four tiles obey it too, not just the table', () => {
-    const quick = labels(buildSpecs({ ...values, clear_height: 12 }, 'th', { disabled: ['usable_area'] }).quick);
+    const quick = labels(buildSpecs({ ...values, usable_area: 2700 }, 'th', { disabled: ['usable_area'] }).quick);
     assert.ok(!quick.includes('พื้นที่ใช้สอย'));
   });
 
@@ -131,13 +134,19 @@ describe('ช่องที่ลูกค้าขอเพิ่มในส�
     assert.deepEqual(note!.showWhen, { field: 'factory_license', in: ['มี'] });
   });
 
-  test('ทุกช่องที่เพิ่มมีคำแปลในตารางสเปค', () => {
-    for (const key of ['clear_height', 'overhead_crane', 'factory_license', 'factory_license_type']) {
-      const row = buildSpecs({ [key]: key === 'clear_height' ? 6 : 'มี' }, 'en', { disabled: [], extra: [] })
-        .rows.find((r) => r.key === key);
-      assert.ok(row, `${key} ไม่โผล่ในตารางสเปค`);
-      assert.ok(!/[ก-๙]/.test(row!.label), `${key} ป้ายยังเป็นไทยในภาษาอังกฤษ: ${row!.label}`);
+  /* ตารางรายละเอียดเหลือ 22 แถวตามที่ลูกค้าสั่ง (ข้อ 3 · ยืนยัน 23 ส.ค.) เครนกับ
+     ใบ ร.ง.4 จึงไม่อยู่ในตารางแล้ว แต่ยัง<b>ต้องมีในฟอร์ม</b>ตามสไลด์ 27 และยัง
+     ออกในไฟล์ Export — เทสต์จึงย้ายมาวัดที่ฟอร์มแทนตาราง */
+  test('ช่องที่เพิ่มยังอยู่ในฟอร์ม และแถวที่เหลือในตารางแปลครบ', () => {
+    for (const key of ['overhead_crane', 'factory_license', 'factory_license_type']) {
+      const inForm = ['warehouse', 'factory', 'showroom']
+        .some((t) => propertyType(t).fields.some((f) => f.key === key));
+      assert.ok(inForm, `${key} หายไปจากฟอร์ม`);
     }
+    const row = buildSpecs({ clear_height: 6 }, 'en', { disabled: [], extra: [] })
+      .rows.find((r) => r.key === 'clear_height');
+    assert.ok(row, 'ความสูงใต้คานไม่โผล่ในตารางสเปค');
+    assert.ok(!/[ก-๙]/.test(row!.label), `ป้ายยังเป็นไทยในภาษาอังกฤษ: ${row!.label}`);
   });
 });
 
@@ -229,24 +238,27 @@ describe('ลำดับตารางรายละเอียดตาม�
     }
   });
 
-  /* แถวที่ไม่อยู่ใน 22 ข้อ ยังอยู่ต่อท้าย ยังไม่ได้ตัดทิ้ง — บางแถวมาจากคำขอ
-     รอบก่อน (เครนกับ ร.ง.4 จากสไลด์ 27 · พื้นที่สีกับโซนจากข้อ 8) */
-  test('แถวนอกรายการ 22 ข้อ ไปต่อท้าย ไม่หายไป', () => {
+  /* ยืนยัน 23 ส.ค. ค่ำ: "ข้อ 3 เอา 22 ข้อ" — แถวนอกรายการถูกตัดออกจากตารางนี้
+     พื้นที่สีกับโซนยังขึ้นเป็นป้ายบนรูปใหญ่และบนการ์ด ไม่ได้หายจากเว็บ */
+  test('แถวนอกรายการ 22 ข้อ ไม่อยู่ในตารางแล้ว', () => {
     const rows = buildSpecs(full, 'th', {}, undefined, head).rows;
-    for (const key of ['zoning_color', 'zone', 'land_area_total', 'door_wh']) {
-      assert.ok(at(rows, key) !== -1, `${key} หายไปจากตาราง`);
-      assert.ok(at(rows, key) > at(rows, 'lease_term'), `${key} ต้องอยู่หลัง 22 ข้อที่สั่งมา`);
+    for (const key of ['zoning_color', 'zone', 'land_area_total', 'door_wh', 'doors',
+      'building_height', 'power_phase', 'office_area_f1', 'usable_area']) {
+      assert.equal(at(rows, key), -1, `${key} ยังอยู่ในตาราง ทั้งที่ไม่อยู่ในรายการ 22 ข้อ`);
     }
+  });
+
+  test('ตารางมีไม่เกิน 22 แถว (บวกราคาขายที่เพิ่มเองอีกหนึ่ง)', () => {
+    const rows = buildSpecs({ ...full, deal_type: 'ให้เช่า', price_sale: 9000000 }, 'th', {}, undefined, head).rows;
+    assert.ok(rows.length <= 23, `ได้ ${rows.length} แถว: ${rows.map((r) => r.key).join(', ')}`);
   });
 
   test('หมวดพื้นที่ที่เคยหายไปทั้งบล็อกขึ้นครบ พร้อมหน่วย', () => {
     const byKey = new Map(buildSpecs(full, 'th', {}, undefined, head).rows.map((r) => [r.key, r.value]));
     assert.equal(byKey.get('building_area_total'), '800 ตร.ม.');
     assert.equal(byKey.get('building_wh'), '14 x 20 ม.');
-    assert.equal(byKey.get('door_wh'), '4 x 4 ม.');
+    assert.equal(byKey.get('building_total_wh'), '20 x 40 ม.');
     assert.equal(byKey.get('office_area_total'), '40 ตร.ม.');
-    // ไร่/งาน/ตร.ว. เก็บเป็นอ็อบเจกต์ เดิมตกไปทาง payer/amount แล้วได้แถวว่าง
-    assert.equal(byKey.get('land_area_total'), '2 ไร่ 1 งาน 30 ตร.ว.');
   });
 
   test('ทรัพย์ที่ไม่มีออฟฟิศไม่ต้องมีแถว "0 ตร.ม." สองแถว', () => {
@@ -255,17 +267,16 @@ describe('ลำดับตารางรายละเอียดตาม�
     assert.ok(rows.some((r) => r.key === 'office_floors'), 'แต่ "จำนวนชั้นออฟฟิศ" ยังบอกได้');
   });
 
-  test('หน่วยอังกฤษเป็นเอกพจน์เมื่อมีชิ้นเดียว', () => {
-    const one = buildSpecs({ doors: 1, parking: 1 }, 'en').rows;
-    assert.equal(one.find((r) => r.key === 'doors')!.value, '1 door');
-    const many = buildSpecs({ doors: 4 }, 'en').rows;
-    assert.equal(many.find((r) => r.key === 'doors')!.value, '4 doors');
+  /* จำนวนประตูกับค่าไฟถูกตัดออกจากตารางตามรายการ 22 ข้อ — หน่วยยังต่อท้ายค่า
+     ของแถวที่เหลืออยู่เหมือนเดิม */
+  test('หน่วยต่อท้ายค่าในแถวที่ยังอยู่', () => {
+    const th = buildSpecs({ clear_height: 8, building_area_total: 800 }, 'th').rows;
+    assert.equal(th.find((r) => r.key === 'clear_height')!.value, '8 เมตร');
+    assert.equal(th.find((r) => r.key === 'building_area_total')!.value, '800 ตร.ม.');
   });
 
   test('ราคาต่อ ตร.ม. ที่หารมาปัดเป็นบาทเต็ม', () => {
-    const rows = buildSpecs({ price_per_sqm: 234.375, elec_rate: 4.5 }, 'th').rows;
+    const rows = buildSpecs({ price_per_sqm: 234.375 }, 'th').rows;
     assert.equal(rows.find((r) => r.key === 'price_per_sqm')!.value, '฿234');
-    // ค่าไฟยังเก็บทศนิยม เพราะ 4.50 บาท/หน่วย คือราคาจริง
-    assert.equal(rows.find((r) => r.key === 'elec_rate')!.value, '฿4.5');
   });
 });

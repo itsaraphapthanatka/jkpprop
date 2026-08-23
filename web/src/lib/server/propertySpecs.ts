@@ -44,7 +44,9 @@ const LABELS: Record<string, Record<Locale, string>> = {
   land_wh:         { th: 'กว้าง x ลึก ที่ดิน',        en: 'Land width x depth',   zh: '土地宽 x 深' },
   land_area_total: { th: 'ที่ดินรวม',                en: 'Land size',            zh: '土地总面积' },
   door_wh:         { th: 'ประตู กว้าง x สูง',        en: 'Door width x height',  zh: '门宽 x 高' },
-  clear_height:    { th: 'ความสูงใต้อาคาร',        en: 'Clear height',         zh: '净高' },
+  /* ลูกค้าสั่งชัดในข้อ 3 ว่า "เปลี่ยนความสูงอาคาร เป็นความสูงใต้คาน" — ฟอร์ม
+     ใช้คำนี้อยู่แล้ว (propertySchema) แต่ตารางยังใช้คนละคำ */
+  clear_height:    { th: 'ความสูงใต้คาน',          en: 'Clear height',         zh: '净高' },
   floor_loading:   { th: 'รับน้ำหนักพื้น',          en: 'Floor loading',        zh: '楼板承重' },
   power_system:    { th: 'ขนาดหม้อแปลงไฟฟ้า',       en: 'Transformer size',     zh: '变压器容量' },
   power_phase:     { th: 'ระบบไฟ',                  en: 'Power supply',         zh: '供电系统' },
@@ -233,10 +235,11 @@ const TABLE_ORDER = [
      price_sale เพิ่มเองต่อจาก price_rent — รายการที่สั่งมาเป็นทรัพย์ให้เช่า
      ถ้ายึดตามตัวอักษร ประกาศขายจะไม่มีราคาแสดงเลย
 
-     แถวที่ไม่อยู่ในรายการ 22 ข้อ ยังต่อท้ายไว้ (ดู TAIL ข้างล่าง) ยังไม่ลบทิ้ง
-     เพราะบางแถวเป็นของที่สั่งมาเองในรอบก่อน — เครนกับใบ ร.ง.4 มาจากสไลด์ 27
-     และพื้นที่สีกับโซนมาจากข้อ 8 · ลบของที่เคยสั่งเองโดยไม่ถามคือความเสี่ยงที่
-     ไม่คุ้ม ตัดทิ้งได้ทันทีเมื่อยืนยัน */
+     ยืนยันแล้ว 23 ส.ค. ค่ำ: "ข้อ 3 เอา 22 ข้อ" — แถวที่ไม่อยู่ในรายการถูกตัด
+     ออกจากตารางนี้ทั้งหมด รวมถึงของที่เคยสั่งในรอบก่อน (เครน · ใบ ร.ง.4 ·
+     พื้นที่สี · โซน · จำนวนประตู · ภาษีสามรายการ · VAT · ที่ดิน)
+     พื้นที่สีกับโซนยังขึ้นเป็นป้ายบนรูปใหญ่และบนการ์ดเหมือนเดิม ไม่ได้หายจากเว็บ
+     ค่าที่ตัดออกยังอยู่ในฐานข้อมูลและยังออกในไฟล์ Export ครบ */
   // 1–6 · ตัวทรัพย์และทำเล
   'property_code', 'deal_type', 'property_type',
   'province', 'district', 'subdistrict',
@@ -254,16 +257,6 @@ const TABLE_ORDER = [
   'price_rent', 'price_sale', 'price_per_sqm',
   'deposit_months', 'advance_months', 'lease_term',
 
-  /* ---- ต่อท้าย: แถวที่ไม่อยู่ในรายการ 22 ข้อ ----
-     ตัดบล็อกนี้ทิ้งทั้งก้อนเมื่อยืนยันว่าไม่ต้องการแล้ว */
-  'zoning_color', 'zone',
-  'usable_area', 'office_area_f1', 'land_wh', 'land_area_total', 'land_area',
-  'building_height', 'power_phase',
-  'doors', 'door_wh', 'parking', 'overhead_crane',
-  'factory_license', 'factory_license_type',
-  'elec_rate', 'elec_bill_pay', 'water_rate', 'water_bill_pay',
-  'common_fee', 'common_bill_pay',
-  'withholding_tax', 'land_tax', 'vat', 'stamp_duty', 'transfer_fee_resp',
 ];
 
 /* การ์ดสรุปสี่ใบเหนือตาราง — เอาคีย์แรก ๆ ที่มีค่า

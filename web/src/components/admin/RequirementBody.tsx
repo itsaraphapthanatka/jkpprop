@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { apiGet, apiPatch, apiPost, apiDelete, ApiClientError } from '@/lib/apiClient';
+import { thumb } from '@/lib/mediaThumb';
 
 /* Requirement detail — Flow B (SPEC_PACK §3.6).
  *
@@ -32,6 +33,15 @@ type Check = {
   area: number | null; location: string;
   result: string; stillActive: boolean; available: boolean;
   note: string; checkedAt: number;
+};
+/* ใช้รูปแบบเดียวกับ /api/requirements/:id/candidates ที่มีอยู่แล้ว — ไม่ทำเส้น
+   ใหม่ซ้อน เพราะการมีสองที่ที่ "หาทรัพย์ให้ requirement" คือต้นเหตุที่โค้ดชุด
+   เดียวกันเคยเพี้ยนกันมาแล้วหลายรอบในโปรเจกต์นี้ */
+type Alt = {
+  id: string; code: string; title: string; typeLabel: string; province: string;
+  area: number | null; price: number | null; img: string | null;
+  available: boolean; alreadyChecked: boolean; misses: string[]; fit: boolean;
+  contactName: string; contactPhone: string;
 };
 type ShortlistRef = { id: string; name: string; status: string; count: number; url: string; createdAt: number };
 type CancelField = { key: string; label: string };
@@ -135,6 +145,8 @@ export function RequirementBody({ id }: { id: string }) {
   const [editErr, setEditErr] = React.useState('');
 
   const [checkOpen, setCheckOpen] = React.useState(false);
+  /* ทรัพย์ใกล้เคียงที่เสนอแทนของที่ไม่ว่าง (ข้อ 18) */
+  const [alts, setAlts] = React.useState<Alt[] | null>(null);
   const [checkCode, setCheckCode] = React.useState('');
   const [checkResult, setCheckResult] = React.useState('available');
   const [checkNote, setCheckNote] = React.useState('');
@@ -169,6 +181,23 @@ export function RequirementBody({ id }: { id: string }) {
       .catch((e) => setLoadErr(e instanceof ApiClientError ? e.message : 'โหลดข้อมูลไม่สำเร็จ'));
   }, [id]);
   React.useEffect(load, [load]);
+
+  /* ดึงของใกล้เคียงเฉพาะตอนที่จำเป็นจริง — คือมีของที่เช็คแล้วไม่ว่างและยังไม่มี
+     ของที่ว่างเลย ไม่งั้นเป็นการยิงคิวรีทิ้งทุกครั้งที่เปิดหน้า
+     ต้องอยู่เหนือ early return ของคอมโพเนนต์ ไม่งั้น hook ถูกเรียกไม่ครบทุกรอบ */
+  const blocked = !!data && data.checks.some((c) => !c.available) && !data.checks.some((c) => c.available);
+  const reqId = data?.id;
+  React.useEffect(() => {
+    if (!blocked || !reqId) { setAlts(null); return; }
+    let live = true;
+    apiGet<{ items: Alt[] }>(`/api/requirements/${reqId}/candidates`)
+      /* เอาเฉพาะที่ยังว่างและยังไม่ได้เช็ค — เสนอของที่เพิ่งบอกว่าไม่ว่างซ้ำ
+         คือทำให้คนทำงานเสียเวลาโทรซ้ำ · เส้นนั้นเรียงตรงเงื่อนไขมาให้แล้ว */
+      .then((r) => { if (live) setAlts((r.items ?? []).filter((a) => a.available && !a.alreadyChecked).slice(0, 5)); })
+      .catch(() => { if (live) setAlts([]); });
+    return () => { live = false; };
+  }, [blocked, reqId]);
+
 
   const act = async (payload: Record<string, unknown>, done: string) => {
     if (busy) return;
@@ -302,6 +331,12 @@ export function RequirementBody({ id }: { id: string }) {
 
   const cancelled = data.status === 'cancelled';
   const availableChecks = data.checks.filter((c) => c.available);
+  /* คุณ Jacky ถามในข้อ 18 ว่า "หากทรัพย์ไม่ว่างก็จะเดิน Flow ต่อไม่ได้ครับ" —
+     พอโทรไปแล้วเจ้าของบอกไม่ว่าง งานค้างตรงนั้น ไม่มีขั้นถัดไป
+     ระบบจึงหาของใกล้เคียงจากเกณฑ์ของ requirement ใบนี้มาเสนอ พร้อมเบอร์เจ้าของ
+     ให้โทรต่อได้ทันที · ขึ้นเมื่อมีของที่เช็คแล้วไม่ว่าง และยังไม่มีของที่ว่างเลย */
+  const needsAlternatives = blocked;
+
   const steps = stepsFor(data.status, availableChecks.length > 0, data.shortlists.length);
   const chip = STATUS_CHIP[data.status] ?? { bg: 'var(--bg)', fg: 'var(--muted2)' };
   const reasonLabel = data.cancelFields.find((f) => f.key === data.cancelField)?.label || data.cancelField;
@@ -551,6 +586,66 @@ export function RequirementBody({ id }: { id: string }) {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#022310" strokeWidth="2.6"><path d="M12 5v14M5 12h14" /></svg>บันทึกผลเช็คทรัพย์
             </div>
           </div>
+
+          {/* ข้อ 18 · "หากทรัพย์ไม่ว่างก็จะเดิน Flow ต่อไม่ได้ครับ" — เช็คแล้วไม่ว่าง
+              ทั้งหมด งานเคยค้างตรงนี้ ตอนนี้ระบบเสนอของใกล้เคียงจากเกณฑ์ของ
+              requirement ใบนี้ พร้อมเบอร์เจ้าของให้โทรต่อได้ทันที */}
+          {needsAlternatives && (
+            <div id="req-alts" style={{ background: 'var(--surface)', border: '1.5px solid #E4C4C0', borderRadius: 16, padding: '18px 20px' }}>
+              <div style={{ fontSize: '14.5px', fontWeight: 800, color: 'var(--text)' }}>
+                เช็คแล้วไม่ว่างทั้งหมด — ลองเสนอตัวนี้แทน
+              </div>
+              <p style={{ margin: '5px 0 14px', fontSize: '12px', color: 'var(--muted)', lineHeight: 1.65 }}>
+                คัดจากเกณฑ์ของ requirement ใบนี้ (ประเภท · ทำเล · ขนาด · งบ) เฉพาะทรัพย์ที่ยังว่างอยู่
+                — โทรเช็คแล้วกด “บันทึกผลเช็คทรัพย์” ด้านบนได้เลย
+              </p>
+
+              {alts === null && <div style={{ fontSize: 12.5, color: 'var(--muted3)' }}>กำลังหาของใกล้เคียง…</div>}
+              {alts?.length === 0 && (
+                <div data-alt-empty style={{ fontSize: 12.5, color: 'var(--muted3)', lineHeight: 1.7 }}>
+                  ยังไม่มีทรัพย์ในคลังที่เข้าเกณฑ์นี้ — ลองผ่อนเกณฑ์ขนาดหรืองบ แล้วกด “แก้ไข” ที่การ์ดความต้องการด้านซ้าย
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                {(alts ?? []).map((a) => (
+                  <div key={a.code} data-alt={a.code} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 12px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)' }}>
+                    {a.img
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      ? <img src={thumb(a.img, 160)} alt="" style={{ width: 48, height: 40, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                      : <div style={{ width: 48, height: 40, borderRadius: 8, background: 'var(--tint)', flexShrink: 0 }} />}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+                        <code style={{ ...monoCode, fontSize: 11.5, fontWeight: 700, color: '#0D6C3B' }}>{a.code}</code>
+                        <span style={{ fontSize: 11, color: 'var(--muted3)' }}>{a.typeLabel}</span>
+                        {a.area !== null && <span style={{ fontSize: 11, color: 'var(--muted3)' }}>{nf.format(a.area)} ตร.ม.</span>}
+                        {/* ราคาคือสิ่งแรกที่คนโทรหาลูกค้าต้องตอบ — ไม่โชว์ที่นี่
+                            แปลว่าต้องเปิดอีกแท็บก่อนทุกครั้ง */}
+                        {a.price !== null && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)' }}>฿{nf.format(a.price)}</span>}
+                      </div>
+                      {/* ตัดวงเล็บรหัสท้ายชื่อออก เพราะรหัสอยู่ต้นแถวอยู่แล้ว */}
+                      <div style={{ fontSize: '12.5px', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title.replace(/\s*\(รหัส\s*:[^)]*\)\s*$/, '')}</div>
+                      {/* บอกเหตุผลที่ถูกเสนอ ไม่ใช่คะแนนลอย ๆ ที่ไม่มีใครเชื่อ */}
+                      <div style={{ marginTop: 2, fontSize: 11, color: a.fit ? '#0D6C3B' : 'var(--muted2)' }}>
+                        {a.fit ? 'ตรงทุกเงื่อนไขที่ขอ' : `ต่างจากที่ขอ: ${a.misses.join(' · ')}`}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
+                      {a.contactPhone && (
+                        <a href={`tel:${a.contactPhone.replace(/[^+\d]/g, '')}`} data-alt-call={a.code}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 32, padding: '0 11px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z" /></svg>
+                          {a.contactName || 'โทรหาเจ้าของ'}
+                        </a>
+                      )}
+                      <a href={`/th/property/${encodeURIComponent(a.code)}`} target="_blank" rel="noreferrer" data-alt-open={a.code}
+                        style={{ display: 'inline-flex', alignItems: 'center', height: 32, padding: '0 11px', borderRadius: 9999, border: '1px solid var(--border)', color: 'var(--text)', fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap' }}>ดูทรัพย์</a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* build the shortlist — the gate is enforced on the server too */}
           <div

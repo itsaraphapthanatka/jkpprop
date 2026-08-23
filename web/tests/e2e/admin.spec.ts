@@ -1145,6 +1145,50 @@ test.describe('Flow B — requirement to shortlist', () => {
       await expect(badge).toHaveText(String(counts.requirements));
     }
   });
+
+  /* เด็ค Web 2026 ข้อ 18 · "หากทรัพย์ไม่ว่างก็จะเดิน Flow ต่อไม่ได้ครับ"
+     เช็คไปแล้วแต่ไม่ว่างสักหลัง = ทางตัน คนคีย์ต้องออกไปหาเองในอีกหน้าหนึ่ง
+     หน้านี้จึงต้องยื่นของที่ยังว่างมาให้เลย */
+  test('เช็คแล้วไม่ว่างทั้งหมด หน้านั้นต้องเสนอทรัพย์ที่ยังว่างให้ต่อได้', async ({ page, request }) => {
+    const r = await create(request);
+    const cands = (await (await request.get(`/api/requirements/${r.id}/candidates`, { headers: { cookie } })).json())
+      .items as { code: string; available: boolean }[];
+    const dead = cands.find((c) => c.available);
+    test.skip(!dead, 'no available property in the data to mark unavailable');
+
+    await page.goto(`/admin/requirements/${r.id}`);
+    await expect(page.locator('#req-alts'), 'nothing is blocked yet — the card must stay away')
+      .toHaveCount(0);
+
+    await request.post(`/api/requirements/${r.id}/checks`, {
+      headers: { cookie },
+      data: { code: dead!.code, result: 'unavailable', note: 'เจ้าของแจ้งว่าปล่อยไปแล้ว' },
+    });
+
+    await page.goto(`/admin/requirements/${r.id}`);
+    const card = page.locator('#req-alts');
+    await expect(card, 'ทางตันแล้วแต่หน้าไม่เสนออะไรเลย').toBeVisible();
+
+    const rows = page.locator('[data-alt]');
+    await expect(rows.first()).toBeVisible();
+    /* ของที่เพิ่งบอกว่าไม่ว่าง ห้ามโผล่มาให้โทรซ้ำ */
+    await expect(page.locator(`[data-alt="${dead!.code}"]`), 'เสนอหลังที่เพิ่งบอกว่าไม่ว่าง')
+      .toHaveCount(0);
+    /* ต้องโทรได้และเปิดดูได้จากตรงนั้นเลย ไม่ใช่ให้ไปคัดลอกรหัสเอง */
+    await expect(page.locator('[data-alt-open]').first()).toHaveAttribute('href', /\/property\//);
+
+    /* พอมีของที่ว่างแล้ว ทางตันหายไป การ์ดต้องเก็บตัวเอง */
+    const alive = cands.find((c) => c.available && c.code !== dead!.code);
+    if (alive) {
+      await request.post(`/api/requirements/${r.id}/checks`, {
+        headers: { cookie },
+        data: { code: alive.code, result: 'available', note: '' },
+      });
+      await page.goto(`/admin/requirements/${r.id}`);
+      await expect(page.locator('#req-shortlist-card, #req-build-shortlist').first()).toBeVisible();
+      await expect(card, 'ไม่ตันแล้วแต่ยังเสนอของแทนอยู่').toHaveCount(0);
+    }
+  });
 });
 
 test.describe('the shortlist screen shows the shortlist it will send', () => {
