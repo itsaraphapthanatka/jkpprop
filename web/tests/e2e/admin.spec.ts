@@ -1831,7 +1831,8 @@ test.describe('the properties screen', () => {
     });
     // a BOM so Excel on Windows reads Thai, and a real header row
     expect(csv.charCodeAt(0)).toBe(0xfeff);
-    expect(csv).toContain('รหัส');
+    /* หัวคอลัมน์ใช้ชื่อตามชีตที่ตกลงกันไว้ (สไลด์ 9) ไม่ใช่ป้ายไทยแบบเดิม */
+    expect(csv).toContain('public_code');
     expect(csv).toContain('JKP');
   });
 

@@ -326,9 +326,10 @@ export function PropertiesBody() {
       status: r.status,
       location: r.location,
       updatedAt: r.updatedAt,
+      available: r.available,
       values: (r.values ?? {}) as Record<string, unknown>,
       i18n: r.i18n,
-    })));
+    })), window.location.origin);
 
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const a = document.createElement('a');

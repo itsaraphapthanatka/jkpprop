@@ -362,7 +362,7 @@ export function ListingsAdminBody() {
 
     /* หน้านี้ไม่ได้โหลด values มาด้วย (จะหนักโดยใช่เหตุ เพราะตารางไม่ได้ใช้)
        ตอนกด Export จึงไปดึงของเต็มมาทีเดียว แล้วจับคู่ด้วยรหัสทรัพย์ */
-    type FullRow = { publicCode: string; updatedAt?: number; values?: Record<string, unknown>; i18n?: Record<string, { title?: string; description?: string } | undefined> };
+    type FullRow = { publicCode: string; updatedAt?: number; available?: boolean; values?: Record<string, unknown>; i18n?: Record<string, { title?: string; description?: string } | undefined> };
     let full: Record<string, FullRow> = {};
     try {
       const r = await apiGet<{ items: FullRow[] }>('/api/properties');
@@ -381,10 +381,11 @@ export function ListingsAdminBody() {
         status: STATUS_LABEL[d.status],
         location: d.location,
         updatedAt: p?.updatedAt ?? null,
+        available: p?.available ?? d.available,
         values: (p?.values ?? {}) as Record<string, unknown>,
         i18n: p?.i18n,
       };
-    }));
+    }), window.location.origin);
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const a = document.createElement('a');
     a.href = url;

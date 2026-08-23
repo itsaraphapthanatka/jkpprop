@@ -1975,7 +1975,13 @@ test.describe('คอมเมนต์ลูกค้า · Export ต้อง
   };
 
   /* หัวคอลัมน์ที่เคยหายไปทั้งหมด — ถ้ากลับไปเขียนรายชื่อคอลัมน์เองอีก จะจับได้ */
-  const MUST_HAVE = ['ค่าไฟ', 'ค่าน้ำ', 'พื้นที่สี', 'เบอร์โทรติดต่อ', 'ความสูงใต้คาน', 'ผู้ดูแลทรัพย์ (PIC)'];
+  /* หัวคอลัมน์ตามชีตที่ตกลงกันไว้ (สไลด์ 9) — ชื่อพวกนี้ทีมเอาไปต่อกับไฟล์เดิม
+     เปลี่ยนชื่อเมื่อไรชีตปลายทางพังทันที */
+  const MUST_HAVE = ['public_code', 'PIC', 'lessor_phone', 'floor_loading', 'elec_rate',
+    'ละติจูด ลองติจูด', 'ลิงค์แผนที่', 'ลิงค์ประกาศเว็บไซด์'];
+
+  /* 63 ช่องแรกต้องเรียงตามชีตเป๊ะ ไม่ใช่แค่มีครบ */
+  const SHEET_HEAD_START = ['public_code', 'PIC', 'ประเภททรัพย์', 'title', 'status', 'listing_status', 'deal_type'];
 
   for (const [name, url, button] of [
     ['Properties', '/admin/properties', 'Export'],
@@ -1989,8 +1995,9 @@ test.describe('คอมเมนต์ลูกค้า · Export ต้อง
       const head = lines[0];
 
       /* 88 ฟิลด์ใน schema + คอลัมน์พื้นฐาน — เผื่อไว้ว่าต้องเกิน 60 แน่ ๆ */
-      const cols = head.split(',').length;
-      expect(cols, `${name} ได้แค่ ${cols} คอลัมน์`).toBeGreaterThan(60);
+      const cells = head.split(',');
+      expect(cells.length, `${name} ได้แค่ ${cells.length} คอลัมน์`).toBeGreaterThan(60);
+      expect(cells.slice(0, SHEET_HEAD_START.length), `${name} ลำดับคอลัมน์ไม่ตรงกับชีต`).toEqual(SHEET_HEAD_START);
       for (const label of MUST_HAVE) {
         expect(head, `${name} ไม่มีคอลัมน์ "${label}"`).toContain(label);
       }

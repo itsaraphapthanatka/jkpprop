@@ -87,6 +87,8 @@ export type ExportRow = {
   status: string;
   location: string;
   updatedAt: number | null;
+  /** ว่าง / ไม่ว่าง ตามที่ทีมทำเครื่องหมายไว้ — คนละเรื่องกับสถานะประกาศ */
+  available?: boolean;
   values: Record<string, unknown>;
   /** หัวเรื่อง/คำบรรยายภาษาอื่น — เก็บแยกจาก values */
   i18n?: Record<string, { title?: string; description?: string } | undefined>;
@@ -94,31 +96,136 @@ export type ExportRow = {
   photos?: string[];
 };
 
-const BASE_HEAD = [
-  'รหัสทรัพย์', 'ชื่อประกาศ (ไทย)', 'ประเภททรัพย์', 'สถานะ', 'ทำเลแบบเต็ม', 'อัปเดตล่าสุด',
-  'จำนวนรูป', 'ลิงก์รูปทั้งหมด',
-  'ชื่อประกาศ (EN)', 'คำบรรยาย (EN)', 'ชื่อประกาศ (ZH)', 'คำบรรยาย (ZH)',
+/* ลำดับคอลัมน์ที่ตกลงกันไว้ในชีต (สไลด์ 9 · "นำข้อมูลออกแบบที่คุยกันเอาไว้")
+   หัวคอลัมน์ใช้ตามชีตเป๊ะ ๆ (ส่วนใหญ่เป็นชื่อฟิลด์อังกฤษ ปนไทยบางช่อง) เพราะ
+   ทีมเอาไฟล์นี้ไปต่อกับของเดิมที่ทำไว้ ถ้าเปลี่ยนชื่อหัวจะพังทั้งชีต */
+type Calc = 'code' | 'typeLabel' | 'title' | 'available' | 'listingStatus' | 'latlng' | 'mapUrl' | 'pageUrl';
+type SheetCol = { head: string; key?: string; sub?: string; calc?: Calc };
+
+const SHEET_COLUMNS: SheetCol[] = [
+  { head: 'public_code', calc: 'code' },
+  { head: 'PIC', key: 'pic' },
+  { head: 'ประเภททรัพย์', calc: 'typeLabel' },
+  { head: 'title', calc: 'title' },
+  /* ชีตเก็บ ว่าง / ไม่ว่าง / อยู่ระหว่างก่อสร้าง — ระบบมีแค่สองสถานะแรก
+     สถานะที่สามยังไม่มีที่เก็บ ต้องเพิ่มฟิลด์ก่อนจึงจะออกมาได้ */
+  { head: 'status', calc: 'available' },
+  { head: 'listing_status', calc: 'listingStatus' },
+  { head: 'deal_type', key: 'deal_type' },
+  { head: 'listing_date', key: 'listing_date' },
+  { head: 'subdistrict', key: 'subdistrict' },
+  { head: 'district', key: 'district' },
+  { head: 'province', key: 'province' },
+  { head: 'zoning_color', key: 'zoning_color' },
+  { head: 'zone', key: 'zone' },
+  { head: 'nearby', key: 'nearby' },
+  { head: 'lessor_status', key: 'lessor_status' },
+  { head: 'ทำสัญญาในนาม', key: 'contract_name' },
+  { head: 'lessor_company', key: 'lessor_company' },
+  { head: 'lessor_name', key: 'lessor_name' },
+  { head: 'lessor_phone', key: 'lessor_phone' },
+  { head: 'land_wh', key: 'land_wh' },
+  { head: 'rai', key: 'land_area_total', sub: 'rai' },
+  { head: 'ngan', key: 'land_area_total', sub: 'ngan' },
+  { head: 'wa', key: 'land_area_total', sub: 'wa' },
+  { head: 'building_area', key: 'building_area' },
+  { head: 'building_wh', key: 'building_wh' },
+  { head: 'office_floors', key: 'office_floors' },
+  { head: 'building_floors', key: 'building_floors' },
+  { head: 'office_area_f1', key: 'office_area_f1' },
+  { head: 'office_area_total', key: 'office_area_total' },
+  { head: 'building_total_wh', key: 'building_total_wh' },
+  { head: 'building_area_total', key: 'building_area_total' },
+  { head: 'doors', key: 'doors' },
+  { head: 'door_wh', key: 'door_wh' },
+  { head: 'building_height', key: 'building_height' },
+  { head: 'parking', key: 'parking' },
+  { head: 'power_phase', key: 'power_phase' },
+  { head: 'power_system', key: 'power_system' },
+  { head: 'floor_loading', key: 'floor_loading' },
+  { head: 'cold_storage', key: 'cold_storage' },
+  { head: 'price_rent', key: 'price_rent' },
+  { head: 'price_per_sqm', key: 'price_per_sqm' },
+  { head: 'price_sale', key: 'price_sale' },
+  /* payer/amount อยู่ก่อนสองช่องภาษีที่มีชื่อของตัวเอง จึงอ่านเป็นอากรแสตมป์ */
+  { head: 'payer', key: 'stamp_duty', sub: 'payer' },
+  { head: 'amount', key: 'stamp_duty', sub: 'amount' },
+  { head: 'ภาษีหัก ณ ที่จ่าย', key: 'withholding_tax' },
+  { head: 'ภาษีที่ดิน', key: 'land_tax' },
+  { head: 'vat', key: 'vat' },
+  { head: 'transfer_fee_resp', key: 'transfer_fee_resp' },
+  { head: 'common_fee', key: 'common_fee' },
+  { head: 'elec_rate', key: 'elec_rate' },
+  { head: 'water_rate', key: 'water_rate' },
+  { head: 'common_bill_pay', key: 'common_bill_pay' },
+  { head: 'Water_bill_pay', key: 'water_bill_pay' },
+  { head: 'elec_bill_pay', key: 'elec_bill_pay' },
+  { head: 'lease_term', key: 'lease_term' },
+  { head: 'deposit_months', key: 'deposit_months' },
+  { head: 'advance_months', key: 'advance_months' },
+  { head: 'features', key: 'features' },
+  { head: 'usage', key: 'usage' },
+  { head: 'internal_note', key: 'internal_note' },
+  { head: 'ละติจูด ลองติจูด', calc: 'latlng' },
+  { head: 'ลิงค์แผนที่', calc: 'mapUrl' },
+  { head: 'ลิงค์ประกาศเว็บไซด์', calc: 'pageUrl' },
 ];
 
+/* ช่องที่ชีตกินไปแล้ว — ฟิลด์ที่เหลือถูกต่อท้ายไว้ไม่ให้ข้อมูลหาย
+   ("export ข้อมูลออกมาน้อยไป") ถ้าอยากได้เฉพาะ 63 ช่องตามชีต ตัด extra ทิ้ง */
+const CLAIMED = new Set(
+  SHEET_COLUMNS.map((c) => (c.key ? (c.sub ? `${c.key}.${c.sub}` : c.key) : '')).filter(Boolean),
+);
+
+const extraColumns = (): ExportCol[] =>
+  exportColumns().filter((c) => !CLAIMED.has(c.sub ? `${c.key}.${c.sub}` : c.key));
+
+/* คอลัมน์ท้ายสุดที่ไม่ได้อยู่ในชีต แต่ทีมใช้จริง */
+const TAIL_HEAD = ['อัปเดตล่าสุด', 'จำนวนรูป', 'ลิงก์รูปทั้งหมด', 'ชื่อประกาศ (EN)', 'คำบรรยาย (EN)', 'ชื่อประกาศ (ZH)', 'คำบรรยาย (ZH)'];
+
+const pin = (v: Record<string, unknown>): { lat: number; lng: number } | null => {
+  const m = v.location_map as { lat?: unknown; lng?: unknown } | undefined;
+  return m && typeof m.lat === 'number' && typeof m.lng === 'number' ? { lat: m.lat, lng: m.lng } : null;
+};
+
 /** สร้างไฟล์ CSV ทั้งใบ พร้อม BOM ให้ Excel อ่านภาษาไทยออก */
-export function buildPropertyCsv(rows: ExportRow[]): string {
-  const cols = exportColumns();
-  const head = [...BASE_HEAD, ...cols.map((c) => c.label)];
+export function buildPropertyCsv(rows: ExportRow[], origin = ''): string {
+  const extra = extraColumns();
+  const head = [...SHEET_COLUMNS.map((c) => c.head), ...extra.map((c) => c.label), ...TAIL_HEAD];
+
   const body = rows.map((r) => {
     const v = r.values ?? {};
     const photos = r.photos ?? (Array.isArray(v.photos) ? (v.photos as unknown[]).filter((x): x is string => typeof x === 'string') : []);
-    const base = [
-      r.code, r.title, r.typeLabel, r.status, r.location,
+    const p = pin(v);
+
+    const sheet = SHEET_COLUMNS.map((c) => {
+      switch (c.calc) {
+        case 'code': return r.code;
+        case 'typeLabel': return r.typeLabel;
+        case 'title': return r.title;
+        case 'available': return r.available === undefined ? '' : r.available ? 'ว่าง' : 'ไม่ว่าง';
+        case 'listingStatus': return r.status;
+        case 'latlng': return p ? `${p.lat}, ${p.lng}` : '';
+        case 'mapUrl': return p ? `https://www.google.com/maps?q=${p.lat},${p.lng}` : '';
+        case 'pageUrl': return `${origin}/th/property/${r.code}`;
+        default: break;
+      }
+      const raw = c.sub ? (v[c.key!] as Record<string, unknown> | undefined)?.[c.sub] : v[c.key!];
+      return exportValue(raw);
+    });
+
+    const rest = extra.map((c) => {
+      const raw = c.sub ? (v[c.key] as Record<string, unknown> | undefined)?.[c.sub] : v[c.key];
+      return exportValue(raw);
+    });
+
+    const tail = [
       r.updatedAt ? new Date(r.updatedAt).toISOString().slice(0, 10) : '',
       String(photos.length), photos.join(' | '),
       r.i18n?.en?.title ?? '', r.i18n?.en?.description ?? '',
       r.i18n?.zh?.title ?? '', r.i18n?.zh?.description ?? '',
     ];
-    const rest = cols.map((c) => {
-      const raw = c.sub ? (v[c.key] as Record<string, unknown> | undefined)?.[c.sub] : v[c.key];
-      return exportValue(raw);
-    });
-    return [...base, ...rest].map(csvCell).join(',');
+    return [...sheet, ...rest, ...tail].map(csvCell).join(',');
   });
-  return '﻿' + [head.map(csvCell).join(','), ...body].join('\n');
+  return '\ufeff' + [head.map(csvCell).join(','), ...body].join('\n');
 }
