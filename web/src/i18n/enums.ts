@@ -189,6 +189,7 @@ const dict: Record<string, Row> = {
   'งบประมาณ': { en: 'Budget', zh: '预算' },
   'ทำเล': { en: 'Location', zh: '区位' },
   'พื้นที่ใช้สอยที่ต้องการ': { en: 'Floor area needed', zh: '所需使用面积' },
+  'ประเภทสินค้าและธุรกิจ': { en: 'Products and business type', zh: '产品与业务类型' },
   'ขนาดที่ดินที่ต้องการ': { en: 'Land size needed', zh: '所需土地面积' },
   'จำนวนห้องนอน': { en: 'Bedrooms', zh: '卧室数量' },
   'ประเภทห้อง': { en: 'Room type', zh: '房型' },

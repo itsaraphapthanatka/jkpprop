@@ -2,6 +2,7 @@
    detail endpoint describe a requirement the same way. */
 import { db } from './db';
 import type { Prisma, Requirement } from '@prisma/client';
+import { propertyType } from '@/lib/propertySchema';
 
 export const REQUIREMENT_STATUSES = ['submitted', 'confirmed', 'shortlisted', 'cancelled'] as const;
 export type RequirementStatus = (typeof REQUIREMENT_STATUSES)[number];
@@ -70,6 +71,8 @@ export function requirementInput(body: Record<string, unknown>) {
     dealIntent: String(body.dealIntent ?? '').trim().slice(0, 40),
     typeKey: String(body.typeKey ?? '').trim().slice(0, 40),
     usage: String(body.usage ?? '').trim().slice(0, 120),
+    /* ประเภทสินค้าและธุรกิจ (เด็ค Web 2026 ข้อ 14–17) */
+    businessType: String(body.businessType ?? '').trim().slice(0, 120),
     // a reversed range is a typo, not a filter — store it the way round it reads
     areaMin: areaMin !== null && areaMax !== null ? Math.min(areaMin, areaMax) : areaMin,
     areaMax: areaMin !== null && areaMax !== null ? Math.max(areaMin, areaMax) : areaMax,
@@ -105,7 +108,9 @@ export function requirementDto(r: RequirementRow) {
     leadWho: r.lead?.respondentType ?? '',
     dealIntent: r.dealIntent,
     typeKey: r.typeKey,
+    typeLabel: r.typeKey ? propertyType(r.typeKey).label : '',
     usage: r.usage,
+    businessType: r.businessType,
     areaMin: r.areaMin,
     areaMax: r.areaMax,
     budgetMin: r.budgetMin,
@@ -198,6 +203,8 @@ export function requirementFromForm(
     dealIntent: lead.dealIntent ?? '',
     typeKey: lead.typeKey ?? '',
     usage: pickItem(list, 'ประเภทการใช้งาน', 'การใช้งาน', 'ประเภทห้อง', 'ประเภท'),
+    /* 'ประเภทสินค้า' ต้องมาก่อน 'ธุรกิจ' เพราะป้ายยาวกว่าและเจาะจงกว่า */
+    businessType: pickItem(list, 'ประเภทสินค้าและธุรกิจ', 'ประเภทสินค้า', 'ประเภทธุรกิจ', 'ธุรกิจ', 'สินค้า'),
     areaMin, areaMax, budgetMin, budgetMax,
     needsRor4: saysYes(ror4),
     nearPort: /ท่าเรือ|สนามบิน|port|airport/i.test(locationsRaw + ' ' + pickItem(list, 'ใกล้', 'ระยะ')),

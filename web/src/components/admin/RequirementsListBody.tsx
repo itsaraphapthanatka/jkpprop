@@ -15,7 +15,7 @@ import { apiGet, apiPost, ApiClientError } from '@/lib/apiClient';
 type Row = {
   id: string; code: string; status: string; statusLabel: string;
   leadName: string; company: string;
-  dealIntent: string; typeKey: string; usage: string;
+  dealIntent: string; typeKey: string; typeLabel: string; usage: string; businessType: string;
   areaMin: number | null; areaMax: number | null;
   budgetMin: number | null; budgetMax: number | null;
   moveIn: number | null;
@@ -55,11 +55,23 @@ const fmtDate = (ms: number) =>
   new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(ms));
 
 const listCss = `
-@media (max-width:900px){ #req-list-head{display:none !important;} .req-row{grid-template-columns:1fr !important;row-gap:8px;} }
+#req-list-scroll{overflow-x:auto;}
+#req-list-head,.req-row{min-width:1130px;}
+@media (max-width:900px){
+  #req-list-head{display:none !important;}
+  .req-row{grid-template-columns:1fr !important;row-gap:8px;min-width:0;}
+  #req-list-scroll{overflow-x:visible;}
+}
 .req-row:hover{background:var(--tint);}
 `;
 
 type LeadOption = { id: string; name: string; company: string | null };
+
+/* เด็ค Web 2026 ข้อ 15 · ลูกค้าขอสามคอลัมน์ที่ต้องเห็นจากตาราง — ทำเล ·
+   ประเภทสินค้าและธุรกิจ · ประเภทการใช้งาน เดิมสองในสามยัดเป็นตัวจิ๋วใต้ชื่อ
+   ลูกค้าจนอ่านไม่ออก และอีกอันไม่มีเลย
+   กว้างรวมเกินจอแคบ จึงให้ตารางเลื่อนแนวนอนในกล่องตัวเอง ไม่ใช่ให้ทั้งหน้าเลื่อน */
+const COLS = '112px minmax(130px,1fr) 118px 132px 126px 118px 132px 100px 84px';
 
 export function RequirementsListBody() {
   const router = useRouter();
@@ -155,9 +167,10 @@ export function RequirementsListBody() {
         <div style={{ padding: '12px 14px', borderRadius: 11, background: '#FDECEC', color: '#A32A2A', fontSize: 13, fontWeight: 600, marginBottom: 14 }}>{err}</div>
       )}
 
-      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
-        <div id="req-list-head" style={{ display: 'grid', gridTemplateColumns: '150px 1fr 170px 190px 120px 110px', gap: 12, padding: '12px 18px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', fontSize: 11, fontWeight: 800, color: 'var(--muted2)', textTransform: 'uppercase', letterSpacing: '.04em' }}>
-          <span>รหัส</span><span>ลูกค้า</span><span>ขนาด</span><span>งบ</span><span>สถานะ</span><span>เช็คว่าง</span>
+      <div id="req-list-scroll" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16 }}>
+        <div id="req-list-head" style={{ display: 'grid', gridTemplateColumns: COLS, gap: 10, padding: '12px 18px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', fontSize: 11, fontWeight: 800, color: 'var(--muted2)', textTransform: 'uppercase', letterSpacing: '.04em' }}>
+          <span>รหัส</span><span>ลูกค้า</span><span>ทำเล</span><span>ประเภทสินค้าและธุรกิจ</span>
+          <span>ประเภทการใช้งาน</span><span>ขนาด</span><span>งบ</span><span>สถานะ</span><span>เช็คว่าง</span>
         </div>
 
         {rows === null && (
@@ -184,7 +197,7 @@ export function RequirementsListBody() {
               key={r.id}
               href={`/admin/requirements/${r.id}`}
               className="req-row"
-              style={{ display: 'grid', gridTemplateColumns: '150px 1fr 170px 190px 120px 110px', gap: 12, alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid var(--border)', transition: 'background .15s' }}
+              style={{ display: 'grid', gridTemplateColumns: COLS, gap: 10, alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid var(--border)', transition: 'background .15s' }}
             >
               <div>
                 <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '12.5px', fontWeight: 700, color: '#0D6C3B' }}>{r.code}</div>
@@ -192,12 +205,31 @@ export function RequirementsListBody() {
               </div>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.company || r.leadName || '—'}</div>
+                {/* ทำเล · ธุรกิจ · การใช้งาน ย้ายออกไปเป็นคอลัมน์ของตัวเองแล้ว
+                    เหลือไว้แค่สิ่งที่บอกตัวลูกค้าเอง */}
                 <div style={{ marginTop: 3, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                   {r.dealIntent && <span style={{ fontSize: '10.5px', color: 'var(--muted3)' }}>{r.dealIntent}</span>}
-                  {r.usage && <span style={{ fontSize: '10.5px', color: 'var(--muted3)' }}>· {r.usage}</span>}
+                  {r.typeLabel && <span style={{ fontSize: '10.5px', color: 'var(--muted3)' }}>· {r.typeLabel}</span>}
                   {r.needsRor4 && <span style={pill('#EEF4F3', '#034956')}>ต้องมี ร.ง.4</span>}
-                  {r.locations[0] && <span style={{ fontSize: '10.5px', color: 'var(--muted3)' }}>· {r.locations[0].name}</span>}
                 </div>
+              </div>
+              {/* ทำเลเรียงตามลำดับที่ลูกค้าอยากได้ อันแรกคืออันที่อยากได้ที่สุด
+                  ที่เหลือบอกเป็นจำนวน ไม่งั้นแถวสูงไม่เท่ากันทั้งตาราง */}
+              <div data-req-locations style={{ fontSize: '12px', color: 'var(--text)', minWidth: 0 }}>
+                {r.locations.length === 0 ? <span style={{ color: 'var(--muted3)' }}>—</span> : (
+                  <>
+                    <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.locations[0].name}</span>
+                    {r.locations.length > 1 && (
+                      <span style={{ fontSize: '10.5px', color: 'var(--muted3)' }}>+ อีก {r.locations.length - 1} ที่</span>
+                    )}
+                  </>
+                )}
+              </div>
+              <div data-req-business style={{ fontSize: '12px', color: r.businessType ? 'var(--text)' : 'var(--muted3)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {r.businessType || '—'}
+              </div>
+              <div data-req-usage style={{ fontSize: '12px', color: r.usage ? 'var(--text)' : 'var(--muted3)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {r.usage || '—'}
               </div>
               <div style={{ fontSize: '12.5px', color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>{fmtRange(r.areaMin, r.areaMax, 'ตร.ม.')}</div>
               <div style={{ fontSize: '12.5px', color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>{fmtRange(r.budgetMin, r.budgetMax, r.dealIntent.includes('เช่า') ? '฿/ด.' : '฿')}</div>

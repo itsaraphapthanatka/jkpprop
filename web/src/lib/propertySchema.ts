@@ -376,6 +376,15 @@ const DEAL_INTENT: FieldDef = { key: 'deal_intent', label: 'ความต้�
 const REQ_LOCATION: FieldDef = { key: 'location', label: 'ทำเล / จังหวัดที่สนใจ', kind: 'text', placeholder: 'เช่น บางนา, สมุทรปราการ' };
 const REQ_BUDGET: FieldDef = { key: 'budget', label: 'งบประมาณ', kind: 'text', placeholder: 'เช่น 5–8 ล้าน หรือ 150,000/เดือน' };
 
+/* เด็ค Web 2026 ข้อ 14–17 · ลูกค้าค้าอะไร — ถามเฉพาะทรัพย์เชิงพาณิชย์
+   (บ้านกับคอนโดไม่มีประเภทธุรกิจ) เป็นตัวชี้ว่าหลังไหนเสนอได้จริง */
+const BUSINESS_TYPE: FieldDef = {
+  key: 'business_type',
+  label: 'ประเภทสินค้าและธุรกิจ',
+  kind: 'text',
+  placeholder: 'เช่น อาหารแช่แข็ง, ชิ้นส่วนยานยนต์, อีคอมเมิร์ซ',
+};
+
 export const REQUIREMENT_FIELDS: Record<string, FieldDef[]> = {
   house: [
     DEAL_INTENT,
@@ -391,6 +400,7 @@ export const REQUIREMENT_FIELDS: Record<string, FieldDef[]> = {
   ],
   land: [
     DEAL_INTENT,
+    BUSINESS_TYPE,
     { key: 'land_size', label: 'ขนาดที่ดินที่ต้องการ', kind: 'text', placeholder: 'เช่น 1–2 ไร่' },
     { key: 'zoning_color', label: 'ผังเมืองสี (ถ้ามีข้อกำหนด)', kind: 'select', options: ZONE_COLORS },
     REQ_LOCATION,
@@ -398,6 +408,7 @@ export const REQUIREMENT_FIELDS: Record<string, FieldDef[]> = {
   ],
   factory: [
     DEAL_INTENT,
+    BUSINESS_TYPE,
     { key: 'usable_area', label: 'พื้นที่ใช้สอยที่ต้องการ', kind: 'number', unit: 'ตร.ม.' },
     { key: 'power', label: 'ระบบไฟที่ต้องการ', kind: 'select', options: ['ไม่ระบุ', '1 เฟส', '3 เฟส'] },
     { key: 'rg4', label: 'ต้องขอใบ ร.ง.4', kind: 'boolean' },
@@ -406,6 +417,7 @@ export const REQUIREMENT_FIELDS: Record<string, FieldDef[]> = {
   ],
   warehouse: [
     DEAL_INTENT,
+    BUSINESS_TYPE,
     { key: 'usable_area', label: 'พื้นที่ใช้สอยที่ต้องการ', kind: 'number', unit: 'ตร.ม.' },
     { key: 'location', label: 'ทำเล / จังหวัดที่สนใจ', kind: 'text', placeholder: 'เช่น บางนา, สมุทรปราการ' },
     { key: 'budget', label: 'งบประมาณ (เช่า/ซื้อ)', kind: 'text', placeholder: 'เช่น 150,000/เดือน' },

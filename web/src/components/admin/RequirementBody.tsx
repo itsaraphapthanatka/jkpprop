@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { apiGet, apiPatch, apiPost, apiDelete, ApiClientError } from '@/lib/apiClient';
+import { PROPERTY_TYPES } from '@/lib/propertySchema';
 import { thumb } from '@/lib/mediaThumb';
 
 /* Requirement detail — Flow B (SPEC_PACK §3.6).
@@ -50,7 +51,7 @@ type Detail = {
   id: string; code: string; status: string; statusLabel: string;
   leadId: string; leadName: string; company: string; leadStatus: string;
   leadPhone: string; leadEmail: string; leadWho: string;
-  dealIntent: string; typeKey: string; usage: string;
+  dealIntent: string; typeKey: string; typeLabel: string; usage: string; businessType: string;
   areaMin: number | null; areaMax: number | null;
   budgetMin: number | null; budgetMax: number | null;
   moveIn: number | null;
@@ -143,6 +144,18 @@ export function RequirementBody({ id }: { id: string }) {
   const [editOpen, setEditOpen] = React.useState(false);
   const [form, setForm] = React.useState<Record<string, string | boolean>>({});
   const [editErr, setEditErr] = React.useState('');
+  /* เด็ค Web 2026 ข้อ 17 · "อันนี้ทำไมต้อง , นะครับ" — ทำเลเป็นรายการที่
+     เรียงลำดับความอยากได้ แต่ช่องกรอกให้พิมพ์ต่อกันคั่นจุลภาค คนกรอกจึงต้อง
+     เดาเองว่าต้องใส่เครื่องหมายอะไร และชื่อจังหวัดที่มีจุลภาคในตัวก็พัง
+     เก็บเป็นรายการจริง ๆ ทีละอัน แล้วโชว์ลำดับให้เห็น */
+  const [locList, setLocList] = React.useState<string[]>([]);
+  const [locDraft, setLocDraft] = React.useState('');
+  const addLoc = (raw: string) => {
+    const parts = raw.split(/[,·]/).map((x) => x.trim()).filter(Boolean);
+    if (!parts.length) return;
+    setLocList((cur) => [...cur, ...parts.filter((x) => !cur.includes(x))]);
+    setLocDraft('');
+  };
 
   const [checkOpen, setCheckOpen] = React.useState(false);
   /* ทรัพย์ใกล้เคียงที่เสนอแทนของที่ไม่ว่าง (ข้อ 18) */
@@ -218,9 +231,13 @@ export function RequirementBody({ id }: { id: string }) {
   const openEdit = () => {
     if (!data) return;
     setEditErr('');
+    setLocList(data.locations.map((l) => l.name).filter(Boolean));
+    setLocDraft('');
     setForm({
       dealIntent: data.dealIntent,
+      typeKey: data.typeKey,
       usage: data.usage,
+      businessType: data.businessType,
       areaMin: data.areaMin?.toString() ?? '',
       areaMax: data.areaMax?.toString() ?? '',
       budgetMin: data.budgetMin?.toString() ?? '',
@@ -230,7 +247,6 @@ export function RequirementBody({ id }: { id: string }) {
       nearPort: data.nearPort,
       pollution: data.pollution,
       note: data.note,
-      locations: data.locations.map((l) => l.name).join(', '),
     });
     setEditOpen(true);
   };
@@ -238,12 +254,14 @@ export function RequirementBody({ id }: { id: string }) {
   const saveEdit = async () => {
     setEditErr('');
     const okDone = await act({
-      dealIntent: form.dealIntent, usage: form.usage,
+      dealIntent: form.dealIntent, typeKey: form.typeKey,
+      usage: form.usage, businessType: form.businessType,
       areaMin: form.areaMin, areaMax: form.areaMax,
       budgetMin: form.budgetMin, budgetMax: form.budgetMax,
       moveIn: form.moveIn, needsRor4: form.needsRor4, nearPort: form.nearPort,
       pollution: form.pollution, note: form.note,
-      locations: String(form.locations || '').split(','),
+      /* ส่งเป็นรายการจริง ไม่ใช่สตริงคั่นจุลภาค — ดูคอมเมนต์ที่ตัวแก้ทำเล */
+      locations: [...locList, locDraft].map((x) => x.trim()).filter(Boolean),
     }, 'บันทึกความต้องการแล้ว');
     if (okDone) setEditOpen(false);
     else setEditErr('บันทึกไม่สำเร็จ');
@@ -343,7 +361,14 @@ export function RequirementBody({ id }: { id: string }) {
 
   const fields: { k: string; v: string }[] = [
     { k: 'ต้องการ', v: data.dealIntent || '—' },
+    /* เด็ค Web 2026 ข้อ 16 · "ไม่แสดงประเภททรัพย์" — เก็บค่าไว้ตั้งแต่ลูกค้า
+       ส่งฟอร์มแล้ว แต่ไม่เคยเอาขึ้นจอ คนอ่านใบนี้จึงไม่รู้ว่ากำลังหาโกดัง
+       หรือโรงงาน */
+    { k: 'ประเภททรัพย์', v: data.typeLabel || '—' },
     { k: 'ประเภทการใช้งาน', v: data.usage || '—' },
+    /* ข้อ 16–17 · ลูกค้าค้าอะไร — ตัวชี้ว่าหลังไหนเสนอได้จริง (ของแช่แข็ง
+       ต้องคลังเย็น งานพ่นสีต้องมี ร.ง.4) */
+    { k: 'ประเภทสินค้าและธุรกิจ', v: data.businessType || '—' },
     { k: 'ขนาด', v: fmtRange(data.areaMin, data.areaMax, 'ตร.ม.') },
     { k: data.dealIntent.includes('ขาย') ? 'งบซื้อ' : 'งบเช่า', v: fmtRange(data.budgetMin, data.budgetMax, data.dealIntent.includes('ขาย') ? '฿' : '฿/ด.') },
     { k: 'ต้องการ ร.ง.4', v: data.needsRor4 ? 'ใช่' : 'ไม่ระบุ' },
@@ -709,9 +734,24 @@ export function RequirementBody({ id }: { id: string }) {
               ระบบอ่านตัวเลขจากข้อความที่ลูกค้าพิมพ์ ซึ่งบางทีอ่านไม่ออก — เติมหรือแก้ตรงนี้ได้เลย
             </p>
 
+            {/* ข้อ 16 · ประเภททรัพย์เคยแก้ไม่ได้เลยทั้งที่เป็นเกณฑ์หลักในการคัดของ */}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>ประเภททรัพย์</label>
+              <select
+                id="req-f-typeKey"
+                value={String(form.typeKey ?? '')}
+                onChange={(e) => setForm((f) => ({ ...f, typeKey: e.target.value }))}
+                style={{ marginTop: 6, width: '100%', height: 42, padding: '0 10px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none' }}
+              >
+                <option value="">— ยังไม่ระบุ —</option>
+                {PROPERTY_TYPES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+              </select>
+            </div>
+
             {([
               ['dealIntent', 'ต้องการ', 'เช่า / ขาย'],
               ['usage', 'ประเภทการใช้งาน', 'คลังสินค้า/โลจิสติกส์'],
+              ['businessType', 'ประเภทสินค้าและธุรกิจ', 'เช่น อาหารแช่แข็ง · ชิ้นส่วนยานยนต์ · อีคอมเมิร์ซ'],
             ] as [string, string, string][]).map(([k, label, ph]) => (
               <div key={k} style={{ marginBottom: 12 }}>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>{label}</label>
@@ -774,7 +814,6 @@ export function RequirementBody({ id }: { id: string }) {
 
             {([
               ['pollution', 'มลภาวะ (ประเภทกิจการ)', 'เช่น มีกลิ่น / เสียงดัง — เว้นว่างถ้าไม่มีปัญหา'],
-              ['locations', 'พื้นที่ที่ต้องการ (คั่นด้วย ,)', 'สมุทรปราการ, ชลบุรี'],
             ] as [string, string, string][]).map(([k, label, ph]) => (
               <div key={k} style={{ marginBottom: 12 }}>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>{label}</label>
@@ -787,6 +826,39 @@ export function RequirementBody({ id }: { id: string }) {
                 />
               </div>
             ))}
+
+            {/* ข้อ 17 · ทำเลทีละอัน ไม่ต้องพิมพ์จุลภาคเอง และเห็นลำดับที่ลูกค้าอยากได้ */}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>
+                พื้นที่ที่ต้องการ <span style={{ fontWeight: 600, color: 'var(--muted3)' }}>· เรียงจากอยากได้มากที่สุด</span>
+              </label>
+              {locList.length > 0 && (
+                <div style={{ marginTop: 7, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {locList.map((name, i) => (
+                    <span key={name} data-req-loc={name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 6px 0 9px', borderRadius: 9999, background: 'var(--tint)', color: 'var(--accent)', fontSize: '12.5px', fontWeight: 700 }}>
+                      <span style={{ fontSize: 10, opacity: .7 }}>{i + 1}</span>
+                      {name}
+                      <button
+                        type="button"
+                        aria-label={`เอา ${name} ออก`}
+                        data-req-loc-x={name}
+                        onClick={() => setLocList((cur) => cur.filter((x) => x !== name))}
+                        style={{ width: 18, height: 18, borderRadius: 9999, border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}
+                      >×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <input
+                id="req-f-locations"
+                value={locDraft}
+                onChange={(e) => { const v = e.target.value; if (/[,·]/.test(v)) addLoc(v); else setLocDraft(v); }}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addLoc(locDraft); } }}
+                onBlur={() => addLoc(locDraft)}
+                placeholder={locList.length ? 'เพิ่มอีกที่ แล้วกด Enter' : 'เช่น สมุทรปราการ แล้วกด Enter'}
+                style={{ marginTop: 7, width: '100%', height: 42, padding: '0 12px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none' }}
+              />
+            </div>
 
             <div style={{ marginBottom: 12 }}>
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>บันทึกเพิ่มเติม</label>

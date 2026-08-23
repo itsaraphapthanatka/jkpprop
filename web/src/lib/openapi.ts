@@ -324,6 +324,12 @@ export const openapi = {
         requestBody: body(obj({ status: STR, assigneeId: NULLABLE_STR }, [])),
         responses: { 200: okRes('อัปเดตแล้ว', ref('Lead')), ...WITH_404 },
       },
+      delete: {
+        tags: ['Leads'], summary: 'ลบ lead (เจ้าของระบบเท่านั้น)',
+        description: 'requirement · ผลเช็คว่าง · shortlist · โน้ต · งานติดตาม ของ lead นั้นถูกลบตามไปด้วย · ถ้ามีดีลผูกอยู่จะไม่ยอมลบ (409) ต้องจัดการดีลก่อน',
+        parameters: [pathParam('id', 'id ของ lead')],
+        responses: { 200: okRes('ลบแล้ว'), ...WITH_404 },
+      },
     },
     '/api/leads/{id}/notes': {
       get: {

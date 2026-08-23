@@ -2,7 +2,7 @@
    Lead pipeline is forward-only (SPEC_PACK §4): moving a lead backwards is
    rejected except by owner/manager (correction path). */
 import { ok, handler, ApiError } from '@/lib/server/api';
-import { requireUser } from '@/lib/server/auth';
+import { requireUser, requireRole } from '@/lib/server/auth';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
 import { rank, STATUS_LABEL } from '@/lib/server/leadPipeline';
@@ -205,4 +205,41 @@ export const GET = handler(async (_req: Request, ctx: { params: Promise<{ id: st
       })),
     },
   });
+});
+
+
+/* DELETE /api/leads/:id — เด็ค Web 2026 ข้อ 14 · "มีปุ่มที่สามารถลบหลีดได้
+   มีสิทธ์เฉพาะเจ้าของเท่านั้น"
+
+   ลบ lead แล้ว requirement · เช็คว่าง · shortlist · โน้ต · งานติดตาม
+   ของใบนั้นหายตามทั้งหมด (FK cascade) จึงกันไว้สองชั้น:
+     · owner เท่านั้น — ไม่ใช่ manager ด้วย เพราะลูกค้าสั่งมาแบบนั้น
+     · ถ้ามีดีลผูกอยู่ ไม่ให้ลบ — Deal.leadId ไม่มี FK ลบไปแล้วดีลจะชี้ไปที่ว่าง
+       และประวัติรายได้จะอ่านไม่ออก ปิดดีลก่อนค่อยลบ */
+export const DELETE = handler(async (_req: Request, ctx: { params: Promise<{ id: string }> }) => {
+  const user = await requireUser();
+  requireRole(user, 'owner');
+  const { id } = await ctx.params;
+
+  const lead = await db.lead.findFirst({
+    where: { id, orgId: user.orgId },
+    include: { _count: { select: { requirements: true, notes: true, tasks: true } } },
+  });
+  if (!lead) throw new ApiError('NOT_FOUND', 'ไม่พบ lead นี้', 404);
+
+  const deals = await db.deal.count({ where: { leadId: lead.id, orgId: user.orgId } });
+  if (deals > 0) {
+    throw new ApiError('LEAD_HAS_DEAL', `lead นี้มีดีลผูกอยู่ ${deals} ดีล — ลบไม่ได้ ต้องปิดหรือย้ายดีลก่อน`, 409);
+  }
+
+  await db.lead.delete({ where: { id: lead.id } });
+  await audit({
+    user, orgId: user.orgId, action: 'lead.delete', entity: 'lead', entityId: lead.id,
+    /* เก็บไว้ว่าลบอะไรไปบ้าง เพราะของที่ตามไปด้วยไม่เหลือให้ดูแล้ว */
+    before: {
+      name: lead.name, phone: lead.phone, company: lead.company, status: lead.status,
+      requirements: lead._count.requirements, notes: lead._count.notes, tasks: lead._count.tasks,
+    },
+  });
+  return ok({ ok: true });
 });

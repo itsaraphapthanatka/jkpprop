@@ -1,7 +1,8 @@
 'use client';
 import * as React from 'react';
 import { loadLeads, relTime, type StoredLead } from '@/lib/leadStore';
-import { apiGet, apiPost, apiPatch, ApiClientError } from '@/lib/apiClient';
+import { useMe } from '@/lib/useMe';
+import { apiGet, apiPost, apiPatch, apiDelete, ApiClientError } from '@/lib/apiClient';
 import Link from 'next/link';
 import { thumb } from '@/lib/mediaThumb';
 import { PROPERTY_TYPES, propertyType } from '@/lib/propertySchema';
@@ -48,7 +49,9 @@ function webToLead(sl: ApiLead): Lead {
   const nm = (sl.name || '').trim();
   const org = (sl.company || '').trim();
   const who = (sl.respondentType || '').trim();
-  const typeLabel = sl.typeLabel || sl.typeKey || 'ทรัพย์';
+  /* เดิมตกมาที่ typeKey ดิบ จอไทยจึงขึ้นคำว่า "warehouse" — แบบเดียวกับป้าย
+     สถานะที่ลูกค้าทักไว้ในข้อ ค · แปลจากตารางประเภททรัพย์ก่อนเสมอ */
+  const typeLabel = sl.typeLabel || (sl.typeKey ? propertyType(sl.typeKey).label : '') || 'ทรัพย์';
   const intent = sl.dealIntent || '';
   const statusK = sl.status && stMap[sl.status] ? sl.status : 'new';
   // list convention: `name` = organisation, `company` = contact person · context
@@ -69,7 +72,8 @@ function webToLead(sl: ApiLead): Lead {
       ...(who ? [{ k: 'สถานะผู้ติดต่อ', v: who }] : []),
       ...(org ? [{ k: 'บริษัท / องค์กร', v: org }] : []),
       { k: 'ประเภททรัพย์', v: typeLabel },
-      { k: 'ความต้องการ', v: intent },
+      /* ว่างแล้วอย่าโชว์หัวข้อลอย ๆ ไว้ — บรรทัดที่ไม่มีค่าอ่านเหมือนข้อมูลหาย */
+      ...(intent ? [{ k: 'ความต้องการ', v: intent }] : []),
       ...(Array.isArray(sl.req) ? sl.req : []),
     ],
     message: sl.message || undefined,
@@ -180,6 +184,10 @@ export function LeadsBody() {
    * every lead — and anything typed vanished on refresh. The POST's failure
    * was swallowed too, so a rejected save looked identical to a saved one. */
   const [detail, setDetail] = React.useState<LeadDetail | null>(null);
+  /* เด็ค Web 2026 ข้อ 14 · ลบ lead ได้เฉพาะเจ้าของระบบ · ฝั่ง API กันซ้ำอีกชั้น
+     ปุ่มนี้เป็นแค่การไม่เอาของอันตรายไปวางไว้ตรงหน้าคนที่กดไม่ได้อยู่แล้ว */
+  const me = useMe();
+  const [deleting, setDeleting] = React.useState(false);
   const [saveErr, setSaveErr] = React.useState('');
   const [noteText, setNoteText] = React.useState('');
   const [taskDue, setTaskDue] = React.useState('');
@@ -222,7 +230,7 @@ export function LeadsBody() {
   const emptyForm = {
     name: '', contact: '', country: 'TH', phone: '', email: '',
     source: 'contact form', statusK: 'new', agent: '', who: 'ลูกค้า',
-    typeKey: 'warehouse', dealIntent: 'เช่า', area: '', location: '', budget: '', message: '',
+    typeKey: 'warehouse', dealIntent: 'เช่า', businessType: '', area: '', location: '', budget: '', message: '',
   };
   const [form, setForm] = React.useState(emptyForm);
   /* ปุ่มแชร์ลิงก์ให้ลูกค้ากรอกเอง — ฟอร์มบนหน้าติดต่อทำหน้าที่นี้อยู่แล้ว แต่
@@ -248,6 +256,23 @@ export function LeadsBody() {
     time: '', status: 'new', statusK: 'new', source: '', phone: '', email: '', agent: '',
   };
   const cur = rows[selected] ?? NO_LEAD;
+
+  const removeLead = async () => {
+    if (!cur.apiId || deleting) return;
+    const who = cur.name || 'lead นี้';
+    if (!window.confirm(`ลบ ${who} ออกจากระบบ?\n\nrequirement · ผลเช็คว่าง · shortlist · โน้ต และงานติดตามของ lead นี้จะถูกลบตามไปด้วย และกู้คืนไม่ได้`)) return;
+    setDeleting(true);
+    try {
+      await apiDelete(`/api/leads/${cur.apiId}`);
+      setRows((r) => r.filter((_, i) => i !== selected));
+      setSelected(0);
+      setDetail(null);
+    } catch (e) {
+      window.alert(e instanceof ApiClientError ? e.message : 'ลบ lead ไม่สำเร็จ');
+    } finally {
+      setDeleting(false);
+    }
+  };
   const hasLead = rows.length > 0;
 
   const curApiId = cur?.apiId;
@@ -521,8 +546,12 @@ export function LeadsBody() {
         typeLabel: propertyType(form.typeKey).label,
         dealIntent: form.dealIntent,
         message: form.message.trim(),
+        /* เด็ค Web 2026 ข้อ 14 · "ฟิลใส่ข้อมูล 1 อันที่แสดงผลซ้ำกันครับ"
+           ฟอร์มนี้เคยยัด "ต้องการ" ลงชุด req ด้วย ทั้งที่ dealIntent ส่งไปเป็น
+           คอลัมน์ของ lead อยู่แล้ว สรุปความต้องการจึงขึ้นสองบรรทัดว่าเช่า
+           เอาออก แล้วใช้ช่องนั้นถามประเภทสินค้าและธุรกิจตามที่ลูกค้าขอ */
         req: [
-          { k: 'ต้องการ', v: form.dealIntent },
+          form.businessType.trim() && { k: 'ประเภทสินค้าและธุรกิจ', v: form.businessType.trim() },
           form.area.trim() && { k: 'พื้นที่ใช้สอยที่ต้องการ', v: `${form.area.trim()} ตร.ม.` },
           form.location.trim() && { k: 'ทำเล / จังหวัดที่สนใจ', v: form.location.trim() },
           form.budget.trim() && { k: 'งบประมาณ (เช่า/ซื้อ)', v: form.budget.trim() },
@@ -624,6 +653,10 @@ export function LeadsBody() {
                       {['เช่า', 'ซื้อ', 'เช่า / ซื้อ'].map((v) => <option key={v} value={v}>{v}</option>)}
                     </select>
                   </div>
+                </div>
+                <div>
+                  <label style={fLabel}>ประเภทสินค้าและธุรกิจ</label>
+                  <input value={form.businessType} onChange={(e) => setF('businessType', e.target.value)} placeholder="เช่น อาหารแช่แข็ง · ชิ้นส่วนยานยนต์ · อีคอมเมิร์ซ" style={fInput} data-lead-business />
                 </div>
                 <div style={fGrid}>
                   <div><label style={fLabel}>พื้นที่ที่ต้องการ (ตร.ม.)</label><input value={form.area} onChange={(e) => setF('area', e.target.value)} placeholder="เช่น 1500 หรือ 1000-3000" style={fInput} data-lead-area /></div>
@@ -864,6 +897,18 @@ export function LeadsBody() {
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></svg>
                   ดูข้อมูลติดต่อเต็ม
                 </a>
+              )}
+              {me?.role === 'owner' && cur.apiId && (
+                <button
+                  id="lead-delete"
+                  type="button"
+                  onClick={() => void removeLead()}
+                  disabled={deleting}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 14px', borderRadius: 9999, border: '1px solid #E4C4C0', background: 'var(--surface)', color: '#A32A2A', fontSize: '12.5px', fontWeight: 700, cursor: deleting ? 'default' : 'pointer', fontFamily: 'inherit', opacity: deleting ? .6 : 1 }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" /></svg>
+                  {deleting ? 'กำลังลบ…' : 'ลบ lead'}
+                </button>
               )}
               <Link id="lead-openreq" href="/admin/requirements" className="admin-primary-btn" style={{ display: 'flex', alignItems: 'center', gap: 7, height: 36, padding: '0 16px', borderRadius: 9999, background: '#273c33', color: '#fff', fontSize: '12.5px', fontWeight: 700, marginLeft: 'auto' }}>
                 เปิด Requirement

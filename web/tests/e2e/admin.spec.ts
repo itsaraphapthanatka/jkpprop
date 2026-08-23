@@ -966,6 +966,9 @@ test.describe('Flow B — requirement to shortlist', () => {
       db = new PrismaClient();
     }
     for (const id of made) await db.requirement.deleteMany({ where: { id } });
+    /* ดีลต้องไปก่อน ไม่งั้นเหลือแถวที่ leadId ชี้ไปที่ไม่มีอยู่ — ซึ่งคือสภาพที่
+       การกันลบใน API พยายามป้องกันอยู่พอดี */
+    for (const id of madeLeads) await db.deal.deleteMany({ where: { leadId: id } });
     for (const id of madeLeads) await db.lead.deleteMany({ where: { id } });
   });
 
@@ -1144,6 +1147,99 @@ test.describe('Flow B — requirement to shortlist', () => {
     } else {
       await expect(badge).toHaveText(String(counts.requirements));
     }
+  });
+
+  /* เด็ค Web 2026 ข้อ 14 · "มีปุ่มที่สามารถลบหลีดได้ มีสิทธ์เฉพาะเจ้าของ
+     เท่านั้น" — ของที่ตามไปด้วยเยอะ จึงต้องกันทั้งสิทธิ์และดีลที่ผูกอยู่ */
+  test('ลบ lead ได้เฉพาะเจ้าของระบบ และห้ามลบทิ้งทั้งที่มีดีลผูกอยู่', async ({ page, request }) => {
+    const mk = await request.post('/api/leads', {
+      headers: { cookie },
+      data: { name: `ทดสอบลบหลีด ${Date.now().toString(36)}`, phone: '0800000000', typeKey: 'warehouse', typeLabel: 'โกดัง', dealIntent: 'เช่า', req: [] },
+    });
+    expect(mk.status(), await mk.text()).toBe(201);
+    const lead = await mk.json();
+    madeLeads.push(lead.id);
+
+    /* agent กดไม่ได้ ทั้งที่ปุ่มและที่ API */
+    await page.goto('/admin/login');
+    await signIn(page, AGENT);
+    const agentCookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    const denied = await request.delete(`/api/leads/${lead.id}`, { headers: { cookie: agentCookie } });
+    expect(denied.status(), 'agent ต้องลบ lead ไม่ได้').toBe(403);
+    await page.goto('/admin/leads');
+    await expect(page.locator('#lead-delete'), 'agent ไม่ควรเห็นปุ่มลบ').toHaveCount(0);
+
+    await page.goto('/admin/login');
+    await signIn(page, OWNER);
+    await page.goto('/admin/leads');
+    await expect(page.locator('#lead-delete').first(), 'เจ้าของระบบต้องเห็นปุ่มลบ').toBeVisible();
+
+    /* ดีลผูกอยู่ = ลบไม่ได้ · Deal.leadId ไม่มี FK ลบไปแล้วดีลจะชี้ไปที่ว่าง
+       ใช้ lead อีกใบ เพราะใบที่มีดีลแล้วลบผ่าน API ไม่ได้อีกเลย (ซึ่งคือสิ่งที่ต้องการ) */
+    const withDeal = await (await request.post('/api/leads', {
+      headers: { cookie },
+      data: { name: `ทดสอบหลีดมีดีล ${Date.now().toString(36)}`, phone: '0800000001', typeKey: 'warehouse', typeLabel: 'โกดัง', dealIntent: 'เช่า', req: [] },
+    })).json();
+    madeLeads.push(withDeal.id);
+    const deal = await request.post('/api/deals', {
+      headers: { cookie },
+      data: { title: 'ทดสอบดีลกันลบหลีด', leadId: withDeal.id, amount: 1000 },
+    });
+    expect(deal.ok(), await deal.text()).toBeTruthy();
+    const blocked = await request.delete(`/api/leads/${withDeal.id}`, { headers: { cookie } });
+    expect(blocked.status(), 'ลบ lead ทิ้งทั้งที่มีดีลผูกอยู่').toBe(409);
+
+    const gone = await request.delete(`/api/leads/${lead.id}`, { headers: { cookie } });
+    expect(gone.status(), await gone.text()).toBe(200);
+    expect((await request.get(`/api/leads/${lead.id}`, { headers: { cookie } })).status()).toBe(404);
+  });
+
+  /* เด็ค Web 2026 ข้อ 16–17 · "ไม่แสดงประเภททรัพย์" · "เพิ่มช่องใส่ข้อมูล
+     ประเภทธุรกิจ" · "อันนี้ทำไมต้อง , นะครับ" */
+  test('ประเภททรัพย์ · ประเภทสินค้าและธุรกิจ · ทำเลทีละอัน แก้แล้วต้องอยู่จริง', async ({ page, request }) => {
+    const r = await create(request, { typeKey: 'warehouse' });
+
+    await page.goto(`/admin/requirements/${r.id}`);
+    /* ประเภททรัพย์เคยเก็บไว้แต่ไม่เคยขึ้นจอ */
+    await expect(page.getByText('ประเภททรัพย์', { exact: true })).toBeVisible();
+    await expect(page.getByText('ประเภทสินค้าและธุรกิจ', { exact: true })).toBeVisible();
+
+    await page.getByText('แก้ไข', { exact: true }).first().click();
+    await expect(page.locator('#req-f-typeKey')).toBeVisible();
+    await page.locator('#req-f-typeKey').selectOption('factory');
+    await page.locator('#req-f-businessType').fill('ชิ้นส่วนยานยนต์');
+
+    /* ทำเลใส่ทีละอัน กด Enter — ไม่ต้องพิมพ์จุลภาคเอง */
+    const loc = page.locator('#req-f-locations');
+    await loc.fill('สมุทรปราการ');
+    await loc.press('Enter');
+    await loc.fill('ชลบุรี');
+    await loc.press('Enter');
+    await expect(page.locator('[data-req-loc]')).toHaveCount(2);
+    /* ลบออกได้ทีละอัน */
+    await page.locator('[data-req-loc-x="ชลบุรี"]').click();
+    await expect(page.locator('[data-req-loc]')).toHaveCount(1);
+    await loc.fill('ระยอง');
+    await loc.press('Enter');
+
+    await page.locator('#req-edit-save').click();
+    await expect(page.locator('#req-f-typeKey')).toHaveCount(0);
+
+    /* ของจริงในฐานข้อมูล ไม่ใช่แค่หน้าจอ */
+    const saved = await (await request.get(`/api/requirements/${r.id}`, { headers: { cookie } })).json();
+    expect(saved.typeKey).toBe('factory');
+    expect(saved.typeLabel).toBe('โรงงาน');
+    expect(saved.businessType).toBe('ชิ้นส่วนยานยนต์');
+    expect((saved.locations as { name: string }[]).map((l) => l.name)).toEqual(['สมุทรปราการ', 'ระยอง']);
+
+    /* เด็ค Web 2026 ข้อ 15 · สามคอลัมน์นี้ต้องอ่านได้จากตาราง ไม่ต้องเปิดทีละใบ */
+    await page.goto(`/admin/requirements?q=${r.code}`);
+    const row = page.locator('.req-row', { hasText: r.code });
+    await expect(row.locator('[data-req-business]')).toHaveText('ชิ้นส่วนยานยนต์');
+    await expect(row.locator('[data-req-locations]')).toContainText('สมุทรปราการ');
+    await expect(row.locator('[data-req-usage]')).toHaveText('คลังสินค้า');
+    /* "ใส่เกินมาครับ" — ปุ่มเพิ่มทรัพย์ไม่ควรอยู่หน้านี้ */
+    await expect(page.locator('#admin-add-btn')).toHaveCount(0);
   });
 
   /* เด็ค Web 2026 ข้อ 18 · "หากทรัพย์ไม่ว่างก็จะเดิน Flow ต่อไม่ได้ครับ"
