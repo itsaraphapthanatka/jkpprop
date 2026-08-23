@@ -11,8 +11,7 @@
    carrying the settings version, so it is composited once per version, and
    public URLs carry ?v= so browser caches turn over too. */
 import { handler, ApiError } from '@/lib/server/api';
-import { currentUser, SESSION_COOKIE } from '@/lib/server/auth';
-import { cookies } from 'next/headers';
+import { currentUser } from '@/lib/server/auth';
 import { db } from '@/lib/server/db';
 import { getObject, putObject, originalKey, watermarkedKey, thumbKey, isThumbWidth, mediaIdFromSrc } from '@/lib/server/mediaStore';
 import { applyImageWatermark, canWatermark } from '@/lib/server/watermark';
@@ -28,28 +27,6 @@ type Wm = { cfg: WatermarkConfig; version: number };
    อาจใช้เวลาถึงหนึ่งนาทีจึงเห็นผล (แต่ URL เปลี่ยนตาม wmVersion ทันทีอยู่แล้ว) */
 const MEMO_TTL_MS = 60_000;
 const wmMemo = new Map<string, { at: number; wm: Wm | null }>();
-
-/* ลูกค้าแจ้งเพิ่มว่า "ลายน้ำแสดงแค่รูปทรัพย์ ที่หน้าบ้าน" — คนในทีมที่เปิดหลังบ้าน
-   ดูรูปเพื่อทำงาน (ตรวจรูป เลือกรูปลง Shortlist คัดรูปไปโพสต์) ควรเห็นรูปจริง
-   ไม่ใช่รูปที่มีโลโก้บังอยู่ · ตัดสินจาก "มีเซสชันที่ใช้ได้จริงไหม" ไม่ใช่แค่มีคุกกี้
-   ติดมา ไม่งั้นใครก็ตั้งคุกกี้มั่ว ๆ แล้วได้รูปสะอาดไป
-   ยกเว้น ?wm=1 ที่บังคับให้ปั๊ม — ZIP ในหน้า Social Status ใช้ตัวนี้ เพราะรูปที่
-   โหลดออกไปลงโซเชียลต้องมีลายน้ำ แม้คนกดจะเป็นคนในทีม */
-const sessionMemo = new Map<string, { at: number; ok: boolean }>();
-
-async function hasLiveSession(): Promise<boolean> {
-  /* ไม่มีคุกกี้ = คนนอกแน่นอน ตอบได้เลยโดยไม่ต้องแตะฐานข้อมูล ซึ่งเป็นเส้นทาง
-     ของคำขอเกือบทั้งหมด (คนเข้าเว็บทั่วไป) */
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  if (!token) return false;
-  const hit = sessionMemo.get(token);
-  if (hit && Date.now() - hit.at < MEMO_TTL_MS) return hit.ok;
-  /* currentUser() เช็คครบทั้งวันหมดอายุ บัญชีที่ถูกปิด และ co_agent ที่หมดอายุ
-     — เขียนเช็คเองซ้ำแล้วจะพลาดข้อใดข้อหนึ่งเมื่อกติกาเปลี่ยน */
-  const ok = !!(await currentUser());
-  sessionMemo.set(token, { at: Date.now(), ok });
-  return ok;
-}
 
 async function watermarkFor(orgId: string): Promise<Wm | null> {
   const hit = wmMemo.get(orgId);
@@ -69,17 +46,10 @@ async function loadWatermark(orgId: string): Promise<Wm | null> {
   return cfg.enabled ? { cfg, version: b.wmVersion } : null;
 }
 
-/* ลูกค้าแจ้งว่า "ลายน้ำขึ้นเฉพาะ Listing และ download ในหน้า Social Status
-   เท่านั้น ภาพอื่นบนเว็บไซต์ ไม่ต้องโชว์"
-
-   เดิมปั๊มลายน้ำให้ทุกไฟล์ที่เสิร์ฟออกหน้าเว็บ รูปหน้าปกของ "คำถามพบบ่อย"
-   "เกี่ยวกับเรา" รูปทีมงาน และรูปออฟฟิศจึงโดนปั๊มไปด้วย ทั้งที่ไม่ใช่รูปทรัพย์
-   ที่ต้องกันคนเอาไปใช้ต่อ · ตอนนี้ปั๊มเฉพาะรูปที่ถูกอ้างถึงใน values.photos
-   ของประกาศ ส่วน ZIP ในหน้า Social Status ดึงจาก URL เดียวกันนี้ ลายน้ำจึง
-   ยังติดไปด้วยตามที่ต้องการ
-
-   จำผลไว้ในหน่วยความจำสั้น ๆ เพราะหน้าเดียวขอรูปหลายสิบใบ และคำตอบเปลี่ยน
-   ก็ต่อเมื่อมีคนแนบรูปเข้า/ออกจากประกาศ ซึ่งช้ากว่านั้นมาก */
+/* ปั๊มลายน้ำเฉพาะรูปที่ถูกอ้างถึงใน values.photos ของประกาศ — รูปหน้าปกของ
+   "คำถามพบบ่อย" "เกี่ยวกับเรา" รูปทีมงาน และรูปออฟฟิศ ไม่ใช่ของที่ต้องกัน
+   คนเอาไปใช้ต่อ · ZIP ในหน้า Social Status ดึงจาก URL เดียวกับรูปประกาศ
+   ลายน้ำจึงติดไปด้วยตามที่ต้องการ */
 const listingPhotoMemo = new Map<string, { at: number; is: boolean }>();
 
 async function isListingPhoto(orgId: string, assetId: string): Promise<boolean> {
@@ -123,12 +93,12 @@ export const GET = handler(async (req: Request, ctx: { params: Promise<{ id: str
   /* the logo stamp applies to the public copy only — never to an admin download,
      never to the logo asset itself (that would stamp the watermark on itself),
      and only to รูปของประกาศ (ดู isListingPhoto ข้างบน) */
-  const forceWm = new URL(req.url).searchParams.get('wm') === '1';
-  /* คำนวณแยกไว้ เพราะต้องใช้ตอนตั้ง Cache-Control ด้วย: คำตอบของ URL เดียวกัน
-     ต่างกันตามว่าคนขอเข้าสู่ระบบอยู่หรือไม่ ถ้าปล่อยให้เป็น public แคชที่อยู่
-     ตรงกลาง (nginx / CDN) จะเก็บรูปสะอาดของคนในทีมไปแจกให้คนนอกได้ */
-  const signedIn = !wantsOriginal && !forceWm && await hasLiveSession();
-  const stampable = !wantsOriginal && !signedIn && canWatermark(asset.mime)
+  /* เคยยกเว้นให้คนที่เข้าสู่ระบบเห็นรูปไม่มีลายน้ำ เพื่อให้ทีมดูรูปจริงตอนทำงาน
+     แต่ผลคือคนที่คอยตรวจว่าลายน้ำขึ้นหรือยัง (ซึ่งล็อกอินค้างอยู่เสมอ) ไม่เห็น
+     ลายน้ำเลยสักครั้ง กลายเป็นว่าฟีเจอร์ดู "พัง" ทั้งที่ทำงานอยู่ — ตัดออก
+     กติกาตอนนี้ตรงไปตรงมา: รูปของประกาศมีลายน้ำเสมอ รูปอื่นบนเว็บไม่มี
+     ใครอยากได้ไฟล์ต้นฉบับสะอาดใช้ปุ่มดาวน์โหลดต้นฉบับ (?original=1) */
+  const stampable = !wantsOriginal && canWatermark(asset.mime)
     && await isListingPhoto(asset.orgId, asset.id);
   if (stampable) {
     const wm = await watermarkFor(asset.orgId);
@@ -178,8 +148,7 @@ export const GET = handler(async (req: Request, ctx: { params: Promise<{ id: str
       headers: {
         'Content-Type': 'image/jpeg',
         'Content-Length': String(buf.length),
-        /* ตัวย่อของคนที่เข้าสู่ระบบไม่มีลายน้ำ ห้ามให้แคชกลางเก็บไปแจกต่อ */
-        'Cache-Control': signedIn ? 'private, max-age=300' : 'public, max-age=31536000, immutable',
+        'Cache-Control': 'public, max-age=31536000, immutable',
       },
     });
   }
@@ -197,8 +166,7 @@ export const GET = handler(async (req: Request, ctx: { params: Promise<{ id: str
          จึงให้ไปถามเซิร์ฟเวอร์ก่อนทุกครั้งแทน */
       'Cache-Control': wantsOriginal
         ? 'private, no-store'
-        : signedIn ? 'private, max-age=300'
-          : versioned ? 'public, max-age=31536000, immutable' : 'public, max-age=300, must-revalidate',
+        : versioned ? 'public, max-age=31536000, immutable' : 'public, max-age=300, must-revalidate',
     },
   });
 });

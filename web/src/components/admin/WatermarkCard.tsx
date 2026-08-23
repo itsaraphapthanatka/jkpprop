@@ -149,7 +149,9 @@ export function WatermarkCard() {
             <label style={label}>ไฟล์ลายน้ำ</label>
             <input ref={fileRef} id="wm-file" type="file" accept="image/png,image/webp" hidden
               onChange={(e) => { const f = e.target.files?.[0]; if (f) void pickLogo(f); e.target.value = ''; }} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, borderRadius: 12, border: '1.5px dashed var(--border)', background: 'var(--bg)' }}>
+            {/* จอแคบ ๆ (หรือหน้าต่างครึ่งจอ) เคยบีบคอลัมน์ข้อความจนตัวหนังสือ
+                เรียงลงมาทีละคำและปุ่ม "เปลี่ยนไฟล์" ทับข้อความ — ให้ห่อบรรทัดแทน */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', rowGap: 8, padding: 12, borderRadius: 12, border: '1.5px dashed var(--border)', background: 'var(--bg)' }}>
               <div style={{ width: 52, height: 52, borderRadius: 10, flexShrink: 0, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                 {cfg.src && !logoGone
                   // eslint-disable-next-line @next/next/no-img-element
@@ -158,7 +160,7 @@ export function WatermarkCard() {
                     ? <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C0392B" strokeWidth="2"><path d="M12 9v5M12 17.5v.5" /><path d="M10.3 3.9L1.9 18a2 2 0 001.7 3h16.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" /></svg>
                     : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></svg>}
               </div>
-              <div style={{ flex: 1, minWidth: 0, fontSize: 11, color: logoGone ? '#C0392B' : 'var(--muted3)', lineHeight: 1.5 }}>
+              <div style={{ flex: '1 1 150px', minWidth: 120, fontSize: 11, color: logoGone ? '#C0392B' : 'var(--muted3)', lineHeight: 1.5 }}>
                 {logoGone
                   ? <span data-wm-missing><b>ไฟล์โลโก้หายไปแล้ว</b> — ถูกลบออกจากคลังสื่อ ตอนนี้ไม่มีรูปไหนถูกปั๊มลายน้ำเลย กด “เปลี่ยนไฟล์” เพื่อเลือกใหม่ แล้วกดบันทึกลายน้ำ</span>
                   : <>แนะนำ <b>PNG พื้นหลังโปร่ง</b> · สูงสุด 10MB</>}

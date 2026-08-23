@@ -39,12 +39,90 @@ const hexA = (hex: string, a: number): string => {
   return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
 };
 
+/* กล่องอัปโหลดโลโก้ — เดิมเป็นรูปวาดเฉย ๆ กดแล้วไม่เกิดอะไร
+   ตอนนี้กดได้ ลากไฟล์มาวางได้ เห็นรูปที่เลือก และเอาออกได้
+   อัปโหลดขึ้นคลังสื่อทันที แต่จะผูกกับแบรนด์เมื่อกด "บันทึกธีม" */
+function LogoDrop() {
+  const { logo, setLogo } = useBranding();
+  const fileRef = React.useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState('');
+  const [over, setOver] = React.useState(false);
+
+  const upload = async (file: File) => {
+    setErr('');
+    if (!file.type.startsWith('image/')) { setErr('ต้องเป็นไฟล์รูปภาพ'); return; }
+    setBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      /* โลโก้ห้ามโดนปั๊มลายน้ำทับตัวเอง */
+      fd.append('watermarkType', 'none');
+      const res = await fetch('/api/media', { method: 'POST', body: fd });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(json?.error?.message ?? 'อัปโหลดไม่สำเร็จ');
+      setLogo(json?.data?.src ?? json?.src ?? null);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'อัปโหลดไม่สำเร็จ');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div>
+      <input
+        ref={fileRef} id="brand-logo-file" type="file" accept="image/png,image/webp,image/jpeg" hidden
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(f); e.target.value = ''; }}
+      />
+      <div
+        id="brand-logo-drop"
+        role="button"
+        tabIndex={0}
+        onClick={() => fileRef.current?.click()}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileRef.current?.click(); } }}
+        onDragOver={(e) => { e.preventDefault(); setOver(true); }}
+        onDragLeave={() => setOver(false)}
+        onDrop={(e) => { e.preventDefault(); setOver(false); const f = e.dataTransfer.files?.[0]; if (f) void upload(f); }}
+        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 14, border: '1.5px dashed ' + (over ? '#0D6C3B' : 'var(--border)'), background: over ? 'rgba(13,108,59,.05)' : 'transparent', borderRadius: 12, cursor: busy ? 'progress' : 'pointer' }}
+      >
+        <div style={{ width: 44, height: 44, borderRadius: 11, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', overflow: 'hidden', flexShrink: 0 }}>
+          {logo
+            /* eslint-disable-next-line @next/next/no-img-element */
+            ? <img src={logo} alt="โลโก้" data-brand-logo style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+            : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text)' }}>
+            {busy ? 'กำลังอัปโหลด…' : logo ? 'เปลี่ยนโลโก้' : 'เลือกไฟล์ หรือลากโลโก้มาวาง'}
+          </div>
+          <div style={{ fontSize: 11, color: err ? '#C0392B' : 'var(--muted3)' }}>
+            {err || 'PNG โปร่งใส แนะนำสูง 80px · กดแล้วอย่าลืมกด “บันทึกธีม”'}
+          </div>
+        </div>
+        {logo && (
+          <button
+            type="button" id="brand-logo-clear"
+            onClick={(e) => { e.stopPropagation(); setLogo(null); }}
+            style={{ flexShrink: 0, border: '1px solid var(--border)', background: 'var(--surface)', color: '#C0392B', borderRadius: 9999, height: 28, padding: '0 12px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+          >เอาออก</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* --- shared state context (spans AdminShell header + body) --- */
 interface BrandingCtxValue {
   state: BrandState;
   setState: (patch: Partial<BrandState>) => void;
   brandName: string;
   setBrandName: (v: string) => void;
+  /* กล่อง "ลากโลโก้มาวาง" เป็นแค่รูปวาด ไม่มี input ไม่มี onClick ไม่มี drop
+     กดแล้วไม่เกิดอะไรเลย และฝั่งบันทึกก็ไม่เคยส่ง logo ไปด้วย ทั้งที่ API
+     รับฟิลด์นี้อยู่แล้ว — ลูกค้าแจ้งว่า "logo upload ไม่ได้" */
+  logo: string | null;
+  setLogo: (v: string | null) => void;
   save: () => void | Promise<void>;
   saving: boolean;
   saved: boolean;
@@ -62,6 +140,7 @@ const DEFAULT_THEME = { primary: '#034956', accent: '#034956', neon: '#2DFB91', 
 export function BrandingProvider({ children }: { children: React.ReactNode }) {
   const [state, setStateRaw] = React.useState<BrandState>({ ...DEFAULT_THEME, device: 'desktop' });
   const [brandName, setBrandName] = React.useState('JKP Property');
+  const [logo, setLogo] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
 
@@ -72,10 +151,11 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
 
   // pull the stored theme after mount (defaults render identically on the server)
   React.useEffect(() => {
-    apiGet<Partial<BrandState> & { brandName?: string }>('/api/branding')
+    apiGet<Partial<BrandState> & { brandName?: string; logo?: string | null }>('/api/branding')
       .then((b) => {
         setStateRaw((s) => ({ ...s, ...b, device: s.device }));
         if (b.brandName) setBrandName(b.brandName);
+        setLogo(b.logo ?? null);
       })
       .catch(() => { /* keep defaults */ });
   }, []);
@@ -85,7 +165,7 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
     try {
       // `device` is a preview toggle, never persisted
       const { device: _device, ...theme } = state;
-      await apiPut('/api/branding', { ...theme, brandName });
+      await apiPut('/api/branding', { ...theme, brandName, logo });
       setSaved(true);
       window.setTimeout(() => setSaved(false), 1800);
     } catch (e) {
@@ -93,10 +173,10 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setSaving(false);
     }
-  }, [state, brandName]);
+  }, [state, brandName, logo]);
 
   return (
-    <BrandingContext.Provider value={{ state, setState, brandName, setBrandName, save, saving, saved }}>
+    <BrandingContext.Provider value={{ state, setState, brandName, setBrandName, logo, setLogo, save, saving, saved }}>
       {children}
     </BrandingContext.Provider>
   );
@@ -318,15 +398,7 @@ export function BrandingBody() {
         {/* logo + identity */}
         <div style={card}>
           <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text)', marginBottom: 14 }}>โลโก้ &amp; ข้อมูล</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 14, border: '1.5px dashed var(--border)', borderRadius: 12, cursor: 'pointer' }}>
-            <div style={{ width: 44, height: 44, borderRadius: 11, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text)' }}>ลากโลโก้มาวาง</div>
-              <div style={{ fontSize: 11, color: 'var(--muted3)' }}>PNG โปร่งใส แนะนำสูง 80px</div>
-            </div>
-          </div>
+          <LogoDrop />
           <input placeholder="ชื่อแบรนด์" value={brandName} onChange={(e) => setBrandName(e.target.value)} style={{ marginTop: 12, width: '100%', height: 42, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', fontSize: 13, background: 'var(--bg)', outline: 'none' }} />
         </div>
       </div>

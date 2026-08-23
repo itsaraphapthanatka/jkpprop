@@ -1893,6 +1893,53 @@ test.describe('คอมเมนต์ลูกค้า · แท็กพื�
   });
 });
 
+/* "logo upload ไม่ได้" — กล่อง "ลากโลโก้มาวาง" ในหน้า Branding เป็นรูปวาด
+   เฉย ๆ ไม่มี input ไม่มี onClick ไม่มี drop handler กดแล้วไม่เกิดอะไรเลย
+   และฝั่งบันทึกก็ไม่เคยส่ง logo ขึ้นไปด้วย ทั้งที่ API รับฟิลด์นี้มาตลอด */
+test.describe('คอมเมนต์ลูกค้า · อัปโหลดโลโก้แบรนด์', () => {
+  /* PNG 32x32 ทึบ — ต้องใหญ่พอให้เห็นว่าเป็นรูปจริง */
+  const PNG = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAOElEQVRYhe3OMQEAIAzAsIF/z0MGHrQKetlJkr7WdgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP7cAWJcAWEB8HqTAAAAAElFTkSuQmCC',
+    'base64',
+  );
+
+  test('เลือกไฟล์แล้วโลโก้ขึ้นจริง และบันทึกแล้วยังอยู่หลังรีเฟรช', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    const before = (await (await request.get('/api/branding')).json()).logo ?? null;
+
+    try {
+      await page.goto('/admin/branding');
+      await page.locator('#brand-logo-drop').waitFor({ timeout: 20000 });
+      /* กล่องต้องกดได้จริง ไม่ใช่รูปวาด */
+      await expect(page.locator('#brand-logo-file'), 'กล่องอัปโหลดต้องมี input ไฟล์').toHaveCount(1);
+
+      await page.locator('#brand-logo-file').setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: PNG });
+      const shown = page.locator('[data-brand-logo]');
+      await expect(shown, 'เลือกไฟล์แล้วต้องเห็นโลโก้').toBeVisible({ timeout: 20000 });
+      const src = await shown.getAttribute('src');
+      expect(src, 'โลโก้ต้องถูกอัปโหลดขึ้นคลังสื่อจริง').toMatch(/^\/api\/media\//);
+
+      /* กดบันทึกธีมแล้วต้องถูกเก็บ ไม่ใช่หายไปตอนรีเฟรช */
+      await page.getByText('บันทึกธีม', { exact: true }).click();
+      await expect.poll(async () => (await (await request.get('/api/branding')).json()).logo,
+        { message: 'บันทึกแล้วโลโก้ไม่ถูกเก็บ', timeout: 15000 }).toBe(src);
+
+      await page.reload();
+      await expect(page.locator('[data-brand-logo]'), 'รีเฟรชแล้วโลโก้ต้องยังอยู่').toBeVisible({ timeout: 20000 });
+    } finally {
+      await request.put('/api/branding', {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { ...(await (await request.get('/api/branding')).json()), logo: before },
+      }).catch(() => null);
+    }
+  });
+});
+
 /* "ลายน้ำไม่ขึ้น" / "ไม่มีขึ้นเลย" — ตั้งค่ายังบอกว่าเปิดใช้งาน แต่ไม่มีรูปไหน
    ถูกปั๊มเลย เพราะไฟล์โลโก้ถูกลบออกจากคลังสื่อไปแล้ว (production 22 ส.ค. 16:22
    ลบ 1112.png ที่ตั้งเป็นโลโก้ลายน้ำอยู่) ระบบเงียบสนิท ไม่มี error ไม่มีคำเตือน
@@ -2003,19 +2050,14 @@ test.describe('คอมเมนต์ลูกค้า · ลายน้ำ�
     const pOrig = (await (await request.get(`/api/media/${pid}/raw?original=1`, { headers: { cookie } })).body()).length;
 
     /* บริบทที่ไม่มีคุกกี้เลย — จำลองคนเข้าเว็บทั่วไป ไม่ใช่คนในทีม */
-    const anon = await playwrightRequest.newContext({ baseURL: new URL(page.url()).origin });
-    try {
-      const pPublic = (await (await anon.get(photo!)).body()).length;
-      expect(pPublic, 'รูปของประกาศที่หน้าบ้านต้องมีลายน้ำ').not.toBe(pOrig);
-    } finally {
-      await anon.dispose();
-    }
+    const pPublic = (await (await request.get(photo!)).body()).length;
+    expect(pPublic, 'รูปของประกาศต้องมีลายน้ำ').not.toBe(pOrig);
   });
 
-  /* "ลายน้ำแสดงแค่รูปทรัพย์ ที่หน้าบ้าน" — คนในทีมที่เปิดหลังบ้านดูรูปเพื่อทำงาน
-     (ตรวจรูป เลือกรูปลง Shortlist คัดรูปไปโพสต์) ควรเห็นรูปจริง ไม่ใช่รูปที่มี
-     โลโก้บังอยู่ · แต่ ZIP ที่โหลดไปลงโซเชียลต้องมีลายน้ำ */
-  test('หลังบ้านเห็นรูปทรัพย์แบบไม่มีลายน้ำ แต่ ZIP ที่โหลดไปลงโซเชียลยังมี', async ({ page, request }) => {
+  /* เคยยกเว้นให้คนที่เข้าสู่ระบบเห็นรูปไม่มีลายน้ำ แต่ผลคือคนที่คอยตรวจว่าลายน้ำ
+     ขึ้นหรือยัง (ซึ่งล็อกอินค้างอยู่เสมอ) ไม่เห็นลายน้ำเลยสักครั้ง กลายเป็นว่า
+     ฟีเจอร์ดู "พัง" ทั้งที่ทำงานอยู่ · ตอนนี้รูปของประกาศมีลายน้ำเสมอ */
+  test('รูปของประกาศมีลายน้ำเสมอ ไม่ว่าจะเข้าสู่ระบบอยู่หรือไม่', async ({ page, request }) => {
     await page.goto('/admin/login');
     await page.locator('#login-email').fill('owner@jkp.local');
     await page.locator('#login-password').fill('jkp12345');
@@ -2033,16 +2075,15 @@ test.describe('คอมเมนต์ลูกค้า · ลายน้ำ�
     const raw = `/api/media/${pid}/raw`;
 
     const orig = (await (await request.get(`${raw}?original=1`, { headers: { cookie } })).body()).length;
-    const inAdmin = (await (await request.get(raw, { headers: { cookie } })).body()).length;
-    expect(inAdmin, 'หลังบ้านไม่ควรมีลายน้ำบัง').toBe(orig);
+    const withSession = (await (await request.get(raw, { headers: { cookie } })).body()).length;
+    expect(withSession, 'คนที่เข้าสู่ระบบก็ต้องเห็นลายน้ำ ไม่งั้นตรวจไม่ได้ว่าขึ้นหรือยัง').not.toBe(orig);
 
-    /* ปุ่มโหลด ZIP ในหน้า Social Status ขอ ?wm=1 มา แม้คนกดจะเข้าสู่ระบบอยู่ */
-    const forZip = (await (await request.get(`${raw}?wm=1`, { headers: { cookie } })).body()).length;
-    expect(forZip, 'รูปที่โหลดไปลงโซเชียลต้องมีลายน้ำ').not.toBe(orig);
-
-    /* รูปสะอาดของคนในทีมต้องไม่ถูกแคชกลาง (nginx / CDN) เก็บไปแจกให้คนนอก */
-    const cc = (await request.get(raw, { headers: { cookie } })).headers()['cache-control'] ?? '';
-    expect(cc, 'คำตอบที่ต่างกันตามคนขอ ต้องเป็น private').toContain('private');
+    const anon = await playwrightRequest.newContext({ baseURL: new URL(page.url()).origin });
+    try {
+      expect((await (await anon.get(photo!)).body()).length, 'คนเข้าเว็บทั่วไปต้องเห็นลายน้ำ').not.toBe(orig);
+    } finally {
+      await anon.dispose();
+    }
   });
 });
 
