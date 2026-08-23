@@ -251,8 +251,9 @@ const TABLE_ORDER = [
   'office_floors', 'office_area_total',
   // 14–16 · สเปค
   'clear_height', 'floor_loading', 'cold_storage',
-  // 17 · ระบบไฟ
-  'power_system',
+  /* 17 · ระบบไฟ — คือ power_phase ("3 Phase 30/100 amp") ไม่ใช่ power_system
+     ที่เป็นขนาดหม้อแปลง · ตอนแรกใส่ผิดคีย์ แถวนี้เลยหายไปทั้งที่ทรัพย์มีค่าอยู่ */
+  'power_phase',
   // 18–22 · ราคาและเงื่อนไขสัญญา
   'price_rent', 'price_sale', 'price_per_sqm',
   'deposit_months', 'advance_months', 'lease_term',

@@ -229,7 +229,7 @@ describe('ลำดับตารางรายละเอียดตาม�
       'building_area', 'building_wh',
       'office_floors', 'office_area_total',
       'clear_height', 'floor_loading',
-      'power_system', 'price_rent', 'price_per_sqm',
+      'power_phase', 'price_rent', 'price_per_sqm',
       'deposit_months', 'lease_term',
     ].filter((k) => at(rows, k) !== -1);
     for (let i = 1; i < order.length; i += 1) {
@@ -238,12 +238,24 @@ describe('ลำดับตารางรายละเอียดตาม�
     }
   });
 
+  /* แถว 17 เคยหายไปจากเว็บจริงทั้งที่ทรัพย์กรอกค่าไว้ เพราะตารางชี้ไปที่
+     power_system (ขนาดหม้อแปลง) แทน power_phase ที่เป็น "ระบบไฟ" จริง ๆ
+     เทสต์ลำดับด้านบนกรองคีย์ที่ไม่มีทิ้ง จึงผ่านทั้งที่แถวหายไปแล้ว */
+  test('ทรัพย์ที่กรอกระบบไฟไว้ ต้องมีแถว "ระบบไฟ" ในตาราง', () => {
+    const rows = buildSpecs(full, 'th', {}, undefined, head).rows;
+    const row = rows.find((r) => r.key === 'power_phase');
+    assert.ok(row, `ไม่มีแถวระบบไฟ ทั้งที่ทรัพย์กรอกไว้ — ${rows.map((r) => r.key).join(' → ')}`);
+    assert.equal(row.label, 'ระบบไฟ');
+    assert.equal(row.value, '3 เฟส');
+  });
+
   /* ยืนยัน 23 ส.ค. ค่ำ: "ข้อ 3 เอา 22 ข้อ" — แถวนอกรายการถูกตัดออกจากตารางนี้
      พื้นที่สีกับโซนยังขึ้นเป็นป้ายบนรูปใหญ่และบนการ์ด ไม่ได้หายจากเว็บ */
   test('แถวนอกรายการ 22 ข้อ ไม่อยู่ในตารางแล้ว', () => {
     const rows = buildSpecs(full, 'th', {}, undefined, head).rows;
     for (const key of ['zoning_color', 'zone', 'land_area_total', 'door_wh', 'doors',
-      'building_height', 'power_phase', 'office_area_f1', 'usable_area']) {
+      /* power_system คือขนาดหม้อแปลง ไม่ใช่ "ระบบไฟ" ที่ลูกค้าสั่งไว้ข้อ 17 */
+      'building_height', 'power_system', 'office_area_f1', 'usable_area']) {
       assert.equal(at(rows, key), -1, `${key} ยังอยู่ในตาราง ทั้งที่ไม่อยู่ในรายการ 22 ข้อ`);
     }
   });

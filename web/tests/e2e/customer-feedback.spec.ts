@@ -216,16 +216,25 @@ test.describe('คอมเมนต์ลูกค้า · แยกหมว�
     })).json();
 
     try {
+      /* คุณ Jacky ยืนยัน 22/8/2569 ว่าตารางหน้าเว็บเอาแค่ 22 แถวที่สั่งมา
+         (เด็ค Web 2026 ข้อ 3 · "Final ไม่มีเพิ่มหรือแก้แล้ว") ค่าสาธารณูปโภค
+         กับภาษีจึงไม่อยู่ในตารางนั้นแล้ว — แต่ต้องยังกรอกและเก็บได้ครบ
+         เทสต์นี้จึงย้ายมาตรวจที่ข้อมูลของทรัพย์แทนที่จะตรวจที่ตาราง */
+      const saved = await (await request.get(`/api/properties/${made.id}`, { headers: { cookie } })).json();
+      const v = saved.values as Record<string, unknown>;
+      expect(v.elec_bill_pay, 'ค่าไฟ จ่ายกับ เจ้าของ').toBe('เจ้าของ');
+      expect(v.water_bill_pay, 'ค่าน้ำ จ่ายกับ รัฐ').toBe('รัฐ');
+      expect(v.common_bill_pay).toBe('เจ้าของ');
+      /* ภาษีเก็บเป็นคู่ ผู้รับผิดชอบ+จำนวนเงิน — เดิมตกลงมาเป็น [object Object] */
+      expect(JSON.stringify(v.withholding_tax)).not.toContain('[object Object]');
+      expect(v.withholding_tax).toEqual({ payer: 'ผู้เช่า', amount: 5000 });
+
+      /* และตารางหน้าเว็บต้องไม่มีแถวพวกนี้แล้วจริง ๆ */
       await page.goto(`/th/property/${made.publicCode}`);
-      const table = page.locator('#pd-specs, [data-spec-row]').first();
-      await expect(table).toBeVisible();
       const rows = await page.locator('[data-spec-row]').allInnerTexts();
       const text = rows.join(' | ');
-      expect(text, 'ค่าไฟ จ่ายกับ เจ้าของ').toContain('ค่าไฟ จ่ายกับ');
-      expect(text, 'ค่าน้ำ จ่ายกับ รัฐ').toContain('รัฐ');
-      /* ภาษีเก็บเป็นคู่ ผู้รับผิดชอบ+จำนวนเงิน — เดิมตกลงมาเป็น [object Object] */
+      expect(text, 'ค่าไฟยังอยู่ในตาราง ทั้งที่ตกลงเหลือ 22 แถว').not.toContain('ค่าไฟ');
       expect(text).not.toContain('[object Object]');
-      expect(text).toContain('ผู้เช่า');
     } finally {
       await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
     }
@@ -445,8 +454,12 @@ test.describe('คอมเมนต์ลูกค้า · กลุ่ม B',
     try {
       await page.goto(`/th/property/${made.publicCode}`);
       const body = await page.locator('body').innerText();
+      /* ประเด็นเดิมคือห้ามย่อ "3 Phase 30/100 amp" เหลือ "3 เฟส" — ยังต้องครบ */
       expect(body).toContain('3 Phase 30/100 amp');
-      expect(body, 'ขนาดหม้อแปลงเป็นคนละช่องกับระบบไฟ').toContain('250 kVA');
+      /* ส่วนขนาดหม้อแปลง (power_system) เป็นคนละช่องกัน และไม่อยู่ในตาราง 22
+         แถวที่ยืนยันกันไว้ 22/8/2569 แล้ว — ยังกรอกและเก็บไว้ในระบบเหมือนเดิม */
+      const stored = await (await request.get(`/api/properties/${made.id}`, { headers: { cookie } })).json();
+      expect((stored.values as Record<string, unknown>).power_system).toBe('250 kVA');
       // อังกฤษต้องแปลชื่อหัวข้อ ไม่ใช่ทิ้งภาษาไทยไว้
       await page.goto(`/en/property/${made.publicCode}`);
       const en = await page.locator('body').innerText();
