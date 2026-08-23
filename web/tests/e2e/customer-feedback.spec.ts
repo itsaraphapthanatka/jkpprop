@@ -1,4 +1,5 @@
 import { test, expect, request as playwrightRequest } from '@playwright/test';
+import { createHash } from 'node:crypto';
 
 /* คอมเมนต์จากลูกค้าในสไลด์ "Web 2026" — ชุดหน้าเว็บฝั่งลูกค้า
    หน้า 7  · "คลิกที่รูปภาพ ข้อความ หรือการ์ด ต้องเข้าได้ ตอนนี้ต้องคลิกที่รายละเอียดอย่างเดียว"
@@ -1893,6 +1894,44 @@ test.describe('คอมเมนต์ลูกค้า · แท็กพื�
   });
 });
 
+/* โลโก้แดงทึบ 120x60 — ต้องเป็นสีทึบจริง ไม่ใช่ PNG โปร่งทั้งใบ ไม่งั้นวางตรงไหน
+   ก็ได้ไบต์เท่ากันหมด แล้วเทสต์ "ย้ายตำแหน่งแล้วรูปเปลี่ยนไหม" จะตกตลอดโดยที่โค้ดถูก */
+const LOGO = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAHgAAAA8CAYAAACtrX6oAAAACXBIWXMAAAPoAAAD6AG1e1JrAAABMUlEQVR4nO2VwRHAIADCnIT9h2IXO0UPaPPI3yNGj6UL+uwGJ30AEIK5BKJgLoF4ov3DL4E/WHkJCC4YyqNQsPISEFwwlEehYOUlILhgKI9CwcpLQHDBUB6FgpWXgOCCoTwKBSsvAcEFQ3kUClZeAoILhvIoFKy8BAQXDOVRKFh5CQguGMqjULDyEhBcMJRHoWDlJSC4YCiPQsHKS0BwwVAehYKVl4DggqE8CgUrLwHBBUN5FApWXgKCC4byKBSsvAQEFwzlUShYeQkILhjKo1Cw8hIQXDCUR6Fg5SUguGAoj0LByktAcMFQHoWClZeA4IKhPAoFKy8BwQVDeRQKVl4CgguG8igUrLwEBBcM5VEoWHkJCC4YyqNQsPISEFwwlEehYOUlILhgKI9CwcpLeJMH3brKR6NiUGsAAAAASUVORK5CYII=',
+  'base64',
+);
+
+/* เทสต์สองตัวข้างล่างต้องมีโลโก้ที่ใช้ได้จริง ไม่งั้นระบบไม่ปั๊มอะไรเลยและ
+   ผลจะกลายเป็น "ตก" ทั้งที่โค้ดถูก · เคยเกิดจริงเพราะรอบก่อน ๆ ทิ้งค่าที่ชี้ไป
+   ยังไฟล์ที่ถูกลบไปแล้ว · ตั้งของตัวเองให้แน่ใจ แล้วคืนค่าเดิมตอนจบ */
+const ensureLogo = async (request: import('@playwright/test').APIRequestContext, cookie: string) => {
+  const brand = await (await request.get('/api/branding')).json();
+  const cur = brand.watermark;
+  const alive = cur?.src ? (await request.get(cur.src)).ok() : false;
+  if (cur?.enabled && alive) return async () => {};
+
+  const up = await request.post('/api/media', {
+    headers: { cookie },
+    multipart: { file: { name: 'wm-fixture.png', mimeType: 'image/png', buffer: LOGO }, watermarkType: 'none' },
+  });
+  expect(up.ok(), 'อัปโหลดโลโก้สำหรับทดสอบไม่สำเร็จ').toBe(true);
+  const logo = await up.json();
+  const put = await request.put('/api/branding', {
+    headers: { cookie, 'Content-Type': 'application/json' },
+    data: { ...brand, watermark: { ...cur, enabled: true, src: logo.src, scale: 40, opacity: 100 } },
+  });
+  expect(put.ok(), 'ตั้งโลโก้ลายน้ำสำหรับทดสอบไม่สำเร็จ').toBe(true);
+  /* ถ้าไม่ได้เปิดจริง เทสต์ที่ตามมาจะตกแบบงง ๆ — ดักตรงนี้ให้บอกสาเหตุชัด */
+  const now = (await (await request.get('/api/branding')).json()).watermark;
+  expect(now.enabled && now.src, `ลายน้ำยังไม่เปิดหลังตั้งค่า: ${JSON.stringify(now)}`).toBeTruthy();
+  return async () => {
+    await request.put('/api/branding', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { ...(await (await request.get('/api/branding')).json()), watermark: cur },
+    }).catch(() => null);
+  };
+};
+
 /* "ปรับให้เป็นแบบเลื่อน" — ตำแหน่งลายน้ำเคยเลือกได้แค่ 9 จุดจากตาราง 3×3
    วางตรงกลางค่อนขวานิดเดียวก็ทำไม่ได้ · ตอนนี้เลื่อนแถบ หรือลากโลโก้บนภาพ
    ตัวอย่างได้ตรง ๆ */
@@ -2005,9 +2044,9 @@ test.describe('คอมเมนต์ลูกค้า · แก้ตั้�
     await expect(page).toHaveURL(/\/admin(?!\/login)/);
     const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
 
+    const restore = await ensureLogo(request, cookie);
     const brand = await (await request.get('/api/branding')).json();
     const wm = brand.watermark;
-    test.skip(!(wm?.enabled && wm?.src), 'ยังไม่ได้เปิดลายน้ำ');
 
     const code = ((await (await request.get('/api/public/listings?locale=th&limit=1')).json()).items as { code: string }[])[0]?.code;
     test.skip(!code, 'ยังไม่มีทรัพย์ที่เผยแพร่');
@@ -2016,11 +2055,14 @@ test.describe('คอมเมนต์ลูกค้า · แก้ตั้�
     const first = await photoOf();
     test.skip(!first, 'ทรัพย์แรกยังไม่มีรูป');
 
-    const bytes = async (u: string) => (await (await request.get(u)).body()).length;
-    const before = await bytes(first!);
+    /* เทียบเนื้อไฟล์ ไม่ใช่แค่ขนาด — ลายน้ำคนละมุมออกมาขนาดเท่ากันเป๊ะได้
+       (เจอมาแล้ว 218757 ไบต์เท่ากันทั้งสองมุม) แล้วเทสต์จะผ่านทั้งที่ยังพัง */
+    const digest = async (u: string) =>
+      createHash('sha1').update(await (await request.get(u)).body()).digest('hex');
+    const before = await digest(first!);
 
-    /* ย้ายไปมุมตรงข้าม — ตำแหน่งต่างกันมากพอให้ไฟล์ที่ปั๊มออกมาต่างกันแน่ */
-    const moved = { ...wm, anchor: wm.anchor === 'top-left' ? 'bottom-right' : 'top-left' };
+    /* ย้ายไปมุมตรงข้ามของที่เป็นอยู่ — ต่างกันมากพอให้ไฟล์ที่ปั๊มออกมาต่างกันแน่ */
+    const moved = { ...wm, anchor: 'free', x: wm.x > 50 ? 0 : 100, y: wm.y > 50 ? 0 : 100 };
     try {
       const put = await request.put('/api/branding', {
         headers: { cookie, 'Content-Type': 'application/json' },
@@ -2032,12 +2074,13 @@ test.describe('คอมเมนต์ลูกค้า · แก้ตั้�
          ให้ค่าที่จำไว้หมดอายุ — ไม่มี poll ตรงนี้โดยตั้งใจ */
       const next = await photoOf();
       expect(next, 'URL ต้องพา version ใหม่มาด้วย').not.toBe(first);
-      expect(await bytes(next!), 'ย้ายตำแหน่งแล้วรูปต้องเปลี่ยนตามทันที').not.toBe(before);
+      expect(await digest(next!), 'ย้ายตำแหน่งแล้วรูปต้องเปลี่ยนตามทันที').not.toBe(before);
     } finally {
       await request.put('/api/branding', {
         headers: { cookie, 'Content-Type': 'application/json' },
         data: { ...brand, watermark: wm },
       }).catch(() => null);
+      await restore();
     }
   });
 });
@@ -2155,7 +2198,6 @@ test.describe('คอมเมนต์ลูกค้า · ลายน้ำ�
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
     'base64',
   );
-
   test('รูปที่ไม่ได้อยู่ในประกาศ ต้องไม่มีลายน้ำ ส่วนรูปประกาศต้องมี', async ({ page, request }) => {
     await page.goto('/admin/login');
     await page.locator('#login-email').fill('owner@jkp.local');
@@ -2164,8 +2206,7 @@ test.describe('คอมเมนต์ลูกค้า · ลายน้ำ�
     await expect(page).toHaveURL(/\/admin(?!\/login)/);
     const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
 
-    const b = await (await request.get('/api/branding')).json();
-    test.skip(!(b.watermark?.enabled && b.watermark?.src), 'ยังไม่ได้เปิดลายน้ำ');
+    const restore = await ensureLogo(request, cookie);
 
     /* รูปเว็บทั่วไป — อัปโหลดแล้วไม่ผูกกับประกาศใด ๆ เหมือนรูปหน้าปกของ
        "เกี่ยวกับเรา" ที่ตั้งไว้ใน /admin/sections */
@@ -2201,6 +2242,7 @@ test.describe('คอมเมนต์ลูกค้า · ลายน้ำ�
     /* บริบทที่ไม่มีคุกกี้เลย — จำลองคนเข้าเว็บทั่วไป ไม่ใช่คนในทีม */
     const pPublic = (await (await request.get(photo!)).body()).length;
     expect(pPublic, 'รูปของประกาศต้องมีลายน้ำ').not.toBe(pOrig);
+    await restore();
   });
 
   /* เคยยกเว้นให้คนที่เข้าสู่ระบบเห็นรูปไม่มีลายน้ำ แต่ผลคือคนที่คอยตรวจว่าลายน้ำ
@@ -2214,8 +2256,7 @@ test.describe('คอมเมนต์ลูกค้า · ลายน้ำ�
     await expect(page).toHaveURL(/\/admin(?!\/login)/);
     const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
 
-    const b = await (await request.get('/api/branding')).json();
-    test.skip(!(b.watermark?.enabled && b.watermark?.src), 'ยังไม่ได้เปิดลายน้ำ');
+    const restore = await ensureLogo(request, cookie);
     const code = ((await (await request.get('/api/public/listings?locale=th&limit=1')).json()).items as { code: string }[])[0]?.code;
     test.skip(!code, 'ยังไม่มีทรัพย์ที่เผยแพร่');
     const photo = (await (await request.get(`/api/public/properties/${code}?locale=th`)).json()).photos?.[0] as string | undefined;
@@ -2232,6 +2273,7 @@ test.describe('คอมเมนต์ลูกค้า · ลายน้ำ�
       expect((await (await anon.get(photo!)).body()).length, 'คนเข้าเว็บทั่วไปต้องเห็นลายน้ำ').not.toBe(orig);
     } finally {
       await anon.dispose();
+      await restore();
     }
   });
 });

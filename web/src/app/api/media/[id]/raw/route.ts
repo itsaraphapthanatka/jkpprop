@@ -33,8 +33,10 @@ const MEMO_TTL_MS = 60_000;
 async function watermarkFor(orgId: string): Promise<Wm | null> {
   const b = await db.branding.findUnique({ where: { orgId } });
   if (!b || !b.wmEnabled || !b.wmSrc) return null;
+  /* ต้องส่งให้ครบทุกคอลัมน์ — ลืม x/y ไปครั้งหนึ่งแล้ว ผลคือย้ายตำแหน่งในหน้า
+     Branding เท่าไรก็ไม่ขยับ เพราะฝั่งที่ปั๊มจริงใช้ค่าเริ่มต้นตลอด */
   const cfg = normalizeWatermark({
-    enabled: b.wmEnabled, src: b.wmSrc, anchor: b.wmAnchor,
+    enabled: b.wmEnabled, src: b.wmSrc, anchor: b.wmAnchor, x: b.wmX, y: b.wmY,
     scale: b.wmScale, opacity: b.wmOpacity, margin: b.wmMargin,
   });
   return cfg.enabled ? { cfg, version: b.wmVersion } : null;
