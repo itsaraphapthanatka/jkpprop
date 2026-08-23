@@ -11,6 +11,7 @@ import { apiGet, apiPost, apiPatch, apiDelete, ApiClientError } from '@/lib/apiC
 import { placeMenu, type MenuBox } from '@/lib/menuPlacement';
 import { relTime } from '@/lib/leadStore';
 import { PicCell, PIC_TH } from './PicCell';
+import { buildPropertyCsv } from '@/lib/propertyExportCsv';
 import Link from 'next/link';
 
 /* ============================================================
@@ -316,17 +317,18 @@ export function PropertiesBody() {
     // ticking rows and pressing Export should give those rows, not the page
     const rows = sel.size ? all.filter((r) => sel.has(r.id)) : all;
     if (!rows.length) { window.alert('ไม่มีทรัพย์ให้ export ตามเงื่อนไขที่เลือก'); return; }
-    const cell = (v: unknown) => {
-      const t = v === null || v === undefined ? '' : String(v);
-      return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
-    };
-    const head = ['รหัส', 'ชื่อทรัพย์', 'ประเภท', 'ทำเล', 'พื้นที่ (ตร.ม.)', 'สถานะ', 'ผู้ดูแล (PIC)', 'อัปเดตล่าสุด'];
-    const body = rows.map((r) => [
-      r.publicCode, r.title, r.typeLabel, r.location,
-      r.area ?? '', r.status, String((r.values ?? {}).pic ?? ''),
-      new Date(r.updatedAt).toISOString().slice(0, 10),
-    ].map(cell).join(','));
-    const csv = '\uFEFF' + [head.map(cell).join(','), ...body].join('\n');
+    /* ทุกฟิลด์ที่ระบบเก็บ ไม่ใช่ 8 ช่องที่เคยเขียนไว้ตายตัว — คอลัมน์สร้างจาก
+       schema ที่เดียวร่วมกับหน้า Listings (lib/propertyExportCsv.ts) */
+    const csv = buildPropertyCsv(rows.map((r) => ({
+      code: r.publicCode,
+      title: r.title,
+      typeLabel: r.typeLabel,
+      status: r.status,
+      location: r.location,
+      updatedAt: r.updatedAt,
+      values: (r.values ?? {}) as Record<string, unknown>,
+      i18n: r.i18n,
+    })));
 
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const a = document.createElement('a');

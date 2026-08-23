@@ -1932,6 +1932,68 @@ const ensureLogo = async (request: import('@playwright/test').APIRequestContext,
   };
 };
 
+/* "export ข้อมูลออกมาน้อยไป ให้ export ทุกฟิลด์ของ Properties, Listings" —
+   ทั้งสองหน้าเคยเขียนรายชื่อคอลัมน์ไว้เองหน้าละชุด ได้ออกมา 8–9 ช่อง จาก 88
+   ฟิลด์ที่ระบบเก็บ · ค่าไฟ ค่าน้ำ ความสูงใต้คาน ใบอนุญาต ผังเมือง เจ้าของ
+   ไม่เคยออกมาเลย */
+test.describe('คอมเมนต์ลูกค้า · Export ต้องได้ครบทุกฟิลด์', () => {
+  const signIn = async (page: import('@playwright/test').Page) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+  };
+
+  const grab = async (page: import('@playwright/test').Page, url: string, button: string) => {
+    await page.goto(url);
+    await page.waitForTimeout(2500);
+    const dl = page.waitForEvent('download', { timeout: 60000 });
+    await page.getByText(button, { exact: true }).first().click();
+    const stream = await (await dl).createReadStream();
+    const chunks: Buffer[] = [];
+    for await (const c of stream) chunks.push(c as Buffer);
+    return Buffer.concat(chunks).toString('utf8');
+  };
+
+  /* หัวคอลัมน์ที่เคยหายไปทั้งหมด — ถ้ากลับไปเขียนรายชื่อคอลัมน์เองอีก จะจับได้ */
+  const MUST_HAVE = ['ค่าไฟ', 'ค่าน้ำ', 'พื้นที่สี', 'เบอร์โทรติดต่อ', 'ความสูงใต้คาน', 'ผู้ดูแลทรัพย์ (PIC)'];
+
+  for (const [name, url, button] of [
+    ['Properties', '/admin/properties', 'Export'],
+    ['Listings', '/admin/listings', 'Export CSV'],
+  ] as const) {
+    test(`${name}: ไฟล์มีคอลัมน์ครบทุกฟิลด์ ไม่ใช่แค่ไม่กี่ช่อง`, async ({ page }) => {
+      test.setTimeout(90_000);
+      await signIn(page);
+      const csv = await grab(page, url, button);
+      const lines = csv.replace(/^﻿/, '').split('\n');
+      const head = lines[0];
+
+      /* 88 ฟิลด์ใน schema + คอลัมน์พื้นฐาน — เผื่อไว้ว่าต้องเกิน 60 แน่ ๆ */
+      const cols = head.split(',').length;
+      expect(cols, `${name} ได้แค่ ${cols} คอลัมน์`).toBeGreaterThan(60);
+      for (const label of MUST_HAVE) {
+        expect(head, `${name} ไม่มีคอลัมน์ "${label}"`).toContain(label);
+      }
+      expect(lines.length, 'ต้องมีข้อมูลอย่างน้อยหนึ่งแถว').toBeGreaterThan(1);
+
+      /* ค่าต้องมาจริง ไม่ใช่หัวคอลัมน์เปล่า ๆ — เช็คว่ามีแถวที่กรอกเกินครึ่งช่อง */
+      const body = lines.slice(1).filter(Boolean);
+      const best = Math.max(...body.slice(0, 40).map((l) => l.split(',').filter((c) => c.trim()).length));
+      expect(best, 'ทุกแถวว่างหมด — คอลัมน์มีแต่ค่าไม่มา').toBeGreaterThan(15);
+    });
+  }
+
+  test('สองหน้าให้คอลัมน์ชุดเดียวกัน จะได้ไม่ต้องมาไล่แก้สองที่', async ({ page }) => {
+    test.setTimeout(120_000);
+    await signIn(page);
+    const a = (await grab(page, '/admin/properties', 'Export')).replace(/^﻿/, '').split('\n')[0];
+    const b = (await grab(page, '/admin/listings', 'Export CSV')).replace(/^﻿/, '').split('\n')[0];
+    expect(b, 'หัวคอลัมน์ของสองหน้าต้องตรงกัน').toBe(a);
+  });
+});
+
 /* "ปรับให้เป็นแบบเลื่อน" — ตำแหน่งลายน้ำเคยเลือกได้แค่ 9 จุดจากตาราง 3×3
    วางตรงกลางค่อนขวานิดเดียวก็ทำไม่ได้ · ตอนนี้เลื่อนแถบ หรือลากโลโก้บนภาพ
    ตัวอย่างได้ตรง ๆ */

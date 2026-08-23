@@ -11,6 +11,7 @@ import { relTime } from '@/lib/leadStore';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PicCell, PIC_TH } from './PicCell';
+import { buildPropertyCsv } from '@/lib/propertyExportCsv';
 
 /* ============================================================
    AdminListings.dc.html — ported <main> content (interactive):
@@ -353,18 +354,37 @@ export function ListingsAdminBody() {
 
   /* Export was a dropdown with two dead entries. CSV of what the filters are
      showing, BOM first so Excel on Windows reads the Thai. */
-  const exportCsv = () => {
+  const exportCsv = async () => {
     /* rows === null คือยังโหลดไม่เสร็จ ไม่ใช่ "ไม่มีประกาศ" — กด Export ทันทีที่
        เปิดหน้าเคยได้กล่องบอกว่าไม่มีอะไรให้ export ทั้งที่ของกำลังมา */
     if (rows === null) { window.alert('กำลังโหลดรายการอยู่ — รอสักครู่แล้วกดใหม่'); return; }
     if (!filtered.length) { window.alert('ไม่มีประกาศให้ export ตามเงื่อนไขที่เลือก'); return; }
-    const cell = (v: unknown) => {
-      const t = v === null || v === undefined ? '' : String(v);
-      return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
-    };
-    const head = ['รหัส', 'ชื่อประกาศ', 'ทำเล', 'ดีล', 'ราคา', 'พื้นที่ (ตร.ม.)', 'สถานะ', 'แนะนำ', 'ผู้ดูแล (PIC)'];
-    const body = filtered.map((d) => [d.code, d.title, d.location, d.deal, d.price, d.area ?? '', STATUS_LABEL[d.status], d.featured ? 'ใช่' : '', d.pic ?? ''].map(cell).join(','));
-    const csv = '\uFEFF' + [head.map(cell).join(','), ...body].join('\n');
+
+    /* หน้านี้ไม่ได้โหลด values มาด้วย (จะหนักโดยใช่เหตุ เพราะตารางไม่ได้ใช้)
+       ตอนกด Export จึงไปดึงของเต็มมาทีเดียว แล้วจับคู่ด้วยรหัสทรัพย์ */
+    type FullRow = { publicCode: string; updatedAt?: number; values?: Record<string, unknown>; i18n?: Record<string, { title?: string; description?: string } | undefined> };
+    let full: Record<string, FullRow> = {};
+    try {
+      const r = await apiGet<{ items: FullRow[] }>('/api/properties');
+      full = Object.fromEntries((r.items ?? []).map((p) => [p.publicCode, p]));
+    } catch (e) {
+      window.alert(e instanceof ApiClientError ? e.message : 'ดึงข้อมูลเต็มไม่สำเร็จ');
+      return;
+    }
+
+    const csv = buildPropertyCsv(filtered.map((d) => {
+      const p = full[d.code];
+      return {
+        code: d.code,
+        title: d.title,
+        typeLabel: propertyType(d.typeKey).label,
+        status: STATUS_LABEL[d.status],
+        location: d.location,
+        updatedAt: p?.updatedAt ?? null,
+        values: (p?.values ?? {}) as Record<string, unknown>,
+        i18n: p?.i18n,
+      };
+    }));
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const a = document.createElement('a');
     a.href = url;
@@ -372,7 +392,7 @@ export function ListingsAdminBody() {
     a.click();
     URL.revokeObjectURL(url);
   };
-  React.useEffect(() => { registerExport(exportCsv); });
+  React.useEffect(() => { registerExport(() => { void exportCsv(); }); });
 
   /* ---- create modal ---- */
   const createChoices = all.filter((p) => {
