@@ -7,6 +7,7 @@ import { Floating } from '@/components/home/Floating';
 import { loadPublicListings } from '@/lib/server/publicListings';
 import { headers } from 'next/headers';
 import { isLocale, DEFAULT_LOCALE } from '@/i18n/config';
+import { loadNavOrder } from '@/lib/server/navOrder';
 
 /* Listing-specific responsive rules ported from Listing.dc.html's
    <style> block. globals.css already handles the header nav / mobile
@@ -75,6 +76,11 @@ export async function ListingShell({ preset }: { preset?: ListingPreset }) {
   const q = preset?.filterKey ? PRESET_QUERY[preset.filterKey] : {};
   const items = await loadPublicListings({ locale, ...q, province: preset?.province, limit: 500 }).catch(() => []);
 
+  /* ลำดับเมนูที่ทีมจัดไว้ในหลังบ้าน (สไลด์ 5) */
+
+  const navOrder = await loadNavOrder();
+
+
   return (
     <div style={{ width: '100%', background: '#000000', position: 'relative' }}>
       <style dangerouslySetInnerHTML={{ __html: listingCss }} />
@@ -92,7 +98,7 @@ export async function ListingShell({ preset }: { preset?: ListingPreset }) {
           paddingBottom: 80,
         }}
       >
-        <ListingHeader />
+        <ListingHeader navOrder={navOrder} />
         <ListingBody preset={preset} items={items} />
       </div>
 

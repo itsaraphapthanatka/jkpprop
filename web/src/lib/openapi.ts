@@ -861,6 +861,19 @@ export const openapi = {
       },
     },
     /* ลูกค้าแจ้งว่า "Users & Roles ไม่มี ลบ user และไม่มีแก้ไข email" */
+    /* สไลด์ 5 · "ทำตัว setup เรียงลำดับเมนูที่หลังบ้าน" */
+    '/api/nav-menu': {
+      get: {
+        tags: ['Admin'], summary: 'ลำดับเมนูประเภททรัพย์บนแถบบนสุด',
+        responses: { 200: okRes('ลำดับปัจจุบัน — ว่าง = ใช้ลำดับตั้งต้น'), ...AUTH_ERRORS },
+      },
+      put: {
+        tags: ['Admin'], summary: 'บันทึกลำดับเมนู (owner)',
+        description: 'key ที่ไม่รู้จักและที่ซ้ำถูกตัดทิ้ง · ประเภทที่ไม่ได้จัดลำดับต่อท้ายเอง ไม่หายจากเมนู',
+        requestBody: body(obj({ order: arrayOf(STR) }, ['order'])),
+        responses: { 200: okRes('บันทึกแล้ว'), ...AUTH_ERRORS },
+      },
+    },
     '/api/users/{id}': {
       patch: {
         tags: ['Admin'], summary: 'แก้อีเมลของผู้ใช้ (owner)',

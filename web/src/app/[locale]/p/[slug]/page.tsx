@@ -6,6 +6,7 @@ import { isLocale, DEFAULT_LOCALE } from '@/i18n/config';
 import { ContentHeader } from '@/components/site/ContentHeader';
 import { ContentFooter } from '@/components/site/ContentFooter';
 import { CONTENT_CSS } from '@/components/site/contentCss';
+import { loadNavOrder } from '@/lib/server/navOrder';
 
 /* Renders a CMS "pages" document — privacy policy, terms, anything else the
    team publishes. The body is sanitised in the loader before it gets here. */
@@ -31,10 +32,15 @@ export default async function CmsDocPage({ params }: Params) {
   ]);
   if (!doc) notFound();
 
+  /* ลำดับเมนูที่ทีมจัดไว้ในหลังบ้าน (สไลด์ 5) */
+
+  const navOrder = await loadNavOrder();
+
+
   return (
     <div style={{ width: '100%', background: 'var(--bg)', minHeight: '100vh' }}>
       <style dangerouslySetInnerHTML={{ __html: CONTENT_CSS }} />
-      <ContentHeader />
+      <ContentHeader navOrder={navOrder} />
       <main style={{ maxWidth: 820, margin: '0 auto', padding: '48px 24px 80px' }}>
         <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800, color: 'var(--text)', letterSpacing: '-.01em' }}>{doc.title}</h1>
         <div

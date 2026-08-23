@@ -7,7 +7,7 @@ import { useLocale } from '@/i18n/LocaleLink';
 import { localizePath } from '@/i18n/config';
 import Image from 'next/image';
 import { useDict } from '@/i18n/useDict';
-import { TYPE_MENUS } from '@/lib/navMenus';
+import { orderMenus } from '@/lib/navMenus';
 import { SavedLink } from '@/components/site/SavedLink';
 
 type Lang = 'th' | 'en' | 'zh';
@@ -60,7 +60,11 @@ const chev = (rot: boolean, w = 11, stroke = 'currentColor', sw = '2.4') => (
   </svg>
 );
 
-export function Header() {
+export function Header({ navOrder = [] }: { navOrder?: string[] }) {
+  /* ลำดับเมนูมาจากที่ทีมจัดไว้ในหลังบ้าน (สไลด์ 5) — ส่งมาเป็นรายการ key
+     เพราะ TypeMenu มีฟังก์ชันอยู่ข้างใน ข้ามเส้น server→client ไม่ได้ */
+  const menus = orderMenus(navOrder);
+
   const d = useDict();
   const [scrolled, setScrolled] = useState(false);
   /* เมนูที่กางอยู่ตอนนี้ — ทีละอันเท่านั้น ทั้งบนจอใหญ่และในลิ้นชัก */
@@ -136,7 +140,7 @@ export function Header() {
 
           <nav style={{ display: 'flex', alignItems: 'center', gap: 26 }}>
             {/* โรงงาน */}
-            {TYPE_MENUS.map((m) => (
+            {menus.map((m) => (
               <div
                 key={m.key}
                 style={{ position: 'relative' }}
@@ -349,7 +353,7 @@ export function Header() {
           </div>
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '10px 14px 20px' }}>
-          {TYPE_MENUS.map((m) => {
+          {menus.map((m) => {
             const open = drawerOpenKey === m.key;
             return (
               <div key={m.key}>

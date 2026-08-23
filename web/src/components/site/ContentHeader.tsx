@@ -8,7 +8,7 @@ import { localizePath } from '@/i18n/config';
 import Image from 'next/image';
 import { useDict } from '@/i18n/useDict';
 import { SavedLink } from '@/components/site/SavedLink';
-import { TYPE_MENUS } from '@/lib/navMenus';
+import { orderMenus } from '@/lib/navMenus';
 
 /* ============================================================
    Shared header for the content pages (About / FAQ / Contact).
@@ -91,7 +91,11 @@ const chev = (rot: boolean, w = 11, stroke = 'currentColor', sw = '2.4') => (
 const ddPanel: React.CSSProperties = { background: 'var(--surface)', borderRadius: 14, boxShadow: '0 20px 44px rgba(0,0,0,.18)', padding: 8 };
 const ddItem: React.CSSProperties = { display: 'block', padding: '10px 12px', borderRadius: 10, fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' };
 
-export function ContentHeader({ active }: { active?: 'about' | 'faq' }) {
+export function ContentHeader({ active, navOrder = [] }: { active?: 'about' | 'faq'; navOrder?: string[] }) {
+  /* ลำดับเมนูมาจากที่ทีมจัดไว้ในหลังบ้าน (สไลด์ 5) — ส่งมาเป็นรายการ key
+     เพราะ TypeMenu มีฟังก์ชันอยู่ข้างใน ข้ามเส้น server→client ไม่ได้ */
+  const menus = orderMenus(navOrder);
+
   const d = useDict();
   /* เก็บว่าเมนูไหนเปิดอยู่เป็นคีย์เดียว ไม่ใช่ boolean ต่อประเภท — เพิ่มประเภท
      ใหม่แล้วไม่ต้องมาเพิ่ม state ตามอีก (แถบบนอีกสามชุดทำแบบนี้อยู่แล้ว) */
@@ -137,7 +141,7 @@ export function ContentHeader({ active }: { active?: 'about' | 'faq' }) {
             {/* ตารางเดียวกับแถบบนของหน้าแรก · หน้ารายการ · หน้าทรัพย์ (lib/navMenus.ts)
                 เดิมหน้านี้เขียนเมนูเองและมีแค่โรงงานกับโกดัง คนที่เปิด "คำถามพบบ่อย"
                 หรือ "เกี่ยวกับเรา" จึงหาโชว์รูมกับที่ดินไม่เจอ ทั้งที่หน้าแรกมี */}
-            {TYPE_MENUS.map((m) => (
+            {menus.map((m) => (
               <div
                 key={m.key}
                 style={{ position: 'relative' }}
@@ -261,7 +265,7 @@ export function ContentHeader({ active }: { active?: 'about' | 'faq' }) {
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '10px 14px 20px' }}>
           {/* ลิ้นชักมือถือก็ใช้ตารางเดียวกัน — เดิมมีแค่โรงงานกับโกดังเหมือนจอใหญ่ */}
-          {TYPE_MENUS.map((m) => {
+          {menus.map((m) => {
             const open = drawerOpenKey === m.key;
             return (
               <div key={m.key}>

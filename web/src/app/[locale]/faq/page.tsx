@@ -10,6 +10,7 @@ import { ContentHeader } from '@/components/site/ContentHeader';
 import { ContentFooter } from '@/components/site/ContentFooter';
 import { FaqBody } from '@/components/site/FaqBody';
 import { CONTENT_CSS } from '@/components/site/contentCss';
+import { loadNavOrder } from '@/lib/server/navOrder';
 
 /* Title in the reader's language: this page shipped a hard-coded Thai one to
    every locale, including in search results. */
@@ -65,13 +66,18 @@ export default async function FaqPage({ params }: { params: Promise<{ locale: st
     }).replace(/</g, '\\u003c')
     : null;
 
+  /* ลำดับเมนูที่ทีมจัดไว้ในหลังบ้าน (สไลด์ 5) */
+
+  const navOrder = await loadNavOrder();
+
+
   return (
     <div style={{ width: '100%', background: 'var(--bg)', minHeight: '100vh' }}>
       <style dangerouslySetInnerHTML={{ __html: faqCss }} />
       {faqSchema && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: faqSchema }} />
       )}
-      <ContentHeader active="faq" />
+      <ContentHeader active="faq" navOrder={navOrder} />
       <FaqBody cats={cats} copy={section(c, 'fh')} />
       <ContentFooter email={company.generalEmail} phone={company.phones[0]?.number} location={company.shortLocation} socials={company.socials} pages={pages} />
     </div>

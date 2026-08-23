@@ -9,6 +9,7 @@ import { ContentFooter } from '@/components/site/ContentFooter';
 import { AboutBody } from '@/components/site/AboutBody';
 import { siteStats } from '@/lib/server/siteStats';
 import { CONTENT_CSS } from '@/components/site/contentCss';
+import { loadNavOrder } from '@/lib/server/navOrder';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale: raw } = await params;
@@ -59,10 +60,15 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
     as: section(c, 'as'), aw: section(c, 'aw'), pr: section(c, 'pr'),
   };
 
+  /* ลำดับเมนูที่ทีมจัดไว้ในหลังบ้าน (สไลด์ 5) */
+
+  const navOrder = await loadNavOrder();
+
+
   return (
     <div style={{ width: '100%', background: 'var(--bg)', minHeight: '100vh' }}>
       <style dangerouslySetInnerHTML={{ __html: aboutCss }} />
-      <ContentHeader active="about" />
+      <ContentHeader active="about" navOrder={navOrder} />
       <AboutBody copy={copy} stats={stats} />
       <ContentFooter email={company.generalEmail} phone={company.phones[0]?.number} location={company.shortLocation} socials={company.socials} pages={pages} />
     </div>

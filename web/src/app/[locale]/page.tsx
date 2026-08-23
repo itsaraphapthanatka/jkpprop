@@ -17,6 +17,7 @@ import { isLocale, DEFAULT_LOCALE } from '@/i18n/config';
 import { loadCompany } from '@/lib/server/company';
 import { listCmsPages } from '@/lib/server/cmsPages';
 import { sameProvince } from '@/i18n/places';
+import { loadNavOrder } from '@/lib/server/navOrder';
 
 /* Which provinces each location tab covers. The tab used to print a fixed
    "640+ / 820+ / 1,150+ รายการ" — inventory the catalogue never had. */
@@ -78,6 +79,11 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const provinceCounts: Record<string, number> = {};
   for (const it of all) provinceCounts[it.province] = (provinceCounts[it.province] ?? 0) + 1;
 
+  /* ลำดับเมนูที่ทีมจัดไว้ในหลังบ้าน (สไลด์ 5) */
+
+  const navOrder = await loadNavOrder();
+
+
   return (
     <div style={{ width: '100%', background: '#000000', position: 'relative' }}>
       <style dangerouslySetInnerHTML={{ __html: homeCss }} />
@@ -91,7 +97,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           boxShadow: '0 50px 90px rgba(0,0,0,.4)',
         }}
       >
-        <Header />
+        <Header navOrder={navOrder} />
         {/* The hero has no switch — a page whose masthead can be turned off
             has no top. Every other block obeys the toggle in /admin/sections,
             and the ones with nothing to show hide themselves. */}

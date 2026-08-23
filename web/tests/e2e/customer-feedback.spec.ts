@@ -1950,6 +1950,78 @@ const ensureLogo = async (request: import('@playwright/test').APIRequestContext,
   };
 };
 
+/* สไลด์ 5 · "ทำตัว setup เรียงลำดับเมนูที่หลังบ้าน" — ลำดับเมนูบนแถบบนสุดเคย
+   เขียนตายตัวอยู่ในโค้ด อยากสลับต้องรอรอบ deploy */
+test.describe('คอมเมนต์ลูกค้า · จัดลำดับเมนูเองได้จากหลังบ้าน', () => {
+  test('สลับลำดับในหลังบ้านแล้ว เมนูบนหน้าเว็บเรียงตามทันที', async ({ page, request }) => {
+    test.setTimeout(90_000);
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    const before = (await (await request.get('/api/nav-menu', { headers: { cookie } })).json()).order as string[];
+
+    try {
+      await page.goto('/admin/menu');
+      await page.locator('#nav-order').waitFor({ timeout: 20000 });
+      const listed = await page.locator('[data-nav-item]').evaluateAll((els) => els.map((e) => e.getAttribute('data-nav-item')));
+      expect(listed, 'หน้าจัดลำดับต้องมีครบทุกประเภท').toHaveLength(4);
+
+      /* ดันตัวสุดท้ายขึ้นมาบนสุด */
+      const last = listed[listed.length - 1]!;
+      for (let i = 0; i < listed.length - 1; i += 1) await page.locator(`[data-nav-up="${last}"]`).click();
+      await page.locator('#nav-save').click();
+      await expect.poll(
+        async () => ((await (await request.get('/api/nav-menu', { headers: { cookie } })).json()).order as string[])[0],
+        { message: 'บันทึกลำดับแล้วแต่ค่าไม่เปลี่ยน', timeout: 15000 },
+      ).toBe(last);
+
+      /* หน้าเว็บต้องเรียงตาม ไม่ใช่แค่หลังบ้านจำไว้เฉย ๆ */
+      await page.goto('/th');
+      const shown = await page.locator('[data-nav-type]').evaluateAll((els) => els.map((e) => e.getAttribute('data-nav-type')));
+      expect(shown[0], `เมนูหน้าเว็บยังไม่เรียงตาม: ${shown.join(',')}`).toBe(last);
+      expect(shown, 'เมนูต้องยังครบสี่ประเภท ไม่ใช่หายไปตอนจัดลำดับ').toHaveLength(4);
+    } finally {
+      await request.put('/api/nav-menu', {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { order: before },
+      }).catch(() => null);
+    }
+  });
+
+  test('ลำดับที่มี key มั่วปนมา ไม่ทำให้เมนูหาย', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    const before = (await (await request.get('/api/nav-menu', { headers: { cookie } })).json()).order as string[];
+
+    try {
+      /* ส่ง key ที่ไม่มีจริง กับประเภทเดียวไม่ครบ — เมนูต้องยังครบสี่ */
+      await request.put('/api/nav-menu', {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { order: ['ไม่มีจริง', 'land', 'land'] },
+      });
+      const saved = (await (await request.get('/api/nav-menu', { headers: { cookie } })).json()).order as string[];
+      expect(saved, 'key มั่วกับที่ซ้ำต้องถูกตัดทิ้งตอนบันทึก').toEqual(['land']);
+
+      await page.goto('/th');
+      const shown = await page.locator('[data-nav-type]').evaluateAll((els) => els.map((e) => e.getAttribute('data-nav-type')));
+      expect(shown, 'ประเภทที่ยังไม่ถูกจัดลำดับต้องต่อท้าย ไม่ใช่หายไป').toHaveLength(4);
+      expect(shown[0]).toBe('land');
+    } finally {
+      await request.put('/api/nav-menu', {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { order: before },
+      }).catch(() => null);
+    }
+  });
+});
+
 /* "export ข้อมูลออกมาน้อยไป ให้ export ทุกฟิลด์ของ Properties, Listings" —
    ทั้งสองหน้าเคยเขียนรายชื่อคอลัมน์ไว้เองหน้าละชุด ได้ออกมา 8–9 ช่อง จาก 88
    ฟิลด์ที่ระบบเก็บ · ค่าไฟ ค่าน้ำ ความสูงใต้คาน ใบอนุญาต ผังเมือง เจ้าของ

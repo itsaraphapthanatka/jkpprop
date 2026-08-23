@@ -8,6 +8,7 @@ import { ContentHeader } from '@/components/site/ContentHeader';
 import { ContentFooter } from '@/components/site/ContentFooter';
 import { ContactBody } from '@/components/site/ContactBody';
 import { CONTENT_CSS } from '@/components/site/contentCss';
+import { loadNavOrder } from '@/lib/server/navOrder';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale: raw } = await params;
@@ -54,10 +55,15 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
   const pages = await listCmsPages(locale).catch(() => []);
   const copy = { ch: section(c, 'ch'), cm: section(c, 'cm') };
 
+  /* ลำดับเมนูที่ทีมจัดไว้ในหลังบ้าน (สไลด์ 5) */
+
+  const navOrder = await loadNavOrder();
+
+
   return (
     <div style={{ width: '100%', background: 'var(--bg)', minHeight: '100vh' }}>
       <style dangerouslySetInnerHTML={{ __html: contactCss }} />
-      <ContentHeader />
+      <ContentHeader navOrder={navOrder} />
       <ContactBody company={company} copy={copy} />
       <ContentFooter email={company.generalEmail} phone={company.phones[0]?.number} location={company.shortLocation} socials={company.socials} pages={pages} />
     </div>

@@ -15,6 +15,10 @@ model Org {
   name          String
   // TypeConfig (§3.2): property-type keys switched off for this agency
   disabledTypes String[] @default([])
+  /* ลำดับเมนูประเภททรัพย์บนแถบบนสุด — เก็บเป็น key เรียงตามที่ทีมจัดไว้
+     ว่าง = ใช้ลำดับตั้งต้นใน lib/navMenus.ts · key ที่ไม่รู้จักถูกข้าม และ
+     ประเภทที่เพิ่มใหม่ทีหลังต่อท้ายเอง ไม่หายไปจากเมนู */
+  navOrder      String[] @default([])
   // NotifyConfig (§7.2) minus readIds — org-wide thresholds; readIds live per user
   notifyConfig  Json?
   createdAt     DateTime @default(now())

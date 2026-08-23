@@ -7,7 +7,7 @@ import { useLocale } from '@/i18n/LocaleLink';
 import { localizePath } from '@/i18n/config';
 import Image from 'next/image';
 import { useDict } from '@/i18n/useDict';
-import { TYPE_MENUS } from '@/lib/navMenus';
+import { orderMenus } from '@/lib/navMenus';
 import { SavedLink } from '@/components/site/SavedLink';
 
 type Lang = 'th' | 'en' | 'zh';
@@ -76,7 +76,11 @@ const ddItem: React.CSSProperties = {
   color: 'var(--text)',
 };
 
-export function PropertyHeader() {
+export function PropertyHeader({ navOrder = [] }: { navOrder?: string[] }) {
+  /* ลำดับเมนูมาจากที่ทีมจัดไว้ในหลังบ้าน (สไลด์ 5) — ส่งมาเป็นรายการ key
+     เพราะ TypeMenu มีฟังก์ชันอยู่ข้างใน ข้ามเส้น server→client ไม่ได้ */
+  const menus = orderMenus(navOrder);
+
   const d = useDict();
   /* เมนูประเภทที่กางอยู่ตอนนี้ — ทีละอันเท่านั้น (ดู lib/navMenus) */
   const [navOpen, setNavOpen] = useState<string | null>(null);
@@ -118,7 +122,7 @@ export function PropertyHeader() {
           </Link>
 
           <nav style={{ display: 'flex', alignItems: 'center', gap: 26 }}>
-            {TYPE_MENUS.map((m) => (
+            {menus.map((m) => (
               <div
                 key={m.key}
                 style={{ position: 'relative' }}
@@ -293,7 +297,7 @@ export function PropertyHeader() {
         <div style={{ flex: 1, overflowY: 'auto', padding: '10px 14px 20px' }}>
           {/* เดิมลิ้นชักของหน้านี้มีแค่ "โรงงานให้เช่า" กับ "โกดังให้เช่า" สองลิงก์
               แบน ๆ ไม่มีฝั่งขาย และไม่ตรงกับลิ้นชักของอีกสองแถบบนสุด */}
-          {TYPE_MENUS.map((m) => {
+          {menus.map((m) => {
             const open = drawerOpenKey === m.key;
             return (
               <div key={m.key}>

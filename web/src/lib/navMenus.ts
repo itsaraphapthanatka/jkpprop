@@ -22,3 +22,17 @@ export const TYPE_MENUS: readonly TypeMenu[] = [
   { key: 'showroom', label: (d) => d.nav.showroom, items: [['/showroom-rent', (d) => d.nav.showroomRent], ['/showroom-sale', (d) => d.nav.showroomSale]] },
   { key: 'land', label: (d) => d.nav.land, items: [['/land-rent', (d) => d.nav.landRent], ['/land-sale', (d) => d.nav.landSale]] },
 ];
+
+/* ลูกค้าขอ "ตัว setup เรียงลำดับเมนูที่หลังบ้าน" (สไลด์ 5) — ลำดับเก็บที่
+   Org.navOrder เป็นรายการ key · กติกาที่ทำให้ปลอดภัยเวลามีประเภทใหม่:
+     · key ที่ไม่รู้จัก (ลบประเภททิ้งไปแล้ว) ถูกข้าม
+     · ประเภทที่ยังไม่ถูกจัดลำดับ ต่อท้ายตามลำดับตั้งต้น ไม่หายไปจากเมนู
+     · ลำดับว่าง = ใช้ตั้งต้น
+   ทั้งสองข้อหลังสำคัญ เพราะเมนูหายเงียบ ๆ คือบั๊กที่ไม่มีใครสังเกตจนลูกค้าทัก */
+export function orderMenus(order: readonly string[] = []): readonly TypeMenu[] {
+  if (!order.length) return TYPE_MENUS;
+  const byKey = new Map(TYPE_MENUS.map((m) => [m.key, m]));
+  const picked = order.map((k) => byKey.get(k)).filter((m): m is TypeMenu => !!m);
+  const seen = new Set(picked.map((m) => m.key));
+  return [...picked, ...TYPE_MENUS.filter((m) => !seen.has(m.key))];
+}

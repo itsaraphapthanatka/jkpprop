@@ -18,6 +18,7 @@ import { loadCompany } from '@/lib/server/company';
 import { listCmsPages } from '@/lib/server/cmsPages';
 import { watermarkVersion, withVersionAll } from '@/lib/server/photoUrl';
 import { loadGeoLabels } from '@/lib/server/geoLabels';
+import { loadNavOrder } from '@/lib/server/navOrder';
 
 /* Public property detail. Read straight from the database in the server
    component — no client fetch, so the page is indexable.
@@ -146,13 +147,18 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
     wechatId: company.wechatId,
   };
 
+  /* ลำดับเมนูที่ทีมจัดไว้ในหลังบ้าน (สไลด์ 5) */
+
+  const navOrder = await loadNavOrder();
+
+
   return (
     <div style={{ width: '100%', background: '#000000', position: 'relative' }}>
       <div
         id="page-sheet"
         style={{ position: 'relative', zIndex: 2, background: 'var(--bg)', minHeight: '100vh', boxShadow: '0 50px 90px rgba(0,0,0,.4)' }}
       >
-        <PropertyHeader />
+        <PropertyHeader navOrder={navOrder} />
         <PropertyDetail property={property} />
       </div>
       <SiteFooter company={company} pages={pages} />
