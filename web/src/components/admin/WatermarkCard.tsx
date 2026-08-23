@@ -47,6 +47,12 @@ export function WatermarkCard() {
   const [cfg, setCfg] = React.useState<WatermarkConfig>(WM_DEFAULTS);
   const [loaded, setLoaded] = React.useState<string>(wmFingerprint(WM_DEFAULTS));
   const [busy, setBusy] = React.useState<'' | 'upload' | 'save'>('');
+  /* ไฟล์โลโก้ถูกลบออกจากคลังสื่อได้ ทั้งที่ตั้งค่ายังชี้มาที่มัน — พอเป็นแบบนั้น
+     ทุกอย่างบนการ์ดนี้ยังบอกว่า "เปิดใช้งาน" แต่ไม่มีรูปไหนถูกปั๊มอีกเลย และ
+     ช่องพรีวิวก็แค่ว่างเปล่า ไม่ได้บอกว่าเพราะอะไร (เกิดขึ้นจริงเมื่อ 22 ส.ค.)
+     ตอนนี้ถ้ารูปโหลดไม่ขึ้น จะขึ้นคำเตือนให้เลือกไฟล์ใหม่ */
+  const [logoGone, setLogoGone] = React.useState(false);
+  React.useEffect(() => { setLogoGone(false); }, [cfg.src]);
   const [saved, setSaved] = React.useState(false);
   const [err, setErr] = React.useState('');
   const fileRef = React.useRef<HTMLInputElement | null>(null);
@@ -145,13 +151,17 @@ export function WatermarkCard() {
               onChange={(e) => { const f = e.target.files?.[0]; if (f) void pickLogo(f); e.target.value = ''; }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, borderRadius: 12, border: '1.5px dashed var(--border)', background: 'var(--bg)' }}>
               <div style={{ width: 52, height: 52, borderRadius: 10, flexShrink: 0, background: 'var(--tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                {cfg.src
+                {cfg.src && !logoGone
                   // eslint-disable-next-line @next/next/no-img-element
-                  ? <img src={cfg.src} alt="ลายน้ำ" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                  : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></svg>}
+                  ? <img src={cfg.src} alt="ลายน้ำ" onError={() => setLogoGone(true)} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                  : logoGone
+                    ? <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C0392B" strokeWidth="2"><path d="M12 9v5M12 17.5v.5" /><path d="M10.3 3.9L1.9 18a2 2 0 001.7 3h16.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" /></svg>
+                    : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></svg>}
               </div>
-              <div style={{ flex: 1, minWidth: 0, fontSize: 11, color: 'var(--muted3)', lineHeight: 1.5 }}>
-                แนะนำ <b>PNG พื้นหลังโปร่ง</b> · สูงสุด 10MB
+              <div style={{ flex: 1, minWidth: 0, fontSize: 11, color: logoGone ? '#C0392B' : 'var(--muted3)', lineHeight: 1.5 }}>
+                {logoGone
+                  ? <span data-wm-missing><b>ไฟล์โลโก้หายไปแล้ว</b> — ถูกลบออกจากคลังสื่อ ตอนนี้ไม่มีรูปไหนถูกปั๊มลายน้ำเลย กด “เปลี่ยนไฟล์” เพื่อเลือกใหม่ แล้วกดบันทึกลายน้ำ</span>
+                  : <>แนะนำ <b>PNG พื้นหลังโปร่ง</b> · สูงสุด 10MB</>}
               </div>
               <button type="button" id="wm-upload" onClick={() => fileRef.current?.click()} disabled={busy === 'upload'} style={{ ...btn(false), flexShrink: 0, opacity: busy === 'upload' ? 0.6 : 1 }}>
                 {busy === 'upload' ? 'กำลังอัปโหลด…' : cfg.src ? 'เปลี่ยนไฟล์' : 'เลือกไฟล์'}

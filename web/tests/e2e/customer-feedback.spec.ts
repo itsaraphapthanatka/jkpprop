@@ -1893,6 +1893,63 @@ test.describe('คอมเมนต์ลูกค้า · แท็กพื�
   });
 });
 
+/* "ลายน้ำไม่ขึ้น" / "ไม่มีขึ้นเลย" — ตั้งค่ายังบอกว่าเปิดใช้งาน แต่ไม่มีรูปไหน
+   ถูกปั๊มเลย เพราะไฟล์โลโก้ถูกลบออกจากคลังสื่อไปแล้ว (production 22 ส.ค. 16:22
+   ลบ 1112.png ที่ตั้งเป็นโลโก้ลายน้ำอยู่) ระบบเงียบสนิท ไม่มี error ไม่มีคำเตือน
+   จนลูกค้าทักมาเอง */
+test.describe('คอมเมนต์ลูกค้า · ลบไฟล์ที่เป็นโลโก้ลายน้ำอยู่ไม่ได้', () => {
+  const PNG = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    'base64',
+  );
+
+  test('ไฟล์ที่ถูกตั้งเป็นโลโก้ลายน้ำ ลบไม่ได้จนกว่าจะเปลี่ยนโลโก้ก่อน', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const before = (await (await request.get('/api/branding')).json()).watermark;
+
+    const up = await request.post('/api/media', {
+      headers: { cookie },
+      multipart: { file: { name: 'wm-logo.png', mimeType: 'image/png', buffer: PNG }, watermarkType: 'none' },
+    });
+    expect(up.ok()).toBe(true);
+    const logo = await up.json();
+    const logoId = String(logo.src).match(/\/api\/media\/([a-z0-9]+)\//)?.[1] ?? logo.id;
+
+    try {
+      await request.put('/api/branding', {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { watermark: { ...before, enabled: true, src: logo.src } },
+      });
+
+      const blocked = await request.delete(`/api/media/${logoId}`, { headers: { cookie } });
+      expect(blocked.ok(), 'ต้องลบไม่ได้').toBe(false);
+      expect(JSON.stringify(await blocked.json()), 'ต้องบอกว่าให้ไปเปลี่ยนโลโก้ก่อน').toContain('โลโก้ลายน้ำ');
+
+      /* ไฟล์ยังอยู่จริง ไม่ได้ลบไปครึ่งทาง */
+      expect((await request.get(`/api/media/${logoId}/raw`)).status()).toBe(200);
+
+      /* เปลี่ยนโลโก้ออกก่อน แล้วจึงลบได้ */
+      await request.put('/api/branding', {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { watermark: { ...before, enabled: false, src: null } },
+      });
+      expect((await request.delete(`/api/media/${logoId}`, { headers: { cookie } })).ok(), 'เปลี่ยนโลโก้แล้วต้องลบได้').toBe(true);
+    } finally {
+      await request.put('/api/branding', {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { watermark: before },
+      }).catch(() => null);
+      await request.delete(`/api/media/${logoId}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+});
+
 /* "ลายน้ำขึ้นเฉพาะ Listing และ download ในหน้า Social Status เท่านั้น ภาพอื่น
    บนเว็บไซต์ ไม่ต้องโชว์" — เดิมปั๊มลายน้ำให้ทุกไฟล์ที่เสิร์ฟออกหน้าเว็บ รูปหน้าปก
    ของ "คำถามพบบ่อย" "เกี่ยวกับเรา" รูปทีมงาน และรูปออฟฟิศจึงโดนปั๊มไปด้วย */
