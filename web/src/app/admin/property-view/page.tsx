@@ -47,6 +47,15 @@ const pvCss = `
 const nf = new Intl.NumberFormat('en-US');
 const baht = (n: number) => '฿' + nf.format(n);
 
+/* สถานะประกาศเป็นภาษาคน — เดิมพิมพ์ค่าดิบจากฐานข้อมูลออกหน้าจอ */
+const LISTING_STATUS_TH: Record<string, string> = {
+  draft: 'ร่าง',
+  published: 'เผยแพร่แล้ว',
+  hidden: 'ซ่อนอยู่',
+  unavailable: 'ไม่ว่าง',
+  archived: 'เก็บถาวร',
+};
+
 export default async function AdminPropertyViewPage({
   searchParams,
 }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
@@ -235,7 +244,11 @@ export default async function AdminPropertyViewPage({
                   <span style={{ flex: 1, fontSize: '12.5px', color: 'var(--text)' }}>
                     {l.publishedAt ? `เผยแพร่ ${new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }).format(l.publishedAt)}` : 'ยังไม่เผยแพร่'}
                   </span>
-                  <span style={{ height: 22, padding: '0 10px', borderRadius: 9999, background: l.status === 'published' ? '#E8F3EC' : '#FBF3E1', color: l.status === 'published' ? '#0D6C3B' : '#9A741C', fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>{l.status}</span>
+                  {/* คุณ Jacky ถามว่า "อันนี้คืออะไรหรอครับ · น่าจะแปลผิด" — ป้ายนี้พิมพ์
+                      ค่าดิบจากฐานข้อมูลออกมาตรง ๆ ("published") ซึ่งเป็นภาษาอังกฤษ
+                      และขัดกับข้อความข้าง ๆ ที่เขียนว่า "ยังไม่เผยแพร่" เพราะคนละ
+                      ความหมาย: อันซ้ายคือ "เผยแพร่เมื่อไร" อันนี้คือสถานะของประกาศ */}
+                  <span style={{ height: 22, padding: '0 10px', borderRadius: 9999, background: l.status === 'published' ? '#E8F3EC' : '#FBF3E1', color: l.status === 'published' ? '#0D6C3B' : '#9A741C', fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>{LISTING_STATUS_TH[l.status] ?? l.status}</span>
                 </div>
               ))}
             </div>

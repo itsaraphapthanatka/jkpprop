@@ -193,15 +193,25 @@ function AdminSidebar({ active, mobileOpen, onClose }: { active?: AdminNavKey; m
   );
 }
 
+/* คุณ Jacky ชี้สองหน้าว่าปุ่มนี้ "เกินมา" — หน้า Requirements และหน้าโปรไฟล์
+   (เด็ค Web 2026 ข้อ 15 และ 23) ปุ่มอยู่ในแถบบนที่ทุกหน้าใช้ร่วมกัน จึงโผล่
+   แม้แต่หน้าที่ไม่เกี่ยวกับทรัพย์เลย และกดแล้วก็แค่พาไปหน้า Properties
+   ให้ขึ้นเฉพาะหน้าที่ "เพิ่มทรัพย์" เป็นสิ่งที่คนทำต่อได้จริง */
+const ADD_BTN_PAGES = ['/admin', '/admin/properties', '/admin/listings', '/admin/social-status'];
+
 /** Default topbar right cluster: search + notification bell + "เพิ่มทรัพย์". */
 export function AdminTopbarDefaultActions() {
+  const pathname = usePathname();
+  const showAdd = ADD_BTN_PAGES.includes(pathname ?? '');
   return (
     <div id="admin-actions-default" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
       <GlobalSearch />
       <NotificationBell />
-      <Link id="admin-add-btn" href="/admin/properties" className="admin-primary-btn" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M12 5v14M5 12h14" /></svg>เพิ่มทรัพย์
-      </Link>
+      {showAdd && (
+        <Link id="admin-add-btn" href="/admin/properties" className="admin-primary-btn" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, height: 40, padding: '0 18px', borderRadius: 9999, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M12 5v14M5 12h14" /></svg>เพิ่มทรัพย์
+        </Link>
+      )}
     </div>
   );
 }

@@ -1965,6 +1965,40 @@ const ensureLogo = async (request: import('@playwright/test').APIRequestContext,
   };
 };
 
+/* เด็ค Web 2026 (23 ส.ค.) ข้อ 15 และ 23 · "เอาปุ่มเพิ่มทรัพย์ออก" — ปุ่มอยู่ใน
+   แถบบนที่ทุกหน้าใช้ร่วมกัน จึงโผล่แม้แต่หน้าที่ไม่เกี่ยวกับทรัพย์ (Requirements
+   กับหน้าโปรไฟล์) และกดแล้วก็แค่พาไปหน้า Properties */
+test.describe('คอมเมนต์ลูกค้า · ปุ่มเพิ่มทรัพย์ขึ้นเฉพาะหน้าที่เกี่ยวข้อง', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+  });
+
+  for (const url of ['/admin/requirements', '/admin/profile', '/admin/users', '/admin/settings']) {
+    test(`${url} ไม่มีปุ่มเพิ่มทรัพย์`, async ({ page }) => {
+      await page.goto(url);
+      await page.waitForTimeout(1200);
+      await expect(page.locator('#admin-add-btn'), `${url} ยังมีปุ่มเพิ่มทรัพย์`).toHaveCount(0);
+    });
+  }
+
+  test('หน้า Dashboard ยังมีปุ่มเพิ่มทรัพย์', async ({ page }) => {
+    await page.goto('/admin');
+    await expect(page.locator('#admin-add-btn')).toBeVisible({ timeout: 15000 });
+  });
+
+  /* หน้า Properties มีปุ่มของตัวเองที่เปิดฟอร์มได้เลย (ปุ่มกลางแค่ลิงก์มาหน้านี้)
+     จึงไม่ควรมีสองปุ่มซ้อนกัน — ต้องยังเพิ่มทรัพย์ได้อยู่ */
+  test('หน้า Properties ใช้ปุ่มของตัวเอง ไม่ซ้ำกับปุ่มกลาง', async ({ page }) => {
+    await page.goto('/admin/properties');
+    await expect(page.getByText('เพิ่มทรัพย์ใหม่').first()).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('#admin-add-btn'), 'ไม่ควรมีปุ่มกลางซ้ำอีกอัน').toHaveCount(0);
+  });
+});
+
 /* เด็ค Web 2026 (23 ส.ค.) ข้อ 7 · "ประเภทไม่ครบครับ" — ลูกศรชี้คอลัมน์
    "อสังหาริมทรัพย์" ที่ฟุตเตอร์ ซึ่งมีแค่สามลิงก์ ทั้งที่เว็บมีแปดหน้าปลายทาง */
 test.describe('คอมเมนต์ลูกค้า · ลิงก์ประเภททรัพย์ที่ฟุตเตอร์', () => {
