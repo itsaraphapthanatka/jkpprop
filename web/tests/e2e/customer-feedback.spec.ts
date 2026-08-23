@@ -1893,6 +1893,56 @@ test.describe('คอมเมนต์ลูกค้า · แท็กพื�
   });
 });
 
+/* "แก้ที่หลังบ้าน แล้ว ลายน้ำไม่เปลี่ยน" — เคยจำค่าตั้งลายน้ำไว้ 60 วินาทีเพื่อ
+   ประหยัดคิวรี ผลคือบันทึกแล้ว wmVersion เด้ง URL เปลี่ยน เบราว์เซอร์ขอรูปใหม่
+   แต่เซิร์ฟเวอร์ยังปั๊มด้วยค่าเก่า แล้วเก็บผลนั้นไว้ถาวรใต้คีย์ของ version ใหม่
+   ค่าที่เพิ่งตั้งจึงไม่ถูกใช้จนกว่าจะกดบันทึกอีกครั้ง — ช้าไปหนึ่งจังหวะเสมอ */
+test.describe('คอมเมนต์ลูกค้า · แก้ตั้งค่าลายน้ำแล้วต้องเปลี่ยนทันที', () => {
+  test('ย้ายตำแหน่งลายน้ำแล้ว รูปที่เสิร์ฟถัดไปต้องเป็นแบบใหม่เลย', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const brand = await (await request.get('/api/branding')).json();
+    const wm = brand.watermark;
+    test.skip(!(wm?.enabled && wm?.src), 'ยังไม่ได้เปิดลายน้ำ');
+
+    const code = ((await (await request.get('/api/public/listings?locale=th&limit=1')).json()).items as { code: string }[])[0]?.code;
+    test.skip(!code, 'ยังไม่มีทรัพย์ที่เผยแพร่');
+    const photoOf = async () =>
+      (await (await request.get(`/api/public/properties/${code}?locale=th`)).json()).photos?.[0] as string | undefined;
+    const first = await photoOf();
+    test.skip(!first, 'ทรัพย์แรกยังไม่มีรูป');
+
+    const bytes = async (u: string) => (await (await request.get(u)).body()).length;
+    const before = await bytes(first!);
+
+    /* ย้ายไปมุมตรงข้าม — ตำแหน่งต่างกันมากพอให้ไฟล์ที่ปั๊มออกมาต่างกันแน่ */
+    const moved = { ...wm, anchor: wm.anchor === 'top-left' ? 'bottom-right' : 'top-left' };
+    try {
+      const put = await request.put('/api/branding', {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { ...brand, watermark: moved },
+      });
+      expect(put.ok(), 'บันทึกตั้งค่าลายน้ำไม่สำเร็จ').toBe(true);
+
+      /* URL ต้องเปลี่ยน version และรูปที่ได้ต้องเป็นแบบใหม่ "ทันที" ไม่ใช่รอ
+         ให้ค่าที่จำไว้หมดอายุ — ไม่มี poll ตรงนี้โดยตั้งใจ */
+      const next = await photoOf();
+      expect(next, 'URL ต้องพา version ใหม่มาด้วย').not.toBe(first);
+      expect(await bytes(next!), 'ย้ายตำแหน่งแล้วรูปต้องเปลี่ยนตามทันที').not.toBe(before);
+    } finally {
+      await request.put('/api/branding', {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { ...brand, watermark: wm },
+      }).catch(() => null);
+    }
+  });
+});
+
 /* "logo upload ไม่ได้" — กล่อง "ลากโลโก้มาวาง" ในหน้า Branding เป็นรูปวาด
    เฉย ๆ ไม่มี input ไม่มี onClick ไม่มี drop handler กดแล้วไม่เกิดอะไรเลย
    และฝั่งบันทึกก็ไม่เคยส่ง logo ขึ้นไปด้วย ทั้งที่ API รับฟิลด์นี้มาตลอด */

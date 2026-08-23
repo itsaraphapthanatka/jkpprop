@@ -21,22 +21,16 @@ export const runtime = 'nodejs';
 
 type Wm = { cfg: WatermarkConfig; version: number };
 
-/* หน้าเดียวขอรูปหลายสิบใบ ส่วนคำตอบของสองอย่างข้างล่างเปลี่ยนก็ต่อเมื่อมีคน
-   ไปแก้หน้า Branding หรือแนบรูปเข้า/ออกจากประกาศ ซึ่งช้ากว่านั้นมาก จึงจำไว้
-   สั้น ๆ แทนที่จะถามฐานข้อมูลใหม่ทุกใบ · ผลข้างเคียงคือแก้ตั้งค่าลายน้ำแล้ว
-   อาจใช้เวลาถึงหนึ่งนาทีจึงเห็นผล (แต่ URL เปลี่ยนตาม wmVersion ทันทีอยู่แล้ว) */
 const MEMO_TTL_MS = 60_000;
-const wmMemo = new Map<string, { at: number; wm: Wm | null }>();
 
+/* ห้ามจำค่านี้ไว้เด็ดขาด — เคยจำไว้ 60 วินาทีเพื่อประหยัดคิวรี แล้วกลายเป็น
+   บั๊กที่ "แก้ที่หลังบ้านแล้วลายน้ำไม่เปลี่ยน":
+     บันทึก → wmVersion เด้ง → URL กลายเป็น ?v=N+1 → เบราว์เซอร์ขอรูปใหม่
+     → เซิร์ฟเวอร์ยังใช้ค่าเก่าที่จำไว้ ปั๊มด้วยตำแหน่ง/ขนาดเดิม
+     → แล้วเก็บผลนั้นไว้ถาวรใต้คีย์ของ version ใหม่
+   ค่าที่เพิ่งตั้งจึงไม่มีวันถูกใช้ จนกว่าจะกดบันทึกอีกครั้ง — ผู้ใช้เห็นช้าไป
+   หนึ่งจังหวะเสมอ · เป็นคิวรีเดียวด้วย primary key ไม่ได้แพงพอให้เสี่ยงแบบนั้น */
 async function watermarkFor(orgId: string): Promise<Wm | null> {
-  const hit = wmMemo.get(orgId);
-  if (hit && Date.now() - hit.at < MEMO_TTL_MS) return hit.wm;
-  const wm = await loadWatermark(orgId);
-  wmMemo.set(orgId, { at: Date.now(), wm });
-  return wm;
-}
-
-async function loadWatermark(orgId: string): Promise<Wm | null> {
   const b = await db.branding.findUnique({ where: { orgId } });
   if (!b || !b.wmEnabled || !b.wmSrc) return null;
   const cfg = normalizeWatermark({
