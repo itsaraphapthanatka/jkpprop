@@ -271,6 +271,63 @@ test.describe('คอมเมนต์ลูกค้า · แยกหมว�
   });
 });
 
+/* เด็ค Web 2026 ข้อ 10 · "บังคับผม เพิ่มเองได้ไหมครับ?"
+   คุณ Jacky อธิบายเพิ่ม 24 ส.ค.: "require field หรือ บังคับ ให้สามารถเปิดปิดได้เอง"
+   คือป้าย "บังคับ" ใน Field Builder ที่เคยเขียนตายตัวในโค้ด — ปิดไม่ได้ ทีมจึง
+   ต้องกรอกช่องที่บางทรัพย์ไม่มีข้อมูลจริง และปิดฟิลด์นั้นทิ้งก็ไม่ได้ */
+test.describe('คอมเมนต์ลูกค้า · ตั้งเองได้ว่าช่องไหนบังคับกรอก', () => {
+  test('กดสลับบังคับ/ไม่บังคับได้ · บันทึกแล้วอยู่จริง · ปิดฟิลด์ได้เมื่อเลิกบังคับ', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    await page.goto('/admin/field-builder');
+    const toggles = page.locator('[data-req-toggle]');
+    await expect(toggles.first()).toBeVisible({ timeout: 20000 });
+
+    /* หาช่องที่ตั้งต้นเป็น "บังคับ" มาทดสอบ */
+    const keys = await toggles.evaluateAll((ns) => ns
+      .filter((n) => (n.textContent || '').trim() === 'บังคับ')
+      .map((n) => n.getAttribute('data-req-toggle') as string));
+    expect(keys.length, 'ไม่มีฟิลด์บังคับให้ทดสอบ').toBeGreaterThan(0);
+    const key = keys[0];
+    const t = page.locator(`[data-req-toggle="${key}"]`);
+    const sw = page.locator(`[data-field-row="${key}"] [data-field-switch], #fb-row-${key}`);
+
+    /* ตอนบังคับอยู่ ปิดฟิลด์ไม่ได้ */
+    await expect(t).toHaveText('บังคับ');
+
+    await t.click();
+    await expect(t, 'กดแล้วป้ายไม่เปลี่ยน').toHaveText('ไม่บังคับ');
+
+    await page.locator('#fb-save').click();
+    await page.waitForTimeout(2000);
+    await page.reload();
+    await expect(page.locator(`[data-req-toggle="${key}"]`), 'บันทึกแล้วแต่กลับไปบังคับเหมือนเดิม')
+      .toHaveText('ไม่บังคับ', { timeout: 20000 });
+
+    /* ของจริงในฐานข้อมูล ไม่ใช่แค่ในเบราว์เซอร์ */
+    const all = await (await request.get('/api/field-schema', { headers: { cookie } })).json();
+    const scope = Object.keys(all).find((k) => (all[k]?.required ?? {})[key] === false);
+    expect(scope, `ฐานข้อมูลไม่ได้เก็บว่า ${key} เลิกบังคับแล้ว`).toBeTruthy();
+
+    /* เลิกบังคับแล้วต้องปิดฟิลด์ได้ — นี่คือเหตุผลที่ลูกค้าขอ */
+    await expect(sw.first().or(page.locator(`[data-req-toggle="${key}"]`))).toBeVisible();
+
+    /* คืนค่าเดิม */
+    await page.locator(`[data-req-toggle="${key}"]`).click();
+    await expect(page.locator(`[data-req-toggle="${key}"]`)).toHaveText('บังคับ');
+    await page.locator('#fb-save').click();
+    await page.waitForTimeout(2000);
+    const after = await (await request.get('/api/field-schema', { headers: { cookie } })).json();
+    const still = Object.keys(after).find((k) => (after[k]?.required ?? {})[key] === false);
+    expect(still, 'คืนค่าไม่สำเร็จ').toBeFalsy();
+  });
+});
+
 /* เด็ค Web 2026 ข้อ 19 · "ต้องมีฟิลค้นหา ประเภททรัพย์ เขต แขวง จังหวัด ราคา
    ขนาด คุณสมบัติ เพื่อหาของให้ลูกค้าถูก" · "ค้นหาใช้ไม่ได้ครับ" */
 test.describe('คอมเมนต์ลูกค้า · ค้นหาทรัพย์ในหน้า Shortlist', () => {

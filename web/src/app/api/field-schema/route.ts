@@ -15,6 +15,8 @@ export const GET = handler(async () => {
       disabled: r.disabled,
       order: r.order,
       extra: (r.extra as FieldDef[] | null) ?? [],
+      /* ข้อ 10 · ช่องไหนถูกสั่งทับว่าบังคับ/ไม่บังคับ */
+      required: (r.required as Record<string, boolean> | null) ?? {},
     };
   }
   return ok(out);

@@ -63,7 +63,7 @@ const checkIcon = (
   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
 );
 
-export function Hero({ copy, facets = { areas: [], colors: [], zones: [], features: [], types: [] } }: { copy: SectionCopy; facets?: Facets }) {
+export function Hero({ copy, facets = { areas: [], colors: [], zones: [], features: [], usage: [], types: [] } }: { copy: SectionCopy; facets?: Facets }) {
   const { d, locale } = useI18n();
   const pick = (v: string, fallback: string) => v || fallback;
   /* Nothing is chosen until someone chooses it. These both started applied —
@@ -88,7 +88,8 @@ export function Hero({ copy, facets = { areas: [], colors: [], zones: [], featur
     if (sizeSel) p.set('size', sizeSel);
     if (priceSel) p.set('price', priceSel);
     /* สี่หมวดในแผง "ตัวกรองเพิ่มเติม" เคยเก็บ state ไว้เฉย ๆ ไม่เคยส่งไปไหน */
-    writeFilterParams(p, { areas: zoneSel, colors: colorSel, zones: estateSel, features: featureSel, load: loadSel, hMin, hMax });
+    /* แผงหน้าแรกยังไม่มีหมวด "การใช้งานที่เหมาะ" — ส่งว่างไปก่อน */
+    writeFilterParams(p, { areas: zoneSel, colors: colorSel, zones: estateSel, features: featureSel, usage: [], load: loadSel, hMin, hMax });
     router.push(`/${locale}/listing?${p}`);
   };
 

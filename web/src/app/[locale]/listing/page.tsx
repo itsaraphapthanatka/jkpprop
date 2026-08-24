@@ -72,6 +72,7 @@ export default async function ListingPage({ searchParams }: { searchParams: Prom
     ...(more.colors.length && !zoneColor ? { zoningSel: more.colors } : {}),
     ...(more.zones.length ? { estateSel: more.zones } : {}),
     ...(more.features.length ? { featureSel: more.features } : {}),
+    ...(more.usage.length ? { usageSel: more.usage } : {}),
     ...(more.load !== null ? { loadSel: more.load } : {}),
     ...(more.hMin !== null ? { hMin: more.hMin } : {}),
     ...(more.hMax !== null ? { hMax: more.hMax } : {}),

@@ -325,14 +325,15 @@ export function buildSpecs(values: Vals, locale: Locale, schema: SpecSchema = {}
      page kept printing whatever was already stored, so a field switched off
      on purpose stayed on the website. */
   const off = new Set(schema.disabled ?? []);
-  const features = Array.isArray(values.features)
-    ? (values.features as unknown[]).map((f) => enumLabel(String(f), locale)).filter(Boolean)
-    : [];
+  /* เก็บทั้งคำที่แปลแล้ว (เอาไปแสดง) และค่าดิบ (เอาไปทำลิงก์ตัวกรอง)
+     เด็ค Web 2026 ข้อ 4 · ชิปพวกนี้ลิงก์ไปหน้ารายการ ซึ่งเทียบกับค่าที่เก็บ
+     ในฐานข้อมูล ไม่ใช่คำแปล — ส่งคำแปลไปหน้า /en จะไม่ตรงอะไรเลย */
+  const featureKeys = Array.isArray(values.features) ? (values.features as unknown[]).map(String).filter(Boolean) : [];
+  const features = featureKeys.map((f) => enumLabel(f, locale)).filter(Boolean);
   /* "การใช้งานที่เหมาะ" เก็บไว้ครบทั้ง 393 รายการ แต่ไม่มีหน้าไหนแสดงเลย
      ลูกค้าเขียนรายการที่ต้องการไว้ในสไลด์ 13 */
-  const usage = Array.isArray(values.usage)
-    ? (values.usage as unknown[]).map((u) => enumLabel(String(u), locale)).filter(Boolean)
-    : [];
+  const usageKeys = Array.isArray(values.usage) ? (values.usage as unknown[]).map(String).filter(Boolean) : [];
+  const usage = usageKeys.map((u) => enumLabel(u, locale)).filter(Boolean);
   const nearbyRaw = values.nearby;
   const nearby = Array.isArray(nearbyRaw)
     ? (nearbyRaw as unknown[]).map((n) => enumLabel(String(n), locale)).filter(Boolean)
@@ -347,7 +348,9 @@ export function buildSpecs(values: Vals, locale: Locale, schema: SpecSchema = {}
        tenants (place, size, power, price) and stays as it is */
     rows: [...rowsFor(TABLE_ORDER, values, locale, off, over), ...customRows(schema.extra ?? [], values, locale, off)],
     features,
+    featureKeys,
     usage,
+    usageKeys,
     nearby,
   };
 }

@@ -51,6 +51,7 @@ export type PublicListing = {
       หน้าแรกเก็บสามอย่างนี้มาตลอด แต่ไม่เคยส่งไปถึงหน้ารายการ */
   zone: string[];
   features: string[];
+  usage: string[];
   loadTon: number | null;
   /** ความสูงอาคาร (เมตร) — ตัวกรอง "ความสูง" ใช้ตัวนี้ */
   heightM: number | null;
@@ -180,6 +181,9 @@ export async function loadPublicListings(q: ListingQuery = {}): Promise<PublicLi
       zoning: String(values.zoning_color ?? ''),
       zone: Array.isArray(values.zone) ? (values.zone as unknown[]).map(String) : [],
       features: Array.isArray(values.features) ? (values.features as unknown[]).map(String) : [],
+      /* เด็ค Web 2026 ข้อ 4 · "กดแล้วไม่ไปแท็ค" — ชิป "การใช้งานที่เหมาะ" บนหน้า
+         ทรัพย์กดไม่ได้ เพราะหน้ารายการไม่เคยรู้จักช่องนี้เลย กรองไม่ได้ */
+      usage: Array.isArray(values.usage) ? (values.usage as unknown[]).map(String) : [],
       /* เก็บเป็นข้อความ เช่น "3 ตัน/ตร.ม." — ตัวกรองอยากได้ตัวเลขต่ำสุด */
       loadTon: (() => {
         const m = /(\d+(?:\.\d+)?)/.exec(String(values.floor_loading ?? ''));

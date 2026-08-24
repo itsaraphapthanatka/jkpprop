@@ -43,17 +43,29 @@ export const PUT = handler(async (req: Request, ctx: { params: Promise<{ typeKey
   const type = PROPERTY_TYPES.find((t) => t.key === typeKey);
   if (!type) throw new ApiError('NOT_FOUND', 'ไม่พบประเภททรัพย์นี้', 404);
 
-  const body = (await req.json().catch(() => null)) as { disabled?: unknown; order?: unknown; extra?: unknown } | null;
+  const body = (await req.json().catch(() => null)) as { disabled?: unknown; order?: unknown; extra?: unknown; required?: unknown } | null;
   if (!body) throw new ApiError('VALIDATION', 'ข้อมูลไม่ถูกต้อง', 400);
 
   const disabled = Array.isArray(body.disabled) ? body.disabled.map(String) : [];
   const order = Array.isArray(body.order) ? body.order.map(String) : [];
   const extra = sanitizeExtra(body.extra);
 
-  // required fields are locked on — strip them out instead of erroring so a
-  // stale client can never disable them (§8)
-  const requiredKeys = new Set(type.fields.filter((f) => f.required).map((f) => f.key));
-  const cleanDisabled = disabled.filter((k) => !requiredKeys.has(k));
+  /* เด็ค Web 2026 ข้อ 10 · "บังคับ" ตั้งเองได้แล้ว — รับเฉพาะคีย์ที่มีอยู่จริง
+     ในประเภทนี้ (รวมฟิลด์ที่เพิ่มเอง) และเก็บเฉพาะค่าที่ต่างจากค่าตั้งต้น
+     จะได้ไม่บวมเป็นแผนที่ของทุกฟิลด์ */
+  const known = new Map([...type.fields, ...extra].map((f) => [f.key, !!f.required]));
+  const reqIn = (body.required && typeof body.required === 'object' ? body.required : {}) as Record<string, unknown>;
+  const required: Record<string, boolean> = {};
+  for (const [k, v] of Object.entries(reqIn)) {
+    if (!known.has(k)) continue;
+    const want = v === true || v === 'true';
+    if (want !== known.get(k)) required[k] = want;
+  }
+
+  // ช่องที่บังคับกรอกจะปิดไม่ได้ — ตัดออกแทนที่จะ error เพื่อให้ client เก่า
+  // ไม่มีทางปิดมันได้ (§8) · ใช้ค่าหลังรวมกับที่ตั้งทับไว้
+  const isReq = (k: string) => required[k] ?? known.get(k) ?? false;
+  const cleanDisabled = disabled.filter((k) => !isReq(k));
 
   const prev = await db.fieldOverride.findUnique({ where: { orgId_typeKey: { orgId: user.orgId, typeKey } } });
 
@@ -82,6 +94,7 @@ export const PUT = handler(async (req: Request, ctx: { params: Promise<{ typeKey
     order: order.map(remap),
     extra: issued as unknown as Prisma.InputJsonValue,
     extraSeq: seq,
+    required: Object.fromEntries(Object.entries(required).map(([k, v]) => [remap(k), v])) as Prisma.InputJsonValue,
   };
   const saved = await db.fieldOverride.upsert({
     where: { orgId_typeKey: { orgId: user.orgId, typeKey } },
@@ -91,9 +104,11 @@ export const PUT = handler(async (req: Request, ctx: { params: Promise<{ typeKey
 
   await audit({
     user, orgId: user.orgId, action: 'fieldSchema.save', entity: 'fieldOverride', entityId: typeKey,
-    before: prev ? { disabled: prev.disabled, order: prev.order, extra: prev.extra } : null,
-    after: { disabled: saved.disabled, order: saved.order, extra: saved.extra },
+    before: prev ? { disabled: prev.disabled, order: prev.order, extra: prev.extra, required: prev.required } : null,
+    after: { disabled: saved.disabled, order: saved.order, extra: saved.extra, required: saved.required },
   });
 
-  return ok({ disabled: saved.disabled, order: saved.order, extra: saved.extra });
+  /* ต้องส่ง required กลับไปด้วย ไม่งั้นหน้าจอเอาคำตอบไปทับ state ตัวเองแล้ว
+     ป้าย "บังคับ" เด้งกลับค่าเดิมทันทีที่กดบันทึก (ข้อ 10) */
+  return ok({ disabled: saved.disabled, order: saved.order, extra: saved.extra, required: saved.required });
 });

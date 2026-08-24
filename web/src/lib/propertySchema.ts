@@ -491,7 +491,15 @@ export function isTypeEnabled(key: string, tc?: TypeConfig): boolean {
    Store — per-type overrides persisted in localStorage.
    Shape: { [typeKey]: { disabled: string[]; order: string[]; extra: FieldDef[] } }
    ============================================================ */
-export type SchemaOverride = { disabled: string[]; order: string[]; extra: FieldDef[] };
+/* เด็ค Web 2026 ข้อ 10 · "บังคับผม เพิ่มเองได้ไหมครับ?" — ป้าย "บังคับ" ใน
+   Field Builder เคยเขียนตายตัวอยู่ในโค้ด ทีมจึงต้องกรอกช่องที่บางทรัพย์ไม่มี
+   ข้อมูลจริง แล้วบันทึกไม่ผ่าน · required เก็บเฉพาะช่องที่ถูกสั่งทับ
+   true = บังคับ · false = ไม่บังคับ · ไม่มีคีย์ = ใช้ค่าตั้งต้นในโค้ด */
+export type SchemaOverride = { disabled: string[]; order: string[]; extra: FieldDef[]; required?: Record<string, boolean> };
+
+/** บังคับกรอกจริงไหม หลังรวมค่าที่ตั้งทับไว้แล้ว */
+export const isRequired = (f: { key: string; required?: boolean }, ov?: SchemaOverride): boolean =>
+  ov?.required?.[f.key] ?? !!f.required;
 const LS_KEY = 'jkp.fieldSchema.v1';
 
 function readAll(): Record<string, SchemaOverride> {
@@ -504,7 +512,7 @@ function readAll(): Record<string, SchemaOverride> {
   }
 }
 export function loadOverride(typeKey: string): SchemaOverride {
-  return readAll()[typeKey] || { disabled: [], order: [], extra: [] };
+  return readAll()[typeKey] || { disabled: [], order: [], extra: [], required: {} };
 }
 export function saveOverride(typeKey: string, ov: SchemaOverride) {
   if (typeof window === 'undefined') return;
@@ -524,5 +532,10 @@ export function resolveFields(typeKey: string, ov?: SchemaOverride): (FieldDef &
   (o.order || []).forEach((k) => { const f = byKey.get(k); if (f) { ordered.push(f); byKey.delete(k); } });
   all.forEach((f) => { if (byKey.has(f.key)) { ordered.push(f); byKey.delete(f.key); } });
   const disabled = new Set(o.disabled || []);
-  return ordered.map((f) => ({ ...f, enabled: f.required ? true : !disabled.has(f.key) }));
+  /* ช่องที่บังคับจะปิดไม่ได้ — แต่ "บังคับ" ตอนนี้ตั้งทับได้แล้ว (ข้อ 10)
+     จึงต้องดูค่าหลังรวม ไม่ใช่ค่าที่เขียนไว้ในโค้ดอย่างเดียว */
+  return ordered.map((f) => {
+    const req = isRequired(f, o);
+    return { ...f, required: req, enabled: req ? true : !disabled.has(f.key) };
+  });
 }

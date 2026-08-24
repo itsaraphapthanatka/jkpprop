@@ -61,7 +61,7 @@ const knob = (on: boolean): React.CSSProperties => ({ position: 'absolute', top:
 
 export function FieldBuilderBody() {
   const [scope, setScope] = React.useState('house');
-  const [override, setOverride] = React.useState<SchemaOverride>({ disabled: [], order: [], extra: [] });
+  const [override, setOverride] = React.useState<SchemaOverride>({ disabled: [], order: [], extra: [], required: {} });
   const [dirty, setDirty] = React.useState(false);
   const [scopeOpen, setScopeOpen] = React.useState(false);
   const [toast, setToast] = React.useState('');
@@ -84,6 +84,22 @@ export function FieldBuilderBody() {
   const scopeLabel = type.label;
 
   const flash = (msg: string) => { setToast(msg); if (toastTimer.current) clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToast(''), 2400); };
+
+  /* เด็ค Web 2026 ข้อ 10 · "บังคับผม เพิ่มเองได้ไหมครับ?" — ป้าย "บังคับ" เคย
+     เขียนตายตัวในโค้ด ทีมจึงต้องกรอกช่องที่บางทรัพย์ไม่มีข้อมูลจริง แล้วบันทึก
+     ไม่ผ่าน · กดที่ป้ายเพื่อเปิด/ปิดได้เอง เก็บเฉพาะช่องที่ต่างจากค่าตั้งต้น
+     ปิดบังคับแล้วช่องนั้นถึงจะปิดการใช้งานได้ด้วย */
+  const toggleRequired = (f: FieldDef & { enabled: boolean }) => {
+    setOverride((o) => {
+      const base = !!type.fields.concat(o.extra || []).find((x) => x.key === f.key)?.required;
+      const next = { ...(o.required || {}) };
+      const want = !f.required;
+      if (want === base) delete next[f.key]; else next[f.key] = want;
+      /* พอเลิกบังคับแล้ว ยังเปิดใช้อยู่เหมือนเดิม — ไม่ปิดให้เอง */
+      return { ...o, required: next };
+    });
+    setDirty(true);
+  };
 
   const toggle = (f: FieldDef & { enabled: boolean }) => {
     if (f.required) return;
@@ -235,7 +251,15 @@ export function FieldBuilderBody() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{f.label}</span>
-                      {f.required && <span style={{ height: 19, padding: '0 8px', borderRadius: 9999, background: '#F9E4E1', color: '#C0392B', fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>บังคับ</span>}
+                      {/* ข้อ 10 · กดสลับได้เอง ไม่ใช่ป้ายอ่านอย่างเดียว */}
+                      <button
+                        type="button"
+                        data-req-toggle={f.key}
+                        aria-pressed={f.required}
+                        onClick={() => toggleRequired(f)}
+                        title={f.required ? 'บังคับกรอก — กดเพื่อเลิกบังคับ' : 'ไม่บังคับ — กดเพื่อตั้งเป็นบังคับ'}
+                        style={{ height: 19, padding: '0 8px', borderRadius: 9999, border: f.required ? '1px solid #F0C9C2' : '1px dashed var(--border)', background: f.required ? '#F9E4E1' : 'transparent', color: f.required ? '#C0392B' : 'var(--muted3)', fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center', cursor: 'pointer', fontFamily: 'inherit' }}
+                      >{f.required ? 'บังคับ' : 'ไม่บังคับ'}</button>
                       {f.system && <span style={{ height: 19, padding: '0 8px', borderRadius: 9999, background: 'var(--bg)', color: 'var(--muted3)', fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>ระบบ</span>}
                       {custom && <span style={{ height: 19, padding: '0 8px', borderRadius: 9999, background: '#EEF4F3', color: '#034956', fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>เพิ่มเอง</span>}
                       {f.section && <span style={{ height: 19, padding: '0 8px', borderRadius: 9999, background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--muted)', fontSize: 10, fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>{f.section}</span>}
@@ -331,7 +355,7 @@ export function FieldBuilderBody() {
           </div>
           <div style={{ background: '#F0ECF9', border: '1px solid #DCCFEC', borderRadius: 16, padding: '16px 18px', display: 'flex', alignItems: 'flex-start', gap: 11 }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7A3FB0" strokeWidth="1.9" style={{ flexShrink: 0, marginTop: 1 }}><path d="M12 2l2 5 5 .5-4 3.5 1 5-4-2.5-4 2.5 1-5-4-3.5 5-.5z" /></svg>
-            <span style={{ fontSize: 12, color: '#7A3FB0', lineHeight: 1.55 }}>ฟิลด์ที่เปิดไว้ ({enabledCount}/{fields.length}) จะปรากฏในฟอร์ม +เพิ่มทรัพย์ และ แก้ไขทรัพย์ ของประเภท <b>{scopeLabel}</b> · ฟิลด์ <b>บังคับ</b> ปิดไม่ได้</span>
+            <span style={{ fontSize: 12, color: '#7A3FB0', lineHeight: 1.55 }}>ฟิลด์ที่เปิดไว้ ({enabledCount}/{fields.length}) จะปรากฏในฟอร์ม +เพิ่มทรัพย์ และ แก้ไขทรัพย์ ของประเภท <b>{scopeLabel}</b> · ฟิลด์ <b>บังคับ</b> ปิดไม่ได้ — กดที่ป้าย <b>บังคับ / ไม่บังคับ</b> เพื่อเปลี่ยนเองได้</span>
           </div>
         </div>
       </div>

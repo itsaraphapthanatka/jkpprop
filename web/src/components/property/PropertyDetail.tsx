@@ -181,7 +181,7 @@ export type PublicProperty = {
   available: boolean;
   areaPin: { lat: number; lng: number; radius: number } | null;
   updatedAt: string;
-  specs: { quick: SpecRow[]; rows: SpecRow[]; features: string[]; usage: string[]; nearby: string[] };
+  specs: { quick: SpecRow[]; rows: SpecRow[]; features: string[]; featureKeys?: string[]; usage: string[]; usageKeys?: string[]; nearby: string[] };
   zoning: string | null;
   zoningKey: string | null;
   /** โซน (ปลอดอากร · กนอ. · DG) — แปลแล้ว พร้อมขึ้นป้าย */
@@ -362,11 +362,13 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
             <div style={sectionCard}>
               {sectionHead(d.property.features, 18, ICON_FEATURES)}
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                {specs.features.map((f) => (
-                  <div key={f} data-feature style={{ display: 'flex', alignItems: 'center', gap: 9, height: 44, padding: '0 16px', borderRadius: 12, background: 'var(--bg)', border: '1px solid var(--border)' }}>
+                {/* เด็ค Web 2026 ข้อ 4 · "กดที่ไอค่อนแล้วไม่ไปตัวกรอง" — ชิปพวกนี้
+                    เคยเป็น div เฉย ๆ ทั้งที่หน้ารายการกรองด้วยคุณสมบัติได้อยู่แล้ว */}
+                {specs.features.map((f, i) => (
+                  <Link key={f} href={`/listing?feature=${encodeURIComponent(specs.featureKeys?.[i] ?? f)}`} data-feature data-chip-link style={{ display: 'flex', alignItems: 'center', gap: 9, height: 44, padding: '0 16px', borderRadius: 12, background: 'var(--bg)', border: '1px solid var(--border)', textDecoration: 'none' }}>
                     <span style={{ color: 'var(--accent)', display: 'flex' }}>{chipIcon(f)}</span>
                     <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{f}</span>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -377,11 +379,13 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
             <div style={sectionCard}>
               {sectionHead(d.property.usage, 18, ICON_USAGE)}
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                {specs.usage.map((u) => (
-                  <div key={u} data-usage style={{ display: 'flex', alignItems: 'center', gap: 9, height: 44, padding: '0 16px', borderRadius: 12, background: 'var(--tint)', border: '1px solid var(--border)' }}>
+                {/* ข้อ 4 · หน้ารายการเพิ่งรู้จักช่อง "การใช้งานที่เหมาะ" รอบนี้
+                    ก่อนหน้านี้ไม่มีตัวกรองให้ลิงก์ไปเลย */}
+                {specs.usage.map((u, i) => (
+                  <Link key={u} href={`/listing?usage=${encodeURIComponent(specs.usageKeys?.[i] ?? u)}`} data-usage data-chip-link style={{ display: 'flex', alignItems: 'center', gap: 9, height: 44, padding: '0 16px', borderRadius: 12, background: 'var(--tint)', border: '1px solid var(--border)', textDecoration: 'none' }}>
                     <span style={{ color: 'var(--accent)', display: 'flex' }}>{chipIcon(u)}</span>
                     <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{u}</span>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>

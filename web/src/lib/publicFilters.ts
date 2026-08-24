@@ -19,6 +19,7 @@ export type FilterableListing = {
   zoning: string;
   zone: string[];
   features: string[];
+  usage?: string[];
   loadTon: number | null;
   /** ความสูงอาคาร (เมตร) — ทีมกรอกไว้ 198 จาก 248 รายการ ช่วง 3–14 ม. */
   heightM: number | null;
@@ -33,6 +34,8 @@ export type PublicFilterState = {
   /** โซน — ปลอดอากร · กนอ. · DG */
   zones: string[];
   features: string[];
+  /** การใช้งานที่เหมาะ — ชิปบนหน้าทรัพย์ลิงก์มาที่นี่ (ข้อ 4) */
+  usage: string[];
   /** รับน้ำหนักพื้นต่ำสุด (ตัน/ตร.ม.) */
   load: number | null;
   /** ความสูงอาคาร ต่ำสุด–สูงสุด (เมตร) — ว่างข้างไหนก็ได้ */
@@ -40,10 +43,10 @@ export type PublicFilterState = {
   hMax: number | null;
 };
 
-export const EMPTY_PUBLIC_FILTERS: PublicFilterState = { areas: [], colors: [], zones: [], features: [], load: null, hMin: null, hMax: null };
+export const EMPTY_PUBLIC_FILTERS: PublicFilterState = { areas: [], colors: [], zones: [], features: [], usage: [], load: null, hMin: null, hMax: null };
 
 /** ตัวเลือกที่ "มีของจริง" — คำนวณจากรายการที่หน้านั้นถืออยู่ ไม่ใช่รายการคงที่ */
-export type Facets = { areas: string[]; colors: string[]; zones: string[]; features: string[]; types: string[] };
+export type Facets = { areas: string[]; colors: string[]; zones: string[]; features: string[]; usage: string[]; types: string[] };
 
 export function buildFacets(items: FilterableListing[]): Facets {
   const uniq = (xs: string[]) => Array.from(new Set(xs.filter((x) => x && x !== '—'))).sort();
@@ -52,6 +55,8 @@ export function buildFacets(items: FilterableListing[]): Facets {
     colors: uniq(items.map((i) => i.zoning)),
     zones: uniq(items.flatMap((i) => i.zone)),
     features: uniq(items.flatMap((i) => i.features)),
+    /* ข้อ 4 · ชิป "การใช้งานที่เหมาะ" บนหน้าทรัพย์ต้องกดมากรองได้ */
+    usage: uniq(items.flatMap((i) => i.usage ?? [])),
     types: uniq(items.map((i) => i.type)),
   };
 }
@@ -96,6 +101,7 @@ export function writeFilterParams(p: URLSearchParams, f: PublicFilterState): voi
   if (f.colors.length) p.set('zone', f.colors.join('|'));
   if (f.zones.length) p.set('estate', f.zones.join('|'));
   if (f.features.length) p.set('feature', f.features.join('|'));
+  if (f.usage.length) p.set('usage', f.usage.join('|'));
   if (f.load !== null) p.set('load', String(f.load));
   if (f.hMin !== null) p.set('hmin', String(f.hMin));
   if (f.hMax !== null) p.set('hmax', String(f.hMax));
@@ -112,6 +118,7 @@ export function readFilterParams(sp: Record<string, string | string[] | undefine
   const hMax = numParam(sp.hmax);
   return {
     areas: listParam(sp.area),
+    usage: listParam(sp.usage),
     colors: listParam(sp.zone),
     zones: listParam(sp.estate),
     features: listParam(sp.feature),
@@ -124,5 +131,5 @@ export function readFilterParams(sp: Record<string, string | string[] | undefine
 
 /** มีอะไรถูกเลือกไว้ไหม — ใช้ตัดสินว่าจะโชว์ปุ่มล้างตัวกรอง */
 export const anyFilterSet = (f: PublicFilterState): boolean =>
-  f.areas.length + f.colors.length + f.zones.length + f.features.length > 0
+  f.areas.length + f.colors.length + f.zones.length + f.features.length + f.usage.length > 0
   || f.load !== null || f.hMin !== null || f.hMax !== null;

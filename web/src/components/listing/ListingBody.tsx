@@ -24,7 +24,7 @@ import { enumLabel } from '@/i18n/enums';
 
 type SortKey = 'new' | 'price_asc' | 'price_desc' | 'size_asc' | 'size_desc';
 type Mode = 'rent' | 'sale';
-type SecKey = 'province' | 'district' | 'subdistrict' | 'zoning' | 'estate' | 'type' | 'size' | 'price' | 'feature' | 'load' | 'height';
+type SecKey = 'province' | 'district' | 'subdistrict' | 'zoning' | 'estate' | 'type' | 'size' | 'price' | 'feature' | 'usage' | 'load' | 'height';
 
 /* zone options are derived from the inventory on the page, not listed here */
 
@@ -54,6 +54,7 @@ export type ListingItem = {
   zoning: string;
   zone: string[];
   features: string[];
+  usage: string[];
   loadTon: number | null;
   heightM: number | null;
   available: boolean;
@@ -82,6 +83,7 @@ type Listing = {
   zoning: string;
   zone: string[];
   features: string[];
+  usage: string[];
   loadTon: number | null;
   heightM: number | null;
   available: boolean;
@@ -106,6 +108,7 @@ const toListing = (it: ListingItem): Listing => ({
   zoning: it.zoning,
   zone: it.zone,
   features: it.features,
+  usage: it.usage ?? [],
   loadTon: it.loadTon,
   heightM: it.heightM,
   priceValue: it.priceValue,
@@ -141,6 +144,8 @@ export interface ListingPreset {
   areaSel?: string[];
   estateSel?: string[];
   featureSel?: string[];
+  /** ?usage= — ชิป "การใช้งานที่เหมาะ" บนหน้าทรัพย์ลิงก์มาที่นี่ (ข้อ 4) */
+  usageSel?: string[];
   loadSel?: number | null;
   hMin?: number | null;
   hMax?: number | null;
@@ -230,7 +235,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
   /* null = both. /listing must not hide every property for sale just because
      the pills default to one of them; preset pages still pin their own. */
   const [listingMode, setListingMode] = useState<Mode | null>(preset.listingMode ?? null);
-  const [secOpen, setSecOpen] = useState<Record<SecKey, boolean>>({ province: true, district: true, subdistrict: true, zoning: true, estate: true, type: true, size: true, price: true, feature: true, load: true, height: true });
+  const [secOpen, setSecOpen] = useState<Record<SecKey, boolean>>({ province: true, district: true, subdistrict: true, zoning: true, estate: true, type: true, size: true, price: true, feature: true, usage: true, load: true, height: true });
   /* สไลด์ 9 · "แยกจังหวัดเขตแขวง" — เดิมเป็นหมวดเดียวชื่อ "ทำเล" ที่ไล่ข้อความ
      รวม ("บางพลี, สมุทรปราการ") เลือกได้ทีละก้อน แคบลงทีละชั้นไม่ได้ */
   const [provSel, setProvSel] = useState<string[]>(preset.province ? [preset.province] : []);
@@ -242,6 +247,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
   /* สามหมวดที่เคยมีแต่บนหน้าแรก (สไลด์ 9/14 "ใช้ระบบเมนูเดียวกัน") */
   const [estateSel, setEstateSel] = useState<string[]>(preset.estateSel ?? []);
   const [featureSel, setFeatureSel] = useState<string[]>(preset.featureSel ?? []);
+  const [usageSel, setUsageSel] = useState<string[]>(preset.usageSel ?? []);
   const [loadSel, setLoadSel] = useState<number | null>(preset.loadSel ?? null);
   const [hMin, setHMin] = useState<number | null>(preset.hMin ?? null);
   const [hMax, setHMax] = useState<number | null>(preset.hMax ?? null);
@@ -286,6 +292,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
     if (zoningSel.length && !zoningSel.includes(it.zoning)) return false;
     if (estateSel.length && !estateSel.some((z) => it.zone.includes(z))) return false;
     if (featureSel.length && !featureSel.every((x) => it.features.includes(x))) return false;
+    if (usageSel.length && !usageSel.every((x) => (it.usage ?? []).includes(x))) return false;
     if (loadSel !== null && (it.loadTon === null || it.loadTon < loadSel)) return false;
     if (hMin !== null && (it.heightM === null || it.heightM < hMin)) return false;
     if (hMax !== null && (it.heightM === null || it.heightM > hMax)) return false;
@@ -338,7 +345,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
      ทั้งที่คลังมีทรัพย์อยู่ 393 รายการ */
   const serverFiltered = !!(preset.filterKey || preset.province || preset.typeSel?.length
     || preset.listingMode || preset.q || preset.zoningSel?.length
-    || preset.districtSel?.length || preset.subdistrictSel?.length);
+    || preset.districtSel?.length || preset.subdistrictSel?.length || preset.usageSel?.length);
 
   const clearAll = () => {
     setQ('');
@@ -396,6 +403,7 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
     { key: 'price', title: d.listing.price, items: PRICE_ITEMS.map((label) => ({ label, checked: priceSel === label, select: () => setPriceSel((cur) => (cur === label ? null : label)) })) },
     { key: 'estate', title: d.hero.zone, items: facets.zones.map((value) => ({ label: value, checked: estateSel.includes(value), select: () => setEstateSel((a) => toggleIn(a, value)) })) },
     { key: 'feature', title: d.hero.features, items: facets.features.map((value) => ({ label: value, checked: featureSel.includes(value), select: () => setFeatureSel((a) => toggleIn(a, value)) })) },
+    { key: 'usage', title: d.property.usage, items: facets.usage.map((value) => ({ label: enumLabel(value, locale), value, checked: usageSel.includes(value), select: () => setUsageSel((a) => toggleIn(a, value)) })) },
     { key: 'load', title: d.hero.floorLoading, items: LOAD_STEPS.map((n) => ({ label: `${n} ${d.common.tonPerSqm}`, checked: loadSel === n, select: () => setLoadSel((cur) => (cur === n ? null : n)) })) },
     /* ความสูงเป็นช่วง ไม่ใช่รายการติ๊ก — items ว่างจึงต้องยกเว้นจากตัวกรองด้านล่าง */
     { key: 'height', title: d.hero.height, kind: 'range', items: [] },
