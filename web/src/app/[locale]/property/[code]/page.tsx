@@ -145,6 +145,8 @@ export default async function PropertyByCodePage({ params }: { params: Promise<{
     socials: company.socials.map((sc) => ({ key: sc.key as string, url: sc.url })),
     phone: company.phones?.[0]?.number ?? '',
     wechatId: company.wechatId,
+    brandName: company.brandName,
+    brandLogo: company.brandLogo,
   };
 
   /* ลำดับเมนูที่ทีมจัดไว้ในหลังบ้าน (สไลด์ 5) */

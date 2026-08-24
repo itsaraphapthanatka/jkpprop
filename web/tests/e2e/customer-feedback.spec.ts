@@ -275,6 +275,51 @@ test.describe('คอมเมนต์ลูกค้า · แยกหมว�
    คุณ Jacky อธิบายเพิ่ม 24 ส.ค.: "require field หรือ บังคับ ให้สามารถเปิดปิดได้เอง"
    คือป้าย "บังคับ" ใน Field Builder ที่เคยเขียนตายตัวในโค้ด — ปิดไม่ได้ ทีมจึง
    ต้องกรอกช่องที่บางทรัพย์ไม่มีข้อมูลจริง และปิดฟิลด์นั้นทิ้งก็ไม่ได้ */
+/* คุณกิตติพงษ์แจ้ง 24 ส.ค. · "upload logo ให้แสดงตามรูปที่มีลูกศรชี้ไป"
+   โลโก้ที่อัปโหลดไว้ที่ /admin/branding ไม่เคยถูกใช้ที่ไหนบนเว็บเลย กล่อง
+   "ขอข้อมูลเพิ่มเติม" หน้าทรัพย์วาดป้าย "JKP" กับชื่อ "JKP Property" ไว้ตายตัว */
+test.describe('คอมเมนต์ลูกค้า · โลโก้ที่อัปโหลดต้องขึ้นในกล่องขอข้อมูล', () => {
+  test('ตั้งโลโก้แล้วขึ้นจริง · ยังไม่ตั้งใช้ตัวย่อ · ชื่อแบรนด์ตามหลังบ้าน', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const list = await (await request.get('/api/properties?limit=1', { headers: { cookie } })).json();
+    const code = ((list.items ?? [])[0] || {}).publicCode as string;
+    expect(code, 'ไม่มีทรัพย์ให้ทดสอบ').toBeTruthy();
+
+    const before = await (await request.get('/api/branding', { headers: { cookie } })).json();
+    try {
+      /* ยังไม่ตั้งโลโก้ → ใช้ตัวย่อของชื่อแบรนด์ ไม่ใช่กล่องว่าง */
+      await request.put('/api/branding', { headers: { cookie }, data: { ...before, logo: '' } });
+      await page.goto(`/th/property/${code}`);
+      await expect(page.locator('[data-brand-initials]')).toHaveCount(1);
+      await expect(page.locator('[data-brand-logo]')).toHaveCount(0);
+
+      /* ตั้งโลโก้แล้วต้องขึ้นแทนตัวย่อ */
+      await request.put('/api/branding', { headers: { cookie }, data: { ...before, logo: '/assets/jkp-logo-green.png' } });
+      await page.goto(`/th/property/${code}`);
+      const logo = page.locator('[data-brand-logo]');
+      await expect(logo, 'อัปโหลดโลโก้แล้วแต่หน้าทรัพย์ยังขึ้นป้ายเดิม').toHaveCount(1);
+      await expect(page.locator('[data-brand-initials]')).toHaveCount(0);
+      await expect(logo).toHaveAttribute('src', '/assets/jkp-logo-green.png');
+      /* ห้ามครอปโลโก้ทิ้งขอบ และต้องโหลดรูปได้จริง ไม่ใช่ไอคอนรูปแตก */
+      expect(await logo.evaluate((e) => getComputedStyle(e).objectFit)).toBe('contain');
+      expect(await logo.evaluate((e) => (e as HTMLImageElement).naturalWidth), 'รูปโหลดไม่ขึ้น').toBeGreaterThan(0);
+
+      /* ชื่อข้างโลโก้มาจากหลังบ้าน ไม่ใช่ค่าที่เขียนไว้ในโค้ด */
+      await request.put('/api/branding', { headers: { cookie }, data: { ...before, logo: '', brandName: 'ทดสอบชื่อแบรนด์' } });
+      await page.goto(`/th/property/${code}`);
+      await expect(page.locator('#pd-inquiry')).toContainText('ทดสอบชื่อแบรนด์');
+    } finally {
+      await request.put('/api/branding', { headers: { cookie }, data: before });
+    }
+  });
+});
+
 /* คุณกิตติพงษ์แจ้ง 24 ส.ค. · "Field Builder ให้สามารถแก้ไข field ได้ด้วย
    ตอนนี้ไม่แก้ไขไม่ได้" — เดิมแก้ได้เฉพาะฟิลด์ที่ทีมเพิ่มเอง ฟิลด์มาตรฐานแก้
    ชื่อไม่ได้เลย และชื่อบนตารางหน้าเว็บมาจากอีกตารางหนึ่ง จึงต้องให้ถึงทั้งสองที่ */

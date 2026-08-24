@@ -120,8 +120,12 @@ const WECHAT: Social = {
 /* `code` identifies the property being asked about. It was a module-level
    constant, so an enquiry sent from any property page arrived naming
    JKP-SPK0042 — the sales team could not tell what the lead was about. */
-export function InquiryBox({ code = '', typeLabel = '', socials = [], wechatId = '', callNumber = '', topOffset = 88, stacked = false }: {
+export function InquiryBox({ code = '', typeLabel = '', socials = [], wechatId = '', callNumber = '', brandName = 'JKP Property', brandLogo = '', topOffset = 88, stacked = false }: {
   code?: string;
+  /** ชื่อแบรนด์และโลโก้จาก /admin/branding — เดิมสองอย่างนี้เขียนไว้ตายตัวในโค้ด
+      อัปโหลดโลโก้หลังบ้านแล้วหน้านี้ก็ยังขึ้นป้าย "JKP" ที่วาดเองเหมือนเดิม */
+  brandName?: string;
+  brandLogo?: string;
   /** what kind of property is being asked about, for the lead record */
   typeLabel?: string;
   /** the company's own chat accounts — only the ones that are set are shown */
@@ -197,9 +201,26 @@ export function InquiryBox({ code = '', typeLabel = '', socials = [], wechatId =
 
         {/* agent */}
         <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, background: 'var(--bg)' }}>
-          <div style={{ width: 46, height: 46, borderRadius: 12, background: 'var(--pine)', color: 'var(--neon)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, flexShrink: 0 }}>JKP</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>JKP Property</div>
+          {brandLogo ? (
+            /* วางเต็มกรอบแบบ contain — โลโก้ถูกครอปทิ้งขอบไม่ได้ พื้นขาวไว้ให้
+               โลโก้สีเข้มบนไฟล์โปร่งใสยังอ่านออกในโหมดมืด */
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={brandLogo}
+              alt={brandName}
+              data-brand-logo
+              /* สูงคงที่ กว้างยืดตามสัดส่วนโลโก้ — โลโก้แนวนอนยัดในกรอบจัตุรัส
+                 จะเล็กจนอ่านไม่ออก · พื้นขาวไว้ให้ไฟล์โปร่งใสสีเข้มยังเห็นในโหมดมืด */
+              style={{ height: 46, width: 'auto', maxWidth: 116, borderRadius: 12, objectFit: 'contain', background: '#fff', padding: '5px 8px', flexShrink: 0 }}
+            />
+          ) : (
+            /* ยังไม่ได้อัปโหลดโลโก้ — ใช้ตัวย่อของชื่อแบรนด์แทนกล่องว่าง */
+            <div data-brand-initials style={{ width: 46, height: 46, borderRadius: 12, background: 'var(--pine)', color: 'var(--neon)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, flexShrink: 0 }}>
+              {brandName.replace(/[^A-Za-z\u0E00-\u0E7F ]/g, '').split(/\s+/).filter(Boolean).slice(0, 3).map((w) => w[0]).join('').toUpperCase() || 'JKP'}
+            </div>
+          )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>{brandName}</div>
             <div style={{ fontSize: 12, color: 'var(--muted)' }}>{d.inquiry.hours}</div>
           </div>
         </div>

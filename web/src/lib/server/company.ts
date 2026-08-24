@@ -17,6 +17,10 @@ export type Phone = { number: string; label: string };
 
 export type Company = {
   legalName: string;
+  /** ชื่อสั้นที่ใช้เรียกแบรนด์ — คนละอันกับชื่อจดทะเบียน มาจาก /admin/branding */
+  brandName: string;
+  /** โลโก้ที่อัปโหลดไว้ที่ /admin/branding · ว่าง = ยังไม่ได้อัป */
+  brandLogo: string;
   address: string;
   shortLocation: string;
   phones: Phone[];
@@ -37,6 +41,7 @@ type Tr = Partial<Record<Locale, string>>;
 
 const DEFAULTS = {
   legalName: 'JKP PROPERTY CO., LTD.',
+  brandName: 'JKP Property',
   address: {
     th: '41/6 หมู่ 7 ถ.บางนาตราด กม. 16.5 ต.บางโฉลง อ.บางพลี จ.สมุทรปราการ 10540 (สำนักงานใหญ่)',
     en: '41/6 Moo 7, Bangna-Trad Rd km 16.5, Bang Chalong, Bang Phli, Samut Prakan 10540 (head office)',
@@ -106,8 +111,16 @@ const phonesOf = (v: unknown): Phone[] => {
 };
 
 export async function loadCompany(locale: Locale): Promise<Company> {
-  const row = await db.companyProfile.findFirst().catch(() => null);
+  const [row, brand] = await Promise.all([
+    db.companyProfile.findFirst().catch(() => null),
+    /* โลโก้กับชื่อแบรนด์อยู่คนละตารางกับข้อมูลบริษัท (Branding ที่หน้า
+       /admin/branding) — คุณกิตติพงษ์แจ้ง 24 ส.ค. ว่าอัปโหลดโลโก้แล้วต้องขึ้น
+       ในกล่อง "ขอข้อมูลเพิ่มเติม" หน้าทรัพย์ ซึ่งเดิมวาดป้าย "JKP" ไว้ตายตัว */
+    db.branding.findFirst().catch(() => null),
+  ]);
   return {
+    brandName: brand?.brandName?.trim() || DEFAULTS.brandName,
+    brandLogo: brand?.logo?.trim() || '',
     legalName: row?.legalName?.trim() || DEFAULTS.legalName,
     address: tr(row?.address, locale, DEFAULTS.address),
     shortLocation: tr(row?.shortLocation, locale, DEFAULTS.shortLocation),
