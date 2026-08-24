@@ -8,6 +8,9 @@ export type SectionBlock = {
   /* only on the `settings` pseudo-locale: values that are the same in every
      language, so they are entered once rather than three times */
   map?: string;
+  /* วิธีวางรูปในกรอบ — เต็มกรอบแล้วตัดขอบ (cover) หรือย่อให้เห็นครบ (contain)
+     เป็นคุณสมบัติของรูป ไม่ใช่ของภาษา จึงอยู่ใน settings เหมือน map */
+  imgFit?: 'cover' | 'contain';
 };
 export type SectionContent = Record<string, SectionBlock>;
 

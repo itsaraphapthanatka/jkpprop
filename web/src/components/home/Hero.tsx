@@ -131,7 +131,7 @@ export function Hero({ copy, facets = { areas: [], colors: [], zones: [], featur
       <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', borderBottomRightRadius: '72px' }}>
         <div id="hero-parallax" style={{ position: 'absolute', inset: 0 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={copy.img || "https://images.unsplash.com/photo-1553413077-190dd305871c?w=1600&q=80"} alt={d.nav.warehouse} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          <img src={copy.img || "https://images.unsplash.com/photo-1553413077-190dd305871c?w=1600&q=80"} alt={d.nav.warehouse} style={{ width: '100%', height: '100%', objectFit: copy.imgFit, display: 'block' }} />
         </div>
       </div>
 

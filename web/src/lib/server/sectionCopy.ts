@@ -34,6 +34,12 @@ export type SectionCopy = {
      `settings`, not inside them. */
   map: string;
   img: string | null;
+  /* วิธีวางรูปในกรอบ — คุณกิตติพงษ์แจ้ง 24 ส.ค. ว่า "แสดงไม่เต็มรูป"
+     cover = เติมเต็มกรอบแล้วตัดส่วนเกินทิ้ง (ดีกับรูปพื้นหลัง)
+     contain = ย่อให้เห็นครบทั้งรูป (ต้องใช้กับรูปที่เนื้อหาอยู่ในภาพ เช่น
+     ภาพรวมโลโก้ลูกค้า อินโฟกราฟิก) — เลือกต่อรูปได้จากหลังบ้าน เพราะคนที่รู้ว่า
+     รูปไหนเป็นแบบไหนคือคนที่อัปรูป ไม่ใช่คนเขียนโค้ด */
+  imgFit: 'cover' | 'contain';
   enabled: boolean;
   /** items entered for THIS locale only — use for anything that reads as prose */
   items: SectionItem[];
@@ -43,7 +49,7 @@ export type SectionCopy = {
 
 export type PageCopy = Record<string, SectionCopy>;
 
-const EMPTY: SectionCopy = { eyebrow: '', headline: '', sub: '', cta: '', note: '', map: '', img: null, enabled: true, items: [], itemsAny: [] };
+const EMPTY: SectionCopy = { eyebrow: '', headline: '', sub: '', cta: '', note: '', map: '', img: null, imgFit: 'cover', enabled: true, items: [], itemsAny: [] };
 
 type Block = Partial<Record<keyof SectionCopy, unknown>>;
 
@@ -96,6 +102,7 @@ export async function loadPageCopy(pageKey: string, locale: Locale): Promise<Pag
       note: pick(content, locale, 'note'),
       map: typeof content.settings?.map === 'string' ? content.settings.map.trim() : '',
       img: row.img || null,
+      imgFit: content.settings?.imgFit === 'contain' ? 'contain' : 'cover',
       enabled: row.enabled,
       items: pickItems(content, locale, false),
       itemsAny: pickItems(content, locale, true),

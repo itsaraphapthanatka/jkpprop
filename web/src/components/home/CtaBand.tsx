@@ -180,7 +180,7 @@ export function CtaBand({ copy, company }: { copy: SectionCopy; company: Company
             <img
               src={copy.img || "https://images.unsplash.com/photo-1521791136064-7986c2920216?w=1000&q=80"}
               alt={d.cta.photoAlt}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'saturate(.9) brightness(.95)' }}
+              style={{ width: '100%', height: '100%', objectFit: copy.imgFit, display: 'block', filter: 'saturate(.9) brightness(.95)' }}
             />
             <div
               style={{

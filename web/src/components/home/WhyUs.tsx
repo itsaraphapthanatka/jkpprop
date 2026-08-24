@@ -89,7 +89,7 @@ export function WhyUs({ copy, kpi: kpiCopy, stats }: { copy: SectionCopy; kpi: S
                 ลูกค้า (แนวนอน 1672×941) พอยัดในกรอบสูง 480px ขอบซ้ายขวาโดนตัด
                 จนการ์ดโลโก้ริมสองข้างขาดครึ่ง · contain = เห็นครบทั้งรูป */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img id="whyus-img" src={copy.img || "https://images.unsplash.com/photo-1552664730-d307ca884978?w=1000&q=80"} alt={pick(copy.headline, d.whyUs.heading)} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+            <img id="whyus-img" src={copy.img || "https://images.unsplash.com/photo-1552664730-d307ca884978?w=1000&q=80"} alt={pick(copy.headline, d.whyUs.heading)} style={{ width: '100%', height: '100%', objectFit: copy.imgFit, display: 'block' }} />
             {/* ไล่เฉดนี้มีไว้ให้ป้ายรางวัลกับการ์ดรีวิวที่ลอยทับรูปอ่านออก
                 ถ้าไม่มีทั้งสองอย่างก็ไม่ต้องมี — จะได้ไม่ไปคลุมรูปให้หม่นเปล่า ๆ */}
             {(awardTitle || rating) && (

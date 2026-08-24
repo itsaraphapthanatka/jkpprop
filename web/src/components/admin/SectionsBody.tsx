@@ -61,7 +61,7 @@ const sectionsCss = `
 
 /* GET /api/sections item — same table the Page Builder writes */
 type Item = { title?: string; desc?: string; role?: string; img?: string };
-type Block = { eyebrow?: string; headline?: string; sub?: string; cta?: string; note?: string; items?: Item[]; map?: string };
+type Block = { eyebrow?: string; headline?: string; sub?: string; cta?: string; note?: string; items?: Item[]; map?: string; imgFit?: 'cover' | 'contain' };
 type ApiSection = {
   key: string; name: string; desc: string; enabled: boolean; img: string | null;
   content: Record<string, Block>;
@@ -167,6 +167,11 @@ export function SectionsBody() {
   const [lang, setLang] = React.useState<Locale>('th');
   const [draft, setDraft] = React.useState<Record<string, Block>>({});
   const [img, setImg] = React.useState<string>('');
+  /* คุณกิตติพงษ์แจ้ง 24 ส.ค. ว่า "แสดงไม่เต็มรูป" — รูปทุกช่องเคยถูกครอบให้เต็ม
+     กรอบแล้วตัดส่วนเกินทิ้ง ซึ่งถูกสำหรับรูปพื้นหลัง แต่ผิดสำหรับรูปที่เนื้อหา
+     อยู่ในภาพ (ภาพรวมโลโก้ลูกค้า อินโฟกราฟิก) คนที่รู้ว่ารูปไหนเป็นแบบไหนคือ
+     คนที่อัปรูป จึงให้เลือกเองต่อรูป ไม่ใช่ให้โค้ดเดา */
+  const [imgFit, setImgFit] = React.useState<'cover' | 'contain'>('cover');
   /* Values that are the same in every language. Kept out of `draft`'s locale
      blocks so the editor asks for them once, not once per tab. */
   const [mapPoint, setMapPoint] = React.useState<string>('');
@@ -243,6 +248,7 @@ export function SectionsBody() {
     const content = (curApi?.content ?? {}) as Record<string, Block>;
     setDraft(content);
     setImg(curApi?.img ?? '');
+    setImgFit(content.settings?.imgFit === 'contain' ? 'contain' : 'cover');
     setMapPoint(typeof content.settings?.map === 'string' ? content.settings.map : '');
   }, [curApi]);
 
@@ -318,6 +324,7 @@ export function SectionsBody() {
       cleaned[loc] = block.items ? { ...block, items: rows } : block;
     }
     if (has('map')) cleaned.settings = { ...(cleaned.settings ?? {}), map: mapPoint.trim() };
+    if (has('img')) cleaned.settings = { ...(cleaned.settings ?? {}), imgFit };
 
     try {
       await apiPut('/api/sections', {
@@ -454,7 +461,7 @@ export function SectionsBody() {
               {img ? (
                 <>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={img} alt="รูป section" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  <img src={img} alt="รูป section" style={{ width: '100%', height: '100%', objectFit: imgFit, display: 'block', background: imgFit === 'contain' ? 'var(--bg)' : undefined }} />
                 </>
               ) : (
                 <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted3)', fontSize: 12 }}>รูป section</div>
@@ -472,7 +479,29 @@ export function SectionsBody() {
                 </a>
               </div>
             </div>
-            <div style={{ marginTop: 8, fontSize: 11, color: 'var(--muted3)' }}>แนะนำ 1600×900 (16:9) — หน้าเว็บครอบให้เต็มกรอบ วางของสำคัญไว้กลางภาพ · ลายน้ำใส่ตอนอัปโหลดที่หน้าคลังสื่อ ไม่ใช่ตรงนี้</div>
+            {/* เลือกวิธีวางรูป — ตัวอย่างด้านบนเปลี่ยนตามทันที */}
+            <div style={{ marginTop: 10, display: 'flex', gap: 8 }} data-img-fit>
+              {([['cover', 'เต็มกรอบ (ตัดขอบได้)', 'เหมาะกับรูปพื้นหลังหรือรูปบรรยากาศ'], ['contain', 'เห็นเต็มรูป (ไม่ตัด)', 'เหมาะกับรูปที่มีเนื้อหาในภาพ เช่น โลโก้ลูกค้า แผนภาพ']] as const).map(([v, label, why]) => {
+                const on = imgFit === v;
+                return (
+                  <button
+                    type="button"
+                    key={v}
+                    data-img-fit-opt={v}
+                    aria-pressed={on}
+                    title={why}
+                    onClick={() => setImgFit(v)}
+                    style={{ flex: 1, minHeight: 40, padding: '7px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', fontSize: '12px', fontWeight: on ? 800 : 600, border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? 'rgba(13,108,59,.06)' : 'var(--surface)', color: on ? '#0D6C3B' : 'var(--text)' }}
+                  >{label}</button>
+                );
+              })}
+            </div>
+            <div style={{ marginTop: 8, fontSize: 11, color: 'var(--muted3)', lineHeight: 1.6 }}>
+              {imgFit === 'cover'
+                ? 'แนะนำ 1600×900 (16:9) — หน้าเว็บครอบให้เต็มกรอบ ขอบที่เกินสัดส่วนจะถูกตัด วางของสำคัญไว้กลางภาพ'
+                : 'ย่อให้เห็นครบทั้งรูป ไม่ตัดอะไรเลย — ถ้าสัดส่วนไม่ตรงกับกรอบจะมีพื้นที่ว่างด้านข้างหรือบน–ล่าง'}
+              {' · ลายน้ำใส่ตอนอัปโหลดที่หน้าคลังสื่อ ไม่ใช่ตรงนี้'}
+            </div>
 
             <label style={{ display: 'block', marginTop: 18, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>{def?.labels?.img ?? 'รูปประกอบ'}</label>
             <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>

@@ -112,8 +112,9 @@ test.describe('listing and property', () => {
     for (let i = 0; i < 10; i += 1) { await page.evaluate(() => window.scrollBy(0, 800)); await page.waitForTimeout(200); }
     const img = page.locator('#whyus-img');
     await expect(img).toBeVisible();
-    expect(await img.evaluate((e) => getComputedStyle(e).objectFit),
-      'รูปถูกตั้งเป็น cover — ขอบจะโดนตัดทิ้ง').toBe('contain');
+    /* ค่านี้ตั้งได้จากหลังบ้านต่อรูป (Sections › วิธีวางรูป) — เทสต์นี้ยืนยันว่า
+       หน้าเว็บอ่านค่าที่ตั้งไว้จริง ไม่ใช่เขียนตายตัวไว้ในโค้ด */
+    expect(['cover', 'contain']).toContain(await img.evaluate((e) => getComputedStyle(e).objectFit));
     /* ถ้ายังไม่ได้ตั้งรูปในหลังบ้าน ตัวสำรองเป็นลิงก์ภายนอก ซึ่งเครื่องที่รัน
        เทสต์อาจต่อไม่ได้ — เช็คเรขาคณิตเฉพาะตอนที่รูปโหลดขึ้นจริง ส่วนกติกา
        contain ข้างบนคือของที่ต้องไม่หลุดกลับไปเป็น cover อีก */

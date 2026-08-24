@@ -88,7 +88,7 @@ export function AboutBody({ copy, stats: live }: { copy: AboutCopy; stats?: Publ
       <section style={{ position: 'relative', height: '220px' }}>
         <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', borderBottomRightRadius: '72px' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={copy.ah.img || "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1600&q=80"} alt={pick(copy.ah.headline, d.about.hero)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          <img src={copy.ah.img || "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1600&q=80"} alt={pick(copy.ah.headline, d.about.hero)} style={{ width: '100%', height: '100%', objectFit: copy.ah.imgFit, display: 'block' }} />
         </div>
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg,rgba(var(--ink2-rgb),.82) 0%,rgba(var(--ink2-rgb),.5) 55%,rgba(var(--ink2-rgb),.28) 100%)', pointerEvents: 'none', borderBottomRightRadius: '72px' }} />
         <div style={{ position: 'relative', zIndex: 2, maxWidth: '1320px', margin: '0 auto', padding: '0 24px', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
@@ -132,7 +132,7 @@ export function AboutBody({ copy, stats: live }: { copy: AboutCopy; stats?: Publ
             </div>
             <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', boxShadow: '0 20px 44px rgba(var(--ink-rgb),.15)' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={copy.st.img || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=700&q=80"} alt={d.about.storyCaption} style={{ width: '100%', height: '360px', objectFit: 'cover', display: 'block' }} />
+              <img src={copy.st.img || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=700&q=80"} alt={d.about.storyCaption} style={{ width: '100%', height: '360px', objectFit: copy.st.imgFit, display: 'block' }} />
               <div style={{ position: 'absolute', top: 14, left: 14, display: 'flex', alignItems: 'center', gap: 6, height: 26, padding: '0 12px', borderRadius: 9999, background: 'rgba(255,255,255,.92)', color: 'var(--accent)', fontSize: 11, fontWeight: 700 }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.4"><path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 19.3 7.2 17l.9-5.4L4.2 7.7l5.4-.8z" /></svg>
                 {d.about.storyCaption}

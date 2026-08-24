@@ -275,6 +275,57 @@ test.describe('คอมเมนต์ลูกค้า · แยกหมว�
    คุณ Jacky อธิบายเพิ่ม 24 ส.ค.: "require field หรือ บังคับ ให้สามารถเปิดปิดได้เอง"
    คือป้าย "บังคับ" ใน Field Builder ที่เคยเขียนตายตัวในโค้ด — ปิดไม่ได้ ทีมจึง
    ต้องกรอกช่องที่บางทรัพย์ไม่มีข้อมูลจริง และปิดฟิลด์นั้นทิ้งก็ไม่ได้ */
+/* คุณกิตติพงษ์แจ้ง 24 ส.ค. · "รูปไม่เต็มตามหลังบ้าน" · "แสดงไม่เต็มรูป"
+   ทุกช่องรูปใน CMS เคยครอบให้เต็มกรอบแล้วตัดส่วนเกินทิ้ง ซึ่งถูกกับรูปพื้นหลัง
+   แต่ผิดกับรูปที่เนื้อหาอยู่ในภาพ (ภาพรวมโลโก้ลูกค้า) — คนที่รู้ว่ารูปไหนเป็น
+   แบบไหนคือคนที่อัปรูป จึงให้เลือกเองต่อรูปจากหลังบ้าน */
+test.describe('คอมเมนต์ลูกค้า · เลือกได้ว่ารูปจะเต็มกรอบหรือเห็นครบทั้งรูป', () => {
+  test('ตั้งจากหลังบ้านแล้วหน้าเว็บเปลี่ยนตามจริง ทั้งสองแบบ', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const rows = (await (await request.get('/api/sections', { headers: { cookie } })).json()).items as { key: string }[];
+    const w = (rows ?? []).find((r) => r.key === 'w');
+    expect(w, 'ไม่พบ section "ทำไมต้องเลือกเรา"').toBeTruthy();
+
+    const setFit = async (fit: 'cover' | 'contain') => {
+      const res = await request.put('/api/sections', {
+        headers: { cookie },
+        data: { page: 'home', sections: [{ key: 'w', content: { settings: { imgFit: fit } } }] },
+      });
+      expect(res.ok(), await res.text()).toBeTruthy();
+    };
+    const fitOnSite = async () => {
+      await page.goto('/th');
+      for (let i = 0; i < 10; i += 1) { await page.evaluate(() => window.scrollBy(0, 800)); await page.waitForTimeout(180); }
+      await expect(page.locator('#whyus-img')).toBeVisible();
+      return page.locator('#whyus-img').evaluate((e) => getComputedStyle(e).objectFit);
+    };
+
+    try {
+      /* เห็นครบทั้งรูป — อาการที่ลูกค้าทักคือรูปโดนตัดขอบ */
+      await setFit('contain');
+      expect(await fitOnSite(), 'ตั้งให้เห็นเต็มรูปแล้ว แต่หน้าเว็บยังตัดขอบอยู่').toBe('contain');
+
+      /* และต้องกลับไปเต็มกรอบได้ ไม่ใช่เปลี่ยนทางเดียว */
+      await setFit('cover');
+      expect(await fitOnSite(), 'ตั้งกลับเป็นเต็มกรอบแล้วแต่หน้าเว็บไม่เปลี่ยน').toBe('cover');
+
+      /* ตัวเลือกต้องมีให้กดจริงในหน้าแก้ section ไม่ใช่ตั้งได้แค่ทาง API */
+      await page.goto('/admin/sections');
+      await expect(page.locator('[data-img-fit-opt="contain"]').first()).toBeVisible({ timeout: 20000 });
+      await expect(page.locator('[data-img-fit-opt="cover"]').first()).toBeVisible();
+    } finally {
+      /* คืนค่าที่ลูกค้าใช้อยู่จริง — รูปบล็อกนี้เป็นภาพรวมโลโก้ลูกค้า ต้องเห็นครบ */
+      await setFit('contain');
+    }
+  });
+});
+
 /* คุณกิตติพงษ์แจ้ง 24 ส.ค. · "upload logo ให้แสดงตามรูปที่มีลูกศรชี้ไป"
    โลโก้ที่อัปโหลดไว้ที่ /admin/branding ไม่เคยถูกใช้ที่ไหนบนเว็บเลย กล่อง
    "ขอข้อมูลเพิ่มเติม" หน้าทรัพย์วาดป้าย "JKP" กับชื่อ "JKP Property" ไว้ตายตัว */

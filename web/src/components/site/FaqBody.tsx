@@ -77,7 +77,7 @@ export function FaqBody({ cats, copy }: { cats?: FaqCategory[]; copy: SectionCop
       <section style={{ position: 'relative', height: '220px' }}>
         <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', borderBottomRightRadius: '72px' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={copy.img || "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1600&q=80"} alt={d.faq.heroAlt} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          <img src={copy.img || "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1600&q=80"} alt={d.faq.heroAlt} style={{ width: '100%', height: '100%', objectFit: copy.imgFit, display: 'block' }} />
         </div>
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg,rgba(var(--ink2-rgb),.82) 0%,rgba(var(--ink2-rgb),.5) 55%,rgba(var(--ink2-rgb),.28) 100%)', pointerEvents: 'none', borderBottomRightRadius: '72px' }} />
         <div style={{ position: 'relative', zIndex: 2, maxWidth: '1320px', margin: '0 auto', padding: '0 24px', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
