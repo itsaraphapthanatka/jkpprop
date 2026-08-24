@@ -472,7 +472,7 @@ export function SectionsBody() {
                 </a>
               </div>
             </div>
-            <div style={{ marginTop: 8, fontSize: 11, color: 'var(--muted3)' }}>แนะนำ 1920×1080 · ลายน้ำใส่ตอนอัปโหลดที่หน้าคลังสื่อ ไม่ใช่ตรงนี้</div>
+            <div style={{ marginTop: 8, fontSize: 11, color: 'var(--muted3)' }}>แนะนำ 1600×900 (16:9) — หน้าเว็บครอบให้เต็มกรอบ วางของสำคัญไว้กลางภาพ · ลายน้ำใส่ตอนอัปโหลดที่หน้าคลังสื่อ ไม่ใช่ตรงนี้</div>
 
             <label style={{ display: 'block', marginTop: 18, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>{def?.labels?.img ?? 'รูปประกอบ'}</label>
             <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>

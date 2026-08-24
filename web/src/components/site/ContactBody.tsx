@@ -75,7 +75,9 @@ export function ContactBody({ copy, company }: { copy: ContactCopy; company: Com
           </div>
         </div>
 
-        {/* phones */}
+        {/* phones — ค่าตั้งต้นถูกเอาออกแล้ว (ข้อ 20) ยังไม่กรอกก็ไม่ต้องขึ้น
+            หัวข้อลอย ๆ ที่ไม่มีเบอร์อยู่ข้างใต้ */}
+        {company.phones.length > 0 && (
         <div style={infoCard}>
           <div style={iconCircle('var(--pine)')} {...iconHover('0 8px 18px rgba(var(--pine-rgb),.4)')}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--neon)" strokeWidth="2"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z" /></svg>
@@ -102,20 +104,31 @@ export function ContactBody({ copy, company }: { copy: ContactCopy; company: Com
             </div>
           </div>
         </div>
+        )}
 
         {/* emails */}
+        {(company.salesEmail || company.generalEmail) && (
         <div style={infoCard}>
           <div style={iconCircle('var(--pine)')} {...iconHover('0 8px 18px rgba(var(--pine-rgb),.4)')}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--neon)" strokeWidth="2"><path d="M22 6l-10 7L2 6" /><rect x="2" y="4" width="20" height="16" rx="2" /></svg>
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>{d.contact.reachUs}</div>
-            <div style={{ marginTop: 14, fontSize: '12.5px', fontWeight: 700, color: 'var(--muted2)' }}>{d.contact.salesEnquiry}</div>
-            <a className="c-email" href={`mailto:${company.salesEmail}`} style={emailPill}>{company.salesEmail}</a>
-            <div style={{ marginTop: 16, fontSize: '12.5px', fontWeight: 700, color: 'var(--muted2)' }}>{d.contact.generalEnquiry}</div>
-            <a className="c-email" href={`mailto:${company.generalEmail}`} style={emailPill}>{company.generalEmail}</a>
+            {company.salesEmail && (
+              <>
+                <div style={{ marginTop: 14, fontSize: '12.5px', fontWeight: 700, color: 'var(--muted2)' }}>{d.contact.salesEnquiry}</div>
+                <a className="c-email" href={`mailto:${company.salesEmail}`} style={emailPill}>{company.salesEmail}</a>
+              </>
+            )}
+            {company.generalEmail && (
+              <>
+                <div style={{ marginTop: 16, fontSize: '12.5px', fontWeight: 700, color: 'var(--muted2)' }}>{d.contact.generalEnquiry}</div>
+                <a className="c-email" href={`mailto:${company.generalEmail}`} style={emailPill}>{company.generalEmail}</a>
+              </>
+            )}
           </div>
         </div>
+        )}
 
         {/* hours + socials */}
         <div id="hours-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, padding: '6px 4px' }}>
@@ -123,13 +136,17 @@ export function ContactBody({ copy, company }: { copy: ContactCopy; company: Com
             <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)' }}>{d.contact.hours}</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', height: 32, padding: '0 14px', borderRadius: 9999, background: 'var(--surface)', border: '1px solid var(--border)', fontSize: 13, color: 'var(--muted)' }}>{company.hoursDays} <span style={{ fontWeight: 700, color: 'var(--text)', marginLeft: 5 }}>{company.hoursValue}</span></span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 13, color: 'var(--muted2)' }}>{d.contact.contactAt}</span>
-            <SocialLinks
-              socials={company.socials}
-              iconStyle={{ width: 38, height: 38, borderRadius: 11, background: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--neon)' }}
-            />
-          </div>
+          {/* ยังไม่ได้กรอกช่องทางออนไลน์ ก็ไม่ต้องขึ้นคำว่า "ติดต่อเราที่:"
+              ค้างไว้เฉย ๆ โดยไม่มีไอคอนอะไรตามมา */}
+          {company.socials.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 13, color: 'var(--muted2)' }}>{d.contact.contactAt}</span>
+              <SocialLinks
+                socials={company.socials}
+                iconStyle={{ width: 38, height: 38, borderRadius: 11, background: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--neon)' }}
+              />
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 /* Branding (§9 /admin/branding) — colours, font, radius, logo per tenant.
    GET is public-readable so the site can theme itself; PUT is owner+marketing. */
 import { ok, handler, ApiError } from '@/lib/server/api';
+import { refreshPublicPages } from '@/lib/server/publicCache';
 import { requireUser, requireRole } from '@/lib/server/auth';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
@@ -90,5 +91,6 @@ export const PUT = handler(async (req: Request) => {
     before: before ? { primary: before.primary, font: before.font, radius: before.radius, watermark: wmFingerprint(wmNow) } : null,
     after: { primary: saved.primary, font: saved.font, radius: saved.radius, watermark: wmFingerprint(wmNext) },
   });
+  refreshPublicPages();
   return ok({ ...data, watermark: wmNext, watermarkVersion: saved.wmVersion });
 });

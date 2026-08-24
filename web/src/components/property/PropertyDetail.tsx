@@ -95,12 +95,43 @@ const chipIcon = (label: string): React.ReactNode => {
 export type RelatedProperty = CardListing;
 
 const sectionCard: React.CSSProperties = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, padding: '26px 28px' };
-const sectionHead = (title: string, mb = 18): React.ReactNode => (
+const sectionHead = (title: string, mb = 18, icon?: React.ReactNode): React.ReactNode => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: mb }}>
-    <span style={{ width: 26, height: 2, background: 'var(--pine)', borderRadius: 2 }} />
+    {/* เด็ค Web 2026 ข้อ 4 · ลูกค้าขอไอคอนที่หัวข้อ พื้นที่สี · การใช้งานที่เหมาะ ·
+        คุณสมบัติของทรัพย์ — หัวข้ออื่นยังเป็นขีดสั้นเหมือนเดิม */}
+    {icon
+      ? <span aria-hidden style={{ display: 'flex', color: 'var(--pine)' }}>{icon}</span>
+      : <span style={{ width: 26, height: 2, background: 'var(--pine)', borderRadius: 2 }} />}
     <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>{title}</h2>
   </div>
 );
+
+const headIcon = (paths: React.ReactNode) => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">{paths}</svg>
+);
+/* ป้ายกำกับ · ตะแกรงกล่อง · แผนผังพื้นที่ — คนละรูปกันจะได้กวาดตาหาหัวข้อเจอ */
+const ICON_FEATURES = headIcon(<><path d="M20.6 13.4L12 22l-9-9V3h10l7.6 7.6a2 2 0 010 2.8z" /><circle cx="7.5" cy="7.5" r="1.5" /></>);
+const ICON_USAGE = headIcon(<><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></>);
+const ICON_ZONING = headIcon(<><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z" /><path d="M9 3v15M15 6v15" /></>);
+
+/* เด็ค Web 2026 ข้อ 4 · "กดแล้วไม่ไปแท็ค" — ค่าในตารางที่เป็นทำเลหรือประเภท
+   เคยเป็นตัวหนังสือเฉย ๆ ทั้งที่หน้ารายการกรองด้วยค่าพวกนี้ได้อยู่แล้ว
+   คืนค่า null สำหรับแถวที่กดไปก็ไม่มีอะไรให้กรอง (ตัวเลข ราคา ฯลฯ) */
+function tagHref(key: string, value: string): string | null {
+  const v = value.trim();
+  if (!v || v === '—') return null;
+  if (key === 'province') return `/listing?province=${encodeURIComponent(v)}`;
+  if (key === 'district') return `/listing?district=${encodeURIComponent(v)}`;
+  if (key === 'subdistrict') return `/listing?subdistrict=${encodeURIComponent(v)}`;
+  if (key === 'property_type') return `/listing?type=${encodeURIComponent(v)}`;
+  if (key === 'deal_type') {
+    /* ค่าที่เก็บเขียนได้หลายแบบ — ดูที่คำว่า "ขาย" กับ "เช่า" พอ */
+    if (/เช่า|rent/i.test(v)) return '/listing?deal=rent';
+    if (/ขาย|sale/i.test(v)) return '/listing?deal=sale';
+    return null;
+  }
+  return null;
+}
 
 const pin = (w: number, stroke: string, sw = '1.8') => (
   <svg width={w} height={w} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw}>
@@ -305,12 +336,23 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
             <div style={sectionCard}>
               {sectionHead(d.property.specs)}
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {specs.rows.map((r) => (
-                  <div key={r.key} data-spec-row={r.key} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
-                    <span style={{ fontSize: '13.5px', color: 'var(--muted)' }}>{r.label}</span>
-                    <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', textAlign: 'right' }}>{r.value}</span>
-                  </div>
-                ))}
+                {specs.rows.map((r) => {
+                  const href = tagHref(r.key, r.value);
+                  return (
+                    <div key={r.key} data-spec-row={r.key} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+                      <span style={{ fontSize: '13.5px', color: 'var(--muted)' }}>{r.label}</span>
+                      {href ? (
+                        <Link
+                          href={href}
+                          data-spec-tag={r.key}
+                          style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--accent)', textAlign: 'right', textDecoration: 'underline', textUnderlineOffset: 3, textDecorationColor: 'rgba(var(--accent-rgb),.35)' }}
+                        >{r.value}</Link>
+                      ) : (
+                        <span style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', textAlign: 'right' }}>{r.value}</span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -318,7 +360,7 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
           {/* FEATURES */}
           {specs.features.length > 0 && (
             <div style={sectionCard}>
-              {sectionHead(d.property.features)}
+              {sectionHead(d.property.features, 18, ICON_FEATURES)}
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 {specs.features.map((f) => (
                   <div key={f} data-feature style={{ display: 'flex', alignItems: 'center', gap: 9, height: 44, padding: '0 16px', borderRadius: 12, background: 'var(--bg)', border: '1px solid var(--border)' }}>
@@ -333,7 +375,7 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
           {/* การใช้งานที่เหมาะ — ข้อมูลมีอยู่ทุกรายการแต่ไม่เคยถูกแสดง */}
           {specs.usage.length > 0 && (
             <div style={sectionCard}>
-              {sectionHead(d.property.usage)}
+              {sectionHead(d.property.usage, 18, ICON_USAGE)}
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 {specs.usage.map((u) => (
                   <div key={u} data-usage style={{ display: 'flex', alignItems: 'center', gap: 9, height: 44, padding: '0 16px', borderRadius: 12, background: 'var(--tint)', border: '1px solid var(--border)' }}>
@@ -350,7 +392,7 @@ export function PropertyDetail({ property }: { property: PublicProperty }) {
               ตรงกับคอมเมนต์สไลด์ 12 "โซนแสดงผลไม่ตรง" */}
           {zoning && (
             <div style={sectionCard}>
-              {sectionHead(d.listing.zoneColor)}
+              {sectionHead(d.listing.zoneColor, 18, ICON_ZONING)}
               <Link
                 href={`/listing?zone=${encodeURIComponent(zoningKey ?? '')}`}
                 data-tag="zoning"

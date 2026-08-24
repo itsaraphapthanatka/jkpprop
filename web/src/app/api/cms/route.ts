@@ -3,6 +3,7 @@
    POST — create an item
    RBAC per MATRIX "CMS / Page Builder / Sections": owner + marketing */
 import { ok, handler, ApiError } from '@/lib/server/api';
+import { refreshPublicPages } from '@/lib/server/publicCache';
 import { requireUser, requireRole } from '@/lib/server/auth';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
@@ -91,5 +92,6 @@ export const POST = handler(async (req: Request) => {
     },
   });
   await audit({ user, orgId: user.orgId, action: 'cms.create', entity: 'cmsPage', entityId: created.id, after: { kind, slug, title } });
+  refreshPublicPages();
   return ok({ id: created.id, slug: created.slug }, { status: 201 });
 });

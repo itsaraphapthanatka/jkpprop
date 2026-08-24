@@ -176,9 +176,13 @@ export function DealTitle() {
   const statusBadge: React.CSSProperties = closed || deal?.status === 'won'
     ? { fontSize: 12, fontWeight: 700, color: '#fff', background: '#0D6C3B', padding: '2px 8px', borderRadius: 6 }
     : { fontSize: 12, fontWeight: 700, color: '#034956', background: '#EEF4F3', padding: '2px 8px', borderRadius: 6 };
+  /* เด็ค Web 2026 ข้อ 22 · หัวเรื่องเคยเป็นรหัสล้วน ๆ ให้เดาเอาว่าดีลของใคร
+     — เอาชื่อลูกค้ามานำ แล้วตามด้วยรหัส เหมือนที่แก้ไปแล้วในหน้า REQ กับ Visits */
+  const code = dealId ? `DEAL-${dealId.slice(-6).toUpperCase()}` : '';
+  const who = deal?.customer?.trim() || '';
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-      {dealId ? `DEAL-${dealId.slice(-6).toUpperCase()}` : 'ดีล'} <code style={statusBadge}>{statusLabel}</code>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+      {code ? (who ? `${who} — ${code}` : code) : 'ดีล'} <code style={statusBadge}>{statusLabel}</code>
     </span>
   );
 }

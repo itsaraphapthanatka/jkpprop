@@ -84,19 +84,24 @@ export function ContentFooter({ email, phone, location, socials = [], pages = []
         <div>
           <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 16 }}>{d.footer.contact}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 14, color: '#8E8B84' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
-              <svg style={{ flexShrink: 0, marginTop: 2 }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--neon)" strokeWidth="2">
-                <path d="M22 6l-10 7L2 6" />
-                <rect x="2" y="4" width="20" height="16" rx="2" />
-              </svg>
-              {email}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
-              <svg style={{ flexShrink: 0, marginTop: 2 }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--neon)" strokeWidth="2">
-                <path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z" />
-              </svg>
-              {phone}
-            </div>
+            {/* ยังไม่ได้กรอกก็ไม่ต้องขึ้นไอคอนที่ไม่มีอะไรอยู่ข้าง ๆ (ข้อ 20) */}
+            {email && (
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+                <svg style={{ flexShrink: 0, marginTop: 2 }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--neon)" strokeWidth="2">
+                  <path d="M22 6l-10 7L2 6" />
+                  <rect x="2" y="4" width="20" height="16" rx="2" />
+                </svg>
+                {email}
+              </div>
+            )}
+            {phone && (
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+                <svg style={{ flexShrink: 0, marginTop: 2 }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--neon)" strokeWidth="2">
+                  <path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z" />
+                </svg>
+                {phone}
+              </div>
+            )}
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
               <svg style={{ flexShrink: 0, marginTop: 2 }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--neon)" strokeWidth="2">
                 <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z" />

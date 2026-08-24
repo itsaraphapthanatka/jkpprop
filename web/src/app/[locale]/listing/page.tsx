@@ -42,6 +42,11 @@ export default async function ListingPage({ searchParams }: { searchParams: Prom
   /* ?zone= — แท็กพื้นที่สีบนหน้ารายละเอียดลิงก์มาที่นี่ (สไลด์ 12
      "กดแล้วไม่ไปตามแท็ค") รับเฉพาะสีที่ระบบรู้จัก */
   const zoneColor = ZONE_COLORS.includes(one('zone') ?? '') ? one('zone') : undefined;
+  /* ?district= ?subdistrict= — แท็กอำเภอ/ตำบลบนหน้ารายละเอียด (ข้อ 4)
+     ไม่มีตารางกลางให้เทียบเหมือนจังหวัด จึงรับค่าดิบมาตรง ๆ แล้วให้ตัวกรอง
+     ฝั่งหน้าเว็บจับคู่กับค่าที่ทีมกรอกไว้เอง */
+  const district = one('district')?.slice(0, 80);
+  const subdistrict = one('subdistrict')?.slice(0, 80);
   const more = readFilterParams(sp);
   const price = PRICE_ITEMS.includes(one('price') ?? '') ? one('price') : undefined;
 
@@ -51,9 +56,11 @@ export default async function ListingPage({ searchParams }: { searchParams: Prom
   const saved = one('saved') === '1';
 
   const preset = {
-    breadcrumb: province ?? zoneColor ?? q ?? '',
+    breadcrumb: subdistrict ?? district ?? province ?? zoneColor ?? q ?? '',
     ...(saved ? { onlyFavs: true } : {}),
     ...(province ? { province } : {}),
+    ...(district ? { districtSel: [district] } : {}),
+    ...(subdistrict ? { subdistrictSel: [subdistrict] } : {}),
     ...(q ? { q } : {}),
     ...(deal === 'rent' || deal === 'sale' ? { listingMode: deal as 'rent' | 'sale' } : {}),
     ...(type ? { typeSel: [type] } : {}),

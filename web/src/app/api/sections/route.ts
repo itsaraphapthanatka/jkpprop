@@ -5,6 +5,7 @@
    GET  ?page=home|about|contact
    PUT  — upsert the whole section list for one page (order = array order) */
 import { ok, handler, ApiError } from '@/lib/server/api';
+import { refreshPublicPages } from '@/lib/server/publicCache';
 import { requireUser, requireRole } from '@/lib/server/auth';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
@@ -83,5 +84,6 @@ export const PUT = handler(async (req: Request) => {
   });
 
   const rows = await db.pageSection.findMany({ where: { orgId: user.orgId, pageKey: page }, orderBy: { sort: 'asc' } });
+  refreshPublicPages();
   return ok({ items: rows.map((s) => ({ id: s.id, key: s.key, sort: s.sort, enabled: s.enabled })) });
 });

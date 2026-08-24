@@ -43,12 +43,18 @@ const DEFAULTS = {
     zh: '41/6 Moo 7, Bangna-Trad Rd km 16.5, Bang Chalong, Bang Phli, Samut Prakan 10540（总部）',
   } as Tr,
   shortLocation: { th: 'สมุทรปราการ, ประเทศไทย', en: 'Samut Prakan, Thailand', zh: '北榄府，泰国' } as Tr,
-  phones: [
-    { number: '+66 80-830-4005', label: 'English / ไทย' },
-    { number: '+66 90-217-4005', label: '中文' },
-  ] as Phone[],
-  salesEmail: 'atsokoproperty.sales@gmail.com',
-  generalEmail: 'atsokoproperty@gmail.com',
+  /* เด็ค Web 2026 ข้อ 20 · "ที่คุยกันต้องเป็นข้อมูลบริษัทเราครับ · ไม่แสดงผลครับ"
+     ค่าตั้งต้นชุดนี้เคยมีเบอร์และอีเมลของอีกบริษัทหนึ่งติดมากับเทมเพลต
+     (atsokoproperty@gmail.com) พอช่อง "อีเมลฝ่ายขาย" ในหลังบ้านยังว่าง
+     หน้าติดต่อจึงเอาอีเมลนั้นขึ้นแทน — บนเว็บจริงตอนนี้ก็ยังขึ้นอยู่ แปลว่า
+     คนที่ส่งเรื่องเข้ามาทางอีเมลฝ่ายขาย ส่งไปเข้ากล่องของคนอื่น
+
+     ช่องติดต่อจึงต้องไม่มีค่าตั้งต้นเด็ดขาด — ว่างแล้วให้ไม่แสดง ดีกว่าพา
+     ลูกค้าไปหาคนอื่น · ชื่อบริษัท ที่อยู่ และเวลาทำการยังมีค่าตั้งต้นได้
+     เพราะเป็นของ JKP เองและไม่ได้พาใครไปไหน */
+  phones: [] as Phone[],
+  salesEmail: '',
+  generalEmail: '',
   hoursDays: { th: 'จันทร์ - ศุกร์:', en: 'Monday – Friday:', zh: '周一至周五：' } as Tr,
   hoursValue: '9:00 - 18:00 น.',
 };
@@ -106,8 +112,9 @@ export async function loadCompany(locale: Locale): Promise<Company> {
     address: tr(row?.address, locale, DEFAULTS.address),
     shortLocation: tr(row?.shortLocation, locale, DEFAULTS.shortLocation),
     phones: phonesOf(row?.phones),
-    salesEmail: row?.salesEmail?.trim() || DEFAULTS.salesEmail,
-    generalEmail: row?.generalEmail?.trim() || DEFAULTS.generalEmail,
+    /* กรอกมาอันเดียวก็ใช้อันนั้นทั้งสองที่ ดีกว่าปล่อยให้ช่องหนึ่งว่างเปล่า */
+    salesEmail: row?.salesEmail?.trim() || row?.generalEmail?.trim() || '',
+    generalEmail: row?.generalEmail?.trim() || row?.salesEmail?.trim() || '',
     hoursDays: tr(row?.hoursDays, locale, DEFAULTS.hoursDays),
     hoursValue: row?.hoursValue?.trim() || DEFAULTS.hoursValue,
     socials: ([

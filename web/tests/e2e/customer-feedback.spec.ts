@@ -241,6 +241,120 @@ test.describe('คอมเมนต์ลูกค้า · แยกหมว�
   });
 });
 
+/* เด็ค Web 2026 ข้อ 21 · 22 · 24 — สามข้อที่ลูกค้าจัดเป็น "แก้ได้เลย" */
+test.describe('คอมเมนต์ลูกค้า · ด่านเปิดดีล ชื่อดีล และช่องค้นหาทรัพย์', () => {
+  const signIn = async (page: import('@playwright/test').Page) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    return (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  };
+
+  /* ข้อ 21 · "1 เกณฑ์เดิม — จัดนัดต่อ ถึงจะไป 2 เปิดดีล (เจรจา) ได้ ·
+     ตอนนี้เปิดดีล (เจรจา) ได้เลย โดยที่ไม่ต้องกด" */
+  test('ยังไม่ยืนยันเกณฑ์ เปิดดีลไม่ได้ ทั้งที่ปุ่มและที่ API', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const props = (await (await request.get('/api/properties', { headers: { cookie } })).json()).items as { publicCode: string; status: string }[];
+    const code = props.find((p) => p.status === 'active')?.publicCode;
+    test.skip(!code, 'ยังไม่มีทรัพย์ที่เผยแพร่');
+
+    const when = new Date();
+    when.setDate(when.getDate() + 4);
+    const visit = await (await request.post('/api/visits', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { date: when.toISOString(), codes: [code] },
+    })).json();
+    let dealId = '';
+    try {
+      await page.goto(`/admin/visits/${visit.id}`);
+      const btn = page.locator('#visit-open-deal');
+      await expect(btn).toBeVisible();
+      await expect(btn, 'ปุ่มเปิดดีลต้องถูกล็อกจนกว่าจะยืนยันเกณฑ์').toHaveAttribute('data-gate-locked', 'true');
+      /* กดแล้วต้องไม่มีอะไรเปิดขึ้นมา */
+      await btn.click();
+      await page.waitForTimeout(400);
+      await expect(page.getByText('เปิดดีล', { exact: true })).toHaveCount(0);
+
+      /* ยิง API ตรงก็ต้องไม่ผ่าน ไม่งั้นล็อกแค่หน้าจอก็ข้ามได้ */
+      const sneak = await request.post('/api/deals', {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { title: 'ทดสอบข้ามด่าน', propertyCode: code, visitId: visit.id, amount: 1 },
+      });
+      expect(sneak.status(), 'ยิง API ตรงแล้วเปิดดีลได้ทั้งที่ยังไม่ยืนยันเกณฑ์').toBe(409);
+
+      /* ยืนยันเกณฑ์แล้วต้องเปิดได้ */
+      await request.patch(`/api/visits/${visit.id}`, {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { gateConfirmed: true },
+      });
+      const okRes = await request.post('/api/deals', {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { title: 'ทดสอบเปิดดีลหลังยืนยัน', propertyCode: code, visitId: visit.id, amount: 1 },
+      });
+      expect(okRes.status(), await okRes.text()).toBe(201);
+      dealId = (await okRes.json()).id;
+
+      await page.reload();
+      await expect(page.locator('#visit-open-deal')).not.toHaveAttribute('data-gate-locked', 'true');
+    } finally {
+      if (dealId) await request.delete(`/api/deals/${dealId}`, { headers: { cookie } }).catch(() => null);
+      await request.delete(`/api/visits/${visit.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+
+  /* ข้อ 22 · หัวเรื่องดีลเคยเป็นรหัสล้วน ๆ ให้เดาว่าเป็นของใคร */
+  test('หัวเรื่องดีลอ่านเป็น "ชื่อลูกค้า — รหัสดีล"', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const leads = (await (await request.get('/api/leads', { headers: { cookie } })).json()).items as { id: string; name: string; company: string | null }[];
+    const lead = leads.find((l) => (l.company || l.name || '').trim());
+    test.skip(!lead, 'ยังไม่มี lead ในระบบ');
+    const who = (lead!.company || lead!.name).trim();
+
+    const made = await request.post('/api/deals', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { title: 'ทดสอบหัวเรื่องดีล', leadId: lead!.id, amount: 0 },
+    });
+    expect(made.status(), await made.text()).toBe(201);
+    const { id } = await made.json();
+    const codeTail = `DEAL-${String(id).slice(-6).toUpperCase()}`;
+    try {
+      await page.goto(`/admin/deals/${id}`);
+      const h = page.locator('h1').first();
+      await expect(h).toContainText(codeTail);
+      await expect(h, 'หัวเรื่องยังไม่บอกว่าเป็นดีลของลูกค้าเจ้าไหน').toContainText(who);
+    } finally {
+      await request.delete(`/api/deals/${id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+
+  /* ข้อ 24 · "เป็นพิมพ์รหัสทรัพย์ เพื่อค้นหาแทนครับ" */
+  test('ช่องเลือกทรัพย์ในสัญญาเช่า พิมพ์รหัสแล้วค้นให้', async ({ page, request }) => {
+    const cookie = await signIn(page);
+    const props = (await (await request.get('/api/properties', { headers: { cookie } })).json()).items as { publicCode: string }[];
+    test.skip(props.length < 2, 'ทรัพย์ในระบบน้อยเกินกว่าจะทดสอบการค้น');
+    const code = props[0].publicCode;
+
+    await page.goto('/admin/notifications');
+    await page.getByRole('button', { name: /เพิ่มสัญญา|เพิ่ม/ }).first().click();
+    const box = page.locator('[data-lease-code]');
+    await expect(box).toBeVisible();
+    /* ต้องเป็นช่องพิมพ์ ไม่ใช่ dropdown ที่ไล่ทรัพย์ทั้งคลัง */
+    expect(await box.evaluate((el) => el.tagName), 'ยังเป็น dropdown อยู่').toBe('INPUT');
+
+    await box.fill(code);
+    const opt = page.locator(`[data-lease-code-opt="${code}"]`);
+    await expect(opt, 'พิมพ์รหัสแล้วไม่ขึ้นรายการให้เลือก').toBeVisible();
+    await opt.click();
+    await expect(box).toHaveValue(code);
+
+    /* คำที่ไม่ตรงอะไรเลย ต้องบอกตรง ๆ ว่าไม่พบ ไม่ใช่เงียบ */
+    await box.fill('ZZZ-ไม่มีจริง');
+    await expect(page.locator('[data-lease-code-list]')).toContainText('ไม่พบทรัพย์');
+  });
+});
+
 /* สไลด์ 6 · "แผนที่เละ อาจจะเกี่ยวกับขนาด" — การ์ดของแต่ละจังหวัดค้างเปิด
    พร้อมกันเต็มจอ เพราะ Leaflet ปิด tooltip เมื่อได้ mouseout เท่านั้น เลื่อนเมาส์
    ข้ามหลายจังหวัดเร็ว ๆ แล้ว mouseout บางตัวไม่มาถึง */

@@ -34,7 +34,12 @@ export function DealPage({ dealId }: { dealId?: string }) {
         active="deals"
         eyebrow={eyebrow as unknown as string}
         title={(<DealTitle />) as unknown as string}
-        actions={<><RecordPicker base="deals" endpoint="/api/deals" currentId={dealId} toRow={(d) => ({ id: String(d.id), label: String(d.title || 'ดีล'), meta: `${d.status}${d.locked ? ' · ล็อก' : ''}` })} /><DealActions /></>}
+        actions={<><RecordPicker base="deals" endpoint="/api/deals" currentId={dealId} toRow={(d) => {
+          /* ข้อ 22 · รายการเลือกดีลก็ต้องอ่านออกว่าเป็นของลูกค้าเจ้าไหน */
+          const c = `DEAL-${String(d.id).slice(-6).toUpperCase()}`;
+          const who = String(d.customer || '').trim();
+          return { id: String(d.id), label: who ? `${who} — ${c}` : c, meta: `${d.status}${d.locked ? ' · ล็อก' : ''}` };
+        }} /><DealActions /></>}
         css={dealCss}
       >
         <DealBody />

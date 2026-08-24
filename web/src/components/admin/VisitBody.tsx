@@ -309,6 +309,8 @@ export function VisitBody() {
     apiPost<{ id: string }>('/api/deals', {
       title: `${stop?.title || dealCode} — ${visit ? fmtDate(visit.date) : ''}`.trim(),
       propertyCode: dealCode,
+      /* ให้เซิร์ฟเวอร์ตรวจด่านยืนยันเกณฑ์ของแผนนี้เองได้ (ข้อ 21) */
+      visitId: visit?.id ?? undefined,
       leadId: visit?.leadId ?? undefined,
       amount: Number(dealAmount.replace(/[^\d]/g, '')) || 0,
     })
@@ -543,10 +545,29 @@ export function VisitBody() {
                 <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--muted3)' }}>{stops.filter((s2) => !s2.result).length}</span>
               </div>
             </div>
-            {/* was a plain link to /admin/deals that created nothing */}
+            {/* was a plain link to /admin/deals that created nothing
+                เด็ค Web 2026 ข้อ 21 · "1 เกณฑ์เดิม — จัดนัดต่อ ถึงจะไป 2 เปิดดีล
+                (เจรจา) ได้ · ตอนนี้เปิดดีล (เจรจา) ได้เลย โดยที่ไม่ต้องกด"
+                ค่า gateConfirmed มีอยู่แล้ว แค่ปุ่มไม่เคยอ่าน · ฝั่งเซิร์ฟเวอร์
+                กันอีกชั้นที่ POST /api/deals ไม่งั้นยิง API ตรงก็ข้ามด่านได้ */}
             {stops.length > 0 ? (
-              <div id="visit-open-deal" onClick={openDealDialog} style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, height: 42, borderRadius: 11, background: '#0D6C3B', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                เปิดดีล (เจรจา)<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+              <div
+                id="visit-open-deal"
+                data-gate-locked={gatePending ? 'true' : undefined}
+                onClick={() => { if (!gatePending) openDealDialog(); }}
+                title={gatePending ? 'ต้องกด “ยืนยันเกณฑ์” ก่อน' : undefined}
+                style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, height: 42, borderRadius: 11, background: gatePending ? 'var(--bg)' : '#0D6C3B', border: gatePending ? '1px dashed var(--border)' : 'none', color: gatePending ? 'var(--muted3)' : '#fff', fontSize: 13, fontWeight: 700, cursor: gatePending ? 'not-allowed' : 'pointer' }}
+              >
+                {gatePending ? (
+                  <>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 019.9-1" /></svg>
+                    ยืนยันเกณฑ์ก่อนจึงเปิดดีลได้
+                  </>
+                ) : (
+                  <>
+                    เปิดดีล (เจรจา)<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                  </>
+                )}
               </div>
             ) : (
               <Link href="/admin/deals" style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, height: 42, borderRadius: 11, background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--muted)', fontSize: 13, fontWeight: 700 }}>ดูดีลทั้งหมด</Link>

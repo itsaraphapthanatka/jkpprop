@@ -56,6 +56,11 @@ export function NotifySettingsBody() {
   const blank = { id: '', code: '', tenant: '', startDate: '', endDate: '', rent: '' };
   const [form, setForm] = React.useState<typeof blank | null>(null);
   const [codes, setCodes] = React.useState<{ publicCode: string; title: string }[]>([]);
+  /* เด็ค Web 2026 ข้อ 24 · "เป็นพิมพ์รหัสทรัพย์ เพื่อค้นหาแทนครับ"
+     ช่องนี้เคยเป็น dropdown ที่ไล่ทรัพย์ทั้งคลัง (สามร้อยกว่ารายการ) หาไม่เจอ
+     ถ้าไม่รู้ว่าอยู่ลำดับไหน — พิมพ์รหัสแล้วให้มันกรองให้เร็วกว่ามาก */
+  const [codeQ, setCodeQ] = React.useState('');
+  const [codeOpen, setCodeOpen] = React.useState(false);
   const [leaseSaving, setLeaseSaving] = React.useState(false);
   const [formErr, setFormErr] = React.useState('');
   const setF = (k: keyof typeof blank, v: string) => setForm((f) => (f ? { ...f, [k]: v } : f));
@@ -72,9 +77,19 @@ export function NotifySettingsBody() {
       .catch(() => setCodes([]));
   }, []);
 
-  const openNew = () => { setFormErr(''); setForm({ ...blank }); };
+  /* ค้นทั้งรหัสและชื่อ เพราะบางคนจำได้แต่ชื่อโกดัง · จำกัด 12 รายการพอให้เลือก
+     ไม่ใช่ให้ไล่อ่านทั้งคลังเหมือน dropdown เดิม */
+  const codeMatches = React.useMemo(() => {
+    const t = codeQ.trim().toLowerCase();
+    if (!t) return [];
+    return codes.filter((c) => c.publicCode.toLowerCase().includes(t) || c.title.toLowerCase().includes(t)).slice(0, 12);
+  }, [codes, codeQ]);
+
+  const openNew = () => { setFormErr(''); setCodeQ(''); setCodeOpen(false); setForm({ ...blank }); };
   const openEdit = (l: Lease) => {
     setFormErr('');
+    setCodeQ(l.code ?? '');
+    setCodeOpen(false);
     setForm({
       id: l.id, code: l.code, tenant: l.tenant,
       startDate: l.startDate ?? '',
@@ -255,11 +270,36 @@ export function NotifySettingsBody() {
 
             {form && (
               <div id="ns-lease-form" style={{ padding: '14px 16px', borderTop: '1px solid var(--border)', background: 'var(--bg)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10 }}>
-                <label style={nsLabel}>ทรัพย์ *
-                  <select data-lease-code value={form.code} onChange={(e) => setF('code', e.target.value)} style={nsInput}>
-                    <option value="">เลือกทรัพย์</option>
-                    {codes.map((c) => <option key={c.publicCode} value={c.publicCode}>{c.publicCode} · {c.title}</option>)}
-                  </select>
+                <label style={{ ...nsLabel, position: 'relative' }}>ทรัพย์ *
+                  <input
+                    data-lease-code
+                    value={codeQ}
+                    onChange={(e) => { setCodeQ(e.target.value); setCodeOpen(true); setF('code', ''); }}
+                    onFocus={() => setCodeOpen(true)}
+                    /* หน่วงไว้ให้คลิกรายการทัน ก่อนที่รายการจะปิด */
+                    onBlur={() => window.setTimeout(() => setCodeOpen(false), 160)}
+                    placeholder="พิมพ์รหัสทรัพย์ เช่น JKPBKK1005"
+                    autoComplete="off"
+                    style={{ ...nsInput, borderColor: form.code ? '#0D6C3B' : 'var(--border)' }}
+                  />
+                  {codeOpen && codeQ.trim() && !form.code && (
+                    <div data-lease-code-list style={{ position: 'absolute', zIndex: 30, top: '100%', left: 0, right: 0, marginTop: 4, maxHeight: 220, overflowY: 'auto', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, boxShadow: '0 14px 32px rgba(0,0,0,.16)' }}>
+                      {codeMatches.length === 0 && (
+                        <div style={{ padding: '10px 12px', fontSize: '12px', color: 'var(--muted3)', fontWeight: 600 }}>ไม่พบทรัพย์ที่ตรงกับ “{codeQ.trim()}”</div>
+                      )}
+                      {codeMatches.map((c) => (
+                        <div
+                          key={c.publicCode}
+                          data-lease-code-opt={c.publicCode}
+                          onMouseDown={(e) => { e.preventDefault(); setF('code', c.publicCode); setCodeQ(c.publicCode); setCodeOpen(false); }}
+                          style={{ padding: '9px 12px', cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: 'var(--text)', borderBottom: '1px solid var(--border)' }}
+                        >
+                          <span style={{ fontFamily: "'JetBrains Mono',monospace", color: '#0D6C3B' }}>{c.publicCode}</span>
+                          <span style={{ color: 'var(--muted2)' }}> · {c.title}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </label>
                 <label style={nsLabel}>ผู้เช่า *
                   <input data-lease-tenant value={form.tenant} onChange={(e) => setF('tenant', e.target.value)} placeholder="ชื่อบริษัทผู้เช่า" style={nsInput} />

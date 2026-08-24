@@ -68,9 +68,19 @@ export const POST = handler(async (req: Request) => {
   const user = await requireUser();
   requireRole(user, 'owner', 'manager', 'agent');
 
-  const body = (await req.json().catch(() => null)) as { title?: string; leadId?: string; propertyCode?: string; amount?: number } | null;
+  const body = (await req.json().catch(() => null)) as { title?: string; leadId?: string; propertyCode?: string; amount?: number; visitId?: string } | null;
   const title = String(body?.title || '').trim();
   if (!title) throw new ApiError('VALIDATION', 'กรุณากรอกชื่อดีล', 400);
+
+  /* เด็ค Web 2026 ข้อ 21 · เปิดดีลจากแผนเข้าชมได้ต่อเมื่อยืนยันเกณฑ์แล้ว
+     ปุ่มบนหน้าจอล็อกไว้แล้ว แต่ต้องกันที่นี่ด้วย ไม่งั้นยิง API ตรงก็ข้ามด่านได้ */
+  if (typeof body?.visitId === 'string' && body.visitId) {
+    const visit = await db.visit.findFirst({ where: { id: body.visitId, orgId: user.orgId } });
+    if (!visit) throw new ApiError('NOT_FOUND', 'ไม่พบแผนเข้าชมนี้', 404);
+    if (!visit.gateConfirmed) {
+      throw new ApiError('VISIT_GATE_PENDING', 'ยังไม่ได้ยืนยันเกณฑ์ของแผนเข้าชมนี้ — กด "ยืนยันเกณฑ์" ก่อนจึงเปิดดีลได้', 409);
+    }
+  }
 
   let propertyId: string | null = null;
   if (body?.propertyCode) {

@@ -46,6 +46,107 @@ test.describe('listing and property', () => {
     await expect(page.locator('#listing-grid')).toContainText(/JKP/);
   });
 
+  /* เด็ค Web 2026 ข้อ 4 · "กดแล้วไม่ไปแท็ค" — ตัวหนังสือในรายละเอียดประกาศ
+     (ประเภท · แขวง/ตำบล · อำเภอ/เขต · จังหวัด · ประเภทประกาศ) ต้องกดไปหน้า
+     รายการที่กรองไว้แล้ว ไม่ใช่เป็นตัวหนังสือเฉย ๆ */
+  test('ค่าทำเลและประเภทในตารางรายละเอียด กดแล้วไปหน้ารายการที่กรองไว้', async ({ page }) => {
+    await page.goto('/th/listing');
+    const link = page.locator('#listing-grid a[href*="/property/JKP"]').first();
+    await expect(link).toBeVisible();
+    await link.click();
+    await expect(page).toHaveURL(/\/property\//);
+
+    const tags = page.locator('[data-spec-tag]');
+    const n = await tags.count();
+    expect(n, 'ไม่มีค่าไหนในตารางกดได้เลย').toBeGreaterThan(0);
+
+    /* ทุกอันต้องพาไปหน้ารายการพร้อมตัวกรอง ไม่ใช่ /listing เปล่า ๆ */
+    for (let i = 0; i < n; i += 1) {
+      const key = await tags.nth(i).getAttribute('data-spec-tag');
+      const href = await tags.nth(i).getAttribute('href');
+      expect(href, `แท็ก ${key} ไม่มีตัวกรองติดไปด้วย`).toMatch(/\/listing\?\w+=.+/);
+    }
+
+    /* กดจริงแล้วต้องกรองจริง — ไม่ใช่พาไปหน้าที่ขึ้นทรัพย์ทั้งคลัง */
+    const prov = page.locator('[data-spec-tag="province"]');
+    if (await prov.count()) {
+      const want = (await prov.innerText()).trim();
+      await prov.click();
+      await expect(page).toHaveURL(/\/listing\?province=/);
+      await expect(page.locator('#listing-grid')).toBeVisible();
+      const cards = await page.locator('#listing-grid a[href*="/property/"]').count();
+      expect(cards, 'กดจังหวัดแล้วไม่เหลือทรัพย์เลย').toBeGreaterThan(0);
+      /* ชื่อจังหวัดที่กดต้องปรากฏบน breadcrumb ของหน้าปลายทาง */
+      await expect(page.locator('body')).toContainText(want.slice(0, 6));
+    }
+  });
+
+  /* "ไอค่อน ของหัวข้อ พื้นที่สี · การใช้งานที่เหมาะ · คุณสมบัติของทรัพย์" */
+  test('สามหัวข้อนี้มีไอคอน และไม่ใช่รูปเดียวกัน', async ({ page }) => {
+    await page.goto('/th/listing');
+    const link = page.locator('#listing-grid a[href*="/property/JKP"]').first();
+    await expect(link).toBeVisible();
+    await link.click();
+    await expect(page).toHaveURL(/\/property\//);
+
+    /* ต้องเทียบข้อความเต็ม — "คุณสมบัติ" เฉย ๆ ไปตรงกับหัวข้อตัวกรองด้วย */
+    const wanted = ['คุณสมบัติของทรัพย์', 'การใช้งานที่เหมาะ', 'พื้นที่สี (ผังเมือง)'];
+    const shapes: string[] = [];
+    for (const w of wanted) {
+      const h = page.getByRole('heading', { name: w, exact: true }).first();
+      if (await h.count() === 0) continue;
+      const svg = h.locator('xpath=..').locator('svg');
+      await expect(svg, `หัวข้อ "${w}" ยังไม่มีไอคอน`).toHaveCount(1);
+      shapes.push(await svg.innerHTML());
+    }
+    expect(shapes.length, 'ไม่เจอหัวข้อสักอันในหน้านี้').toBeGreaterThan(0);
+    expect(new Set(shapes).size, 'ไอคอนซ้ำกัน แยกหัวข้อไม่ออก').toBe(shapes.length);
+  });
+
+  /* เด็ค Web 2026 ข้อ 2 · "ที่กดเปลี่ยนหน้ามันอยู่ต่ำไปครับ ลูกค้าไม่รู้ว่ามี
+     หน้าต่อไป" และคอมเมนต์ 23 ส.ค. "เลขหน้าจะต้องอยู่ติดกับการ์ดเสมอ ...
+     ไม่เลื่อนลงไปไม่ว่ากรณีใด" */
+  test('เลขหน้าอยู่ติดกับการ์ดเสมอ ไม่ถูกแถบตัวกรองดันลงไป', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 950 });
+    await page.goto('/th/listing');
+    await expect(page.locator('#listing-grid')).toBeVisible();
+    const pager = page.locator('#pagination-row');
+    if (await pager.count() === 0) test.skip(true, 'ผลลัพธ์ไม่ถึงสองหน้า');
+
+    /* ต้องอยู่ในคอลัมน์ผลลัพธ์ ไม่ใช่นอกตารางสองคอลัมน์ — ถ้าอยู่นอก แถบตัวกรอง
+       ที่สูงกว่าการ์ดจะดันมันลงไปอยู่ใต้สุดของหน้า */
+    await expect(page.locator('#listing-results #pagination-row')).toHaveCount(1);
+
+    const grid = (await page.locator('#listing-grid').boundingBox())!;
+    const bar = (await pager.boundingBox())!;
+    const side = (await page.locator('#filter-sidebar').boundingBox())!;
+    const gap = bar.y - (grid.y + grid.height);
+    expect(gap, `เลขหน้าห่างจากการ์ด ${Math.round(gap)}px`).toBeLessThan(80);
+    expect(gap).toBeGreaterThan(0);
+    /* แถบตัวกรองสูงกว่าการ์ดเป็นปกติ — เลขหน้าต้องไม่รอให้มันจบก่อน */
+    if (side.y + side.height > grid.y + grid.height + 80) {
+      expect(bar.y, 'เลขหน้าถูกดันไปอยู่ใต้แถบตัวกรอง').toBeLessThan(side.y + side.height);
+    }
+  });
+
+  /* "ย้ายประเภททรัพย์ขึ้นมาอยู่บนจังหวัด" */
+  test('หมวดตัวกรอง — ประเภททรัพย์อยู่เหนือจังหวัด และทุกหมวดเปิดค้างไว้', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 950 });
+    await page.goto('/th/listing');
+    await expect(page.locator('#listing-grid')).toBeVisible();
+    const text = await page.locator('#filter-sidebar').innerText();
+    const iType = text.indexOf('ประเภทอสังหา');
+    const iProv = text.indexOf('จังหวัด');
+    expect(iType, 'ไม่มีหมวดประเภททรัพย์').toBeGreaterThan(-1);
+    expect(iProv, 'ไม่มีหมวดจังหวัด').toBeGreaterThan(-1);
+    expect(iType, 'ประเภททรัพย์ต้องอยู่เหนือจังหวัด').toBeLessThan(iProv);
+
+    /* คุณ Jacky ยืนยัน 23 ส.ค. ว่าให้เปิดค้างไว้ทุกหมวด — ตัวเลือกใต้หัวข้อ
+       ต้องเห็นได้เลยโดยไม่ต้องกดเปิดทีละอัน */
+    expect(text).toContain('โกดัง');
+    expect(text).toContain('กรุงเทพมหานคร');
+  });
+
   test('a card opens that exact property, not a hardcoded one', async ({ page }) => {
     await page.goto('/th/listing');
     // wait for the client fetch to replace the ported demo set

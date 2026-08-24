@@ -51,6 +51,10 @@ export const GET = handler(async () => {
       requirementId: v.leadId ? reqByLead.get(v.leadId) ?? null : null,
       date: v.date.getTime(),
       status: v.status,
+      /* ด่านยืนยันเกณฑ์ถูกเก็บลงฐานข้อมูลตั้งแต่แรก แต่ไม่เคยส่งกลับมา หน้าจอ
+         จึงขึ้นว่า "ยังไม่ยืนยัน" ใหม่ทุกครั้งที่โหลด — ทีมต้องกดยืนยันซ้ำ
+         ทุกรอบ และปุ่มที่ล็อกตามด่านนี้ (เด็ค Web 2026 ข้อ 21) ก็จะไม่มีวันปลด */
+      gateConfirmed: v.gateConfirmed,
       note: v.note,
       /* the stop's own id: without it the screen could show outcomes but had
          no way to save one, so it invented the whole list instead */

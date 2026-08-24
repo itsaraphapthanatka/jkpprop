@@ -126,6 +126,11 @@ export interface ListingPreset {
   filterKey?: ListingFilterKey;
   /** area pages narrow to one province; matched against the property's own */
   province?: string;
+  /** ?district= ?subdistrict= — แท็กทำเลบนหน้ารายละเอียดลิงก์มาที่นี่
+      (เด็ค Web 2026 ข้อ 4 · "กดแล้วไม่ไปแท็ค") เดิมหน้านี้ไม่รับสองตัวนี้เลย
+      แท็กอำเภอกับตำบลจึงพาไปหน้ารายการที่ไม่ได้กรองอะไร */
+  districtSel?: string[];
+  subdistrictSel?: string[];
   /* what the search box on the home page was told to look for */
   q?: string;
   sizeSel?: string;
@@ -229,8 +234,8 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
   /* สไลด์ 9 · "แยกจังหวัดเขตแขวง" — เดิมเป็นหมวดเดียวชื่อ "ทำเล" ที่ไล่ข้อความ
      รวม ("บางพลี, สมุทรปราการ") เลือกได้ทีละก้อน แคบลงทีละชั้นไม่ได้ */
   const [provSel, setProvSel] = useState<string[]>(preset.province ? [preset.province] : []);
-  const [distSel, setDistSel] = useState<string[]>([]);
-  const [subSel, setSubSel] = useState<string[]>([]);
+  const [distSel, setDistSel] = useState<string[]>(preset.districtSel ?? []);
+  const [subSel, setSubSel] = useState<string[]>(preset.subdistrictSel ?? []);
   /* พื้นที่สีเป็นตัวกรองของตัวเอง — เดิมช่องที่ชื่อ "โซน" กลับไล่ชื่ออำเภอ
      ซึ่งคือคอมเมนต์ "โซนแสดงผลไม่ตรง" ในสไลด์ 12 */
   const [zoningSel, setZoningSel] = useState<string[]>(preset.zoningSel ?? []);
@@ -332,7 +337,8 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
      ซึ่งเป็นข้อความที่เคยขึ้นบนหน้าท่าเรือมหาชัย แหลมฉบัง มาบตาพุด มาตลอด
      ทั้งที่คลังมีทรัพย์อยู่ 393 รายการ */
   const serverFiltered = !!(preset.filterKey || preset.province || preset.typeSel?.length
-    || preset.listingMode || preset.q || preset.zoningSel?.length);
+    || preset.listingMode || preset.q || preset.zoningSel?.length
+    || preset.districtSel?.length || preset.subdistrictSel?.length);
 
   const clearAll = () => {
     setQ('');
@@ -364,6 +370,9 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
     items: { label: string; value?: string; checked: boolean; select: () => void }[];
   };
   const sections: Section[] = ([
+    /* "ย้ายประเภททรัพย์ขึ้นมาอยู่บนจังหวัด" (เด็ค Web 2026 ข้อ 2) — คนเลือก
+       ว่าจะหาโกดังหรือโรงงานก่อน แล้วค่อยเลือกว่าที่ไหน */
+    { key: 'type', title: d.listing.type, items: typeItems.map((label) => ({ label, checked: typeSel.includes(label), select: () => setTypeSel((a) => toggleIn(a, label)) })) },
     {
       key: 'province', title: d.listing.province, kind: 'dropdown',
       value: provSel[0] ?? '',
@@ -383,7 +392,6 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
       items: subItems.map((label) => ({ label, checked: subSel.includes(label), select: () => undefined })),
     },
     { key: 'zoning', title: d.listing.zoneColor, items: zoningItems.map((value) => ({ label: enumLabel(value, locale), value, checked: zoningSel.includes(value), select: () => setZoningSel((a) => toggleIn(a, value)) })) },
-    { key: 'type', title: d.listing.type, items: typeItems.map((label) => ({ label, checked: typeSel.includes(label), select: () => setTypeSel((a) => toggleIn(a, label)) })) },
     { key: 'size', title: d.listing.size, items: SIZE_ITEMS.map((label) => ({ label, checked: sizeSel === label, select: () => setSizeSel((cur) => (cur === label ? null : label)) })) },
     { key: 'price', title: d.listing.price, items: PRICE_ITEMS.map((label) => ({ label, checked: priceSel === label, select: () => setPriceSel((cur) => (cur === label ? null : label)) })) },
     { key: 'estate', title: d.hero.zone, items: facets.zones.map((value) => ({ label: value, checked: estateSel.includes(value), select: () => setEstateSel((a) => toggleIn(a, value)) })) },
@@ -589,7 +597,12 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
           </div>
         </aside>
 
-        {/* GRID */}
+        {/* GRID + เลขหน้า อยู่ในคอลัมน์เดียวกัน
+            คุณ Jacky แจ้งว่า "เลขหน้าจะต้องอยู่ติดกับการ์ดเสมอ ไม่เลื่อนลงไป
+            ไม่ว่ากรณีใด" (เด็ค Web 2026 ข้อ 2) เดิมเลขหน้าอยู่นอกตารางสองคอลัมน์
+            พอแถบตัวกรองสูงกว่าการ์ด (ผลลัพธ์น้อย ตัวกรองเยอะ) เลขหน้าจึงถูกดัน
+            ลงไปอยู่ใต้แถบตัวกรอง ห่างจากการ์ดไปทั้งจอ */}
+        <div id="listing-results" style={{ minWidth: 0 }}>
         {pageItems.length === 0 ? (
           <div id="listing-empty" style={{ padding: '72px 24px', textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 18, background: 'var(--surface)' }}>
             {/* "ยังไม่มีทรัพย์ที่บันทึกไว้" คนละเรื่องกับ "ไม่พบทรัพย์ตามเงื่อนไข" —
@@ -627,57 +640,58 @@ export function ListingBody({ preset = DEFAULT_PRESET, items = [] }: { preset?: 
             ))}
           </div>
         )}
-      </div>
 
-      {/* PAGINATION — page numbers follow the real result count; the arrows
-          used to be decorative and the tail always read "… 86". */}
-      {pageCount > 1 && (
-        <div id="pagination-row" style={{ maxWidth: '1320px', margin: '-40px auto 0', padding: '0 24px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
-          {/* ตัวเลขหน้าเคยเป็น <div> ล้วน ๆ กดด้วยเมาส์ได้อย่างเดียว คนที่ใช้
-              คีย์บอร์ดหรือโปรแกรมอ่านหน้าจอไปหน้า 2 ไม่ได้เลย */}
-          <button
-            type="button"
-            aria-label={d.listing.prevPage}
-            disabled={page === 1}
-            onClick={() => setActivePage((p) => Math.max(1, p - 1))}
-            style={{ width: 38, height: 38, borderRadius: 9999, border: '1px solid var(--border)', background: 'transparent', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', color: page === 1 ? 'var(--muted3)' : 'var(--text)', cursor: page === 1 ? 'default' : 'pointer' }}
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-              <path d="M15 6l-6 6 6 6" />
-            </svg>
-          </button>
-          {pageNumbers(pageCount, page).map((n, i) => {
-            const isActive = n === page;
-            return (
-              n === '...' ? (
-                <span key={`${n}-${i}`} aria-hidden style={{ minWidth: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13.5px', fontWeight: 700, color: 'var(--muted3)' }}>{n}</span>
-              ) : (
-                <button
-                  type="button"
-                  key={`${n}-${i}`}
-                  aria-label={`${d.listing.pageN} ${n}`}
-                  aria-current={isActive ? 'page' : undefined}
-                  onClick={() => setActivePage(n)}
-                  style={{ minWidth: 38, height: 38, padding: '0 6px', borderRadius: 9999, border: 0, fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', background: isActive ? 'var(--accent)' : 'transparent', color: isActive ? '#fff' : 'var(--text)' }}
-                >
-                  {n}
-                </button>
-              )
-            );
-          })}
-          <button
-            type="button"
-            aria-label={d.listing.nextPage}
-            disabled={page === pageCount}
-            onClick={() => setActivePage((p) => Math.min(pageCount, p + 1))}
-            style={{ width: 38, height: 38, borderRadius: 9999, border: '1px solid var(--border)', background: 'transparent', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', color: page === pageCount ? 'var(--muted3)' : 'var(--text)', cursor: page === pageCount ? 'default' : 'pointer' }}
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-              <path d="M9 6l6 6-6 6" />
-            </svg>
-          </button>
+        {/* PAGINATION — page numbers follow the real result count; the arrows
+            used to be decorative and the tail always read "… 86". */}
+        {pageCount > 1 && (
+          <div id="pagination-row" style={{ margin: '22px 0 0', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {/* ตัวเลขหน้าเคยเป็น <div> ล้วน ๆ กดด้วยเมาส์ได้อย่างเดียว คนที่ใช้
+                คีย์บอร์ดหรือโปรแกรมอ่านหน้าจอไปหน้า 2 ไม่ได้เลย */}
+            <button
+              type="button"
+              aria-label={d.listing.prevPage}
+              disabled={page === 1}
+              onClick={() => setActivePage((p) => Math.max(1, p - 1))}
+              style={{ width: 38, height: 38, borderRadius: 9999, border: '1px solid var(--border)', background: 'transparent', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', color: page === 1 ? 'var(--muted3)' : 'var(--text)', cursor: page === 1 ? 'default' : 'pointer' }}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                <path d="M15 6l-6 6 6 6" />
+              </svg>
+            </button>
+            {pageNumbers(pageCount, page).map((n, i) => {
+              const isActive = n === page;
+              return (
+                n === '...' ? (
+                  <span key={`${n}-${i}`} aria-hidden style={{ minWidth: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13.5px', fontWeight: 700, color: 'var(--muted3)' }}>{n}</span>
+                ) : (
+                  <button
+                    type="button"
+                    key={`${n}-${i}`}
+                    aria-label={`${d.listing.pageN} ${n}`}
+                    aria-current={isActive ? 'page' : undefined}
+                    onClick={() => setActivePage(n)}
+                    style={{ minWidth: 38, height: 38, padding: '0 6px', borderRadius: 9999, border: 0, fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', background: isActive ? 'var(--accent)' : 'transparent', color: isActive ? '#fff' : 'var(--text)' }}
+                  >
+                    {n}
+                  </button>
+                )
+              );
+            })}
+            <button
+              type="button"
+              aria-label={d.listing.nextPage}
+              disabled={page === pageCount}
+              onClick={() => setActivePage((p) => Math.min(pageCount, p + 1))}
+              style={{ width: 38, height: 38, borderRadius: 9999, border: '1px solid var(--border)', background: 'transparent', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', color: page === pageCount ? 'var(--muted3)' : 'var(--text)', cursor: page === pageCount ? 'default' : 'pointer' }}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                <path d="M9 6l6 6-6 6" />
+              </svg>
+            </button>
+          </div>
+        )}
         </div>
-      )}
+      </div>
 
       {/* MOBILE FILTER DRAWER */}
       {mobileFilterOpen && (

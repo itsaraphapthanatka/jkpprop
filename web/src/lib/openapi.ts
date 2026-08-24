@@ -426,7 +426,8 @@ export const openapi = {
       get: { tags: ['Pipeline'], summary: 'รายการดีล', responses: { 200: okRes('รายการ', items({ type: 'object' })), ...AUTH_ERRORS } },
       post: {
         tags: ['Pipeline'], summary: 'สร้างดีล',
-        requestBody: body(obj({ title: STR, leadId: STR, propertyCode: STR, amount: NUM }, ['title'])),
+        description: 'ส่ง visitId มาด้วยเมื่อเปิดจากแผนเข้าชม — ถ้าแผนนั้นยังไม่ได้ยืนยันเกณฑ์จะถูกปฏิเสธ (409) ตามด่านของ Flow D',
+        requestBody: body(obj({ title: STR, leadId: STR, propertyCode: STR, amount: NUM, visitId: STR }, ['title'])),
         responses: { 201: okRes('สร้างแล้ว', obj({ id: STR })), ...AUTH_ERRORS },
       },
     },

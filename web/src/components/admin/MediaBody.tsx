@@ -170,7 +170,7 @@ export function MediaBody() {
           </div>
           <div>
             <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)' }}>{busy || 'ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือก'}</div>
-            <div style={{ fontSize: 12, color: error ? '#C0392B' : 'var(--muted3)' }}>{error || 'JPG, PNG, WebP · สูงสุด 10MB ต่อไฟล์'}</div>
+            <div style={{ fontSize: 12, color: error ? '#C0392B' : 'var(--muted3)' }}>{error || 'JPG, PNG, WebP · สูงสุด 10MB ต่อไฟล์ · รูปทรัพย์แนะนำกว้างอย่างน้อย 1600px แนวนอน (16:9) — การ์ดในหน้ารายการครอบเป็น 3:2 วางของสำคัญไว้กลางภาพ'}</div>
           </div>
         </div>
 

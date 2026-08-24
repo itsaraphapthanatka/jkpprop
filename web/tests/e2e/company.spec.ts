@@ -116,6 +116,44 @@ test.describe('links that go somewhere', () => {
     }
   });
 
+  /* เด็ค Web 2026 ข้อ 20 · "ข้อมูลบริษัทไม่แสดงผลครับ"
+     หน้า /th /th/about /th/contact ถูกสร้าง HTML ไว้ล่วงหน้า และไม่มีที่ไหน
+     สั่งให้สร้างใหม่ตอนกดบันทึก — แก้ข้อมูลบริษัทแล้วหน้าเว็บจึงค้างอยู่แบบเดิม
+
+     เทสต์ที่มีอยู่เดิมบันทึกก่อนแล้วค่อยเปิดหน้า จึงผ่านทั้งที่ยังไม่มีการสั่ง
+     สร้างใหม่ เพราะแคชยังว่างอยู่ · เทสต์นี้เปิดหน้าก่อน (ให้แคชติด) แล้วค่อย
+     บันทึก แบบเดียวกับที่คนใช้งานจริงทำ
+
+     ข้อจำกัดที่ต้องรู้: เครื่องทดสอบรันด้วย next start ซึ่งสร้างหน้าใหม่ทุก
+     คำขออยู่แล้ว เทสต์นี้จึงผ่านทั้งที่เปิดและปิด revalidatePath — ลองปิดดูแล้ว
+     ยังผ่าน มันจึงยืนยันได้แค่ว่า "บันทึกแล้วหน้าเว็บต้องขึ้นค่าใหม่" ไม่ได้
+     พิสูจน์ว่าการล้างแคชทำงาน ของจริงต้องดูที่เครื่อง production */
+  test('เปิดหน้าไว้ก่อนแล้วค่อยแก้ข้อมูลบริษัท หน้าเว็บต้องเปลี่ยนตามทันที', async ({ page, request }) => {
+    await signIn(page);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    /* PUT เขียนทับทั้งชุด — ต้องอ่านของเดิมมาส่งกลับไปพร้อมกัน ไม่งั้นเป็นการ
+       ล้างข้อมูลบริษัททิ้งแทนที่จะแก้ช่องเดียว */
+    const before = await (await request.get('/api/company', { headers: { cookie } })).json();
+    const put = (extra: Record<string, unknown>) =>
+      request.put('/api/company', { headers: { cookie }, data: { ...before, ...extra } });
+
+    /* อุ่นแคชก่อน — นี่คือสภาพจริงเสมอ เพราะมีคนเข้าเว็บอยู่แล้ว */
+    for (const path of ['/th/contact', '/th/about']) await request.get(path);
+
+    const stamp = `02-${Date.now().toString().slice(-7)}`;
+    const res = await put({ phones: [{ number: stamp, label: 'ฝ่ายขาย' }] });
+    expect(res.status(), await res.text()).toBe(200);
+
+    try {
+      for (const path of ['/th/contact', '/th/about']) {
+        const html = await (await request.get(path)).text();
+        expect(html, `${path} ยังขึ้นเบอร์เดิม — หน้าไม่ถูกสร้างใหม่หลังกดบันทึก`).toContain(stamp);
+      }
+    } finally {
+      await put({ phones: Array.isArray(before.phones) ? before.phones : [] });
+    }
+  });
+
   test('a non-https social link is refused rather than rendered', async ({ page, request }) => {
     await signIn(page);
     const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');

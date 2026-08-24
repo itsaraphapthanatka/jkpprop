@@ -2,6 +2,7 @@
    GET is public — the footers and the contact page render from it.
    PUT is owner+marketing, same as the other content surfaces. */
 import { ok, handler, ApiError } from '@/lib/server/api';
+import { refreshPublicPages } from '@/lib/server/publicCache';
 import { requireUser, requireRole } from '@/lib/server/auth';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
@@ -80,5 +81,6 @@ export const PUT = handler(async (req: Request) => {
     update: data,
   });
   await audit({ user, orgId: user.orgId, action: 'company.save', entity: 'companyProfile', entityId: user.orgId, before, after: saved });
+  refreshPublicPages();
   return ok(saved);
 });

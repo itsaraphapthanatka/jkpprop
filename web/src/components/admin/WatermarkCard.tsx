@@ -232,7 +232,7 @@ export function WatermarkCard() {
               <div style={{ flex: '1 1 150px', minWidth: 120, fontSize: 11, color: logoGone ? '#C0392B' : 'var(--muted3)', lineHeight: 1.5 }}>
                 {logoGone
                   ? <span data-wm-missing><b>ไฟล์โลโก้หายไปแล้ว</b> — ถูกลบออกจากคลังสื่อ ตอนนี้ไม่มีรูปไหนถูกปั๊มลายน้ำเลย กด “เปลี่ยนไฟล์” เพื่อเลือกใหม่ แล้วกดบันทึกลายน้ำ</span>
-                  : <>แนะนำ <b>PNG พื้นหลังโปร่ง</b> · สูงสุด 10MB</>}
+                  : <>แนะนำ <b>PNG พื้นหลังโปร่ง</b> กว้างอย่างน้อย 600px · สูงสุด 10MB<br />ระบบย่อให้เป็นสัดส่วนของความกว้างรูป (ตามค่า “ขนาด” ด้านล่าง) ไฟล์เล็กเกินจะแตกบนรูปใหญ่</>}
               </div>
               <button type="button" id="wm-upload" onClick={() => fileRef.current?.click()} disabled={busy === 'upload'} style={{ ...btn(false), flexShrink: 0, opacity: busy === 'upload' ? 0.6 : 1 }}>
                 {busy === 'upload' ? 'กำลังอัปโหลด…' : cfg.src ? 'เปลี่ยนไฟล์' : 'เลือกไฟล์'}

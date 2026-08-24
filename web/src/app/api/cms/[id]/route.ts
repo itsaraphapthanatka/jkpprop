@@ -3,6 +3,7 @@
    Publishing needs the `publish` privilege (MATRIX "เผยแพร่หน้าเว็บ"),
    editing the body does not. */
 import { ok, handler, ApiError } from '@/lib/server/api';
+import { refreshPublicPages } from '@/lib/server/publicCache';
 import { requireUser, requireRole, requirePriv } from '@/lib/server/auth';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
@@ -69,6 +70,7 @@ export const PUT = handler(async (req: Request, ctx: { params: Promise<{ id: str
     before: { status: page.status }, after: { status: updated.status, lang },
   });
 
+  refreshPublicPages();
   const out = (updated.content ?? {}) as Content;
   return ok({
     id: updated.id, status: updated.status, category: updated.category,
@@ -108,5 +110,6 @@ export const DELETE = handler(async (_req: Request, ctx: { params: Promise<{ id:
     user, orgId: user.orgId, action: 'cms.delete', entity: 'cmsPage', entityId: id,
     before: { kind: page.kind, slug: page.slug, title: page.title, status: page.status },
   });
+  refreshPublicPages();
   return ok({ id });
 });
