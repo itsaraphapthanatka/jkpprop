@@ -65,6 +65,12 @@ const F = {
   video: (): FieldDef => ({ key: 'video', label: 'วิดีโอ (ถ้ามี)', kind: 'media' }),
 };
 
+/* ที่ดิน/บ้าน/คอนโด ใช้คำใน "ประเภทประกาศ" คนละชุดกับโกดัง (ขาย · ปล่อยเช่า ·
+   ขายและปล่อยเช่า ไม่ใช่ ให้เช่า · ขาย · ให้เช่า และ ขาย) เงื่อนไขจึงต้องแยกกัน
+   ถ้าลอกของโกดังมาใช้ ช่องจะไม่โผล่เลยสักครั้ง */
+const WHEN_RENT_LAND: ShowWhen = { field: 'deal_type', in: ['ปล่อยเช่า', 'ขายและปล่อยเช่า'] };
+const WHEN_SALE_LAND: ShowWhen = { field: 'deal_type', in: ['ขาย', 'ขายและปล่อยเช่า'] };
+
 const ICON_HOUSE = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7A3FB0" stroke-width="1.8"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path><path d="M9 20v-6h6v6"></path></svg>';
 const ICON_CONDO = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7A3FB0" stroke-width="1.8"><rect x="4" y="2" width="16" height="20" rx="1"></rect><path d="M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01M10 22v-4h4v4"></path></svg>';
 const ICON_LAND = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#034956" stroke-width="1.8"><path d="M3 20h18M5 20V9l7-4 7 4v11"></path><path d="M9 20v-5h6v5"></path></svg>';
@@ -200,7 +206,13 @@ const LAND: PropertyType = {
     { key: 'road_width', label: 'ถนนสาธารณะที่ติดกว้างกี่เมตร', kind: 'number', unit: 'เมตร' },
     { key: 'utilities', label: 'มีไฟฟ้า / น้ำประปาผ่านแปลงไหม', kind: 'multiselect', options: ['มีไฟฟ้า', 'มีน้ำประปา'] },
     { key: 'nearby', label: 'ใกล้สถานที่สำคัญ (ระยะ กม.)', kind: 'group', sub: [{ key: 'hospital', label: 'โรงพยาบาล', kind: 'number', unit: 'กม.' }, { key: 'school', label: 'โรงเรียน', kind: 'number', unit: 'กม.' }, { key: 'market', label: 'ตลาดสด', kind: 'number', unit: 'กม.' }, { key: 'mall', label: 'ห้างสรรพสินค้า', kind: 'number', unit: 'กม.' }, { key: 'other', label: 'อื่นๆ', kind: 'text' }] },
-    F.price(),
+    /* คุณ Jacky แจ้ง 23 ส.ค. · "ที่ดิน แยกช่องราคา ขายและปล่อยเช่า"
+       เดิมเป็นช่องเดียวชื่อ "ราคาขาย / ราคาปล่อยเช่า" ที่ดินที่ทั้งขายและ
+       ปล่อยเช่าจึงกรอกได้ราคาเดียว และไม่มีทางรู้ว่าตัวเลขนั้นหมายถึงอันไหน
+       ใช้คีย์เดียวกับโกดัง/โรงงาน (price_rent · price_sale) เพื่อให้ตาราง
+       รายละเอียด ไฟล์ Export และตัวกรองราคาอ่านที่ดินได้ด้วยโดยไม่ต้องแก้อีก */
+    { key: 'price_rent', label: 'ราคาปล่อยเช่า / เดือน', kind: 'price', unit: 'บาท/เดือน', showWhen: WHEN_RENT_LAND },
+    { key: 'price_sale', label: 'ราคาขาย', kind: 'price', unit: 'บาท', showWhen: WHEN_SALE_LAND },
     F.transfer(),
     F.photos(),
     F.video(),
@@ -334,33 +346,45 @@ const WAREHOUSE_FIELDS: FieldDef[] = [
   // 9 · ข้อมูลทั่วไป (วันที่ลงประกาศ ย้ายไปอยู่กับประเภทประกาศแล้ว)
   { key: 'photos', label: 'รูปทรัพย์', kind: 'media', section: 'ข้อมูลทั่วไป', note: 'รูปแรก = ปก (แสดงบนหน้าแรก) · สูงสุด 10 รูป' },
 
-  // 10 · ข้อความสรุปอัตโนมัติ (อ่านอย่างเดียว + ปุ่มคัดลอก)
-  { key: 'summary_template', label: 'ข้อความสำหรับโพสต์ / ส่งลูกค้า', kind: 'summary', section: 'หมายเหตุ : รายละเอียดทรัพย์ (รวม)', note: 'ประกอบจากทุกฟิลด์ที่กรอกไว้ด้านบน — อัปเดตอัตโนมัติ' },
 ];
+
+/* 10 · ข้อความสรุปอัตโนมัติ (อ่านอย่างเดียว + ปุ่มคัดลอก)
+   เด็ค Web 2026 ข้อ 11 · "สลับตำแหน่งช่องเอกสารและใบอนุญาต ให้อยู่ด้านบนช่อง
+   ข้อความสำหรับโพสต์ / ส่งลูกค้า"
+
+   หมวดเรียงตามลำดับที่ฟิลด์โผล่ครั้งแรก ช่องนี้เคยอยู่ท้ายชุดหลัก ฟิลด์เฉพาะ
+   โรงงาน (ซึ่งรวมหมวดเอกสาร) จึงไปต่อท้ายมันเสมอ · แยกออกมาต่อท้ายทีหลังสุด
+   ของทุกประเภทแทน แล้ว "ประกอบจากทุกฟิลด์ด้านบน" ก็เป็นจริงตามที่เขียนไว้ด้วย */
+const SUMMARY_FIELD: FieldDef = { key: 'summary_template', label: 'ข้อความสำหรับโพสต์ / ส่งลูกค้า', kind: 'summary', section: 'หมายเหตุ : รายละเอียดทรัพย์ (รวม)', note: 'ประกอบจากทุกฟิลด์ที่กรอกไว้ด้านบน — อัปเดตอัตโนมัติ' };
 
 /* โรงงานเคยมีเพียง 14 ฟิลด์ ขณะที่โกดังและโชว์รูมมี 50 — ทั้งที่ทีมเก็บข้อมูล
    ชุดเดียวกันให้ทั้งสามประเภท ผังเมือง ผู้ติดต่อ ระบบไฟ ค่าส่วนกลาง เงื่อนไข
    สัญญา จึงไม่มีที่เก็บสำหรับโรงงาน และข้อมูลจริงของทีมตกหล่นตั้งแต่ตอนกรอก
    ตอนนี้ใช้ชุดเดียวกัน แล้วต่อท้ายด้วยฟิลด์ที่มีแต่โรงงานเท่านั้น */
 const FACTORY_ONLY: FieldDef[] = [
-  { key: 'usable_area', label: 'พื้นที่ใช้สอย', kind: 'number', unit: 'ตร.ม.', section: 'พื้นที่และอาคาร' },
-  { key: 'land_area', label: 'พื้นที่ดิน', kind: 'number', unit: 'ตารางวา', section: 'พื้นที่และอาคาร' },
+  /* ข้อ 11 · เคยตั้งชื่อหมวดว่า "พื้นที่และอาคาร" ทั้งที่ชุดหลักมีหมวด "พื้นที่"
+     อยู่แล้ว ฟอร์มโรงงานจึงมีหมวดพื้นที่สองอันคนละที่กัน — ใช้หมวดเดียวกัน */
+  { key: 'usable_area', label: 'พื้นที่ใช้สอย', kind: 'number', unit: 'ตร.ม.', section: 'พื้นที่' },
+  { key: 'land_area', label: 'พื้นที่ดิน', kind: 'number', unit: 'ตารางวา', section: 'พื้นที่' },
   /* สไลด์ 27 · "โรงงานมีฟิลเลือก รง.4 มี/ไม่มี ระบุประเภทใบอนุญาตเป็นโนต"
      เดิมเป็นช่องติ๊กอย่างเดียว ตอบได้แค่มี/ไม่ตอบ และไม่มีที่เขียนว่าใบไหน */
   { key: 'factory_license', label: 'ใบอนุญาต ร.ง.4', kind: 'select', options: ['มี', 'ไม่มี'], section: 'เอกสารและใบอนุญาต' },
-  { key: 'factory_license_type', label: 'ประเภทใบอนุญาต (ระบุ)', kind: 'text', section: 'เอกสารและใบอนุญาต', placeholder: 'เช่น ร.ง.4 ลำดับที่ 64 · โกดังสินค้า', showWhen: { field: 'factory_license', in: ['มี'] } },
+  /* ข้อ 11 · "ช่องใส่ข้อความ รายละเอียดใบ ร.ง.4 หายครับ" — ช่องนี้ทำงานอยู่
+     แต่ถูกซ่อนไว้จนกว่าจะเลือก "มี" คนเปิดฟอร์มมาดูจึงไม่เห็นและนึกว่าหาย
+     ให้ขึ้นตลอด แล้วบอกไว้ที่ note ว่ากรอกเมื่อมีใบเท่านั้น */
+  { key: 'factory_license_type', label: 'รายละเอียดใบ ร.ง.4 (ระบุ)', kind: 'text', section: 'เอกสารและใบอนุญาต', placeholder: 'เช่น ร.ง.4 ลำดับที่ 64 · โกดังสินค้า', note: 'กรอกเมื่อเลือก "มี" ด้านบน — ระบุลำดับที่และประเภทกิจการตามหน้าใบอนุญาต' },
   { key: 'deed_copy', label: 'สำเนาโฉนด / เอกสารสิทธิ์', kind: 'media', section: 'เอกสารและใบอนุญาต' },
 ];
 
 const FACTORY: PropertyType = {
   key: 'factory', label: 'โรงงาน', icon: ICON_FACTORY,
-  fields: [...WAREHOUSE_FIELDS, ...FACTORY_ONLY],
+  fields: [...WAREHOUSE_FIELDS, ...FACTORY_ONLY, SUMMARY_FIELD],
 };
 
-const WAREHOUSE: PropertyType = { key: 'warehouse', label: 'โกดัง', icon: ICON_WAREHOUSE, fields: WAREHOUSE_FIELDS };
+const WAREHOUSE: PropertyType = { key: 'warehouse', label: 'โกดัง', icon: ICON_WAREHOUSE, fields: [...WAREHOUSE_FIELDS, SUMMARY_FIELD] };
 
 /* ใช้ชุดฟิลด์เดียวกับโกดังทั้งหมด (คนละ typeKey จึงตั้งค่า Field Builder แยกกันได้) */
-const SHOWROOM: PropertyType = { key: 'showroom', label: 'โชว์รูม และ อาคารพาณิชย์', icon: ICON_SHOWROOM, fields: WAREHOUSE_FIELDS };
+const SHOWROOM: PropertyType = { key: 'showroom', label: 'โชว์รูม และ อาคารพาณิชย์', icon: ICON_SHOWROOM, fields: [...WAREHOUSE_FIELDS, SUMMARY_FIELD] };
 
 
 export const PROPERTY_TYPES: PropertyType[] = [HOUSE, CONDO, LAND, FACTORY, WAREHOUSE, SHOWROOM];

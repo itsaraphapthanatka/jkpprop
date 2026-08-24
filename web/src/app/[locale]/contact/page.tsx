@@ -40,7 +40,7 @@ input::placeholder,textarea::placeholder{color:var(--muted3);}
   #hours-row{flex-direction:column;align-items:flex-start !important;gap:14px !important;}
   /* phone/email pills have a fixed 34px height and no overflow handling;
      the info-card text column is only ~150-200px wide on a phone, which
-     is narrower than "atsokoproperty.sales@gmail.com" or a phone number
+     is narrower than a full email address or a phone number
      plus its language suffix — clip gracefully instead of blowing out
      sideways or bleeding text past the pill's fixed height. */
   .c-phone,.c-email{max-width:100% !important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}

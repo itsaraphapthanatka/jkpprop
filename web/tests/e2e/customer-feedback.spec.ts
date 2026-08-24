@@ -183,6 +183,36 @@ test.describe('คอมเมนต์ลูกค้า · แยกหมว�
     return (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
   };
 
+  /* เด็ค Web 2026 ข้อ 11 · "ช่องใส่ข้อความ รายละเอียดใบ ร.ง.4 หายครับ" ·
+     "สลับตำแหน่งช่องเอกสารและใบอนุญาต ให้อยู่ด้านบนช่องข้อความสำหรับโพสต์" ·
+     และหมวดพื้นที่ที่มีสองอันในฟอร์มโรงงาน */
+  test('ฟอร์มโรงงาน — เอกสารอยู่เหนือข้อความโพสต์ · ช่อง ร.ง.4 ไม่ถูกซ่อน · หมวดพื้นที่มีอันเดียว', async ({ page }) => {
+    await signInAdmin(page);
+    await page.goto('/admin/properties');
+    await page.getByText('เพิ่มทรัพย์ใหม่').first().click();
+    await page.locator('#np-type-picker button', { hasText: 'โรงงาน' }).first().click();
+    await page.waitForTimeout(800);
+
+    const heads = (await page.locator('#np-modal section > button').allInnerTexts())
+      .map((t) => t.split('\n')[0].trim());
+    const iDoc = heads.indexOf('เอกสารและใบอนุญาต');
+    const iSum = heads.findIndex((h) => h.includes('รายละเอียดทรัพย์ (รวม)'));
+    expect(iDoc, 'ไม่มีหมวดเอกสารและใบอนุญาต').toBeGreaterThan(-1);
+    expect(iSum, 'ไม่มีหมวดข้อความสำหรับโพสต์').toBeGreaterThan(-1);
+    expect(iDoc, 'เอกสารและใบอนุญาตต้องอยู่เหนือข้อความสำหรับโพสต์').toBeLessThan(iSum);
+
+    /* หมวดพื้นที่ต้องมีอันเดียว ไม่ใช่ "พื้นที่" กับ "พื้นที่และอาคาร" คนละที่ */
+    const areaHeads = heads.filter((h) => h.startsWith('พื้นที่') && !h.includes('สี'));
+    expect(areaHeads, `หมวดพื้นที่ซ้ำกัน: ${areaHeads.join(' + ')}`).toHaveLength(1);
+
+    /* ช่องรายละเอียดใบ ร.ง.4 ต้องเห็นตั้งแต่เปิดหมวด ไม่ต้องเลือก "มี" ก่อน */
+    const sec = page.locator('#np-modal section').filter({ hasText: 'เอกสารและใบอนุญาต' }).first();
+    await sec.scrollIntoViewIfNeeded();
+    const labels = await sec.locator('label').allInnerTexts();
+    expect(labels.some((l) => l.includes('ร.ง.4') && l.includes('รายละเอียด')),
+      `ไม่เห็นช่องรายละเอียดใบ ร.ง.4 — มีแต่ ${labels.join(' | ')}`).toBeTruthy();
+  });
+
   test('ฟอร์มทรัพย์มีหัวข้อสามหมวดแยกกัน', async ({ page }) => {
     await signInAdmin(page);
     await page.goto('/admin/properties');
