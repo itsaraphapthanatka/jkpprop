@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { thumb } from '@/lib/mediaThumb';
 import { useDict } from '@/i18n/useDict';
 
 
@@ -206,7 +207,10 @@ export function InquiryBox({ code = '', typeLabel = '', socials = [], wechatId =
                โลโก้สีเข้มบนไฟล์โปร่งใสยังอ่านออกในโหมดมืด */
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={brandLogo}
+              /* ป้ายนี้สูงแค่ 46px แต่โลโก้ที่อัปมาเป็นไฟล์เต็ม (ของจริงตอนนี้
+                 2000×2000 · 528 KB) — ขอรุ่นย่อ 160px แทน คนเปิดหน้าทรัพย์
+                 ไม่ต้องโหลดครึ่งเมกะไบต์เพื่อดูรูปเล็กเท่าเล็บมือ */
+              src={thumb(brandLogo, 160)}
               alt={brandName}
               data-brand-logo
               /* สูงคงที่ กว้างยืดตามสัดส่วนโลโก้ — โลโก้แนวนอนยัดในกรอบจัตุรัส

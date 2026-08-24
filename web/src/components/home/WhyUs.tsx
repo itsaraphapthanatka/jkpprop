@@ -84,9 +84,17 @@ export function WhyUs({ copy, kpi: kpiCopy, stats }: { copy: SectionCopy; kpi: S
         <div className="rs-split-r" style={{ display: 'grid', gridTemplateColumns: '0.92fr 1.08fr', gap: 52, alignItems: 'center' }}>
           {/* image card */}
           <div style={{ position: 'relative', height: '480px', borderRadius: '20px', overflow: 'hidden', background: 'var(--bg2)', boxShadow: '0 24px 50px rgba(var(--ink-rgb),.16)' }}>
+            {/* คุณกิตติพงษ์แจ้ง 24 ส.ค. ว่า "แสดงไม่เต็มรูป" — เดิมเป็น cover
+                คือเติมเต็มกรอบแล้วตัดส่วนเกินทิ้ง รูปที่ทีมอัปมาเป็นภาพรวมโลโก้
+                ลูกค้า (แนวนอน 1672×941) พอยัดในกรอบสูง 480px ขอบซ้ายขวาโดนตัด
+                จนการ์ดโลโก้ริมสองข้างขาดครึ่ง · contain = เห็นครบทั้งรูป */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={copy.img || "https://images.unsplash.com/photo-1552664730-d307ca884978?w=1000&q=80"} alt={pick(copy.headline, d.whyUs.heading)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(var(--ink-rgb),.34) 0%,rgba(var(--ink-rgb),0) 30%,rgba(var(--ink-rgb),0) 55%,rgba(var(--ink-rgb),.5) 100%)', pointerEvents: 'none' }} />
+            <img id="whyus-img" src={copy.img || "https://images.unsplash.com/photo-1552664730-d307ca884978?w=1000&q=80"} alt={pick(copy.headline, d.whyUs.heading)} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+            {/* ไล่เฉดนี้มีไว้ให้ป้ายรางวัลกับการ์ดรีวิวที่ลอยทับรูปอ่านออก
+                ถ้าไม่มีทั้งสองอย่างก็ไม่ต้องมี — จะได้ไม่ไปคลุมรูปให้หม่นเปล่า ๆ */}
+            {(awardTitle || rating) && (
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(var(--ink-rgb),.34) 0%,rgba(var(--ink-rgb),0) 30%,rgba(var(--ink-rgb),0) 55%,rgba(var(--ink-rgb),.5) 100%)', pointerEvents: 'none' }} />
+            )}
             {/* Award ribbon — printed only when the team names an award.
                 "Real Estate Agent Awards / Thailand · 2025" used to be baked
                 in here, on a site whose owner had not told us they won it. */}

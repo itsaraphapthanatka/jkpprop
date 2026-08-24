@@ -103,6 +103,31 @@ test.describe('listing and property', () => {
     expect(new Set(shapes).size, 'ไอคอนซ้ำกัน แยกหัวข้อไม่ออก').toBe(shapes.length);
   });
 
+  /* คุณกิตติพงษ์แจ้ง 24 ส.ค. · "แสดงไม่เต็มรูป" — รูปในบล็อก "เหตุผลที่ลูกค้า
+     เลือกเรา" เป็น cover คือเติมเต็มกรอบแล้วตัดส่วนเกินทิ้ง ทีมอัปภาพรวมโลโก้
+     ลูกค้าแนวนอนเข้าไป การ์ดโลโก้ริมซ้ายขวาจึงขาดครึ่ง */
+  test('รูปในบล็อกเหตุผลที่ลูกค้าเลือกเรา ต้องเห็นครบ ไม่ถูกครอป', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/th');
+    for (let i = 0; i < 10; i += 1) { await page.evaluate(() => window.scrollBy(0, 800)); await page.waitForTimeout(200); }
+    const img = page.locator('#whyus-img');
+    await expect(img).toBeVisible();
+    expect(await img.evaluate((e) => getComputedStyle(e).objectFit),
+      'รูปถูกตั้งเป็น cover — ขอบจะโดนตัดทิ้ง').toBe('contain');
+    /* ถ้ายังไม่ได้ตั้งรูปในหลังบ้าน ตัวสำรองเป็นลิงก์ภายนอก ซึ่งเครื่องที่รัน
+       เทสต์อาจต่อไม่ได้ — เช็คเรขาคณิตเฉพาะตอนที่รูปโหลดขึ้นจริง ส่วนกติกา
+       contain ข้างบนคือของที่ต้องไม่หลุดกลับไปเป็น cover อีก */
+    const nat = await img.evaluate((e) => (e as HTMLImageElement).naturalWidth);
+    if (nat > 0) {
+      const over = await img.evaluate((e) => {
+        const el = e as HTMLImageElement; const r = el.getBoundingClientRect();
+        const scale = Math.min(r.width / el.naturalWidth, r.height / el.naturalHeight);
+        return el.naturalWidth * scale > r.width + 1 || el.naturalHeight * scale > r.height + 1;
+      });
+      expect(over, 'ยังมีส่วนของรูปที่ถูกตัดออกนอกกรอบ').toBe(false);
+    }
+  });
+
   /* เด็ค Web 2026 ข้อ 2 · "ที่กดเปลี่ยนหน้ามันอยู่ต่ำไปครับ ลูกค้าไม่รู้ว่ามี
      หน้าต่อไป" และคอมเมนต์ 23 ส.ค. "เลขหน้าจะต้องอยู่ติดกับการ์ดเสมอ ...
      ไม่เลื่อนลงไปไม่ว่ากรณีใด" */
