@@ -272,8 +272,8 @@ const WAREHOUSE_FIELDS: FieldDef[] = [
      ได้พื้นที่ เป็นลำดับเดียวกับคู่ที่ดินด้านบน */
   { key: 'building_wh', label: 'กว้าง x ลึก พื้นที่คลัง / ผลิต', kind: 'text', unit: 'ม.', section: 'พื้นที่', placeholder: 'เช่น 14 x 20' },
   { key: 'building_area', label: 'พื้นที่คลัง / ผลิต', kind: 'number', unit: 'ตร.ม.', section: 'พื้นที่' },
-  { key: 'office_floors', label: 'จำนวนชั้นออฟฟิศ', kind: 'select', options: ['ไม่มีออฟฟิศ', '1 ชั้น', '2 ชั้น', '3 ชั้น', 'มากกว่า 3 ชั้น'], section: 'พื้นที่' },
-  { key: 'building_floors', label: 'จำนวนชั้นอาคาร', kind: 'select', options: ['1 ชั้น', '2 ชั้น', '3 ชั้น', '4 ชั้น', 'มากกว่า 4 ชั้น'], section: 'พื้นที่' },
+  { key: 'office_floors', label: 'จำนวนชั้นออฟฟิศ', kind: 'select', options: ['ไม่มีออฟฟิศ', '1 ชั้น', '2 ชั้น', '3 ชั้น', 'มากกว่า 3 ชั้น'], section: 'พื้นที่', allowOther: true },
+  { key: 'building_floors', label: 'จำนวนชั้นอาคาร', kind: 'select', options: ['1 ชั้น', '2 ชั้น', '3 ชั้น', '4 ชั้น', 'มากกว่า 4 ชั้น'], section: 'พื้นที่', allowOther: true },
   { key: 'office_area_f1', label: 'พื้นที่ออฟฟิศ ชั้น 1', kind: 'number', unit: 'ตร.ม.', section: 'พื้นที่' },
   /* สไลด์ 26 · ลูกศรคู่ที่สอง — ออฟฟิศ ชั้น 1 กับออฟฟิศรวมอยู่ติดกัน แล้ว
      กว้าง x ลึก ของอาคารรวมมาก่อนพื้นที่อาคารรวม เหมือนอีกสองคู่ข้างบน */
@@ -292,7 +292,7 @@ const WAREHOUSE_FIELDS: FieldDef[] = [
   /* สี่ตัวเลือกตามที่ลูกค้าเขียนไว้ในสไลด์ 26 และตรงกับที่ทีมกรอกใน Master
      Sheet ทั้ง 393 แถว เดิมระบบมีให้เลือกแค่ "1 เฟส / 3 เฟส" ตอนนำเข้าจึงตัด
      กระแสแอมป์ทิ้งทั้งคอลัมน์ */
-  { key: 'power_phase', label: 'ระบบไฟ', kind: 'select', options: POWER_PHASES, section: 'สเปคอาคาร' },
+  { key: 'power_phase', label: 'ระบบไฟ', kind: 'select', options: POWER_PHASES, section: 'สเปคอาคาร', allowOther: true },
   { key: 'power_system', label: 'ขนาดหม้อแปลงไฟฟ้า (รายละเอียด)', kind: 'text', section: 'สเปคอาคาร', placeholder: 'เช่น 250 kVA' },
   { key: 'floor_loading', label: 'น้ำหนักที่พื้นรับได้', kind: 'text', section: 'สเปคอาคาร', placeholder: 'เช่น 3 ตัน/ตร.ม.' },
   /* สไลด์ 27 · "โกดัง โรงงาน โชว์รูม มีฟิลเลือกเครน มี/ไม่มี" — เดิมมีแต่ในชุด
@@ -328,9 +328,9 @@ const WAREHOUSE_FIELDS: FieldDef[] = [
   { key: 'transfer_fee_resp', label: 'ค่าโอนกรรมสิทธิ์', kind: 'select', options: ['ผู้ขาย รับผิดชอบ 100%', 'ผู้ขายและผู้ซื้อ รับผิดชอบ 50/50', 'ผู้ซื้อ รับผิดชอบ 100%'], section: 'ภาษีและค่าธรรมเนียม', showWhen: WHEN_SALE },
 
   // 6 · เงื่อนไขสัญญา
-  { key: 'lease_term', label: 'อายุสัญญาเช่า', kind: 'select', options: ['1 ปี', '1-3 ปี', '2 ปี', '3 ปี', '5 ปี', 'อื่นๆ'], section: 'เงื่อนไขสัญญา' },
-  { key: 'deposit_months', label: 'เงินประกัน / ค่ามัดจำ', kind: 'select', options: ['1 เดือน', '2 เดือน', '3 เดือน', '4 เดือน', '6 เดือน'], section: 'เงื่อนไขสัญญา' },
-  { key: 'advance_months', label: 'ค่าเช่าล่วงหน้า', kind: 'select', options: ['1 เดือน', '2 เดือน', '3 เดือน'], section: 'เงื่อนไขสัญญา' },
+  { key: 'lease_term', label: 'อายุสัญญาเช่า', kind: 'select', options: ['1 ปี', '1-3 ปี', '2 ปี', '3 ปี', '5 ปี', 'อื่นๆ'], section: 'เงื่อนไขสัญญา', allowOther: true },
+  { key: 'deposit_months', label: 'เงินประกัน / ค่ามัดจำ', kind: 'select', options: ['1 เดือน', '2 เดือน', '3 เดือน', '4 เดือน', '6 เดือน'], section: 'เงื่อนไขสัญญา', allowOther: true },
+  { key: 'advance_months', label: 'ค่าเช่าล่วงหน้า', kind: 'select', options: ['1 เดือน', '2 เดือน', '3 เดือน'], section: 'เงื่อนไขสัญญา', allowOther: true },
 
   // 7 · คุณสมบัติและการใช้งาน
   { key: 'features', label: 'คุณสมบัติ', kind: 'multiselect', options: ['พื้นที่สูงโปร่ง', 'มีพื้นที่สำนักงาน', 'รถบรรทุกเข้าถึงได้', 'พื้นเทคอนกรีต', 'ใกล้ถนนหลัก', 'มีลานจอด / ลานเทรลเลอร์', 'อาคารเดี่ยว', 'ยกพื้นเทียบตู้ (Dock leveler)', 'มีที่จอดรถ', 'พื้นที่โครงการ', 'รถคอนเทนเนอร์เข้าได้', 'เครนเหนือศีรษะ'], section: 'คุณสมบัติและการใช้งาน' },

@@ -359,6 +359,18 @@ test.describe('คอมเมนต์ลูกค้า · ช่องเล�
       await page.goto(`/admin/property-edit?code=${made.publicCode}`);
       await expect(page.locator('[data-field-select="bedrooms"]')).toHaveValue('7 ห้อง');
 
+      /* ต้องครอบคลุมประเภทที่ทีมใช้จริงด้วย ไม่ใช่แค่บ้าน/คอนโดที่ปิดไว้ */
+      await page.goto('/admin/properties');
+      await page.getByText('เพิ่มทรัพย์ใหม่').first().click();
+      await page.locator('#np-type-picker button', { hasText: 'โกดัง' }).first().click();
+      await page.waitForTimeout(900);
+      for (const k of ['lease_term', 'deposit_months', 'advance_months', 'building_floors', 'power_phase']) {
+        const box = page.locator(`[data-field-select="${k}"]`);
+        if (await box.count() === 0) continue;
+        const opts = await box.locator('option').allInnerTexts();
+        expect(opts.some((o) => o.includes('พิมพ์เอง')), `${k} ยังพิมพ์เองไม่ได้`).toBeTruthy();
+      }
+
       /* ช่องที่ระบบเอาไปเทียบเป็นค่าคงที่ ต้องไม่เปิดให้พิมพ์เอง */
       const zone = page.locator('[data-field-select="zoning_color"], [data-zone-picker]');
       if (await zone.count()) {
