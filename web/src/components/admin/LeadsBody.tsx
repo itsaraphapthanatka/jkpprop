@@ -5,7 +5,9 @@ import { useMe } from '@/lib/useMe';
 import { apiGet, apiPost, apiPatch, apiDelete, ApiClientError } from '@/lib/apiClient';
 import Link from 'next/link';
 import { thumb } from '@/lib/mediaThumb';
-import { PROPERTY_TYPES, propertyType } from '@/lib/propertySchema';
+import { propertyType, requirementFields, enabledPropertyTypes, type FieldDef } from '@/lib/propertySchema';
+import { buildReqItems, dealIntentOf, emptyReqValues, resetReqValues } from '@/lib/requirementForm';
+import { useSchemaSync } from '@/lib/schemaSync';
 
 /* Ported from AdminLeads.dc.html <main> — interactive leads split view:
    lead list + detail card (status/agent dropdowns), filter chips,
@@ -230,7 +232,7 @@ export function LeadsBody() {
   const emptyForm = {
     name: '', contact: '', country: 'TH', phone: '', email: '',
     source: 'contact form', statusK: 'new', agent: '', who: 'ลูกค้า',
-    typeKey: 'warehouse', dealIntent: 'เช่า', businessType: '', area: '', location: '', budget: '', message: '',
+    typeKey: 'warehouse', message: '',
   };
   const [form, setForm] = React.useState(emptyForm);
   /* ปุ่มแชร์ลิงก์ให้ลูกค้ากรอกเอง — ฟอร์มบนหน้าติดต่อทำหน้าที่นี้อยู่แล้ว แต่
@@ -247,6 +249,18 @@ export function LeadsBody() {
     } catch { /* เบราว์เซอร์ไม่ให้คัดลอก — URL แสดงอยู่บนจอให้ลากเอาได้ */ }
   };
   const setF = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
+  /* ช่อง "ความต้องการของลูกค้า" ใช้ชุดเดียวกับฟอร์มแจ้งความต้องการหน้าติดต่อ
+     (คุณกิตติพงษ์สั่ง 24 ส.ค.) — ชุดช่างเปลี่ยนตามประเภททรัพย์ที่เลือก เช่น
+     โรงงานถามระบบไฟกับ ร.ง.4 ที่ดินถามผังเมืองสี ซึ่งเดิมหลังบ้านไม่มีให้กรอก */
+  const [reqValues, setReqValues] = React.useState<Record<string, unknown>>(emptyReqValues);
+  const reqFields = requirementFields(form.typeKey);
+  const setRV = (k: string, v: unknown) => setReqValues((p) => ({ ...p, [k]: v }));
+  const pickLeadType = (k: string) => { setF('typeKey', k); setReqValues(resetReqValues); };
+  /* ประเภทที่เอเจนซีปิดไว้ ไม่ต้องขึ้นในหลังบ้านเหมือนกัน — หน้าเว็บก็ไม่ขึ้น
+     ผูกกับ schemaV ด้วย ไม่งั้นเปลี่ยนการตั้งค่าประเภทแล้วรายการนี้ค้างจนกว่า
+     จะรีโหลดหน้า */
+  const schemaV = useSchemaSync();
+  const leadTypes = React.useMemo(() => enabledPropertyTypes(), [schemaV]);
   const canCreate = form.name.trim().length > 0;
 
   /* an empty pipeline is a real state — everything below reads from `cur`, so
@@ -544,18 +558,13 @@ export function LeadsBody() {
         /* ส่งเป็นชุดเดียวกับที่ฟอร์มบนเว็บส่ง เพื่อให้ได้ Requirement เหมือนกัน */
         typeKey: form.typeKey,
         typeLabel: propertyType(form.typeKey).label,
-        dealIntent: form.dealIntent,
+        dealIntent: dealIntentOf(reqValues),
         message: form.message.trim(),
-        /* เด็ค Web 2026 ข้อ 14 · "ฟิลใส่ข้อมูล 1 อันที่แสดงผลซ้ำกันครับ"
-           ฟอร์มนี้เคยยัด "ต้องการ" ลงชุด req ด้วย ทั้งที่ dealIntent ส่งไปเป็น
-           คอลัมน์ของ lead อยู่แล้ว สรุปความต้องการจึงขึ้นสองบรรทัดว่าเช่า
-           เอาออก แล้วใช้ช่องนั้นถามประเภทสินค้าและธุรกิจตามที่ลูกค้าขอ */
-        req: [
-          form.businessType.trim() && { k: 'ประเภทสินค้าและธุรกิจ', v: form.businessType.trim() },
-          form.area.trim() && { k: 'พื้นที่ใช้สอยที่ต้องการ', v: `${form.area.trim()} ตร.ม.` },
-          form.location.trim() && { k: 'ทำเล / จังหวัดที่สนใจ', v: form.location.trim() },
-          form.budget.trim() && { k: 'งบประมาณ (เช่า/ซื้อ)', v: form.budget.trim() },
-        ].filter(Boolean),
+        /* ชุดเดียวกับฟอร์มหน้าติดต่อ — ป้ายชื่อช่องมาจาก schema ตรง ๆ ไม่ได้
+           พิมพ์เอง เพราะตัวอ่านความต้องการจับคู่ด้วยป้าย ถ้าเขียนคนละคำจะอ่าน
+           ไม่เจอ (เดิมหลังบ้านเขียนว่า "งบประมาณ (เช่า/ซื้อ)" ส่วน schema ใช้
+           "งบประมาณ" เฉย ๆ) */
+        req: buildReqItems(reqFields, reqValues),
         // ช่อง "มอบหมายให้" ในฟอร์มนี้เคยส่งชื่อที่พิมพ์ไว้ในโค้ดไปเปล่า ๆ
         assigneeId: form.agent || null,
       });
@@ -590,9 +599,10 @@ export function LeadsBody() {
     setAgentVal(team.find((m) => m.id === form.agent)?.name ?? 'ยังไม่มอบหมาย');
     setCreateOpen(false);
     setForm(emptyForm);
+    setReqValues(emptyReqValues);
     setCreating(false);
   };
-  const openCreate = () => { setForm(emptyForm); setCreateOpen(true); closeAll(); };
+  const openCreate = () => { setForm(emptyForm); setReqValues(emptyReqValues); setCreateOpen(true); closeAll(); };
 
   return (
     <>
@@ -640,32 +650,77 @@ export function LeadsBody() {
                   ถ้ากรอกมาอย่างน้อยหนึ่งช่อง ระบบจะเปิดใบงาน Requirement ให้ */}
               <div style={{ marginTop: 4, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
                 <div style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text)', marginBottom: 10 }}>ความต้องการของลูกค้า</div>
-                <div style={fGrid}>
-                  <div>
-                    <label style={fLabel}>ประเภททรัพย์</label>
-                    <select value={form.typeKey} onChange={(e) => setF('typeKey', e.target.value)} style={fSelect} data-lead-type>
-                      {PROPERTY_TYPES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={fLabel}>ต้องการ</label>
-                    <select value={form.dealIntent} onChange={(e) => setF('dealIntent', e.target.value)} style={fSelect} data-lead-deal>
-                      {['เช่า', 'ซื้อ', 'เช่า / ซื้อ'].map((v) => <option key={v} value={v}>{v}</option>)}
-                    </select>
-                  </div>
-                </div>
+                {/* ประเภททรัพย์ — เลือกแบบปุ่มเหมือนหน้าเว็บ และแสดงเฉพาะประเภท
+                    ที่เปิดใช้อยู่ (บ้าน/คอนโดปิดไว้ หน้าเว็บก็ไม่ขึ้น) */}
                 <div>
-                  <label style={fLabel}>ประเภทสินค้าและธุรกิจ</label>
-                  <input value={form.businessType} onChange={(e) => setF('businessType', e.target.value)} placeholder="เช่น อาหารแช่แข็ง · ชิ้นส่วนยานยนต์ · อีคอมเมิร์ซ" style={fInput} data-lead-business />
+                  <label style={fLabel}>ประเภททรัพย์ที่ต้องการ</label>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} data-lead-type>
+                    {leadTypes.map((t) => {
+                      const on = form.typeKey === t.key;
+                      return (
+                        <button
+                          type="button"
+                          key={t.key}
+                          data-lead-type-opt={t.key}
+                          aria-pressed={on}
+                          onClick={() => pickLeadType(t.key)}
+                          style={{ flex: '1 1 auto', minWidth: 104, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 11, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? 'rgba(13,108,59,.06)' : 'var(--surface)', color: on ? '#0D6C3B' : 'var(--text)' }}
+                        >
+                          <span style={{ display: 'flex', width: 15, height: 15 }} dangerouslySetInnerHTML={{ __html: t.icon }} />
+                          {t.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div style={fGrid}>
-                  <div><label style={fLabel}>พื้นที่ที่ต้องการ (ตร.ม.)</label><input value={form.area} onChange={(e) => setF('area', e.target.value)} placeholder="เช่น 1500 หรือ 1000-3000" style={fInput} data-lead-area /></div>
-                  <div><label style={fLabel}>ทำเล / จังหวัดที่สนใจ</label><input value={form.location} onChange={(e) => setF('location', e.target.value)} placeholder="เช่น บางนา, สมุทรปราการ" style={fInput} data-lead-location /></div>
+
+                {/* ช่องที่เหลือมาจาก schema ของประเภทที่เลือก — ชุดเดียวกับฟอร์ม
+                    แจ้งความต้องการหน้าติดต่อ เปลี่ยนประเภทแล้วช่องเปลี่ยนตาม */}
+                <div style={{ ...fGrid, marginTop: 12 }}>
+                  {reqFields.map((f: FieldDef) => {
+                    const full = f.kind === 'boolean' || f.key === 'location' || f.key === 'budget' || f.key === 'business_type';
+                    const cur = reqValues[f.key];
+                    return (
+                      <div key={f.key} style={full ? { gridColumn: '1 / -1' } : undefined}>
+                        <label style={fLabel}>{f.label}{f.unit ? ` (${f.unit})` : ''}</label>
+                        {f.kind === 'dealtype' ? (
+                          <div style={{ display: 'flex', gap: 8 }} data-lead-deal>
+                            {(f.options || []).map((o) => {
+                              const on = (cur ?? (f.options || [])[0]) === o;
+                              return (
+                                <button type="button" key={o} data-lead-deal-opt={o} aria-pressed={on} onClick={() => setRV(f.key, o)}
+                                  style={{ flex: 1, height: 40, borderRadius: 11, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', border: '1.5px solid ' + (on ? '#0D6C3B' : 'var(--border)'), background: on ? 'rgba(13,108,59,.06)' : 'var(--surface)', color: on ? '#0D6C3B' : 'var(--text)' }}>{o}</button>
+                              );
+                            })}
+                          </div>
+                        ) : f.kind === 'select' ? (
+                          <select value={(cur as string) ?? ''} onChange={(e) => setRV(f.key, e.target.value)} style={fSelect} data-lead-field={f.key}>
+                            <option value="">เลือก…</option>
+                            {(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
+                          </select>
+                        ) : f.kind === 'boolean' ? (
+                          <button type="button" role="switch" aria-checked={!!cur} data-lead-field={f.key} onClick={() => setRV(f.key, !cur)}
+                            style={{ ...fInput, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
+                            <span style={{ fontSize: '12.5px', color: 'var(--text)' }}>{cur ? 'ต้องการ' : 'ไม่ระบุ'}</span>
+                            <span style={{ width: 36, height: 21, borderRadius: 9999, background: cur ? '#0D6C3B' : 'var(--border)', position: 'relative', flexShrink: 0 }}>
+                              <span style={{ position: 'absolute', top: 2.5, left: cur ? 17 : 2.5, width: 16, height: 16, borderRadius: 9999, background: '#fff' }} />
+                            </span>
+                          </button>
+                        ) : (
+                          <input
+                            value={(cur as string) ?? ''}
+                            onChange={(e) => setRV(f.key, e.target.value)}
+                            inputMode={f.kind === 'number' ? 'numeric' : undefined}
+                            placeholder={f.placeholder || (f.kind === 'number' ? '0' : '')}
+                            style={fInput}
+                            data-lead-field={f.key}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-                <div>
-                  <label style={fLabel}>งบประมาณ (เช่า/ซื้อ)</label>
-                  <input value={form.budget} onChange={(e) => setF('budget', e.target.value)} placeholder="เช่น 150,000/เดือน หรือ 40 ล้าน" style={fInput} data-lead-budget />
-                </div>
+
                 <div style={{ marginTop: 12 }}>
                   <label style={fLabel}>รายละเอียดเพิ่มเติม</label>
                   <textarea

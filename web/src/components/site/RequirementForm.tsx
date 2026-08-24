@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { PROPERTY_TYPES, requirementFields, enabledPropertyTypes, type FieldDef } from '@/lib/propertySchema';
+import { buildReqItems, dealIntentOf, resetReqValues } from '@/lib/requirementForm';
 import { addLead, newLeadId, type ReqItem } from '@/lib/leadStore';
 import { useSchemaSync } from '@/lib/schemaSync';
 import { apiPost, ApiClientError } from '@/lib/apiClient';
@@ -55,7 +56,7 @@ export function RequirementForm() {
   const clearErr = () => setError((e) => (e ? '' : e));
 
   // reset per-type answers but PRESERVE the universal rent/buy intent
-  const pickType = (k: string) => { setTypeKey(k); setValues((p) => ({ deal_intent: (p.deal_intent as string) ?? 'เช่า' })); };
+  const pickType = (k: string) => { setTypeKey(k); setValues(resetReqValues); };
 
   const lbl = (f: FieldDef) => (<label style={labelStyle}>{enumLabel(f.label, locale)}{f.unit ? ` (${f.unit})` : ''}{f.required ? reqMark : null}</label>);
 
@@ -92,20 +93,10 @@ export function RequirementForm() {
     }
   };
 
-  const buildReq = (): { req: ReqItem[]; dealIntent: string } => {
-    const dealIntent = (values.deal_intent as string) || 'เช่า';
-    const req: ReqItem[] = [];
-    fields.forEach((f) => {
-      if (f.key === 'deal_intent') return; // captured separately
-      const raw = values[f.key];
-      if (raw === undefined || raw === '' || raw === false) return;
-      if (f.kind === 'boolean') { req.push({ k: f.label, v: 'ต้องการ' }); return; }
-      const v = String(raw).trim();
-      if (!v || v === 'ไม่ระบุ') return; // treat an explicit "not specified" like a blank
-      req.push({ k: f.label, v: f.unit ? `${v} ${f.unit}` : v });
-    });
-    return { req, dealIntent };
-  };
+  /* กติกาการแปลงช่อง → ชุด req อยู่ที่ lib/requirementForm — ฟอร์มเพิ่ม Lead
+     ในหลังบ้านใช้ตัวเดียวกัน จะได้เก็บข้อมูลเหมือนกันเป๊ะและไม่เพี้ยนออกจากกัน */
+  const buildReq = (): { req: ReqItem[]; dealIntent: string } =>
+    ({ req: buildReqItems(fields, values), dealIntent: dealIntentOf(values) });
 
   const submit = async () => {
     if (sending) return;

@@ -1486,12 +1486,16 @@ test.describe('คอมเมนต์ลูกค้า · เพิ่ม Lea
     await page.getByPlaceholder('เช่น คุณสมชาย').fill('คุณทดสอบ');
     await page.getByPlaceholder('+66 8x-xxx-xxxx').fill('081-999-8888');
 
-    // ช่องที่หน้าติดต่อมี แต่หลังบ้านไม่เคยมี
-    await page.locator('[data-lead-type]').selectOption('factory');
-    await page.locator('[data-lead-deal]').selectOption('เช่า');
-    await page.locator('[data-lead-area]').fill('1500');
-    await page.locator('[data-lead-location]').fill('บางนา, สมุทรปราการ');
-    await page.locator('[data-lead-budget]').fill('150,000/เดือน');
+    /* ช่องความต้องการเป็นชุดเดียวกับฟอร์มหน้าติดต่อแล้ว — เลือกประเภทเป็นปุ่ม
+       และช่องที่เหลือมาจาก schema ของประเภทนั้น */
+    await page.locator('[data-lead-type-opt="factory"]').click();
+    await page.locator('[data-lead-deal-opt="เช่า"]').click();
+    await page.locator('[data-lead-field="usable_area"]').fill('1500');
+    await page.locator('[data-lead-field="location"]').fill('บางนา, สมุทรปราการ');
+    await page.locator('[data-lead-field="budget"]').fill('150,000/เดือน');
+    /* โรงงานถามระบบไฟกับ ร.ง.4 ด้วย ซึ่งหลังบ้านเดิมไม่มีให้กรอกเลย */
+    await page.locator('[data-lead-field="power"]').selectOption('3 เฟส');
+    await page.locator('[data-lead-field="rg4"]').click();
     await page.locator('[data-lead-message]').fill('ลูกค้าโทรมาถามเมื่อเช้า');
     await page.locator('#lead-create-save').click();
 
@@ -1511,6 +1515,22 @@ test.describe('คอมเมนต์ลูกค้า · เพิ่ม Lea
     expect(req, 'พื้นที่ที่ต้องการ').toContain('1500');
     expect(req, 'ทำเล').toContain('บางนา');
     expect(req, 'งบ').toContain('150,000');
+    expect(req, 'ระบบไฟที่โรงงานต้องการ').toContain('3 เฟส');
+    expect(req, 'ต้องขอใบ ร.ง.4').toContain('ร.ง.4');
+
+    /* ป้ายชื่อช่องต้องเป็นป้ายจาก schema ของประเภทนั้นตรง ๆ ไม่ใช่คำที่หลังบ้าน
+       พิมพ์เอง เพราะตัวอ่านความต้องการจับคู่ด้วยป้าย เขียนคนละคำแล้วจะอ่านไม่เจอ
+       โรงงานใช้ป้ายของตัวเอง ("ทำเล / นิคม / จังหวัด") ต่างจากโกดัง */
+    const keys = (saved.req ?? []).map((r) => r.k);
+    expect(keys, `ป้ายที่บันทึกไว้: ${keys.join(' · ')}`).toEqual([
+      'พื้นที่ใช้สอยที่ต้องการ',
+      'ระบบไฟที่ต้องการ',
+      'ต้องขอใบ ร.ง.4',
+      'ทำเล / นิคม / จังหวัด',
+      'งบประมาณ (เช่า/ซื้อ)',
+    ]);
+    /* "ต้องการ" ต้องไม่กลับมาเป็นรายการซ้ำอีก (เด็ค Web 2026 ข้อ 14) */
+    expect(keys).not.toContain('ต้องการ');
 
     /* และต้องเปิดใบงาน Requirement ให้เหมือนที่ฟอร์มบนเว็บทำ ไม่ใช่จบแค่แถวลีด */
     const reqs = (await (await request.get('/api/requirements?limit=50', { headers: { cookie } })).json());
