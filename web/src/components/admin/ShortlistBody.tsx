@@ -4,6 +4,7 @@ import * as React from 'react';
 import { thumb } from '@/lib/mediaThumb';
 import Link from 'next/link';
 import { apiGet, apiPatch, apiPost, ApiClientError } from '@/lib/apiClient';
+import { InventoryFilters, EMPTY_FILTERS, matchesFilters, sortInventory, type InventoryFilterState, type InventoryRow } from './InventoryFilters';
 
 /* ============================================================
    Ported from AdminShortlist.dc.html — interactive shortlist
@@ -58,7 +59,7 @@ type ApiDetail = {
   id: string; name: string; token: string; status: string; url: string;
   leadId: string | null; requirement: ApiRequirement | null; items: ApiItem[];
 };
-type ApiProperty = { publicCode: string; title: string; status: string; location?: string; area?: number | null; values?: Record<string, unknown> };
+type ApiProperty = { publicCode: string; title: string; status: string; typeKey?: string; location?: string; area?: number | null; values?: Record<string, unknown> };
 
 type Avail = 'available' | 'unavailable';
 
@@ -91,6 +92,11 @@ interface ShortlistState {
   openSend: () => void;
   closeSend: () => void;
   candidates: CandidateVal[];
+  /* ข้อ 19 · เมนูค้นหาของรายการทรัพย์ที่จะเพิ่ม */
+  poolInv: InventoryFilterState;
+  setPoolInv: (v: InventoryFilterState) => void;
+  poolCount: number;
+  poolPicOptions: string[];
   items: ItemVal[];
   itemCount: number;
   reorder: (fromKey: string, toKey: string) => void;
@@ -136,6 +142,13 @@ export function ShortlistProvider({ children, shortlistId }: { children: React.R
   const [sendOpen, setSendOpen] = React.useState(false);
   const [detail, setDetail] = React.useState<ApiDetail | null>(null);
   const [pool, setPool] = React.useState<ApiProperty[]>([]);
+  /* เด็ค Web 2026 ข้อ 19 · "ต้องมีฟิลค้นหา ประเภททรัพย์ เขต แขวง จังหวัด ราคา
+     ขนาด คุณสมบัติ เพื่อหาของให้ลูกค้าถูก" และ "ค้นหาใช้ไม่ได้ครับ"
+     ช่องค้นหาที่มีอยู่ไม่มี value ไม่มี onChange — พิมพ์แล้วไม่เกิดอะไรเลย
+     และรายการข้างล่างคือทรัพย์แปดใบแรกของคลัง ไม่ได้เกี่ยวกับที่พิมพ์
+     ใช้เมนูค้นหาชุดเดียวกับ Properties / Listings / Social Status ซึ่งมีช่อง
+     ค้นหาในตัวอยู่แล้ว — ไม่วางช่องค้นหาซ้อนอีกช่อง */
+  const [poolInv, setPoolInv] = React.useState<InventoryFilterState>(EMPTY_FILTERS);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState('');
   const [busy, setBusy] = React.useState(false);
@@ -205,9 +218,36 @@ export function ShortlistProvider({ children, shortlistId }: { children: React.R
     remove: () => void patch({ removeIds: [it.id] }),
   }));
 
-  const candidates: CandidateVal[] = pool
-    .filter((p) => !inList.has(p.publicCode))
-    .slice(0, 8)
+  const poolView = (p: ApiProperty): InventoryRow => {
+    const v = (p.values ?? {}) as Record<string, unknown>;
+    return {
+      code: p.publicCode, title: p.title, typeKey: p.typeKey ?? '', province: p.location ?? '',
+      zoning: String(v.zoning_color ?? ''), deal: String(v.deal_type ?? ''),
+      size: p.area ?? null,
+      price: [v.price_rent, v.price_sale, v.price].find((x) => typeof x === 'number') as number | undefined ?? null,
+      available: true, pic: String(v.pic ?? ''),
+    };
+  };
+  /* ตัวค้นหาชุดร่วมเทียบแค่ รหัส · ชื่อ · ผู้ดูแล แต่ลูกค้าขอให้ค้น "เขต แขวง
+     จังหวัด" ได้ด้วย — ถ้าคำค้นตรงกับทำเล ก็ให้ผ่านข้อความไป แล้วปล่อยให้
+     ตัวกรองที่เหลือ (ประเภท ราคา ขนาด ฯลฯ) ทำงานตามปกติ */
+  const poolTerm = poolInv.q.trim().toLowerCase();
+  const poolMatches = sortInventory(
+    pool
+      .filter((p) => !inList.has(p.publicCode))
+      .filter((p) => {
+        const hitLocation = !!poolTerm && (p.location ?? '').toLowerCase().includes(poolTerm);
+        return matchesFilters(poolView(p), hitLocation ? { ...poolInv, q: '' } : poolInv);
+      })
+      .map((p) => ({ ...p, ...poolView(p) })),
+    poolInv.sort,
+  ).map((r) => pool.find((p) => p.publicCode === r.code)!);
+  const poolCount = poolMatches.length;
+  /* ชื่อผู้ดูแลที่มีอยู่จริงในคลัง ไม่ใช่รายชื่อพนักงานทั้งบริษัท */
+  const poolPicOptions = Array.from(new Set(pool.map((p) => String((p.values ?? {}).pic ?? '')).filter(Boolean))).sort();
+
+  const candidates: CandidateVal[] = poolMatches
+    .slice(0, 12)
     .map((p) => ({
       id: p.publicCode,
       code: p.publicCode,
@@ -301,6 +341,8 @@ export function ShortlistProvider({ children, shortlistId }: { children: React.R
     openSend: () => setSendOpen(true),
     closeSend: () => setSendOpen(false),
     candidates,
+    poolInv, setPoolInv, poolCount,
+    poolPicOptions,
     items,
     itemCount: items.length,
     reorder,
@@ -528,7 +570,7 @@ function ShortlistItem({ it }: { it: ItemVal }) {
 
 /* Ported <main> content. */
 export function ShortlistMain() {
-  const { candidates, items, sendOpen, closeSend, shareUrl, sending, sent, confirmSend, name, requirement, reqSummary, locations, loading, empty, error, visitOpen, closeVisit, visitDate, setVisitDate, visitPicked, toggleVisitPick, visitErr, booking, bookVisit } = useShortlist();
+  const { candidates, poolInv, setPoolInv, poolCount, poolPicOptions, items, sendOpen, closeSend, shareUrl, sending, sent, confirmSend, name, requirement, reqSummary, locations, loading, empty, error, visitOpen, closeVisit, visitDate, setVisitDate, visitPicked, toggleVisitPick, visitErr, booking, bookVisit } = useShortlist();
 
   if (loading) return <div style={{ padding: '48px 0', textAlign: 'center', fontSize: 13, color: 'var(--muted3)' }}>กำลังโหลด…</div>;
   if (error) return <div style={{ padding: '20px 22px', borderRadius: 14, background: '#FDECEC', color: '#A32A2A', fontSize: 13, fontWeight: 600 }}>{error}</div>;
@@ -588,11 +630,18 @@ export function ShortlistMain() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* add search */}
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '16px 18px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: 44, padding: '0 14px', borderRadius: 11, background: 'var(--bg)', border: '1px solid var(--border)', flex: 1 }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
-                <input placeholder="ค้นหาทรัพย์เพิ่ม (เฉพาะ published + ว่าง)" style={{ border: 0, outline: 'none', background: 'transparent', fontSize: 13, color: 'var(--text)', flex: 1, minWidth: 0 }} />
-              </div>
+            {/* ข้อ 19 · ช่องค้นหาเดิมไม่มี value ไม่มี onChange พิมพ์แล้วไม่เกิด
+                อะไร และรายการข้างล่างคือทรัพย์แปดใบแรกของคลัง ไม่เกี่ยวกับที่
+                พิมพ์เลย — เอาช่องปลอมออก แล้วใช้ของจริงที่อยู่ในเมนูข้างล่าง */}
+            {/* เมนูค้นหาชุดเดียวกับ Properties · Listings · Social Status —
+                ประเภททรัพย์ ทำเล ราคา ขนาด คุณสมบัติ ตามที่ลูกค้าขอ */}
+            <div>
+              <InventoryFilters value={poolInv} onChange={setPoolInv} picOptions={poolPicOptions} />
+            </div>
+            <div id="sl-pool-count" style={{ marginTop: 8, fontSize: 12, color: 'var(--muted3)' }}>
+              {poolCount === 0
+                ? 'ไม่พบทรัพย์ที่ตรงกับเงื่อนไข — ลองผ่อนตัวกรองหรือล้างคำค้น'
+                : `พบ ${poolCount} รายการ${poolCount > 12 ? ' · แสดง 12 รายการแรก' : ''}`}
             </div>
             <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
               {candidates.map((c) => (

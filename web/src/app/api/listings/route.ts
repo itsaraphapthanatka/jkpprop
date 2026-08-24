@@ -61,6 +61,8 @@ export const GET = handler(async () => {
           .find((v) => typeof v === 'number') as number | undefined ?? null,
         available: !taken.has(p.id),
         pic: String(values.pic ?? ''),
+        /* ข้อรวม ข · คอลัมน์สถานะทรัพย์กลางในตารางนี้ (เห็นเฉพาะเจ้าของระบบ) */
+        contactShared: p.contactShared,
         /* รูปหน้าปก — ตารางเดิมไม่มีรูปเลย ทุกแถวหน้าตาเหมือนกันหมด */
         img: (() => {
           const ph = values.photos;

@@ -11,6 +11,7 @@ import { apiGet, apiPost, apiPatch, apiDelete, ApiClientError } from '@/lib/apiC
 import { placeMenu, type MenuBox } from '@/lib/menuPlacement';
 import { relTime } from '@/lib/leadStore';
 import { PicCell, PIC_TH } from './PicCell';
+import { useMe } from '@/lib/useMe';
 import { composeTitle, canCompose } from '@/lib/propertyTitle';
 import { buildPropertyCsv } from '@/lib/propertyExportCsv';
 import Link from 'next/link';
@@ -169,6 +170,8 @@ type ApiProperty = {
   area: number | null;
   updatedAt: number;
   available?: boolean;
+  /** ทรัพย์กลาง — ทุกคนในทีมเห็นเบอร์ผู้ให้เช่าได้ (ข้อรวม ข · เจ้าของตั้งเท่านั้น) */
+  contactShared?: boolean;
 };
 type ApiSummary = { total: number; published: number; draft: number; transIncomplete: number };
 
@@ -211,6 +214,12 @@ export function PropertiesBody() {
   const [openMenu, setOpenMenu] = React.useState<string | null>(null);
   const [menuBox, setMenuBox] = React.useState<MenuBox | null>(null);
   const menuBtns = React.useRef<Record<string, HTMLElement | null>>({});
+  /* ข้อรวม ข · "มีฟิลด์แสดงสถานะเปิดหรือปิด ในหน้า Properties และ Listings
+     เห็นได้แค่เจ้าของ" — ทรัพย์กลางคือทรัพย์ที่ทุกคนในทีมเห็นเบอร์ผู้ให้เช่าได้
+     ใครเปิดปิดได้มีแค่เจ้าของระบบ (กันไว้ที่ API อยู่แล้ว) คอลัมน์กับปุ่มจึง
+     ไม่ควรไปวางให้คนที่กดไม่ได้เห็น */
+  const me = useMe();
+  const isOwner = me?.role === 'owner';
   const [sel, setSel] = React.useState<Set<string>>(new Set());
   const [page, setPage] = React.useState(1);
   /* เมนูค้นหาชุดเดียวกับ Listings และ Social Status (สไลด์ 22) */
@@ -409,6 +418,11 @@ export function PropertiesBody() {
   const bulkStatus = (status: 'active' | 'draft', label: string) =>
     runBulk(label, (r) => apiPatch(`/api/properties/${r.id}`, { status }));
 
+  /* ข้อรวม ข · "มีปุ่มเปิดเป็นทรัพย์กลางเพื่อเลือกได้หลายรายการ" — เดิมเปิดได้
+     ทีละใบจากหน้าทรัพย์เท่านั้น ทรัพย์เป็นร้อยรายการก็ต้องเปิดทีละใบ */
+  const bulkShared = (on: boolean) =>
+    runBulk(on ? 'เปิดทรัพย์กลาง' : 'ปิดทรัพย์กลาง', (r) => apiPatch(`/api/properties/${r.id}`, { contactShared: on }));
+
   const bulkDelete = () => {
     const rows = (shown).filter((r) => sel.has(r.id));
     if (!window.confirm(`ลบทรัพย์ ${rows.length} รายการ?\n${rows.map((r) => `· ${r.publicCode} ${r.title}`).join('\n')}`)) return;
@@ -494,6 +508,8 @@ export function PropertiesBody() {
           {busy && <span style={{ fontSize: 12, color: 'var(--muted)' }}>กำลัง{busy}…</span>}
           <button type="button" disabled={!!busy} onClick={() => void bulkStatus('active', 'เผยแพร่')} style={bulkBtn(false)}>เผยแพร่</button>
           <button type="button" disabled={!!busy} onClick={() => void bulkStatus('draft', 'พักเป็นร่าง')} style={bulkBtn(false)}>พักเป็นร่าง</button>
+          {isOwner && <button type="button" id="prop-bulk-share-on" disabled={!!busy} onClick={() => void bulkShared(true)} style={bulkBtn(false)}>เปิดทรัพย์กลาง</button>}
+          {isOwner && <button type="button" id="prop-bulk-share-off" disabled={!!busy} onClick={() => void bulkShared(false)} style={bulkBtn(false)}>ปิดทรัพย์กลาง</button>}
           <button type="button" disabled={!!busy} onClick={exportCsv} style={bulkBtn(false)}>Export ที่เลือก</button>
           <button type="button" disabled={!!busy} onClick={bulkDelete} style={bulkBtn(true)}>ลบ</button>
           <button type="button" onClick={() => setSel(new Set())} style={{ ...bulkBtn(false), border: 0, background: 'transparent' }}>ล้างการเลือก</button>
@@ -525,6 +541,7 @@ export function PropertiesBody() {
                 <th style={{ ...thBase, textAlign: 'center' }}>แปล</th>
                 {/* ตัวกรอง PIC มีมาตลอด แต่ไม่เคยมีคอลัมน์ให้เห็นว่าใครดูแล */}
                 <th style={{ ...thBase, whiteSpace: 'nowrap' }}>{PIC_TH}</th>
+                {isOwner && <th style={{ ...thBase, textAlign: 'center', whiteSpace: 'nowrap' }}>ทรัพย์กลาง</th>}
                 <th style={thBase}>อัปเดต</th>
                 <th style={{ padding: '13px 16px', width: 44 }} />
               </tr>
@@ -586,6 +603,13 @@ export function PropertiesBody() {
                       </span>
                     </td>
                     <td style={{ padding: '14px 16px' }}><PicCell name={String((r.values ?? {}).pic ?? '')} /></td>
+                    {isOwner && (
+                      <td style={{ padding: '14px 16px', textAlign: 'center' }} data-shared={r.contactShared ? 'on' : 'off'}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 9px', borderRadius: 9999, fontSize: 11, fontWeight: 700, background: r.contactShared ? '#E8F3EC' : 'var(--bg)', color: r.contactShared ? '#0D6C3B' : 'var(--muted3)', border: '1px solid ' + (r.contactShared ? '#BFE0CC' : 'var(--border)') }}>
+                          {r.contactShared ? 'เปิด' : 'ปิด'}
+                        </span>
+                      </td>
+                    )}
                     <td style={{ padding: '14px 16px', fontSize: 12, color: 'var(--muted3)' }}>{relTime(r.updatedAt)}</td>
                     <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                       <div

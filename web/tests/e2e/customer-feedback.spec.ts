@@ -271,6 +271,180 @@ test.describe('คอมเมนต์ลูกค้า · แยกหมว�
   });
 });
 
+/* เด็ค Web 2026 ข้อ 19 · "ต้องมีฟิลค้นหา ประเภททรัพย์ เขต แขวง จังหวัด ราคา
+   ขนาด คุณสมบัติ เพื่อหาของให้ลูกค้าถูก" · "ค้นหาใช้ไม่ได้ครับ" */
+test.describe('คอมเมนต์ลูกค้า · ค้นหาทรัพย์ในหน้า Shortlist', () => {
+  test('ช่องค้นหาทำงานจริง และมีตัวกรองชุดเดียวกับหน้าอื่น', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const sls = (await (await request.get('/api/shortlists', { headers: { cookie } })).json()).items as { id: string }[];
+    test.skip(sls.length === 0, 'ยังไม่มี shortlist ในระบบ');
+    await page.goto(`/admin/shortlists/${sls[0].id}`);
+
+    const count = page.locator('#sl-pool-count');
+    await expect(count).toBeVisible({ timeout: 20000 });
+    const total = Number((await count.innerText()).match(/\d+/)?.[0] ?? 0);
+    expect(total, 'ไม่มีทรัพย์ให้เลือกเลย').toBeGreaterThan(1);
+
+    /* ช่องค้นหาเคยไม่มี value/onChange — พิมพ์แล้วรายการต้องเปลี่ยนจริง */
+    const box = page.locator('input[placeholder*="รหัสทรัพย์"]').first();
+    await expect(box).toBeVisible();
+    const firstCode = (await page.locator('#sl-pool-count').locator('xpath=..').innerText()).match(/JKP\w+/)?.[0];
+    expect(firstCode, 'อ่านรหัสทรัพย์จากรายการไม่ได้').toBeTruthy();
+
+    await box.fill(firstCode!);
+    await expect(count).toContainText('พบ 1 รายการ');
+
+    await box.fill('zzzไม่มีทางเจอ');
+    await expect(count).toContainText('ไม่พบทรัพย์');
+
+    /* ลูกค้าขอให้ค้น "เขต แขวง จังหวัด" ได้ด้วย ซึ่งตัวค้นหาชุดร่วมไม่ได้เทียบ */
+    await box.fill('กรุงเทพ');
+    await expect(count).not.toContainText('ไม่พบทรัพย์');
+
+    await box.fill('');
+    await expect(count).toContainText(String(total));
+
+    /* ตัวกรองชุดเดียวกับ Properties / Listings ต้องอยู่บนหน้านี้ด้วย */
+    for (const label of ['ประเภท', 'ราคา']) {
+      await expect(page.getByText(label, { exact: true }).first(), `ไม่มีตัวกรอง ${label}`).toBeVisible();
+    }
+  });
+});
+
+/* เด็ค Web 2026 ข้อ 10 · "บังคับผม เพิ่มเองได้ไหมครับ?" — รายการที่เตรียมไว้
+   สั้นกว่าของจริง (บ้าน 6 ห้องนอน จอดรถ 5 คัน) คนคีย์เลยติดอยู่ตรงนั้น */
+test.describe('คอมเมนต์ลูกค้า · ช่องเลือกที่พิมพ์เพิ่มเองได้', () => {
+  test('พิมพ์ค่าที่ไม่มีในรายการได้ และค่านั้นถูกเก็บจริง', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const made = await (await request.post('/api/properties', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { typeKey: 'house', title: `ทดสอบพิมพ์เอง ${Date.now().toString(36)}`, status: 'draft', values: {} },
+    })).json();
+
+    try {
+      await page.goto(`/admin/property-edit?code=${made.publicCode}`);
+      const sel = page.locator('[data-field-select="bedrooms"]');
+      await expect(sel).toBeVisible({ timeout: 20000 });
+
+      const before = await sel.locator('option').allInnerTexts();
+      expect(before.some((o) => o.includes('พิมพ์เอง')), 'ไม่มีตัวเลือกให้พิมพ์เอง').toBeTruthy();
+      expect(before.some((o) => o.trim() === '7 ห้อง'), 'ค่านี้ไม่ควรมีอยู่ในรายการตั้งต้น').toBeFalsy();
+
+      await sel.selectOption('__other__');
+      await page.locator('[data-field-other="bedrooms"]').fill('7 ห้อง');
+      /* ค่าที่พิมพ์ต้องโผล่เป็นตัวเลือก ไม่งั้นเปิดฟอร์มมาอีกทีค่าจะหายไปเงียบ ๆ */
+      await expect(sel.locator('option', { hasText: '7 ห้อง' })).toHaveCount(1);
+
+      /* ปุ่มบันทึกเป็น div ไม่ใช่ button */
+      await page.getByText('บันทึก', { exact: true }).first().click();
+      await page.waitForTimeout(3000);
+
+      /* ของจริงในฐานข้อมูล */
+      const saved = await (await request.get(`/api/properties/${made.id}`, { headers: { cookie } })).json();
+      expect((saved.values as Record<string, unknown>).bedrooms, 'ค่าที่พิมพ์เองไม่ถูกเก็บ').toBe('7 ห้อง');
+
+      /* เปิดใหม่แล้วต้องยังเห็นค่านั้นถูกเลือกอยู่ */
+      await page.goto(`/admin/property-edit?code=${made.publicCode}`);
+      await expect(page.locator('[data-field-select="bedrooms"]')).toHaveValue('7 ห้อง');
+
+      /* ช่องที่ระบบเอาไปเทียบเป็นค่าคงที่ ต้องไม่เปิดให้พิมพ์เอง */
+      const zone = page.locator('[data-field-select="zoning_color"], [data-zone-picker]');
+      if (await zone.count()) {
+        const opts = await page.locator('[data-field-select="zoning_color"] option').allInnerTexts();
+        expect(opts.some((o) => o.includes('พิมพ์เอง')), 'ผังเมืองสีต้องเลือกจากรายการเท่านั้น').toBeFalsy();
+      }
+    } finally {
+      await request.delete(`/api/properties/${made.id}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+});
+
+/* ข้อรวม ข · "มีปุ่มเปิดเป็นทรัพย์กลางเพื่อเลือกได้หลายรายการ และมีฟิลด์แสดง
+   สถานะเปิดหรือปิด ในหน้า Properties และ Listings เห็นได้แค่เจ้าของ" */
+test.describe('คอมเมนต์ลูกค้า · ทรัพย์กลาง เลือกทีละหลายรายการ', () => {
+  const login = async (page: import('@playwright/test').Page, email: string) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill(email);
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    return (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  };
+
+  test('เจ้าของเห็นคอลัมน์และปุ่ม · ตั้งทีเดียวหลายรายการได้จริง', async ({ page, request }) => {
+    const cookie = await login(page, 'owner@jkp.local');
+    await page.goto('/admin/properties');
+    await expect(page.locator('table thead')).toContainText('ทรัพย์กลาง');
+
+    /* ติ๊กสองแถวแรกแล้วสั่งเปิด — ต้องรอตารางโหลดก่อน ไม่งั้นนับได้ศูนย์แล้ว
+       เทสต์ข้ามตัวเองไปเงียบ ๆ ทั้งที่ของมีอยู่ */
+    const boxes = page.locator('tbody input[type="checkbox"]');
+    await expect(boxes.first()).toBeVisible({ timeout: 20000 });
+    const n = Math.min(2, await boxes.count());
+    const codes: string[] = [];
+    for (let i = 0; i < n; i += 1) {
+      codes.push((await page.locator('tbody tr').nth(i).innerText()).match(/JKP\w+/)?.[0] ?? '');
+      await boxes.nth(i).check();
+    }
+    await expect(page.locator('#prop-bulk')).toBeVisible();
+    await page.locator('#prop-bulk-share-on').click();
+    await expect(page.locator('#prop-bulk')).toHaveCount(0, { timeout: 20000 });
+
+    /* ของจริงในฐานข้อมูล ไม่ใช่แค่ป้ายบนจอ */
+    const items = (await (await request.get('/api/properties', { headers: { cookie } })).json()).items as
+      { publicCode: string; contactShared?: boolean }[];
+    for (const c of codes.filter(Boolean)) {
+      expect(items.find((i) => i.publicCode === c)?.contactShared, `${c} ไม่ได้ถูกตั้งเป็นทรัพย์กลาง`).toBe(true);
+    }
+    /* ป้ายในตารางต้องขึ้นตาม */
+    await expect(page.locator('[data-shared="on"]').first()).toBeVisible();
+    /* หน้า Listings ก็ต้องเห็นคอลัมน์เดียวกัน */
+    await page.goto('/admin/listings');
+    await expect(page.locator('table thead')).toContainText('ทรัพย์กลาง');
+
+    /* คืนสภาพเดิม */
+    await page.goto('/admin/properties');
+    for (let i = 0; i < n; i += 1) await page.locator('tbody input[type="checkbox"]').nth(i).check();
+    await page.locator('#prop-bulk-share-off').click();
+    await expect(page.locator('#prop-bulk')).toHaveCount(0, { timeout: 20000 });
+  });
+
+  test('agent ไม่เห็นคอลัมน์ ไม่เห็นปุ่ม และตั้งผ่าน API ไม่ได้', async ({ page, request }) => {
+    const cookie = await login(page, 'agent@jkp.local');
+    await page.goto('/admin/properties');
+    await expect(page.locator('table thead')).not.toContainText('ทรัพย์กลาง');
+    const boxes = page.locator('tbody input[type="checkbox"]');
+    if (await boxes.count()) {
+      await boxes.first().check();
+      await expect(page.locator('#prop-bulk')).toBeVisible();
+      await expect(page.locator('#prop-bulk-share-on')).toHaveCount(0);
+    }
+    await page.goto('/admin/listings');
+    await expect(page.locator('table thead')).not.toContainText('ทรัพย์กลาง');
+
+    const items = (await (await request.get('/api/properties', { headers: { cookie } })).json()).items as { id: string }[];
+    if (items.length) {
+      const res = await request.patch(`/api/properties/${items[0].id}`, {
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { contactShared: true },
+      });
+      expect(res.status(), 'agent ตั้งทรัพย์กลางผ่าน API ได้').toBe(403);
+    }
+  });
+});
+
 /* เด็ค Web 2026 ข้อ 21 · 22 · 24 — สามข้อที่ลูกค้าจัดเป็น "แก้ได้เลย" */
 test.describe('คอมเมนต์ลูกค้า · ด่านเปิดดีล ชื่อดีล และช่องค้นหาทรัพย์', () => {
   const signIn = async (page: import('@playwright/test').Page) => {

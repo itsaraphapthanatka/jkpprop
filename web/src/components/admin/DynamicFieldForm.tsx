@@ -24,6 +24,8 @@ import { MediaLibraryPicker } from './MediaLibraryPicker';
 const labelStyle: React.CSSProperties = { display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 700, color: 'var(--muted)' };
 const inputStyle: React.CSSProperties = { width: '100%', height: 44, padding: '0 12px', borderRadius: 11, border: '1px solid var(--border)', fontFamily: 'inherit', fontSize: '13.5px', background: 'var(--surface)', color: 'var(--text)', outline: 'none' };
 const selectStyle: React.CSSProperties = { ...inputStyle, cursor: 'pointer' };
+/* ค่าที่ใช้แทน "อื่นๆ" ใน <select> — ต้องไม่มีวันชนกับตัวเลือกจริง */
+const OTHER = '__other__';
 const req = <span style={{ color: '#C0392B' }}> *</span>;
 
 const isFull = (f: FieldDef) => ['dealtype', 'location', 'group', 'media', 'multiselect', 'textarea', 'map', 'summary'].includes(f.kind);
@@ -192,6 +194,8 @@ export function DynamicFieldForm({ typeKey, code, initialValues, onValuesChange 
      ชื่อจริง และเว้นว่าง — เอาไปกรองหรือหาว่าใครรับผิดชอบไม่ได้เลย
      ตอนนี้เลือกจากรายชื่อบัญชีที่ยังใช้งานอยู่ และตอนสร้างใหม่เติมชื่อคนที่
      ล็อกอินอยู่ให้เอง */
+  /* ช่องไหนกำลังพิมพ์ค่าเอง (ข้อ 10) */
+  const [otherOpen, setOtherOpen] = React.useState<Record<string, boolean>>({});
   const [team, setTeam] = React.useState<string[]>([]);
   const [meName, setMeName] = React.useState('');
   /* เก็บเป็น ref ด้วย — เอฟเฟกต์ที่ล้างคำตอบตอนสลับประเภทต้องอ่านชื่อได้โดยไม่
@@ -390,7 +394,47 @@ export function DynamicFieldForm({ typeKey, code, initialValues, onValuesChange 
             </div>
           );
         }
-        return (<div>{lbl(f)}<select value={str(f.key)} onChange={(e) => setV(f.key, e.target.value)} style={selectStyle}><option value="">เลือก…</option>{(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}</select>{note(f)}</div>);
+        /* เด็ค Web 2026 ข้อ 10 · "บังคับผม เพิ่มเองได้ไหมครับ?" — บางช่องรายการ
+           ที่เตรียมไว้สั้นกว่าของจริง (บ้าน 6 ห้องนอน จอดรถ 5 คัน) คนคีย์เลย
+           ติดอยู่ตรงนั้น ช่องที่เปิด allowOther ให้พิมพ์เองได้
+           ค่าที่พิมพ์ไว้แล้วต้องโผล่เป็นตัวเลือกด้วย ไม่งั้นเปิดฟอร์มมาอีกที
+           ค่าเดิมจะหายไปเงียบ ๆ */
+        {
+          const cur = str(f.key);
+          const opts = f.allowOther && cur && !(f.options || []).includes(cur)
+            ? [...(f.options || []), cur]
+            : (f.options || []);
+          return (
+            <div>
+              {lbl(f)}
+              <select
+                data-field-select={f.key}
+                value={otherOpen[f.key] ? OTHER : cur}
+                onChange={(e) => {
+                  if (e.target.value === OTHER) { setOtherOpen((o) => ({ ...o, [f.key]: true })); setV(f.key, ''); return; }
+                  setOtherOpen((o) => ({ ...o, [f.key]: false }));
+                  setV(f.key, e.target.value);
+                }}
+                style={selectStyle}
+              >
+                <option value="">เลือก…</option>
+                {opts.map((o) => <option key={o} value={o}>{o}</option>)}
+                {f.allowOther && <option value={OTHER}>อื่นๆ — พิมพ์เอง…</option>}
+              </select>
+              {f.allowOther && otherOpen[f.key] && (
+                <input
+                  data-field-other={f.key}
+                  value={cur}
+                  onChange={(e) => setV(f.key, e.target.value)}
+                  placeholder="พิมพ์ค่าที่ต้องการ"
+                  autoFocus
+                  style={{ ...inputStyle, marginTop: 8 }}
+                />
+              )}
+              {note(f)}
+            </div>
+          );
+        }
       case 'person': {
         /* รายชื่อบัญชีจริง บวกค่าที่บันทึกไว้เดิม (ซึ่งอาจเป็นชื่อที่พิมพ์เองก่อน
            มีรายการให้เลือก) — ไม่งั้นเปิดฟอร์มแล้วค่าเดิมหายไปเงียบ ๆ */

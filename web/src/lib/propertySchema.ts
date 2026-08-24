@@ -51,6 +51,11 @@ export type FieldDef = {
   /** ใช้ภายในทีมเท่านั้น — ห้ามส่งออกไปหน้าเว็บสาธารณะ / ประกาศ / ข้อความโพสต์ */
   internalOnly?: boolean;
   showWhen?: ShowWhen; // conditional visibility
+  /* เด็ค Web 2026 ข้อ 10 · "บังคับผม เพิ่มเองได้ไหมครับ?" — รายการตัวเลือกที่
+     ของจริงเกินได้ (จำนวนห้อง ที่จอดรถ ประเภทบ้าน) ให้พิมพ์ค่าเองได้
+     ห้ามเปิดกับช่องที่ระบบเอาไปเทียบเป็นค่าคงที่ เช่น ประเภทประกาศ ผังเมืองสี
+     หรือผู้รับผิดชอบค่าใช้จ่าย — พิมพ์เองแล้วตัวกรองกับตารางจะเงียบ ๆ ไม่ตรง */
+  allowOther?: boolean;
   sub?: { key: string; label: string; kind?: FieldKind; options?: string[]; unit?: string; placeholder?: string }[]; // for location / group
 };
 
@@ -140,15 +145,15 @@ const HOUSE: PropertyType = {
   key: 'house', label: 'บ้าน', icon: ICON_HOUSE,
   fields: [
     F.deal(),
-    { key: 'house_type', label: 'ประเภทบ้าน', kind: 'select', options: ['บ้านเดี่ยว', 'บ้านแฝด', 'ทาวน์เฮาส์ / ทาวน์โฮม'], required: true },
+    { key: 'house_type', label: 'ประเภทบ้าน', kind: 'select', options: ['บ้านเดี่ยว', 'บ้านแฝด', 'ทาวน์เฮาส์ / ทาวน์โฮม'], required: true, allowOther: true },
     { key: 'land_area', label: 'พื้นที่ดิน', kind: 'number', unit: 'ตารางวา' },
     { key: 'usable_area', label: 'พื้นที่ใช้สอย', kind: 'number', unit: 'ตารางเมตร' },
     { key: 'floors', label: 'จำนวนชั้น', kind: 'select', options: ['1 ชั้น', '2 ชั้น', '3 ชั้น', '4 ชั้น'] },
-    { key: 'bedrooms', label: 'จำนวนห้องนอน', kind: 'select', options: ['1 ห้อง', '2 ห้อง', '3 ห้อง', '4 ห้อง', '5 ห้อง'] },
-    { key: 'bathrooms', label: 'จำนวนห้องน้ำ', kind: 'select', options: ['1 ห้อง', '2 ห้อง', '3 ห้อง', '4 ห้อง', '5 ห้อง'] },
+    { key: 'bedrooms', label: 'จำนวนห้องนอน', kind: 'select', options: ['1 ห้อง', '2 ห้อง', '3 ห้อง', '4 ห้อง', '5 ห้อง'], allowOther: true },
+    { key: 'bathrooms', label: 'จำนวนห้องน้ำ', kind: 'select', options: ['1 ห้อง', '2 ห้อง', '3 ห้อง', '4 ห้อง', '5 ห้อง'], allowOther: true },
     { key: 'kitchen', label: 'ห้องครัว', kind: 'boolean' },
     { key: 'maid_room', label: 'ห้องแม่บ้าน (ถ้ามี)', kind: 'boolean' },
-    { key: 'parking', label: 'ที่จอดรถ', kind: 'select', options: ['1 คัน', '2 คัน', '3 คัน'] },
+    { key: 'parking', label: 'ที่จอดรถ', kind: 'select', options: ['1 คัน', '2 คัน', '3 คัน'], allowOther: true },
     { key: 'common_fee', label: 'ค่าส่วนกลาง', kind: 'price', unit: 'บาท / ตารางวา' },
     { key: 'common_area', label: 'พื้นที่ส่วนกลาง (กรณีโครงการจัดสรร)', kind: 'multiselect', options: ['สวน', 'สระว่ายน้ำ'] },
     { key: 'appliances', label: 'เครื่องใช้ไฟฟ้าในบ้าน', kind: 'multiselect', options: ['แอร์', 'เครื่องทำน้ำอุ่น', 'อื่นๆ'], note: 'ระบุจำนวนได้ในหมายเหตุ (มีให้กี่เครื่อง)' },
@@ -168,11 +173,11 @@ const CONDO: PropertyType = {
   key: 'condo', label: 'คอนโด', icon: ICON_CONDO,
   fields: [
     F.deal(),
-    { key: 'condo_type', label: 'ประเภทคอนโด', kind: 'select', options: ['Studio', 'Duplex', '1 ห้องนอน', '2 ห้องนอน'], required: true },
-    { key: 'bathrooms', label: 'จำนวนห้องน้ำ', kind: 'select', options: ['1 ห้อง', '2 ห้อง'] },
-    { key: 'kitchen', label: 'ห้องครัว', kind: 'select', options: ['1 ห้อง', '2 ห้อง'] },
+    { key: 'condo_type', label: 'ประเภทคอนโด', kind: 'select', options: ['Studio', 'Duplex', '1 ห้องนอน', '2 ห้องนอน'], required: true, allowOther: true },
+    { key: 'bathrooms', label: 'จำนวนห้องน้ำ', kind: 'select', options: ['1 ห้อง', '2 ห้อง'], allowOther: true },
+    { key: 'kitchen', label: 'ห้องครัว', kind: 'select', options: ['1 ห้อง', '2 ห้อง'], allowOther: true },
     { key: 'usable_area', label: 'พื้นที่ใช้สอย', kind: 'number', unit: 'ตารางเมตร' },
-    { key: 'balcony_dir', label: 'ระเบียงหันทิศไหน', kind: 'select', options: ['เหนือ', 'ใต้', 'ตะวันออก', 'ตะวันตก', 'อื่นๆ'] },
+    { key: 'balcony_dir', label: 'ระเบียงหันทิศไหน', kind: 'select', options: ['เหนือ', 'ใต้', 'ตะวันออก', 'ตะวันตก', 'อื่นๆ'], allowOther: true },
     { key: 'building', label: 'ห้องอยู่อาคารไหน', kind: 'text' },
     { key: 'floor_at', label: 'ห้องอยู่ชั้นที่เท่าไหร่', kind: 'number', unit: 'ชั้น' },
     { key: 'building_floors', label: 'ตึกสูงกี่ชั้น', kind: 'number', unit: 'ชั้น' },
@@ -202,7 +207,7 @@ const LAND: PropertyType = {
     { key: 'land_use', label: 'ใช้ประโยชน์อะไรได้บ้าง', kind: 'text', note: 'ดูได้จากกฎหมายผังเมือง' },
     { key: 'far', label: 'FAR', kind: 'number', note: 'ดูได้จากกฎหมายผังเมือง' },
     { key: 'osr', label: 'OSR', kind: 'number', note: 'ดูได้จากกฎหมายผังเมือง' },
-    { key: 'road_frontage', label: 'ติดถนนสาธารณะกี่ด้าน', kind: 'select', options: ['ไม่ติด', 'ติด 1 ด้าน', 'ติด 2 ด้าน', 'อื่นๆ'], note: 'ดูจากโฉนด / LandsMaps' },
+    { key: 'road_frontage', label: 'ติดถนนสาธารณะกี่ด้าน', kind: 'select', options: ['ไม่ติด', 'ติด 1 ด้าน', 'ติด 2 ด้าน', 'อื่นๆ'], note: 'ดูจากโฉนด / LandsMaps', allowOther: true },
     { key: 'road_width', label: 'ถนนสาธารณะที่ติดกว้างกี่เมตร', kind: 'number', unit: 'เมตร' },
     { key: 'utilities', label: 'มีไฟฟ้า / น้ำประปาผ่านแปลงไหม', kind: 'multiselect', options: ['มีไฟฟ้า', 'มีน้ำประปา'] },
     { key: 'nearby', label: 'ใกล้สถานที่สำคัญ (ระยะ กม.)', kind: 'group', sub: [{ key: 'hospital', label: 'โรงพยาบาล', kind: 'number', unit: 'กม.' }, { key: 'school', label: 'โรงเรียน', kind: 'number', unit: 'กม.' }, { key: 'market', label: 'ตลาดสด', kind: 'number', unit: 'กม.' }, { key: 'mall', label: 'ห้างสรรพสินค้า', kind: 'number', unit: 'กม.' }, { key: 'other', label: 'อื่นๆ', kind: 'text' }] },
@@ -412,7 +417,7 @@ const BUSINESS_TYPE: FieldDef = {
 export const REQUIREMENT_FIELDS: Record<string, FieldDef[]> = {
   house: [
     DEAL_INTENT,
-    { key: 'bedrooms', label: 'จำนวนห้องนอน', kind: 'select', options: ['1–2 ห้อง', '3 ห้อง', '4 ห้องขึ้นไป'] },
+    { key: 'bedrooms', label: 'จำนวนห้องนอน', kind: 'select', options: ['1–2 ห้อง', '3 ห้อง', '4 ห้องขึ้นไป'], allowOther: true },
     REQ_LOCATION,
     REQ_BUDGET,
   ],

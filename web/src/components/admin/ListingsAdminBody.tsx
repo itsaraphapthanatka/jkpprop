@@ -11,6 +11,7 @@ import { relTime } from '@/lib/leadStore';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PicCell, PIC_TH } from './PicCell';
+import { useMe } from '@/lib/useMe';
 import { buildPropertyCsv } from '@/lib/propertyExportCsv';
 
 /* ============================================================
@@ -77,6 +78,8 @@ export type Row = {
   priceValue: number | null;
   available: boolean;
   pic: string;
+  /** ทรัพย์กลาง — ทุกคนในทีมเห็นเบอร์ผู้ให้เช่าได้ (ข้อรวม ข) */
+  contactShared?: boolean;
   img: string | null;
   /** รูปทั้งหมดของทรัพย์ — หน้า Social Status รวมเป็นไฟล์เดียวให้โหลด (สไลด์ 35) */
   photos?: string[];
@@ -256,6 +259,9 @@ export function ListingsAdminBody() {
      an empty org shows an empty table, because a bulk Publish over invented
      rows would have gone looking for listing codes that do not exist. ---- */
   const [rows, setRows] = React.useState<Row[] | null>(null);
+  /* ข้อรวม ข · "เห็นได้แค่เจ้าของ" — คนอื่นเปิดปิดไม่ได้อยู่แล้ว (กันที่ API) */
+  const me = useMe();
+  const isOwner = me?.role === 'owner';
   const [loadErr, setLoadErr] = React.useState('');
   const reload = React.useCallback(async () => {
     try {
@@ -616,6 +622,7 @@ export function ListingsAdminBody() {
                 <th style={{ ...thStyle, textAlign: 'center' }}>Featured</th>
                 {/* ตัวกรอง PIC มีมาตลอด แต่ไม่เคยมีคอลัมน์ให้เห็นว่าใครดูแล */}
                 <th style={{ ...thStyle, textAlign: 'left', whiteSpace: 'nowrap' }}>{PIC_TH}</th>
+                {isOwner && <th style={{ ...thStyle, textAlign: 'center', whiteSpace: 'nowrap' }}>ทรัพย์กลาง</th>}
                 <th style={{ ...thStyle, textAlign: 'left' }}>อัปเดต</th>
                 <th style={{ padding: '13px 16px', width: 44 }} />
               </tr>
@@ -656,6 +663,13 @@ export function ListingsAdminBody() {
                         : (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#D4D1CA" strokeWidth="1.7"><path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 19.3 7.2 17l.9-5.4L4.2 7.7l5.4-.8z" /></svg>)}</span>
                     </td>
                     <td style={{ padding: '14px 16px' }}><PicCell name={d.pic} /></td>
+                    {isOwner && (
+                      <td style={{ padding: '14px 16px', textAlign: 'center' }} data-shared={d.contactShared ? 'on' : 'off'}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 9px', borderRadius: 9999, fontSize: 11, fontWeight: 700, background: d.contactShared ? '#E8F3EC' : 'var(--bg)', color: d.contactShared ? '#0D6C3B' : 'var(--muted3)', border: '1px solid ' + (d.contactShared ? '#BFE0CC' : 'var(--border)') }}>
+                          {d.contactShared ? 'เปิด' : 'ปิด'}
+                        </span>
+                      </td>
+                    )}
                     <td style={{ padding: '14px 16px', fontSize: 12, color: 'var(--muted3)' }}>{d.updated}</td>
                     <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                       <div
