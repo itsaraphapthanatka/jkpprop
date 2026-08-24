@@ -43,7 +43,7 @@ export const PUT = handler(async (req: Request, ctx: { params: Promise<{ typeKey
   const type = PROPERTY_TYPES.find((t) => t.key === typeKey);
   if (!type) throw new ApiError('NOT_FOUND', 'ไม่พบประเภททรัพย์นี้', 404);
 
-  const body = (await req.json().catch(() => null)) as { disabled?: unknown; order?: unknown; extra?: unknown; required?: unknown } | null;
+  const body = (await req.json().catch(() => null)) as { disabled?: unknown; order?: unknown; extra?: unknown; required?: unknown; edits?: unknown } | null;
   if (!body) throw new ApiError('VALIDATION', 'ข้อมูลไม่ถูกต้อง', 400);
 
   const disabled = Array.isArray(body.disabled) ? body.disabled.map(String) : [];
@@ -60,6 +60,39 @@ export const PUT = handler(async (req: Request, ctx: { params: Promise<{ typeKey
     if (!known.has(k)) continue;
     const want = v === true || v === 'true';
     if (want !== known.get(k)) required[k] = want;
+  }
+
+  /* ชื่อ/หน่วย/ตัวเลือก ที่แก้ทับฟิลด์มาตรฐาน — รับเฉพาะคีย์ที่มีอยู่จริง
+     ตัดความยาว และทิ้งค่าที่เท่ากับของเดิมอยู่แล้ว จะได้ไม่เก็บของเปล่า
+     ฟิลด์ที่ทีมเพิ่มเองไม่ต้องมาทางนี้ — แก้ที่ตัว extra ได้ตรง ๆ อยู่แล้ว */
+  const txt = (v: unknown, n: number) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
+  const base = new Map(type.fields.map((f) => [f.key, f]));
+  const editsIn = (body.edits && typeof body.edits === 'object' ? body.edits : {}) as Record<string, unknown>;
+  const edits: Record<string, Record<string, unknown>> = {};
+  for (const [k, raw] of Object.entries(editsIn)) {
+    const f = base.get(k);
+    if (!f || !raw || typeof raw !== 'object') continue;
+    const e = raw as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    const label = txt(e.label, 80);
+    if (label && label !== f.label) out.label = label;
+    for (const lang of ['en', 'zh'] as const) {
+      const v = txt(e[lang], 80);
+      if (v) out[lang] = v;
+    }
+    if (e.unit !== undefined) {
+      const u = txt(e.unit, 20);
+      if (u !== (f.unit ?? '')) out.unit = u;
+    }
+    if (e.placeholder !== undefined) {
+      const ph = txt(e.placeholder, 160);
+      if (ph !== (f.placeholder ?? '')) out.placeholder = ph;
+    }
+    if (Array.isArray(e.options) && (f.kind === 'select' || f.kind === 'multiselect')) {
+      const opts = e.options.map((o) => txt(o, 80)).filter(Boolean).slice(0, 40);
+      if (opts.length && JSON.stringify(opts) !== JSON.stringify(f.options ?? [])) out.options = opts;
+    }
+    if (Object.keys(out).length) edits[k] = out;
   }
 
   // ช่องที่บังคับกรอกจะปิดไม่ได้ — ตัดออกแทนที่จะ error เพื่อให้ client เก่า
@@ -95,6 +128,7 @@ export const PUT = handler(async (req: Request, ctx: { params: Promise<{ typeKey
     extra: issued as unknown as Prisma.InputJsonValue,
     extraSeq: seq,
     required: Object.fromEntries(Object.entries(required).map(([k, v]) => [remap(k), v])) as Prisma.InputJsonValue,
+    edits: edits as Prisma.InputJsonValue,
   };
   const saved = await db.fieldOverride.upsert({
     where: { orgId_typeKey: { orgId: user.orgId, typeKey } },
@@ -105,10 +139,10 @@ export const PUT = handler(async (req: Request, ctx: { params: Promise<{ typeKey
   await audit({
     user, orgId: user.orgId, action: 'fieldSchema.save', entity: 'fieldOverride', entityId: typeKey,
     before: prev ? { disabled: prev.disabled, order: prev.order, extra: prev.extra, required: prev.required } : null,
-    after: { disabled: saved.disabled, order: saved.order, extra: saved.extra, required: saved.required },
+    after: { disabled: saved.disabled, order: saved.order, extra: saved.extra, required: saved.required, edits: saved.edits },
   });
 
   /* ต้องส่ง required กลับไปด้วย ไม่งั้นหน้าจอเอาคำตอบไปทับ state ตัวเองแล้ว
      ป้าย "บังคับ" เด้งกลับค่าเดิมทันทีที่กดบันทึก (ข้อ 10) */
-  return ok({ disabled: saved.disabled, order: saved.order, extra: saved.extra, required: saved.required });
+  return ok({ disabled: saved.disabled, order: saved.order, extra: saved.extra, required: saved.required, edits: saved.edits });
 });

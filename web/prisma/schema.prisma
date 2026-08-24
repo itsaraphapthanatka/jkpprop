@@ -81,6 +81,9 @@ model FieldOverride {
   // เขียนตายตัวในโค้ด ทีมจึงต้องกรอกช่องที่บางทรัพย์ไม่มีข้อมูลจริง
   // เก็บเฉพาะช่องที่ถูกสั่งทับ { key: true|false } · ไม่มีคีย์ = ใช้ค่าตั้งต้น
   required Json     @default("{}")
+  // ชื่อ/หน่วย/ตัวเลือก ที่ทีมแก้ทับฟิลด์มาตรฐาน — { key: { label, en, zh, unit,
+  // placeholder, options } } เก็บเฉพาะช่องที่แก้จริง ฟิลด์ที่เพิ่มเองยังแก้ที่ extra
+  edits    Json     @default("{}")
 
   @@id([orgId, typeKey])
 }

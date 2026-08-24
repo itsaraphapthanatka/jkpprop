@@ -275,6 +275,70 @@ test.describe('คอมเมนต์ลูกค้า · แยกหมว�
    คุณ Jacky อธิบายเพิ่ม 24 ส.ค.: "require field หรือ บังคับ ให้สามารถเปิดปิดได้เอง"
    คือป้าย "บังคับ" ใน Field Builder ที่เคยเขียนตายตัวในโค้ด — ปิดไม่ได้ ทีมจึง
    ต้องกรอกช่องที่บางทรัพย์ไม่มีข้อมูลจริง และปิดฟิลด์นั้นทิ้งก็ไม่ได้ */
+/* คุณกิตติพงษ์แจ้ง 24 ส.ค. · "Field Builder ให้สามารถแก้ไข field ได้ด้วย
+   ตอนนี้ไม่แก้ไขไม่ได้" — เดิมแก้ได้เฉพาะฟิลด์ที่ทีมเพิ่มเอง ฟิลด์มาตรฐานแก้
+   ชื่อไม่ได้เลย และชื่อบนตารางหน้าเว็บมาจากอีกตารางหนึ่ง จึงต้องให้ถึงทั้งสองที่ */
+test.describe('คอมเมนต์ลูกค้า · แก้ชื่อฟิลด์มาตรฐานได้', () => {
+  const pickWarehouse = async (page: import('@playwright/test').Page) => {
+    await page.getByText('ฟิลด์ของ:', { exact: false }).first().click();
+    await page.getByText('ฟิลด์ของ โกดัง', { exact: false }).first().click();
+    await expect(page.locator('[data-edit="floor_loading"]')).toBeVisible({ timeout: 20000 });
+  };
+
+  test('เปลี่ยนชื่อแล้วถึงทั้งฟอร์มและหน้าเว็บ · คืนค่าเดิมได้', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+
+    const key = 'floor_loading';
+    const TH = 'รับน้ำหนักพื้น (ทดสอบ)';
+    const EN = 'Floor loading TEST';
+
+    await page.goto('/admin/field-builder');
+    await pickWarehouse(page);
+
+    /* ปุ่มแก้ไขต้องมีบนฟิลด์มาตรฐาน ไม่ใช่เฉพาะฟิลด์ที่เพิ่มเอง */
+    await page.locator(`[data-edit="${key}"]`).click();
+    const box = page.locator(`[data-edit-label="${key}"]`);
+    await expect(box, 'ฟิลด์มาตรฐานยังแก้ชื่อไม่ได้').toBeVisible();
+    const original = await box.inputValue();
+    expect(original.length, 'อ่านชื่อเดิมไม่ได้').toBeGreaterThan(0);
+
+    try {
+      await box.fill(TH);
+      await page.locator(`[data-edit-en="${key}"]`).fill(EN);
+      await page.locator('#fb-save').click();
+
+      /* บันทึกแล้วต้องอยู่จริง ไม่ใช่แค่ในหน้าจอ */
+      await page.reload();
+      await pickWarehouse(page);
+      await page.locator(`[data-edit="${key}"]`).click();
+      await expect(page.locator(`[data-edit-label="${key}"]`)).toHaveValue(TH);
+      await expect(page.locator(`[data-edited="${key}"]`), 'ไม่มีป้ายบอกว่าฟิลด์นี้ถูกตั้งชื่อเอง').toHaveCount(1);
+
+      /* ต้องถึงตารางบนหน้าเว็บด้วย — ตารางนั้นมีตารางชื่อของตัวเอง ถ้าไม่ส่ง
+         ค่าไปด้วย จะแก้ชื่อในหลังบ้านแล้วหน้าเว็บยังขึ้นชื่อเดิม */
+      expect(await (await request.get('/th/property/JKPBKK1005')).text(),
+        'หน้าเว็บภาษาไทยยังใช้ชื่อเดิม').toContain(TH);
+      expect(await (await request.get('/en/property/JKPBKK1005')).text(),
+        'หน้า /en ยังใช้ชื่อเดิม').toContain(EN);
+    } finally {
+      /* คืนค่าเดิมเสมอ ไม่งั้นเทสต์รอบหน้าเจอชื่อที่ตั้งไว้ */
+      await page.goto('/admin/field-builder');
+      await pickWarehouse(page);
+      await page.locator(`[data-edit="${key}"]`).click();
+      const reset = page.locator(`[data-reset-field="${key}"]`);
+      if (await reset.count()) { await reset.click(); await page.locator('#fb-save').click(); await page.waitForTimeout(1500); }
+    }
+
+    /* คืนค่าเดิมแล้วหน้าเว็บต้องกลับไปใช้ชื่อในโค้ด */
+    const back = await (await request.get('/th/property/JKPBKK1005')).text();
+    expect(back, 'กดคืนค่าเดิมแล้วชื่อที่ตั้งไว้ยังค้างอยู่').not.toContain(TH);
+  });
+});
+
 test.describe('คอมเมนต์ลูกค้า · ตั้งเองได้ว่าช่องไหนบังคับกรอก', () => {
   test('กดสลับบังคับ/ไม่บังคับได้ · บันทึกแล้วอยู่จริง · ปิดฟิลด์ได้เมื่อเลิกบังคับ', async ({ page, request }) => {
     await page.goto('/admin/login');

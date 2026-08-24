@@ -495,7 +495,10 @@ export function isTypeEnabled(key: string, tc?: TypeConfig): boolean {
    Field Builder เคยเขียนตายตัวอยู่ในโค้ด ทีมจึงต้องกรอกช่องที่บางทรัพย์ไม่มี
    ข้อมูลจริง แล้วบันทึกไม่ผ่าน · required เก็บเฉพาะช่องที่ถูกสั่งทับ
    true = บังคับ · false = ไม่บังคับ · ไม่มีคีย์ = ใช้ค่าตั้งต้นในโค้ด */
-export type SchemaOverride = { disabled: string[]; order: string[]; extra: FieldDef[]; required?: Record<string, boolean> };
+/** ชื่อ/หน่วย/ตัวเลือก ที่ทีมแก้ทับฟิลด์มาตรฐาน — เก็บเฉพาะช่องที่แก้จริง */
+export type FieldEdit = { label?: string; en?: string; zh?: string; unit?: string; placeholder?: string; options?: string[] };
+
+export type SchemaOverride = { disabled: string[]; order: string[]; extra: FieldDef[]; required?: Record<string, boolean>; edits?: Record<string, FieldEdit> };
 
 /** บังคับกรอกจริงไหม หลังรวมค่าที่ตั้งทับไว้แล้ว */
 export const isRequired = (f: { key: string; required?: boolean }, ov?: SchemaOverride): boolean =>
@@ -512,7 +515,7 @@ function readAll(): Record<string, SchemaOverride> {
   }
 }
 export function loadOverride(typeKey: string): SchemaOverride {
-  return readAll()[typeKey] || { disabled: [], order: [], extra: [], required: {} };
+  return readAll()[typeKey] || { disabled: [], order: [], extra: [], required: {}, edits: {} };
 }
 export function saveOverride(typeKey: string, ov: SchemaOverride) {
   if (typeof window === 'undefined') return;
@@ -533,9 +536,23 @@ export function resolveFields(typeKey: string, ov?: SchemaOverride): (FieldDef &
   all.forEach((f) => { if (byKey.has(f.key)) { ordered.push(f); byKey.delete(f.key); } });
   const disabled = new Set(o.disabled || []);
   /* ช่องที่บังคับจะปิดไม่ได้ — แต่ "บังคับ" ตอนนี้ตั้งทับได้แล้ว (ข้อ 10)
-     จึงต้องดูค่าหลังรวม ไม่ใช่ค่าที่เขียนไว้ในโค้ดอย่างเดียว */
+     จึงต้องดูค่าหลังรวม ไม่ใช่ค่าที่เขียนไว้ในโค้ดอย่างเดียว
+     ส่วนชื่อ/หน่วย/ตัวเลือก ทีมแก้ทับฟิลด์มาตรฐานได้แล้วเช่นกัน — ฟิลด์ที่เพิ่ม
+     เองยังแก้ที่ตัว extra เหมือนเดิม ไม่ต้องมีสองที่ */
   return ordered.map((f) => {
     const req = isRequired(f, o);
-    return { ...f, required: req, enabled: req ? true : !disabled.has(f.key) };
+    const e = o.edits?.[f.key];
+    const merged: FieldDef = e
+      ? {
+        ...f,
+        label: e.label?.trim() || f.label,
+        labelEn: e.en?.trim() || f.labelEn,
+        labelZh: e.zh?.trim() || f.labelZh,
+        unit: e.unit !== undefined ? (e.unit.trim() || undefined) : f.unit,
+        placeholder: e.placeholder !== undefined ? (e.placeholder.trim() || undefined) : f.placeholder,
+        options: e.options?.length ? e.options : f.options,
+      }
+      : f;
+    return { ...merged, required: req, enabled: req ? true : !disabled.has(f.key) };
   });
 }

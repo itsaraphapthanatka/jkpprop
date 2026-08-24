@@ -111,13 +111,42 @@ export function FieldBuilderBody() {
     setDirty(true);
   };
 
-  /* Editing a custom field — name, the other two languages, unit and options.
-     Built-in fields are not editable here; their labels live in the schema. */
+  /* แก้ชื่อ · คำแปล · หน่วย · ตัวเลือก ของฟิลด์
+     คุณกิตติพงษ์แจ้ง 24 ส.ค. ว่า "Field Builder ให้แก้ไข field ได้ด้วย ตอนนี้
+     แก้ไขไม่ได้" — เดิมแก้ได้เฉพาะฟิลด์ที่ทีมเพิ่มเอง ฟิลด์มาตรฐานแก้ไม่ได้เลย
+     ฟิลด์ที่เพิ่มเองยังแก้ที่ตัว extra เหมือนเดิม ส่วนฟิลด์มาตรฐานเก็บเฉพาะส่วน
+     ที่แก้ไว้ที่ edits แล้ว resolveFields รวมให้ตอนอ่าน — ของเดิมในโค้ดไม่ถูก
+     แตะ ทำให้กด "คืนค่าเดิม" ได้ทุกเมื่อ */
   const [editing, setEditing] = React.useState<string | null>(null);
   const patchField = (key: string, patch: Partial<FieldDef>) => {
-    setOverride((o) => ({ ...o, extra: o.extra.map((f) => (f.key === key ? { ...f, ...patch } : f)) }));
+    setOverride((o) => {
+      if (o.extra.some((f) => f.key === key)) {
+        return { ...o, extra: o.extra.map((f) => (f.key === key ? { ...f, ...patch } : f)) };
+      }
+      const cur = { ...(o.edits || {}) };
+      const e = { ...(cur[key] || {}) };
+      if (patch.label !== undefined) e.label = patch.label;
+      if (patch.labelEn !== undefined) e.en = patch.labelEn;
+      if (patch.labelZh !== undefined) e.zh = patch.labelZh;
+      if (patch.unit !== undefined) e.unit = patch.unit;
+      if (patch.placeholder !== undefined) e.placeholder = patch.placeholder;
+      if (patch.options !== undefined) e.options = patch.options;
+      cur[key] = e;
+      return { ...o, edits: cur };
+    });
     setDirty(true);
   };
+
+  /* คืนฟิลด์มาตรฐานกลับไปใช้ชื่อ/หน่วย/ตัวเลือกตั้งต้นในโค้ด */
+  const resetField = (key: string) => {
+    setOverride((o) => {
+      const cur = { ...(o.edits || {}) };
+      delete cur[key];
+      return { ...o, edits: cur };
+    });
+    setDirty(true);
+  };
+  const isEdited = (key: string) => !!override.edits?.[key];
 
   const addField = (kind: FieldKind) => {
     const nf: FieldDef = { key: `custom_${scope}_${kind}_${seq.current++}`, label: `ฟิลด์ใหม่ (${KIND_LABEL[kind]})`, kind, options: kind === 'select' || kind === 'multiselect' ? ['ตัวเลือก 1', 'ตัวเลือก 2'] : undefined };
@@ -275,8 +304,14 @@ export function FieldBuilderBody() {
                         <div style={knob(f.enabled)} />
                       </div>
                       <span style={{ fontSize: 9, color: 'var(--muted3)' }}>{f.enabled ? 'เปิดใช้' : 'ปิดอยู่'}</span>
+                      {/* บอกให้เห็นว่าฟิลด์ไหนถูกตั้งชื่อเองไว้ จะได้ไม่งงว่าทำไม
+                          ชื่อไม่ตรงกับที่เคยเห็น */}
+                      {!custom && isEdited(f.key) && (
+                        <span data-edited={f.key} title="ตั้งชื่อเองไว้" style={{ fontSize: 9, color: '#9A741C' }}>แก้ชื่อแล้ว</span>
+                      )}
                     </div>
-                    {custom && (
+                    {/* เดิมปุ่มนี้ขึ้นเฉพาะฟิลด์ที่เพิ่มเอง ฟิลด์มาตรฐานจึงแก้ชื่อไม่ได้เลย */}
+                    {(
                       <div data-edit={f.key} onClick={() => setEditing((c) => (c === f.key ? null : f.key))} title="แก้ไขชื่อและรายละเอียดฟิลด์" style={{ width: 30, height: 30, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: editing === f.key ? '#0D6C3B' : 'var(--muted2)', background: editing === f.key ? 'rgba(13,108,59,.08)' : 'transparent', cursor: 'pointer' }}>
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" /></svg>
                       </div>
@@ -289,7 +324,7 @@ export function FieldBuilderBody() {
                   </div>
                 </div>
 
-                {custom && editing === f.key && (
+                {editing === f.key && (
                   <div data-editor={f.key} style={{ marginTop: 12, paddingTop: 12, borderTop: '1px dashed var(--border)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 10 }}>
                     <label style={fbFieldLabel}>ชื่อฟิลด์ (ไทย)
                       <input data-edit-label={f.key} value={f.label} onChange={(e) => patchField(f.key, { label: e.target.value })} placeholder="เช่น ค่าไฟเฉลี่ย/เดือน" style={fbInput} />
@@ -301,7 +336,7 @@ export function FieldBuilderBody() {
                     <label style={fbFieldLabel}>ชื่อฟิลด์ (中文)
                       <input data-edit-zh={f.key} value={f.labelZh ?? ''} onChange={(e) => patchField(f.key, { labelZh: e.target.value })} placeholder="每月平均电费" style={fbInput} />
                     </label>
-                    {(f.kind === 'number' || f.kind === 'price') && (
+                    {(f.kind === 'number' || f.kind === 'price' || !!f.unit) && (
                       <label style={fbFieldLabel}>หน่วย
                         <input value={f.unit ?? ''} onChange={(e) => patchField(f.key, { unit: e.target.value })} placeholder="บาท / ตร.ม. / คัน" style={fbInput} />
                       </label>
@@ -311,8 +346,18 @@ export function FieldBuilderBody() {
                         <input value={(f.options ?? []).join(', ')} onChange={(e) => patchField(f.key, { options: e.target.value.split(',').map((o) => o.trim()).filter(Boolean) })} placeholder="ตัวเลือก 1, ตัวเลือก 2" style={fbInput} />
                       </label>
                     )}
-                    <div style={{ gridColumn: '1 / -1', fontSize: '11.5px', color: 'var(--muted3)' }}>
-                      ฟิลด์นี้จะขึ้นในฟอร์มกรอกทรัพย์ และขึ้นบนหน้ารายละเอียดของเว็บเมื่อทรัพย์นั้นกรอกค่าไว้ · ถ้าไม่ใส่ชื่อ EN/中文 จะใช้ชื่อไทยแทน
+                    <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: '11.5px', color: 'var(--muted3)' }}>
+                      <span style={{ flex: 1, minWidth: 220 }}>
+                        {custom
+                          ? 'ฟิลด์นี้จะขึ้นในฟอร์มกรอกทรัพย์ และขึ้นบนหน้ารายละเอียดของเว็บเมื่อทรัพย์นั้นกรอกค่าไว้ · ถ้าไม่ใส่ชื่อ EN/中文 จะใช้ชื่อไทยแทน'
+                          : 'ชื่อที่ตั้งใหม่จะใช้ทั้งในฟอร์มกรอกทรัพย์และบนตารางรายละเอียดหน้าเว็บ · ถ้าไม่ใส่ชื่อ EN/中文 จะใช้คำแปลเดิมของระบบ · ค่าที่ทรัพย์กรอกไว้แล้วไม่กระทบ'}
+                      </span>
+                      {!custom && isEdited(f.key) && (
+                        <button type="button" data-reset-field={f.key} onClick={() => resetField(f.key)}
+                          style={{ height: 28, padding: '0 12px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
+                          คืนค่าเดิม
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}

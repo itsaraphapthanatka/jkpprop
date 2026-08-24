@@ -36,6 +36,7 @@ async function syncNow(publicOnly: boolean) {
           /* ข้อ 10 · ป้าย "บังคับ" ที่ทีมตั้งทับไว้ ต้องตามมาถึงเครื่องด้วย
              ไม่งั้นเปิดหน้าใหม่แล้วกลับไปใช้ค่าตั้งต้นในโค้ดทุกครั้ง */
           required: ov?.required && typeof ov.required === 'object' ? ov.required : {},
+          edits: ov?.edits && typeof ov.edits === 'object' ? ov.edits : {},
         });
       }
     }

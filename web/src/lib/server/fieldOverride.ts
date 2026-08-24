@@ -8,8 +8,14 @@
 import { db } from './db';
 import type { FieldDef } from '@/lib/propertySchema';
 
-export type Override = { disabled: string[]; extra: FieldDef[] };
-const EMPTY: Override = { disabled: [], extra: [] };
+export type Override = {
+  disabled: string[];
+  extra: FieldDef[];
+  /* ชื่อ/หน่วย ที่ทีมแก้ทับฟิลด์มาตรฐาน — ต้องส่งถึงหน้าเว็บด้วย ไม่งั้นแก้ชื่อ
+     ในหลังบ้านแล้วตารางหน้าทรัพย์ยังขึ้นชื่อเดิม */
+  edits: Record<string, { label?: string; en?: string; zh?: string; unit?: string }>;
+};
+const EMPTY: Override = { disabled: [], extra: [], edits: {} };
 
 export async function loadFieldOverride(orgId: string, typeKey: string): Promise<Override> {
   try {
@@ -18,6 +24,7 @@ export async function loadFieldOverride(orgId: string, typeKey: string): Promise
     return {
       disabled: Array.isArray(row.disabled) ? row.disabled.map(String) : [],
       extra: Array.isArray(row.extra) ? (row.extra as unknown as FieldDef[]) : [],
+      edits: row.edits && typeof row.edits === 'object' ? (row.edits as Override['edits']) : {},
     };
   } catch {
     /* the page is worth more than the customisation: fall back to the plain

@@ -270,12 +270,16 @@ const QUICK_ORDER = [
   'usable_area', 'clear_height', 'power_system', 'land_area', 'doors', 'building_area',
 ];
 
-function rowsFor(keys: string[], values: Vals, locale: Locale, off: Set<string>, over?: GeoOverrides): SpecRow[] {
+function rowsFor(keys: string[], values: Vals, locale: Locale, off: Set<string>, over?: GeoOverrides, edits?: SpecSchema['edits']): SpecRow[] {
   const seen = new Set<string>();
   const out: SpecRow[] = [];
   for (const key of keys) {
     if (off.has(key)) continue; // switched off in the Field Builder
-    const label = LABELS[key]?.[locale];
+    /* ชื่อที่ทีมตั้งเองมาก่อน — ภาษาอังกฤษกับจีนใช้ของทีมถ้ากรอกไว้ ไม่งั้น
+       ใช้คำแปลตั้งต้น จะได้ไม่กลายเป็นภาษาไทยโผล่บนหน้า /en */
+    const e = edits?.[key];
+    const custom = locale === 'th' ? e?.label : locale === 'en' ? e?.en : e?.zh;
+    const label = custom?.trim() || LABELS[key]?.[locale];
     if (!label || seen.has(label)) continue; // district/amphoe are the same row
     const value = format(key, values[key], locale, over);
     if (value === null) continue;
@@ -301,7 +305,14 @@ function customRows(extra: FieldDef[], values: Vals, locale: Locale, off: Set<st
 }
 
 /** What the Field Builder says about this property's type, if anything. */
-export type SpecSchema = { disabled?: string[]; extra?: FieldDef[] };
+export type SpecSchema = {
+  disabled?: string[];
+  extra?: FieldDef[];
+  /* ชื่อที่ทีมแก้ทับใน Field Builder — ตารางนี้มีตารางชื่อของตัวเอง (LABELS)
+     ถ้าไม่รับมาด้วย ทีมจะเปลี่ยนชื่อช่องในฟอร์มแล้วหน้าเว็บยังขึ้นชื่อเดิม
+     ซึ่งเป็นอาการเดียวกับที่โปรเจกต์นี้เจอซ้ำมาหลายรอบ */
+  edits?: Record<string, { label?: string; en?: string; zh?: string; unit?: string }>;
+};
 
 /** รหัสทรัพย์กับประเภททรัพย์เก็บเป็นคอลัมน์ของตัวเอง ไม่ได้อยู่ใน values */
 export type SpecHead = { code?: string; typeLabel?: string };
@@ -342,11 +353,11 @@ export function buildSpecs(values: Vals, locale: Locale, schema: SpecSchema = {}
       : [];
 
   return {
-    quick: rowsFor(QUICK_ORDER, values, locale, off, over).slice(0, 4),
+    quick: rowsFor(QUICK_ORDER, values, locale, off, over, schema.edits).slice(0, 4),
     /* custom fields come after the built-in ones, in the order the Field
        Builder lists them — the table's own order is a reading order for
        tenants (place, size, power, price) and stays as it is */
-    rows: [...rowsFor(TABLE_ORDER, values, locale, off, over), ...customRows(schema.extra ?? [], values, locale, off)],
+    rows: [...rowsFor(TABLE_ORDER, values, locale, off, over, schema.edits), ...customRows(schema.extra ?? [], values, locale, off)],
     features,
     featureKeys,
     usage,
