@@ -1812,6 +1812,13 @@ test.describe('the chain from requirement to deal, clicked end to end', () => {
         .find((v) => v.id === visitId)?.stops[0]?.result ?? null;
     }).toBe('สนใจมาก');
 
+    /* ปุ่มเปิดดีลถูกล็อกไว้จนกว่าจะยืนยันเกณฑ์กับลูกค้า (เด็ค Web 2026 ข้อ 21)
+       เทสต์นี้เขียนไว้ก่อนด่านนั้นจะมี จึงกดปุ่มที่ล็อกอยู่แล้วรอกล่องที่ไม่มีวัน
+       เปิด — และไม่มีใครเห็น เพราะในชุดเต็มมันถูก test.skip ข้างบนกลบไว้ */
+    await expect(page.locator('#visit-open-deal')).toHaveAttribute('data-gate-locked', 'true');
+    await page.locator('#visit-gate-confirm').click();
+    await expect(page.locator('#visit-open-deal')).not.toHaveAttribute('data-gate-locked', 'true');
+
     await page.locator('#visit-open-deal').click();
     await page.locator('#visit-deal-amount').fill('250000');
     await page.locator('#visit-deal-save').click();
@@ -1819,6 +1826,11 @@ test.describe('the chain from requirement to deal, clicked end to end', () => {
     await expect(page).toHaveURL(/\/admin\/deals\/[a-z0-9]+/, { timeout: 15000 });
     madeDeal.push(page.url().split('/').pop()!);
     await expect(page.getByText('฿250,000').first()).toBeVisible();
+
+    /* ลูกค้าแจ้ง 25 ส.ค. ว่าทั้งสายต้องอ้างรหัสเดียวกัน — สายนี้เริ่มจาก shortlist
+       ที่ไม่ได้มาจากใบงาน จึงยังไม่มีรหัสให้ยืม หน้าจอต้องบอกตรง ๆ ว่ายังไม่ผูก
+       ไม่ใช่แอบโชว์ตัวอักษรท้าย id ให้ดูเหมือนรหัสงาน */
+    await expect(page.locator('[data-job-code-empty]')).toBeVisible();
 
     await request.delete(`/api/shortlists/${sl.id}`, { headers: { cookie } }).catch(() => null);
   });
