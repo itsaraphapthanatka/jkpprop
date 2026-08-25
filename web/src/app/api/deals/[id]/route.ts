@@ -17,7 +17,7 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
   if (!deal) throw new ApiError('NOT_FOUND', 'ไม่พบดีลนี้', 404);
 
   const body = (await req.json().catch(() => null)) as
-    | { status?: string; amount?: number; note?: string; unlock?: boolean; reason?: string; leaseEndDate?: string; leaseTenant?: string }
+    | { status?: string; amount?: number; note?: string; unlock?: boolean; reason?: string; leaseEndDate?: string; leaseTenant?: string; requirementId?: string | null }
     | null;
   if (!body) throw new ApiError('VALIDATION', 'ข้อมูลไม่ถูกต้อง', 400);
 
@@ -36,11 +36,41 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
     return ok({ id, locked: false });
   }
 
+  const data: Prisma.DealUpdateInput = {};
+
+  /* ผูกใบงานให้ดีลเก่าที่ระบบเดาให้ไม่ได้ — รหัสดีลยืมรหัสของใบงานมาแสดง
+     ทำก่อนด่านล็อก เพราะดีลที่ปิดไปแล้วคือกองที่ลูกค้าอยากไล่ตรวจที่สุด และการ
+     ล็อก (FR-DEA-05) มีไว้แช่ตัวเงิน ไม่ใช่ห้ามเติมว่าดีลนี้มาจากงานไหน
+     · เติมได้เฉพาะช่องที่ยังว่าง — ดีลที่ผูกไว้แล้วต้องปลดล็อกก่อนถึงย้ายได้
+       ไม่งั้นสายงานที่ตรวจไปแล้วถูกเขียนทับเงียบ ๆ */
+  if (body.requirementId !== undefined) {
+    const wanted = body.requirementId === null || body.requirementId === '' ? null : String(body.requirementId);
+    const isFillingBlank = !deal.requirementId && !!wanted;
+    if (deal.locked && !isFillingBlank) {
+      throw new ApiError('DEAL_LOCKED', 'ดีลนี้ปิดแล้ว — ย้ายใบงานต้องปลดล็อกก่อน (เฉพาะผู้มีสิทธิ์)', 403);
+    }
+    if (wanted) {
+      const r = await db.requirement.findFirst({ where: { id: wanted, orgId: user.orgId }, select: { id: true } });
+      if (!r) throw new ApiError('VALIDATION', 'ไม่พบใบงานที่อ้างถึง', 400);
+      data.requirement = { connect: { id: r.id } };
+    } else {
+      data.requirement = { disconnect: true };
+    }
+    await audit({
+      user, orgId: user.orgId, action: 'deal.link_requirement', entity: 'deal', entityId: id,
+      before: { requirementId: deal.requirementId }, after: { requirementId: wanted },
+    });
+  }
+
   if (deal.locked) {
+    /* ผูกใบงานอย่างเดียวบนดีลที่ปิดแล้ว — บันทึกแล้วจบตรงนี้ ไม่ต้องแตะตัวเงิน */
+    if (data.requirement && Object.keys(data).length === 1) {
+      const updated = await db.deal.update({ where: { id }, data });
+      return ok({ id, requirementId: updated.requirementId });
+    }
     throw new ApiError('DEAL_LOCKED', 'ดีลนี้ปิดแล้ว — ต้องปลดล็อกก่อนแก้ไข (เฉพาะผู้มีสิทธิ์)', 403);
   }
 
-  const data: Prisma.DealUpdateInput = {};
   if (typeof body.amount === 'number' && Number.isFinite(body.amount)) data.amount = Math.max(0, Math.round(body.amount));
   if (typeof body.note === 'string') data.note = body.note.slice(0, 2000);
   if (typeof body.status === 'string') {

@@ -61,7 +61,12 @@ export function ShortlistPage({ shortlistId }: { shortlistId?: string }) {
         active="shortlists"
         eyebrow={<ShortlistEyebrow /> as unknown as string}
         title={<ShortlistTitle /> as unknown as string}
-        actions={<><RecordPicker base="shortlists" endpoint="/api/shortlists" currentId={shortlistId} toRow={(x) => ({ id: String(x.id), label: String(x.name || 'Shortlist'), meta: `${x.count} ทรัพย์ · ${x.status}` })} /><ShortlistActions /></>}
+        actions={<><RecordPicker base="shortlists" endpoint="/api/shortlists" currentId={shortlistId} toRow={(x) => ({
+          id: String(x.id),
+          label: String(x.name || 'Shortlist'),
+          /* รหัสงานนำหน้า เพื่อให้ไล่ตรวจได้ว่าเป็นของงานไหน (25 ส.ค.) */
+          meta: [String(x.requirementCode || ''), `${x.count} ทรัพย์`, String(x.status)].filter(Boolean).join(' · '),
+        })} /><ShortlistActions /></>}
         css={slCss}
       >
         <ShortlistMain />

@@ -751,11 +751,18 @@ test.describe('คอมเมนต์ลูกค้า · ด่านเป�
     });
     expect(made.status(), await made.text()).toBe(201);
     const { id } = await made.json();
-    const codeTail = `DEAL-${String(id).slice(-6).toUpperCase()}`;
+    /* รหัสดีลไม่ใช่ตัวอักษรสุ่มอีกแล้ว — ถ้าดีลผูกกับใบงาน รหัสคือ DEAL-REQ-xxxx
+       (ลูกค้าแจ้ง 25 ส.ค. ว่าทั้งสายต้องอ่านเป็นงานเดียวกัน) · ถามค่าที่ระบบ
+       ประทับจริงมาแทนที่จะคำนวณเอง ไม่งั้นเทสต์ผ่านเพราะคิดสูตรเดียวกับโค้ด */
+    const dealRow = ((await (await request.get('/api/deals', { headers: { cookie } })).json()).items as { id: string; requirementCode?: string }[])
+      .find((d) => d.id === id);
+    const expectedCode = dealRow?.requirementCode
+      ? `DEAL-${dealRow.requirementCode}`
+      : `DEAL-${String(id).slice(-6).toUpperCase()}`;
     try {
       await page.goto(`/admin/deals/${id}`);
       const h = page.locator('h1').first();
-      await expect(h).toContainText(codeTail);
+      await expect(h).toContainText(expectedCode);
       await expect(h, 'หัวเรื่องยังไม่บอกว่าเป็นดีลของลูกค้าเจ้าไหน').toContainText(who);
     } finally {
       await request.delete(`/api/deals/${id}`, { headers: { cookie } }).catch(() => null);
@@ -4076,5 +4083,136 @@ test.describe('คอมเมนต์ลูกค้า · ทำเลสา�
       await sort.selectOption('codeDesc');
       await expect.poll(async () => (await page.locator(sel).first().innerText()).trim(), { timeout: 10000 }).not.toBe(asc[0]);
     }
+  });
+});
+
+/* ลูกค้าส่งภาพประกอบมา 25 ส.ค. 2569 · วงรหัสไว้สี่จุดแล้วเขียนว่า
+   "4 ขั้นตอนนี้ต้องเป็นรหัสตัวเดียวกัน เพื่อให้จบเป็นงาน ๆ ไป และง่ายต่อการตรวจ"
+   Requirements REQ-1018 → Shortlist → Visit → Deal
+
+   ของเดิม: หน้าแผนเข้าชมโชว์ '(FR-VIS-07)' ซึ่งเป็นเลขข้อในเอกสารสเปก ไม่ใช่
+   รหัสงาน · หน้าดีลตัดท้าย id ของแถวมาหกตัวได้ 'DEAL-7RS13H' ที่ไม่ผูกกับอะไร
+   ทั้งคู่จึงไม่มีทางตรงกับ REQ-1018 */
+test.describe('คอมเมนต์ลูกค้า · รหัสงานตัวเดียวกันทั้งสาย', () => {
+  const admin = { email: 'owner@jkp.local', password: 'jkp12345' };
+  const signInAdmin = async (page: import('@playwright/test').Page) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill(admin.email);
+    await page.locator('#login-password').fill(admin.password);
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    return (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+  };
+
+  /* รหัสที่แต่ละหน้าโชว์ต้องเป็นรหัสของใบงานที่ผูกไว้จริง ไม่ใช่ใบล่าสุดของลูกค้า
+     รายนั้น — ลูกค้าคนเดียวเปิดได้หลายใบ (REQ-1009/1010/1011 มีอยู่จริงในระบบ) */
+  test('แผนเข้าชมและดีลรายงานรหัสของใบงานที่ผูกไว้จริง', async ({ page, request }) => {
+    const cookie = await signInAdmin(page);
+    const reqs = (await (await request.get('/api/requirements', { headers: { cookie } })).json()).items as { id: string; code: string }[];
+    const codeById = new Map(reqs.map((r) => [r.id, r.code]));
+
+    const visits = (await (await request.get('/api/visits', { headers: { cookie } })).json()).items as { id: string; requirementId: string | null; requirementCode?: string }[];
+    const deals = (await (await request.get('/api/deals', { headers: { cookie } })).json()).items as { id: string; requirementId?: string | null; requirementCode?: string }[];
+
+    for (const v of visits) {
+      if (!v.requirementId) {
+        expect(v.requirementCode || '', `แผน ${v.id} ไม่ได้ผูกใบงาน แต่ยังรายงานรหัสออกมา`).toBe('');
+        continue;
+      }
+      expect(v.requirementCode, `แผน ${v.id} รายงานรหัสไม่ตรงกับใบงานที่ผูกไว้`).toBe(codeById.get(v.requirementId));
+    }
+    for (const d of deals) {
+      if (!d.requirementId) {
+        expect(d.requirementCode || '', `ดีล ${d.id} ไม่ได้ผูกใบงาน แต่ยังรายงานรหัสออกมา`).toBe('');
+        continue;
+      }
+      expect(d.requirementCode, `ดีล ${d.id} รายงานรหัสไม่ตรงกับใบงานที่ผูกไว้`).toBe(codeById.get(d.requirementId));
+    }
+  });
+
+  /* เดินสายจริงตั้งแต่ใบงานถึงดีล แล้วดูว่ารหัสเดียวกันโผล่ทุกหน้า */
+  test('สร้างนัดชมจากใบงาน แล้วเปิดดีล — ทั้งสามหน้าอ่านรหัสเดียวกัน', async ({ page, request }) => {
+    const cookie = await signInAdmin(page);
+    const reqs = (await (await request.get('/api/requirements', { headers: { cookie } })).json()).items as { id: string; code: string; leadId: string }[];
+    test.skip(!reqs.length, 'ยังไม่มีใบงานในระบบ');
+    const req0 = reqs[0];
+
+    const props = (await (await request.get('/api/properties', { headers: { cookie } })).json()).items as { publicCode: string }[];
+    test.skip(!props.length, 'ยังไม่มีทรัพย์ในระบบ');
+
+    const madeVisit = await request.post('/api/visits', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { date: new Date(Date.now() + 864e5).toISOString(), codes: [props[0].publicCode], leadId: req0.leadId, requirementId: req0.id },
+    });
+    expect(madeVisit.status(), await madeVisit.text()).toBe(201);
+    const { id: visitId } = await madeVisit.json();
+
+    /* หน้าแผนเข้าชม — รหัสงานต้องอยู่บนจอ และเลขข้อสเปกต้องไม่อยู่ */
+    await page.goto(`/admin/visits/${visitId}`);
+    await expect(page.locator('[data-job-code]').first()).toContainText(req0.code);
+    await expect(page.locator('body'), 'เลขข้อในเอกสารสเปกไม่ควรโผล่บนหน้าจอลูกค้า').not.toContainText('FR-VIS-07');
+
+    /* ปลดด่านยืนยันเกณฑ์ก่อน ไม่งั้นเปิดดีลจากแผนนี้ไม่ได้ (ข้อ 21) */
+    const gate = await request.patch(`/api/visits/${visitId}`, {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { gateConfirmed: true },
+    });
+    expect(gate.status(), await gate.text()).toBe(200);
+
+    const madeDeal = await request.post('/api/deals', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { title: 'ทดสอบรหัสงานทั้งสาย', visitId, leadId: req0.leadId, propertyCode: props[0].publicCode, amount: 0 },
+    });
+    expect(madeDeal.status(), await madeDeal.text()).toBe(201);
+    const { id: dealId } = await madeDeal.json();
+
+    /* หน้าดีล — DEAL-REQ-1018 ไม่ใช่ตัวอักษรท้าย id */
+    await page.goto(`/admin/deals/${dealId}`);
+    await expect(page.locator('h1').first()).toContainText(`DEAL-${req0.code}`);
+    await expect(page.locator('h1').first(), 'รหัสสำรองจาก id ไม่ควรโผล่เมื่อดีลผูกใบงานแล้ว')
+      .not.toContainText(`DEAL-${String(dealId).slice(-6).toUpperCase()}`);
+
+    /* หน้าใบงาน — แถบ "งานชุดนี้" ต้องพาไปทั้งนัดชมและดีลของงานเดียวกัน */
+    await page.goto(`/admin/requirements/${req0.id}`);
+    const chain = page.locator('[data-req-chain]');
+    await expect(chain).toBeVisible();
+    await expect(chain).toContainText(req0.code);
+    await expect(chain.locator(`a[href="/admin/visits/${visitId}"]`)).toHaveCount(1);
+    await expect(chain.locator(`a[href="/admin/deals/${dealId}"]`)).toHaveCount(1);
+  });
+
+  /* แผนเก่าที่สร้างไว้ก่อนระบบเก็บรหัส และชี้ให้อัตโนมัติไม่ได้ (ลูกค้ารายเดียว
+     เปิดหลายใบ) ต้องผูกเองได้จากหน้าจอ ไม่ใช่ต้องแก้ฐานข้อมูล */
+  test('แผนที่ยังไม่ได้ผูกใบงาน ผูกเองได้จากหัวเรื่อง', async ({ page, request }) => {
+    const cookie = await signInAdmin(page);
+    const reqs = (await (await request.get('/api/requirements', { headers: { cookie } })).json()).items as { id: string; code: string; leadId: string }[];
+    test.skip(!reqs.length, 'ยังไม่มีใบงานในระบบ');
+    const req0 = reqs[0];
+    const props = (await (await request.get('/api/properties', { headers: { cookie } })).json()).items as { publicCode: string }[];
+    test.skip(!props.length, 'ยังไม่มีทรัพย์ในระบบ');
+
+    /* สร้างแผนแบบไม่ส่ง requirementId มาให้ — เลียนแบบแถวที่มีมาก่อน */
+    const made = await request.post('/api/visits', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { date: new Date(Date.now() + 1728e5).toISOString(), codes: [props[0].publicCode], leadId: req0.leadId },
+    });
+    expect(made.status(), await made.text()).toBe(201);
+    const { id: visitId } = await made.json();
+    /* ระบบยอมเดาให้เฉพาะตอนลูกค้ามีใบงานใบเดียว — ถ้าเดาให้ไปแล้วก็ถอดออกก่อน
+       ไม่งั้นเทสต์นี้ไม่ได้ทดสอบอะไร */
+    await request.patch(`/api/visits/${visitId}`, {
+      headers: { cookie, 'Content-Type': 'application/json' }, data: { requirementId: null },
+    });
+
+    await page.goto(`/admin/visits/${visitId}`);
+    const empty = page.locator('[data-job-code-empty]');
+    await expect(empty, 'แผนที่ไม่มีรหัสงานต้องบอกให้รู้ ไม่ใช่เงียบ').toBeVisible();
+    await empty.click();
+    await page.locator('[data-job-code-picker]').getByText(req0.code, { exact: false }).first().click();
+
+    await expect(page.locator('[data-job-code]').first()).toContainText(req0.code);
+    const after = ((await (await request.get('/api/visits', { headers: { cookie } })).json()).items as { id: string; requirementCode?: string }[])
+      .find((v) => v.id === visitId);
+    expect(after?.requirementCode, 'ผูกจากหน้าจอแล้วต้องบันทึกจริง ไม่ใช่ขึ้นแค่บนจอ').toBe(req0.code);
   });
 });

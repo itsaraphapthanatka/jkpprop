@@ -129,8 +129,8 @@ type LeadDetail = {
   linked: {
     requirements: { id: string; code: string; status: string }[];
     shortlists: { id: string; name: string; status: string; count: number }[];
-    visits: { id: string; date: number; status: string }[];
-    deals?: { id: string; title: string; status: string; amount: number; closedAt: number | null; property: LeadProp | null }[];
+    visits: { id: string; date: number; status: string; requirementCode?: string }[];
+    deals?: { id: string; title: string; status: string; amount: number; closedAt: number | null; property: LeadProp | null; requirementCode?: string }[];
   };
 };
 
@@ -401,10 +401,15 @@ export function LeadsBody() {
   const linkedChips = [
     ...(L?.requirements ?? []).map((r) => ({ label: `Requirement ${r.code}`, href: `/admin/requirements/${r.id}` })),
     ...(L?.shortlists ?? []).map((sl) => ({ label: `Shortlist ${sl.name} · ${sl.count} ทรัพย์`, href: `/admin/shortlists/${sl.id}` })),
-    ...(L?.visits?.length ? [{ label: `${L.visits.length} Visits`, href: '/admin/visits' }] : []),
+    /* เคยเป็นชิปเดียวว่า "2 Visits" พาไปที่คิวรวม — ลูกค้าขอ 25 ส.ค. ให้ตรวจได้
+       ว่าอันไหนเป็นของงานไหน จึงแยกเป็นใบ ๆ พร้อมรหัสและพาไปที่แผนนั้นตรง ๆ */
+    ...(L?.visits ?? []).map((v) => ({
+      label: `นัดชม ${new Date(v.date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}${v.requirementCode ? ` · ${v.requirementCode}` : ''}`,
+      href: `/admin/visits/${v.id}`,
+    })),
     /* สไลด์ 43 · ดีลไม่เคยโผล่ที่นี่ ทั้งที่การปิดดีลคือสิ่งที่ทำให้ lead จบ */
     ...(L?.deals ?? []).map((dl) => ({
-      label: `ดีล ${dl.status === 'won' ? 'สำเร็จ' : dl.status === 'lost' ? 'ไม่สำเร็จ' : 'กำลังเจรจา'}${dl.amount ? ` · ฿${dl.amount.toLocaleString('th-TH')}` : ''}`,
+      label: `${dl.requirementCode ? `DEAL-${dl.requirementCode}` : 'ดีล'} ${dl.status === 'won' ? 'สำเร็จ' : dl.status === 'lost' ? 'ไม่สำเร็จ' : 'กำลังเจรจา'}${dl.amount ? ` · ฿${dl.amount.toLocaleString('th-TH')}` : ''}`,
       href: `/admin/deals/${dl.id}`,
     })),
   ];

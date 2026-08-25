@@ -315,6 +315,9 @@ export function ShortlistProvider({ children, shortlistId }: { children: React.R
         date: new Date(visitDate).toISOString(),
         codes,
         leadId: detail?.leadId ?? undefined,
+        /* ส่งรหัสใบงานติดไปด้วย — แผนเข้าชมจะได้ใช้รหัสเดียวกับ shortlist
+           แทนที่จะให้ปลายทางเดาเอาจากใบล่าสุดของลูกค้ารายนั้น */
+        requirementId: detail?.requirement?.id ?? undefined,
       });
       setVisitOpen(false);
       window.location.href = `/admin/visits/${made.id}`;

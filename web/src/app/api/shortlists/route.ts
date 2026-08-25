@@ -12,13 +12,17 @@ export const GET = handler(async () => {
   const rows = await db.shortlist.findMany({
     where: { orgId: user.orgId },
     orderBy: { createdAt: 'desc' },
-    include: { items: true },
+    /* รหัสใบงานติดมากับทุกแถว — ลูกค้าขอ 25 ส.ค. ให้ทั้งสายอ่านเป็นงานเดียวกัน
+       รายการเลือก shortlist เคยบอกแค่ชื่อกับจำนวนทรัพย์ */
+    include: { items: true, requirement: { select: { id: true, code: true } } },
     take: 200,
   });
   return ok({
     items: rows.map((s) => ({
       id: s.id,
       name: s.name,
+      requirementId: s.requirement?.id ?? null,
+      requirementCode: s.requirement?.code ?? '',
       token: s.token,
       url: `/client-shortlist?token=${s.token}`,
       status: s.status,

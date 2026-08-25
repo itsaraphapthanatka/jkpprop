@@ -31,15 +31,15 @@ export const GET = handler(async () => {
     ? await db.lead.findMany({ where: { id: { in: leadIds } }, select: { id: true, name: true, company: true, phone: true } })
     : [];
   const leadById = new Map(leadRows.map((l) => [l.id, l]));
-  const reqs = leadIds.length
-    ? await db.requirement.findMany({
-      where: { orgId: user.orgId, leadId: { in: leadIds } },
-      orderBy: { createdAt: 'desc' },
-      select: { id: true, leadId: true },
-    })
+  /* ใบงานที่แผนนี้ผูกไว้จริง — เดิมโค้ดตรงนี้หยิบใบล่าสุดของลูกค้ารายนั้นมา
+     เพราะแผนเข้าชมไม่มีช่องเก็บ ผลคือลูกค้าที่เปิดหลายใบ (REQ-1009/1010/1011
+     ของเจ้าเดียวกัน มีอยู่จริงในระบบ) จะได้รหัสของใบที่ไม่เกี่ยวกับทริปนี้
+     ตอนนี้ประทับตอนสร้าง แล้วอ่านค่าที่ประทับไว้ */
+  const reqIds = [...new Set(rows.map((v) => v.requirementId).filter(Boolean) as string[])];
+  const reqRows = reqIds.length
+    ? await db.requirement.findMany({ where: { orgId: user.orgId, id: { in: reqIds } }, select: { id: true, code: true } })
     : [];
-  const reqByLead = new Map<string, string>();
-  for (const r of reqs) if (!reqByLead.has(r.leadId)) reqByLead.set(r.leadId, r.id);
+  const reqById = new Map(reqRows.map((r) => [r.id, r]));
 
   return ok({
     items: rows.map((v) => ({
@@ -48,7 +48,9 @@ export const GET = handler(async () => {
       customer: v.leadId ? (leadById.get(v.leadId)?.company || leadById.get(v.leadId)?.name || '') : '',
       customerContact: v.leadId ? (leadById.get(v.leadId)?.name ?? '') : '',
       customerPhone: v.leadId ? (leadById.get(v.leadId)?.phone ?? '') : '',
-      requirementId: v.leadId ? reqByLead.get(v.leadId) ?? null : null,
+      requirementId: v.requirementId,
+      /* รหัสงานที่ทั้งสายต้องพูดตรงกัน — REQ-1018 */
+      requirementCode: v.requirementId ? reqById.get(v.requirementId)?.code ?? '' : '',
       date: v.date.getTime(),
       status: v.status,
       /* ด่านยืนยันเกณฑ์ถูกเก็บลงฐานข้อมูลตั้งแต่แรก แต่ไม่เคยส่งกลับมา หน้าจอ
@@ -91,7 +93,7 @@ export const POST = handler(async (req: Request) => {
   const user = await requireUser();
   requireRole(user, 'owner', 'manager', 'agent', 'co_agent', 'ops');
 
-  const body = (await req.json().catch(() => null)) as { leadId?: string; date?: string; codes?: string[]; note?: string } | null;
+  const body = (await req.json().catch(() => null)) as { leadId?: string; requirementId?: string; date?: string; codes?: string[]; note?: string } | null;
   const date = body?.date ? new Date(body.date) : null;
   if (!date || isNaN(date.getTime())) throw new ApiError('VALIDATION', 'กรุณาระบุวันนัดชม', 400);
   const codes = Array.isArray(body?.codes) ? body.codes.map(String).slice(0, 20) : [];
@@ -100,10 +102,25 @@ export const POST = handler(async (req: Request) => {
   const props = await db.property.findMany({ where: { orgId: user.orgId, publicCode: { in: codes } } });
   if (!props.length) throw new ApiError('VALIDATION', 'ไม่พบทรัพย์ตามรหัสที่ส่งมา', 400);
 
+  /* ใบงานต้นทาง — ประทับตอนนี้ครั้งเดียว ไม่ใช่เดาใหม่ทุกครั้งที่เปิดหน้า
+     ถ้าเรียกมาจาก shortlist จะส่ง requirementId มาให้ · ถ้าไม่ส่ง ยังยอมเดาได้
+     กรณีเดียวคือลูกค้ารายนั้นมีใบงานใบเดียว ซึ่งไม่มีอะไรให้เลือกผิด */
+  const leadId = typeof body?.leadId === 'string' ? body.leadId : null;
+  let requirementId: string | null = null;
+  if (typeof body?.requirementId === 'string' && body.requirementId) {
+    const r = await db.requirement.findFirst({ where: { id: body.requirementId, orgId: user.orgId }, select: { id: true } });
+    if (!r) throw new ApiError('VALIDATION', 'ไม่พบใบงานที่อ้างถึง', 400);
+    requirementId = r.id;
+  } else if (leadId) {
+    const rs = await db.requirement.findMany({ where: { orgId: user.orgId, leadId }, select: { id: true }, take: 2 });
+    if (rs.length === 1) requirementId = rs[0].id;
+  }
+
   const visit = await db.visit.create({
     data: {
       orgId: user.orgId,
-      leadId: typeof body?.leadId === 'string' ? body.leadId : null,
+      leadId,
+      requirementId,
       date,
       note: String(body?.note || '').slice(0, 1000) || null,
       stops: { create: props.map((p, i) => ({ propertyId: p.id, sort: i })) },

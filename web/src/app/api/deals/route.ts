@@ -15,6 +15,13 @@ export const GET = handler(async () => {
      above whatever deal was open */
   const propIds = [...new Set(rows.map((d) => d.propertyId).filter(Boolean) as string[])];
   const leadIds = [...new Set(rows.map((d) => d.leadId).filter(Boolean) as string[])];
+  /* รหัสงานต้นทาง — หัวเรื่องดีลเคยตัดท้าย id มา 6 ตัวได้ 'DEAL-7RS13H'
+     ที่ไม่ตรงกับ REQ ของงานเดียวกัน (ลูกค้าแจ้ง 25 ส.ค.) */
+  const reqIds = [...new Set(rows.map((d) => d.requirementId).filter(Boolean) as string[])];
+  const reqRows = reqIds.length
+    ? await db.requirement.findMany({ where: { orgId: user.orgId, id: { in: reqIds } }, select: { id: true, code: true } })
+    : [];
+  const reqById = new Map(reqRows.map((r) => [r.id, r]));
   const [props, leads] = await Promise.all([
     /* values ด้วย — รูปทรัพย์อยู่ในนั้น หน้าดีลโชว์แต่ไอคอนบ้านสีเทาเหมือนกัน
        ทุกดีล (สไลด์ 43 "ต้องมีรูปภาพเพื่อยืนยัน" · ลูกค้าชี้ซ้ำว่า "รูปยังไม่ขึ้น") */
@@ -49,6 +56,8 @@ export const GET = handler(async () => {
   return ok({
     items: rows.map((d) => ({
       id: d.id, title: d.title, leadId: d.leadId, propertyId: d.propertyId,
+      requirementId: d.requirementId,
+      requirementCode: d.requirementId ? reqById.get(d.requirementId)?.code ?? '' : '',
       propertyCode: d.propertyId ? propById.get(d.propertyId)?.publicCode ?? '' : '',
       propertyTitle: d.propertyId ? propById.get(d.propertyId)?.title ?? '' : '',
       propertyImg: d.propertyId ? propImg(propById.get(d.propertyId)?.values) : null,
@@ -68,18 +77,35 @@ export const POST = handler(async (req: Request) => {
   const user = await requireUser();
   requireRole(user, 'owner', 'manager', 'agent');
 
-  const body = (await req.json().catch(() => null)) as { title?: string; leadId?: string; propertyCode?: string; amount?: number; visitId?: string } | null;
+  const body = (await req.json().catch(() => null)) as { title?: string; leadId?: string; requirementId?: string; propertyCode?: string; amount?: number; visitId?: string } | null;
   const title = String(body?.title || '').trim();
   if (!title) throw new ApiError('VALIDATION', 'กรุณากรอกชื่อดีล', 400);
 
   /* เด็ค Web 2026 ข้อ 21 · เปิดดีลจากแผนเข้าชมได้ต่อเมื่อยืนยันเกณฑ์แล้ว
      ปุ่มบนหน้าจอล็อกไว้แล้ว แต่ต้องกันที่นี่ด้วย ไม่งั้นยิง API ตรงก็ข้ามด่านได้ */
+  const leadId = typeof body?.leadId === 'string' ? body.leadId : null;
+  /* ใบงานต้นทาง — ดีลที่เปิดจากแผนเข้าชมสืบรหัสต่อจากแผนนั้น */
+  let requirementId: string | null = null;
+
   if (typeof body?.visitId === 'string' && body.visitId) {
     const visit = await db.visit.findFirst({ where: { id: body.visitId, orgId: user.orgId } });
     if (!visit) throw new ApiError('NOT_FOUND', 'ไม่พบแผนเข้าชมนี้', 404);
     if (!visit.gateConfirmed) {
       throw new ApiError('VISIT_GATE_PENDING', 'ยังไม่ได้ยืนยันเกณฑ์ของแผนเข้าชมนี้ — กด "ยืนยันเกณฑ์" ก่อนจึงเปิดดีลได้', 409);
     }
+    requirementId = visit.requirementId;
+  }
+
+  if (typeof body?.requirementId === 'string' && body.requirementId) {
+    const r = await db.requirement.findFirst({ where: { id: body.requirementId, orgId: user.orgId }, select: { id: true } });
+    if (!r) throw new ApiError('VALIDATION', 'ไม่พบใบงานที่อ้างถึง', 400);
+    requirementId = r.id;
+  }
+
+  /* เปิดดีลตรง ๆ โดยไม่ผ่านแผนเข้าชม — เดาให้เฉพาะตอนที่ลูกค้ามีใบงานใบเดียว */
+  if (!requirementId && leadId) {
+    const rs = await db.requirement.findMany({ where: { orgId: user.orgId, leadId }, select: { id: true }, take: 2 });
+    if (rs.length === 1) requirementId = rs[0].id;
   }
 
   let propertyId: string | null = null;
@@ -92,7 +118,8 @@ export const POST = handler(async (req: Request) => {
     data: {
       orgId: user.orgId,
       title: title.slice(0, 300),
-      leadId: typeof body?.leadId === 'string' ? body.leadId : null,
+      leadId,
+      requirementId,
       propertyId,
       amount: Number.isFinite(body?.amount) ? Math.max(0, Math.round(body!.amount!)) : 0,
     },

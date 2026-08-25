@@ -4,6 +4,8 @@ import * as React from 'react';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { thumb } from '@/lib/mediaThumb';
+import { dealCodeOf } from '@/lib/jobCode';
+import { JobCodeLink } from '@/components/admin/JobCodeLink';
 import { apiFetch, apiGet, apiPost, apiPatch, apiDelete, ApiClientError } from '@/lib/apiClient';
 
 /* ============================================================
@@ -49,6 +51,8 @@ type ApiDeal = {
   propertyCode: string; propertyTitle: string; propertyImg?: string | null; customer: string;
   /* สไลด์ 42 · "ไม่มีสรุปและประวัติการติดต่อ" */
   customerContact?: string; customerPhone?: string; customerEmail?: string; leadStatus?: string;
+  /* ใบงานต้นทาง — รหัสดีลยืมรหัสของใบนี้มาใช้ ไม่ได้สุ่มเอง */
+  requirementId?: string | null; requirementCode?: string | null; leadId?: string | null;
   history?: { text: string; at: number }[];
 };
 
@@ -178,11 +182,24 @@ export function DealTitle() {
     : { fontSize: 12, fontWeight: 700, color: '#034956', background: '#EEF4F3', padding: '2px 8px', borderRadius: 6 };
   /* เด็ค Web 2026 ข้อ 22 · หัวเรื่องเคยเป็นรหัสล้วน ๆ ให้เดาเอาว่าดีลของใคร
      — เอาชื่อลูกค้ามานำ แล้วตามด้วยรหัส เหมือนที่แก้ไปแล้วในหน้า REQ กับ Visits */
-  const code = dealId ? `DEAL-${dealId.slice(-6).toUpperCase()}` : '';
+  /* รหัสเคยเป็นตัวอักษรท้าย id ของแถว ('DEAL-7RS13H') ซึ่งไม่ผูกกับอะไรเลย
+     ลูกค้าแจ้ง 25 ส.ค. ว่าทั้งสายต้องอ่านเป็นงานเดียวกัน — DEAL-REQ-1018 */
+  const { code, linked } = dealCodeOf(deal?.requirementCode, dealId);
   const who = deal?.customer?.trim() || '';
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-      {code ? (who ? `${who} — ${code}` : code) : 'ดีล'} <code style={statusBadge}>{statusLabel}</code>
+      {dealId ? (who ? `${who} — ` : '') : 'ดีล'}
+      {linked && deal?.requirementId
+        ? <Link data-job-code href={`/admin/requirements/${deal.requirementId}`} title="เปิดใบงานต้นทางของดีลนี้" style={{ color: 'inherit' }}>{code}</Link>
+        : dealId && (
+          /* รหัสสำรองจากท้าย id ยังโชว์ไว้ให้เรียกได้ แต่ต้องอ่านออกว่ามันไม่ใช่
+             รหัสงาน — ปุ่มข้าง ๆ ผูกใบงานให้จบได้เลย */
+          <>
+            <span data-job-code title="ดีลนี้ยังไม่ได้ผูกกับใบงาน — รหัสนี้จึงไม่ตรงกับสาย REQ" style={{ color: 'var(--muted2)' }}>{code}</span>
+            <JobCodeLink code="" requirementId={null} leadId={deal?.leadId ?? null} prefix="DEAL-" endpoint={`/api/deals/${dealId}`} onLinked={() => window.location.reload()} />
+          </>
+        )}
+      <code style={statusBadge}>{statusLabel}</code>
     </span>
   );
 }

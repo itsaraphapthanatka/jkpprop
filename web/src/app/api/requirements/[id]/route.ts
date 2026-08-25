@@ -80,11 +80,15 @@ export const GET = handler(async (_req: Request, ctx: { params: Promise<{ id: st
   const row = await db.requirement.findFirst({ where: { id, orgId: user.orgId }, include: INCLUDE });
   if (!row) throw new ApiError('NOT_FOUND', 'ไม่พบ requirement นี้', 404);
 
-  const shortlists = await db.shortlist.findMany({
-    where: { requirementId: id },
-    include: { items: true },
-    orderBy: { createdAt: 'desc' },
-  });
+  /* ทั้งสายของงานใบนี้ · ลูกค้าแจ้ง 25 ส.ค. ว่า Requirement → Shortlist →
+     Visit → Deal ต้องอ่านเป็นชุดเดียวกัน "เพื่อให้จบเป็นงาน ๆ ไป และง่ายต่อ
+     การตรวจ" — เดิมหน้านี้เห็นแค่ shortlist แล้วสายก็ขาด ต้องไปไล่หาเองว่า
+     นัดชมกับดีลของงานนี้อยู่ใบไหน */
+  const [shortlists, visits, deals] = await Promise.all([
+    db.shortlist.findMany({ where: { requirementId: id }, include: { items: true }, orderBy: { createdAt: 'desc' } }),
+    db.visit.findMany({ where: { requirementId: id, orgId: user.orgId }, include: { stops: true }, orderBy: { date: 'desc' } }),
+    db.deal.findMany({ where: { requirementId: id, orgId: user.orgId }, orderBy: { createdAt: 'desc' } }),
+  ]);
 
   return ok({
     ...requirementDto(row),
@@ -92,6 +96,12 @@ export const GET = handler(async (_req: Request, ctx: { params: Promise<{ id: st
     shortlists: shortlists.map((s) => ({
       id: s.id, name: s.name, status: s.status, count: s.items.length,
       url: `/client-shortlist?token=${s.token}`, createdAt: s.createdAt.getTime(),
+    })),
+    visits: visits.map((v) => ({
+      id: v.id, date: v.date.getTime(), status: v.status, count: v.stops.length, gateConfirmed: v.gateConfirmed,
+    })),
+    deals: deals.map((d) => ({
+      id: d.id, title: d.title, status: d.status, amount: d.amount, closedAt: d.closedAt?.getTime() ?? null,
     })),
     cancelFields: CANCEL_FIELDS,
   });

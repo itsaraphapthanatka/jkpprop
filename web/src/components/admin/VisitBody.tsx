@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { apiGet, apiPatch, apiPost, ApiClientError } from '@/lib/apiClient';
 import Link from 'next/link';
+import { JobCodeLink } from '@/components/admin/JobCodeLink';
 
 /* Ported verbatim from AdminVisit.dc.html <main> (+ the stateful topbar
    right cluster). Visit-plan detail: criteria gate (Flow C), appointment
@@ -60,6 +61,8 @@ type ApiVisit = {
   id: string; date: number; status: string; note: string | null; gateConfirmed?: boolean;
   /** the lead's requirement, so "แก้ criteria" opens that card and not the queue */
   requirementId?: string | null;
+  /** REQ-1018 — รหัสงานที่ต้องตรงกันตั้งแต่ requirement ยันดีล */
+  requirementCode?: string | null;
   leadId: string | null;
   customer?: string; customerContact?: string; customerPhone?: string;
   stops: Stop[];
@@ -111,8 +114,22 @@ export function VisitTitle() {
   const when = new Date(Number(visit.date)).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' });
   const label: Record<string, string> = { scheduled: 'นัดไว้', done: 'ปิดแผนแล้ว', cancelled: 'ยกเลิก' };
   return (
-    <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+    <span style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
       นัดชม {when}
+      {/* รหัสงานอยู่บนหัวเรื่องด้วย — ลูกค้าขอให้ตรวจได้ว่าแผนนี้เป็นของใบไหน
+          โดยไม่ต้องเลื่อนหาในเนื้อหน้า (25 ส.ค.) */}
+      <JobCodeLink
+        code={visit.requirementCode ?? ''}
+        requirementId={visit.requirementId}
+        leadId={visit.leadId}
+        endpoint={`/api/visits/${visit.id}`}
+        onLinked={(rid, rc) => {
+          /* ต้องเป็น object ใหม่ — ผู้ฟังเรียก setVisit(visitCache) ถ้าแก้ค่าใน
+             ตัวเดิม React จะเห็นว่าเป็นค่าเดียวกันแล้วไม่เรนเดอร์ใหม่ */
+          if (visitCache) visitCache = { ...visitCache, requirementId: rid, requirementCode: rc };
+          window.dispatchEvent(new Event(VISIT_EVT));
+        }}
+      />
       <code style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 12, fontWeight: 700, color: '#034956', background: '#EEF4F3', padding: '2px 8px', borderRadius: 6 }}>
         {label[visit.status] ?? visit.status}
       </code>
@@ -312,6 +329,8 @@ export function VisitBody() {
       /* ให้เซิร์ฟเวอร์ตรวจด่านยืนยันเกณฑ์ของแผนนี้เองได้ (ข้อ 21) */
       visitId: visit?.id ?? undefined,
       leadId: visit?.leadId ?? undefined,
+      /* ดีลสืบรหัสงานต่อจากแผนนี้ — DEAL-REQ-1018 ไม่ใช่ตัวอักษรสุ่ม */
+      requirementId: visit?.requirementId ?? undefined,
       amount: Number(dealAmount.replace(/[^\d]/g, '')) || 0,
     })
       .then((d) => { window.location.href = `/admin/deals/${d.id}`; })
@@ -365,8 +384,16 @@ export function VisitBody() {
                 ปุ่มสองปุ่มวางเรียงกันโดยไม่มีอะไรบอกว่าเป็นคำตอบของคำถามเดียวกัน
                 ปุ่มหนึ่งจึงดูเหมือนไม่มีเหตุผลจะกด ตอนนี้ถามให้ชัดก่อน แล้วปุ่ม
                 คือคำตอบสองทาง */}
-            <div style={{ fontSize: '14.5px', fontWeight: 800, color: gateConfirmed ? '#0D6C3B' : '#28251D' }}>
-              {gateConfirmed ? 'ยืนยันเกณฑ์กับลูกค้าแล้ว (FR-VIS-07)' : 'ก่อนจัดนัด — ลูกค้ายังใช้เกณฑ์เดิมอยู่ไหม?'}
+            {/* วงเล็บตรงนี้เคยเป็น '(FR-VIS-07)' ซึ่งเป็นเลขข้อในเอกสารสเปก
+                หลุดมาอยู่บนหน้าจอ · ลูกค้าอ่านว่าเป็นรหัสงานแล้วถามว่าทำไม
+                ไม่ตรงกับ REQ-1018 (25 ส.ค.) — ตรงนี้ควรเป็นรหัสงานจริง */}
+            <div style={{ fontSize: '14.5px', fontWeight: 800, color: gateConfirmed ? '#0D6C3B' : '#28251D', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              {gateConfirmed ? 'ยืนยันเกณฑ์กับลูกค้าแล้ว' : 'ก่อนจัดนัด — ลูกค้ายังใช้เกณฑ์เดิมอยู่ไหม?'}
+              {visit?.requirementCode && visit.requirementId && (
+                <Link data-job-code href={`/admin/requirements/${visit.requirementId}`} title="ใบงานต้นทางของแผนนี้" style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 12, fontWeight: 700, color: '#034956', background: '#EEF4F3', padding: '2px 8px', borderRadius: 6 }}>
+                  {visit.requirementCode}
+                </Link>
+              )}
             </div>
             <div style={{ marginTop: 3, fontSize: '12.5px', color: gateConfirmed ? '#3E7A54' : '#9A741C' }}>{gateConfirmed ? 'ลูกค้ายืนยันว่าไม่เปลี่ยนเกณฑ์ — จัดนัดได้เลย' : 'ถ้ายังเหมือนเดิม กด "เกณฑ์เดิม" เพื่อเปิดเส้นทาง · ถ้าลูกค้าเปลี่ยนใจ ต้องกลับไปแก้ requirement ก่อน ไม่งั้นจะพาไปดูของที่ไม่ตรงแล้ว'}</div>
           </div>

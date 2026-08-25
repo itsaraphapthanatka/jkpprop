@@ -252,6 +252,67 @@ paths:
                 type: object
                 properties:
                   ok: *a4
+  /api/me:
+    get:
+      tags:
+        - Auth
+      summary: โปรไฟล์ของบัญชีที่ล็อกอินอยู่
+      responses:
+        "200":
+          description: ข้อมูลโปรไฟล์
+          content:
+            application/json:
+              schema:
+                type: object
+        "401":
+          description: ยังไม่ได้เข้าสู่ระบบ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      tags:
+        - Auth
+      summary: แก้ข้อมูลติดต่อของตัวเอง
+      description: แก้ได้เฉพาะ ชื่อ · เบอร์โทร · LINE · ที่อยู่ — บทบาทและสิทธิ์ไม่อยู่ในนี้ ต่อให้ส่งมาก็ไม่ถูกอ่าน
+      responses:
+        "200":
+          description: บันทึกแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          description: ข้อมูลไม่ถูกต้อง
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: ยังไม่ได้เข้าสู่ระบบ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/team:
+    get:
+      tags:
+        - Auth
+      summary: รายชื่อและข้อมูลติดต่อคนในทีม
+      description: เฉพาะบัญชีที่ยังใช้งานอยู่ · ไม่ส่งบทบาทเชิงสิทธิ์ ขอบเขต หรือวันหมดอายุออกไป
+      responses:
+        "200":
+          description: รายชื่อทีม
+          content:
+            application/json:
+              schema:
+                type: object
+        "401":
+          description: ยังไม่ได้เข้าสู่ระบบ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /api/me/permissions:
     get:
       tags:
@@ -464,6 +525,62 @@ paths:
                 type: object
         "404":
           description: ไม่พบ หรือลิงก์หมดอายุ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: เรียกถี่เกินไป
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - Public
+      summary: ลูกค้าให้ความเห็นต่อทรัพย์หนึ่งรายการ
+      security: *a5
+      description: หน้า client เคยมีปุ่มให้กดแต่ไม่มีที่ส่ง ทีมจึงต้องโทรถามซ้ำในสิ่งที่ลูกค้าตอบไปแล้ว · เขียนได้เฉพาะ feedback ของรายการที่อยู่ใน shortlist ของ token นั้น
+      parameters:
+        - name: token
+          in: path
+          required: true
+          description: token ของ shortlist
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                itemId: *a1
+                feedback:
+                  type: string
+                  enum:
+                    - interested
+                    - maybe
+                    - not_interested
+                note: *a1
+              required:
+                - itemId
+                - feedback
+      responses:
+        "200":
+          description: บันทึกแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          description: ความเห็นไม่ถูกต้อง
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: ไม่พบรายการ
           content:
             application/json:
               schema:
@@ -777,6 +894,29 @@ paths:
         "401": *a7
         "403": *a8
   /api/leads/{id}:
+    get:
+      tags:
+        - Leads
+      summary: รายละเอียด lead
+      description: lead + โน้ต + งานติดตาม + requirement / shortlist / นัดชม ที่ผูกอยู่ · ก่อนหน้านี้ไม่มี endpoint นี้ หน้าจอจึงเขียน timeline กับงานติดตามไว้ตายตัว
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของ lead
+          schema:
+            type: string
+      responses:
+        "200":
+          description: รายละเอียด lead
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
+        "404": *a9
     patch:
       tags:
         - Leads
@@ -806,6 +946,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Lead"
+        "400": *a6
+        "401": *a7
+        "403": *a8
+        "404": *a9
+    delete:
+      tags:
+        - Leads
+      summary: ลบ lead (เจ้าของระบบเท่านั้น)
+      description: requirement · ผลเช็คว่าง · shortlist · โน้ต · งานติดตาม ของ lead นั้นถูกลบตามไปด้วย · ถ้ามีดีลผูกอยู่จะไม่ยอมลบ (409) ต้องจัดการดีลก่อน
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของ lead
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ลบแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
         "400": *a6
         "401": *a7
         "403": *a8
@@ -923,6 +1086,69 @@ paths:
       responses:
         "200":
           description: เพิ่มแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
+        "404": *a9
+    patch:
+      tags:
+        - Leads
+      summary: ติ๊กงานเสร็จ / เปลี่ยนชื่องาน
+      description: ก่อนหน้านี้ไม่มี — ช่องติ๊กบนหน้าจอจึงเป็นแค่การตกแต่ง ติ๊กแล้วหายเมื่อ refresh
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของ lead
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                taskId: *a1
+                done: *a4
+                title: *a1
+              required:
+                - taskId
+      responses:
+        "200":
+          description: อัปเดตแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
+        "404": *a9
+    delete:
+      tags:
+        - Leads
+      summary: ลบงานติดตาม
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของ lead
+          schema:
+            type: string
+        - name: taskId
+          in: query
+          required: false
+          description: id ของงาน
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ลบแล้ว
           content:
             application/json:
               schema:
@@ -1106,6 +1332,7 @@ paths:
       tags:
         - Pipeline
       summary: สร้างแผนการเข้าชม
+      description: ส่ง requirementId มาด้วยเพื่อให้แผนนี้ใช้รหัสงานเดียวกับใบงานต้นทาง (REQ-1018) — ถ้าไม่ส่ง ระบบจะเดาให้เฉพาะตอนที่ลูกค้ารายนั้นมีใบงานใบเดียว
       requestBody:
         required: true
         content:
@@ -1114,6 +1341,7 @@ paths:
               type: object
               properties:
                 leadId: *a1
+                requirementId: *a1
                 date: *a1
                 codes:
                   type: array
@@ -1139,7 +1367,7 @@ paths:
       tags:
         - Pipeline
       summary: ยืนยันสถานะว่าง / ปิดแผน / บันทึกผลรายทรัพย์
-      description: ปิดแผน (status=done) ต้องยืนยัน gate ก่อน ไม่งั้นได้ AVAILABILITY_REQUIRED
+      description: ปิดแผน (status=done) ต้องยืนยันเกณฑ์กับลูกค้าก่อน (FR-VIS-07) ไม่งั้นได้ GATE_REQUIRED
       parameters:
         - name: id
           in: path
@@ -1196,6 +1424,7 @@ paths:
       tags:
         - Pipeline
       summary: สร้างดีล
+      description: ส่ง visitId มาด้วยเมื่อเปิดจากแผนเข้าชม — ถ้าแผนนั้นยังไม่ได้ยืนยันเกณฑ์จะถูกปฏิเสธ (409) ตามด่านของ Flow D · ดีลจะสืบรหัสงานต่อจากแผนนั้น แล้วแสดงเป็น DEAL-REQ-1018
       requestBody:
         required: true
         content:
@@ -1205,9 +1434,11 @@ paths:
               properties:
                 title: *a1
                 leadId: *a1
+                requirementId: *a1
                 propertyCode: *a1
                 amount: &a10
                   type: number
+                visitId: *a1
               required:
                 - title
       responses:
@@ -1332,6 +1563,194 @@ paths:
         "401": *a7
         "403": *a8
         "404": *a9
+  /api/deals/{id}/docs:
+    get:
+      tags:
+        - Pipeline
+      summary: เอกสารของดีล
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของดีล
+          schema:
+            type: string
+      responses:
+        "200":
+          description: รายการเอกสาร
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
+        "404": *a9
+    post:
+      tags:
+        - Pipeline
+      summary: แนบเอกสาร (multipart)
+      description: PDF หรือรูปภาพ ไม่เกิน 10MB · ดีลที่ปิดแล้วต้องปลดล็อกก่อน · เก็บผ่าน driver เดียวกับคลังสื่อ
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของดีล
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                status: *a1
+              required:
+                - file
+      responses:
+        "201":
+          description: แนบแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
+        "404": *a9
+  /api/deals/{id}/docs/{docId}:
+    get:
+      tags:
+        - Pipeline
+      summary: ดาวน์โหลดเอกสาร
+      description: ต้องเข้าสู่ระบบ — เอกสารดีลไม่เปิดสาธารณะ
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของดีล
+          schema:
+            type: string
+        - name: docId
+          in: path
+          required: true
+          description: id ของเอกสาร
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ไฟล์
+        "400": *a6
+        "401": *a7
+        "403": *a8
+        "404": *a9
+    patch:
+      tags:
+        - Pipeline
+      summary: เปลี่ยนสถานะเอกสาร (รอเซ็น / ครบ)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของดีล
+          schema:
+            type: string
+        - name: docId
+          in: path
+          required: true
+          description: id ของเอกสาร
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - รอเซ็น
+                    - ครบ
+              required:
+                - status
+      responses:
+        "200":
+          description: อัปเดตแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
+        "404": *a9
+    delete:
+      tags:
+        - Pipeline
+      summary: ลบเอกสาร
+      description: owner + manager · ลบทั้งแถวและไฟล์
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของดีล
+          schema:
+            type: string
+        - name: docId
+          in: path
+          required: true
+          description: id ของเอกสาร
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ลบแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
+        "404": *a9
+  /api/search:
+    get:
+      tags:
+        - Admin
+      summary: ค้นหารวม (ทรัพย์ / lead / requirement / deal) — ช่องค้นหาบนแถบบน
+      parameters:
+        - name: q
+          in: query
+          required: false
+          description: คำค้น อย่างน้อย 2 ตัวอักษร
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ผลการค้นหา
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
   /api/leases:
     get:
       tags:
@@ -1356,6 +1775,63 @@ paths:
                     type: array
                     items:
                       type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
+    post:
+      tags:
+        - Leases
+      summary: บันทึกสัญญาใหม่ (owner/manager/ops) — รหัสทรัพย์ต้องมีอยู่จริง
+      responses:
+        "201":
+          description: สัญญาที่สร้าง
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
+  /api/leases/{id}:
+    patch:
+      tags:
+        - Leases
+      summary: แก้ไข / ต่อสัญญา / ปิดสัญญา
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของสัญญา
+          schema:
+            type: string
+      responses:
+        "200":
+          description: สัญญาหลังแก้ไข
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
+    delete:
+      tags:
+        - Leases
+      summary: ลบสัญญา (owner/manager)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของสัญญา
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ลบแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
         "400": *a6
         "401": *a7
         "403": *a8
@@ -1634,6 +2110,7 @@ paths:
                 title: *a1
                 body: *a1
                 category: *a1
+                slug: *a1
                 cover: *a3
                 links:
                   type: array
@@ -1651,6 +2128,358 @@ paths:
         "401": *a7
         "403": *a8
         "404": *a9
+    delete:
+      tags:
+        - Content
+      summary: ลบเนื้อหา
+      description: "owner + marketing เท่านั้น · หน้าหลัก (pages: home / about / contact) ลบไม่ได้ เพราะเป็นแถวข้อมูลของหน้าที่มีคอมโพเนนต์ของตัวเอง"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของเนื้อหา
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ลบแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          description: ลบหน้าหลักของเว็บไม่ได้
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401": *a7
+        "403": *a8
+        "404": *a9
+  /api/requirements:
+    get:
+      tags:
+        - Pipeline
+      summary: คิว requirement
+      description: กรองตามสถานะ และค้นด้วยรหัส / ชื่อ / บริษัท · counts นับจากตารางจริง
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: submitted | confirmed | shortlisted | cancelled
+          schema:
+            type: string
+        - name: q
+          in: query
+          required: false
+          description: รหัส REQ- หรือชื่อลูกค้า/บริษัท
+          schema:
+            type: string
+      responses:
+        "200":
+          description: รายการ requirement + counts ต่อสถานะ
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
+    post:
+      tags:
+        - Pipeline
+      summary: สร้าง requirement ให้ lead
+      description: สำหรับความต้องการที่รับมาทางโทรศัพท์ · ฟอร์มหน้าเว็บสร้างให้เองอยู่แล้ว
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                leadId: *a1
+                dealIntent: *a1
+                typeKey: *a1
+                usage: *a1
+                areaMin: *a2
+                areaMax: *a2
+                budgetMin: *a2
+                budgetMax: *a2
+                moveIn: *a1
+                needsRor4: *a4
+                nearPort: *a4
+                pollution: *a1
+                note: *a1
+                locations:
+                  type: array
+                  items: *a1
+              required:
+                - leadId
+      responses:
+        "201":
+          description: สร้างแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
+        "404": *a9
+  /api/requirements/{id}:
+    get:
+      tags:
+        - Pipeline
+      summary: รายละเอียด requirement
+      description: รวมผลเช็คความว่างที่บันทึกไว้ และ shortlist ที่สร้างจาก requirement นี้
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของ requirement
+          schema:
+            type: string
+      responses:
+        "200":
+          description: รายละเอียด
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
+        "404": *a9
+    patch:
+      tags:
+        - Pipeline
+      summary: แก้เกณฑ์ / ยืนยัน / ยกเลิก / เปิดใหม่
+      description: action=confirm เลื่อน lead เป็น requirements_confirmed อัตโนมัติ · action=cancel ต้องระบุทั้งข้อที่เป็นปัญหาและเหตุผล (FR-CRM-07)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของ requirement
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  enum:
+                    - confirm
+                    - cancel
+                    - reopen
+                cancelField: *a1
+                cancelReason: *a1
+                dealIntent: *a1
+                typeKey: *a1
+                usage: *a1
+                areaMin: *a2
+                areaMax: *a2
+                budgetMin: *a2
+                budgetMax: *a2
+                moveIn: *a1
+                needsRor4: *a4
+                nearPort: *a4
+                pollution: *a1
+                note: *a1
+                locations:
+                  type: array
+                  items: *a1
+              required: []
+      responses:
+        "200":
+          description: อัปเดตแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
+        "404": *a9
+    delete:
+      tags:
+        - Pipeline
+      summary: ลบ requirement
+      description: owner + manager · ลบไม่ได้ถ้าสร้าง shortlist จาก requirement นี้ไปแล้ว — ใช้ยกเลิกแทน
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของ requirement
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ลบแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
+        "404": *a9
+  /api/requirements/{id}/candidates:
+    get:
+      tags:
+        - Pipeline
+      summary: ทรัพย์ที่น่าจะตรงกับ requirement นี้
+      description: พร้อมรูป ขนาด ราคา สถานะว่าง เบอร์ผู้ติดต่อ และเหตุผลที่ยังไม่ตรงเงื่อนไข — ใช้เลือกทรัพย์ก่อนบันทึกผลเช็ค แทนการพิมพ์รหัสเอง · หน้า requirement ยังใช้เส้นนี้เสนอของใกล้เคียงเมื่อเช็คแล้วไม่ว่างทั้งหมด (เด็ค Web 2026 ข้อ 18) · ต้องล็อกอิน เพราะมีข้อมูลผู้ติดต่อ
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของ requirement
+          schema:
+            type: string
+        - name: q
+          in: query
+          required: false
+          description: "คำค้น: ชื่อ รหัส หรือจังหวัด"
+          schema:
+            type: string
+      responses:
+        "200":
+          description: รายการทรัพย์
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
+        "404": *a9
+  /api/requirements/{id}/checks:
+    post:
+      tags:
+        - Pipeline
+      summary: บันทึกผลเช็คความว่างกับเจ้าของทรัพย์
+      description: หนึ่งแถวต่อทรัพย์ต่อ requirement — เช็คซ้ำทับของเดิม (FR-AVL-04)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของ requirement
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code: *a1
+                result:
+                  type: string
+                  enum:
+                    - available
+                    - unavailable
+                note: *a1
+              required:
+                - code
+                - result
+      responses:
+        "200":
+          description: บันทึกแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
+        "404": *a9
+    delete:
+      tags:
+        - Pipeline
+      summary: เอาทรัพย์ออกจากรายการที่เช็ค
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของ requirement
+          schema:
+            type: string
+        - name: code
+          in: query
+          required: false
+          description: รหัสทรัพย์
+          schema:
+            type: string
+      responses:
+        "200":
+          description: เอาออกแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
+        "404": *a9
+  /api/requirements/{id}/shortlist:
+    post:
+      tags:
+        - Pipeline
+      summary: สร้าง shortlist จากทรัพย์ที่ผ่านเงื่อนไขว่าง
+      description: "ประตู FR-AVL-04 บังคับที่ server: เข้าได้เฉพาะทรัพย์ที่ผลเช็คล่าสุด = available และยัง active อยู่ · สำเร็จแล้วเลื่อน lead เป็น shortlisted"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของ requirement
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: *a1
+              required: []
+      responses:
+        "201":
+          description: สร้าง shortlist แล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          description: ยังไม่มีทรัพย์ที่เช็คแล้วว่าว่าง
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401": *a7
+        "403": *a8
+        "404": *a9
+  /api/nav-counts:
+    get:
+      tags:
+        - Admin
+      summary: ตัวเลขบนเมนู
+      description: lead ที่ยังไม่ได้แตะ และ requirement ที่รอตรวจสอบ — เคยเป็นเลขตายตัว 18 กับ 7
+      responses:
+        "200":
+          description: "{ leads, requirements }"
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
   /api/sections:
     get:
       tags:
@@ -1990,6 +2819,38 @@ paths:
         "400": *a6
         "401": *a7
         "403": *a8
+  /api/users/assignable:
+    get:
+      tags:
+        - Config
+      summary: ผู้ใช้ที่รับมอบหมาย lead ได้ (ผู้ใช้ที่ล็อกอินแล้วทุกคน)
+      description: คืนเฉพาะ id/ชื่อ/บทบาท สำหรับเมนูมอบหมาย — /api/users เต็มรูปแบบยังเป็นของ owner เท่านั้น
+      responses:
+        "200":
+          description: รายชื่อผู้รับผิดชอบ
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
+  /api/properties/translate:
+    post:
+      tags:
+        - Properties
+      summary: เติมหัวเรื่อง EN/中文 ให้ทรัพย์ที่ยังไม่มีคำแปล
+      description: ประกอบหัวเรื่องจากฟิลด์ของทรัพย์เอง เขียนเฉพาะภาษาที่ยังว่าง ไม่ทับของที่คนเขียนไว้ · ?dry=1 เพื่อดูผลโดยไม่เขียน
+      responses:
+        "200":
+          description: ผลการเติมคำแปล
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
   /api/geography:
     get:
       tags:
@@ -2040,6 +2901,96 @@ paths:
                 type: object
                 properties:
                   id: *a1
+        "400": *a6
+        "401": *a7
+        "403": *a8
+  /api/geography/{id}:
+    patch:
+      tags:
+        - Config
+      summary: แก้ชื่อพื้นที่ / สถานะนิคม (owner / ops)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของพื้นที่
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                th: *a1
+                en: *a1
+                code: *a1
+                type: *a1
+                active: *a4
+              required: []
+      responses:
+        "200":
+          description: บันทึกแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: *a1
+        "400": *a6
+        "401": *a7
+        "403": *a8
+        "404":
+          description: ไม่พบพื้นที่นี้
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - Config
+      summary: ลบพื้นที่ (owner / ops)
+      description: ปฏิเสธเมื่อยังมีพื้นที่ย่อย หรือมีทรัพย์อยู่ในพื้นที่นั้น — ส่ง ?force=1 เพื่อยืนยันลบทั้งที่มีทรัพย์
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของพื้นที่
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ลบแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: *a1
+                  used: *a2
+        "400": *a6
+        "401": *a7
+        "403": *a8
+        "404":
+          description: ไม่พบพื้นที่นี้
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/geography/import:
+    post:
+      tags:
+        - Config
+      summary: สร้างผังพื้นที่จากที่อยู่ของทรัพย์ที่มีอยู่ (owner / ops)
+      description: เพิ่มเฉพาะพื้นที่ที่ยังไม่มี ไม่แก้ชื่อและไม่ลบของเดิม · ?dry=1 เพื่อดูผลโดยไม่เขียน
+      responses:
+        "200":
+          description: ผลการดึงข้อมูล
+          content:
+            application/json:
+              schema:
+                type: object
         "400": *a6
         "401": *a7
         "403": *a8
@@ -2199,6 +3150,105 @@ paths:
         "400": *a6
         "401": *a7
         "403": *a8
+  /api/nav-menu:
+    get:
+      tags:
+        - Admin
+      summary: ลำดับเมนูประเภททรัพย์บนแถบบนสุด
+      responses:
+        "200":
+          description: ลำดับปัจจุบัน — ว่าง = ใช้ลำดับตั้งต้น
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
+    put:
+      tags:
+        - Admin
+      summary: บันทึกลำดับเมนู (owner)
+      description: key ที่ไม่รู้จักและที่ซ้ำถูกตัดทิ้ง · ประเภทที่ไม่ได้จัดลำดับต่อท้ายเอง ไม่หายจากเมนู
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order:
+                  type: array
+                  items: *a1
+              required:
+                - order
+      responses:
+        "200":
+          description: บันทึกแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
+  /api/users/{id}:
+    patch:
+      tags:
+        - Admin
+      summary: แก้อีเมลของผู้ใช้ (owner)
+      description: อีเมลคือชื่อผู้ใช้ตอนเข้าสู่ระบบ · ต้องไม่ซ้ำกับบัญชีอื่นทั้งระบบ · เซสชันที่เปิดค้างไม่ถูกตัด
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของผู้ใช้
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: *a1
+              required:
+                - email
+      responses:
+        "200":
+          description: แก้อีเมลแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
+        "404": *a9
+    delete:
+      tags:
+        - Admin
+      summary: ลบบัญชีผู้ใช้ถาวร (owner)
+      description: ลบตัวเอง เจ้าของคนสุดท้าย หรือคนที่ยังมีทรัพย์ / lead ค้างอยู่ ไม่ได้ — ต้องโอนออกก่อน · ประวัติใน Audit log ยังอยู่
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของผู้ใช้
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ลบแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
+        "404": *a9
   /api/users/{id}/permissions:
     put:
       tags:
@@ -2230,6 +3280,40 @@ paths:
       responses:
         "200":
           description: บันทึกแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
+        "404": *a9
+  /api/users/{id}/transfer:
+    post:
+      tags:
+        - Admin
+      summary: โอนทรัพย์ทั้งหมดของผู้ใช้คนนี้ไปให้อีกคน (owner)
+      description: ใช้ตอนมีคนลาออก · ผู้รับโอนต้องเป็นบัญชีที่ยังใช้งานอยู่
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของผู้ใช้ที่จะโอนทรัพย์ออก
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                toUserId: *a1
+              required:
+                - toUserId
+      responses:
+        "200":
+          description: โอนแล้ว
           content:
             application/json:
               schema:

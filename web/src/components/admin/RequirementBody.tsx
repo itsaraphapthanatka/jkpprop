@@ -45,6 +45,9 @@ type Alt = {
   contactName: string; contactPhone: string;
 };
 type ShortlistRef = { id: string; name: string; status: string; count: number; url: string; createdAt: number };
+/* ขั้นถัดจาก shortlist ในสายเดียวกัน — ลูกค้าขอให้ตรวจจบได้จากหน้าเดียว */
+type VisitRef = { id: string; date: number; status: string; count: number; gateConfirmed: boolean };
+type DealRef = { id: string; title: string; status: string; amount: number; closedAt: number | null };
 type CancelField = { key: string; label: string };
 
 type Detail = {
@@ -60,10 +63,13 @@ type Detail = {
   cancelReason: string; cancelField: string;
   checks: Check[];
   shortlists: ShortlistRef[];
+  visits: VisitRef[];
+  deals: DealRef[];
   cancelFields: CancelField[];
 };
 
 const monoCode: React.CSSProperties = { fontFamily: "'JetBrains Mono',monospace" };
+const DEAL_STATUS_TH: Record<string, string> = { negotiating: 'กำลังเจรจา', won: 'ปิดได้', lost: 'ไม่สำเร็จ' };
 const circleBase: React.CSSProperties = { width: 34, height: 34, borderRadius: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' };
 
 const nf = new Intl.NumberFormat('en-US');
@@ -484,6 +490,42 @@ export function RequirementBody({ id }: { id: string }) {
           </a>
         )}
         <Link href={`/admin/leads?id=${data.leadId}`} style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--accent)' }}>เปิด lead →</Link>
+      </div>
+
+      {/* งานทั้งสายของใบนี้ · ลูกค้าแจ้ง 25 ส.ค. ว่าสี่ขั้นตอนต้องอ้างรหัส
+          เดียวกัน "เพื่อให้จบเป็นงาน ๆ ไป และง่ายต่อการตรวจ" — เดิมจากหน้านี้
+          มองเห็นแค่ shortlist แล้วสายก็ขาด นัดชมกับดีลของงานเดียวกันต้องไป
+          ไล่หาเองในคิวรวม */}
+      <div data-req-chain style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '16px 20px', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+          <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>งานชุดนี้</span>
+          <code style={{ ...monoCode, fontSize: 12, fontWeight: 700, color: '#034956', background: '#EEF4F3', padding: '2px 8px', borderRadius: 6 }}>{data.code}</code>
+          <span style={{ fontSize: '11.5px', color: 'var(--muted2)' }}>ทุกขั้นตอนใช้รหัสนี้ร่วมกัน</span>
+        </div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {([
+            { label: 'Requirement', href: `/admin/requirements/${data.id}`, note: data.statusLabel, done: true },
+            ...(data.shortlists.length
+              ? data.shortlists.map((sl) => ({ label: 'Shortlist', href: `/admin/shortlists/${sl.id}`, note: `${sl.count} ทรัพย์`, done: true }))
+              : [{ label: 'Shortlist', href: '', note: 'ยังไม่ได้สร้าง', done: false }]),
+            ...(data.visits.length
+              ? data.visits.map((v) => ({ label: 'Visit', href: `/admin/visits/${v.id}`, note: new Date(v.date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }), done: true }))
+              : [{ label: 'Visit', href: '', note: 'ยังไม่ได้นัด', done: false }]),
+            ...(data.deals.length
+              ? data.deals.map((d) => ({ label: `DEAL-${data.code}`, href: `/admin/deals/${d.id}`, note: DEAL_STATUS_TH[d.status] ?? d.status, done: true }))
+              : [{ label: `DEAL-${data.code}`, href: '', note: 'ยังไม่ได้เปิดดีล', done: false }]),
+          ]).map((step, i) => step.href ? (
+            <Link key={i} href={step.href} style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 132, padding: '9px 13px', borderRadius: 12, border: '1px solid #B6E0C4', background: '#F3F9F5' }}>
+              <span style={{ ...monoCode, fontSize: '11.5px', fontWeight: 700, color: '#0D6C3B' }}>{step.label}</span>
+              <span style={{ fontSize: '11.5px', color: 'var(--muted)' }}>{step.note}</span>
+            </Link>
+          ) : (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 132, padding: '9px 13px', borderRadius: 12, border: '1px dashed var(--border)', background: 'var(--bg)', opacity: .75 }}>
+              <span style={{ ...monoCode, fontSize: '11.5px', fontWeight: 700, color: 'var(--muted2)' }}>{step.label}</span>
+              <span style={{ fontSize: '11.5px', color: 'var(--muted2)' }}>{step.note}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* FLOW B RAIL */}

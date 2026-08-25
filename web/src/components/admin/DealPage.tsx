@@ -4,6 +4,7 @@ import { AdminShell } from '@/components/admin/AdminShell';
 import DealBody, { DealProvider, DealTitle, DealActions } from '@/components/admin/DealBody';
 import Link from 'next/link';
 import { RecordPicker } from '@/components/admin/RecordPicker';
+import { dealCodeOf } from '@/lib/jobCode';
 
 /* Ported from AdminDeal.dc.html. The topbar heading (dynamic status
    badge) and right cluster (Close deal / Unlock) share the deal's
@@ -36,7 +37,7 @@ export function DealPage({ dealId }: { dealId?: string }) {
         title={(<DealTitle />) as unknown as string}
         actions={<><RecordPicker base="deals" endpoint="/api/deals" currentId={dealId} toRow={(d) => {
           /* ข้อ 22 · รายการเลือกดีลก็ต้องอ่านออกว่าเป็นของลูกค้าเจ้าไหน */
-          const c = `DEAL-${String(d.id).slice(-6).toUpperCase()}`;
+          const c = dealCodeOf(d.requirementCode as string | undefined, String(d.id)).code;
           const who = String(d.customer || '').trim();
           return { id: String(d.id), label: who ? `${who} — ${c}` : c, meta: `${d.status}${d.locked ? ' · ล็อก' : ''}` };
         }} /><DealActions /></>}

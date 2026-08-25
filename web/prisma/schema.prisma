@@ -269,6 +269,13 @@ model Requirement {
 
   checks     AvailabilityCheck[]
   shortlists Shortlist[]
+  /* แผนเข้าชมและดีลที่เกิดจากใบงานนี้ — ลูกค้าขอ 25 ส.ค. ว่าทั้งสายต้องอ้าง
+     รหัสเดียวกัน (REQ-1018 → REQ-1018 → DEAL-REQ-1018) "เพื่อให้จบเป็นงาน ๆ ไป
+     และง่ายต่อการตรวจ" · เดิมสองตารางนี้รู้แค่ leadId หน้าจอจึงต้องเดาว่าเป็น
+     ใบไหน โดยหยิบใบล่าสุดของลูกค้ารายนั้นมา — ผิดทันทีเมื่อลูกค้าคนเดียวเปิด
+     หลายใบ ซึ่งระบบมีอยู่จริง (REQ-1009/1010/1011 ของเจ้าเดียวกัน) */
+  visits     Visit[]
+  deals      Deal[]
 
   @@unique([orgId, code])
   @@index([orgId, status])
@@ -330,6 +337,9 @@ model Visit {
   id            String   @id @default(cuid())
   orgId         String
   leadId        String?
+  /* ใบงานต้นทาง — ประทับตอนสร้างจาก shortlist ไม่ใช่เดาตอนอ่าน */
+  requirementId String?
+  requirement   Requirement? @relation(fields: [requirementId], references: [id], onDelete: SetNull)
   date          DateTime
   status        String   @default("scheduled") // scheduled|done|cancelled
   note          String?
@@ -338,6 +348,8 @@ model Visit {
   createdAt     DateTime @default(now())
 
   stops VisitStop[]
+
+  @@index([requirementId])
 }
 
 model VisitStop {
@@ -366,6 +378,10 @@ model Deal {
   id         String    @id @default(cuid())
   orgId      String
   leadId     String?
+  /* ใบงานต้นทาง — ประทับตอนเปิดดีลจากแผนเข้าชม · รหัสดีลที่โชว์คือ
+     DEAL-<code ของใบนี้> ไม่ใช่ตัวอักษรท้าย id ที่สุ่มมา */
+  requirementId String?
+  requirement   Requirement? @relation(fields: [requirementId], references: [id], onDelete: SetNull)
   propertyId String?
   title      String    @default("")
   amount     Int       @default(0) // baht
@@ -380,6 +396,7 @@ model Deal {
   docs   DealDocument[]
 
   @@index([orgId, status])
+  @@index([requirementId])
 }
 
 // Files attached to a deal (§ Flow D). The screen listed three PDFs with

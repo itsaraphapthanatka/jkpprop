@@ -15,11 +15,22 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
   if (!visit) throw new ApiError('NOT_FOUND', 'ไม่พบแผนการเข้าชมนี้', 404);
 
   const body = (await req.json().catch(() => null)) as
-    | { gateConfirmed?: boolean; status?: string; note?: string; outcomes?: Record<string, string>; cancelReason?: string }
+    | { gateConfirmed?: boolean; status?: string; note?: string; outcomes?: Record<string, string>; cancelReason?: string; requirementId?: string | null }
     | null;
   if (!body) throw new ApiError('VALIDATION', 'ข้อมูลไม่ถูกต้อง', 400);
 
   const data: Prisma.VisitUpdateInput = {};
+  /* ผูกใบงานให้แผนเก่าที่ระบบเดาให้ไม่ได้ · ลูกค้าคนเดียวเปิดหลายใบ การเดาจึงมี
+     สิทธิ์ผิด และรหัสที่ผิดแย่กว่ารหัสที่ว่าง — จึงเปิดให้คนที่รู้มาชี้เอง */
+  if (body.requirementId !== undefined) {
+    if (body.requirementId === null || body.requirementId === '') {
+      data.requirement = { disconnect: true };
+    } else {
+      const r = await db.requirement.findFirst({ where: { id: String(body.requirementId), orgId: user.orgId }, select: { id: true } });
+      if (!r) throw new ApiError('VALIDATION', 'ไม่พบใบงานที่อ้างถึง', 400);
+      data.requirement = { connect: { id: r.id } };
+    }
+  }
   if (typeof body.gateConfirmed === 'boolean') data.gateConfirmed = body.gateConfirmed;
   if (typeof body.note === 'string') data.note = body.note.slice(0, 2000);
   if (typeof body.status === 'string') {
@@ -56,5 +67,5 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
     before: { status: visit.status, gateConfirmed: visit.gateConfirmed },
     after: { status: updated.status, gateConfirmed: updated.gateConfirmed },
   });
-  return ok({ id, status: updated.status, gateConfirmed: updated.gateConfirmed });
+  return ok({ id, status: updated.status, gateConfirmed: updated.gateConfirmed, requirementId: updated.requirementId });
 });

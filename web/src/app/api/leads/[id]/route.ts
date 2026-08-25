@@ -98,6 +98,8 @@ export const GET = handler(async (_req: Request, ctx: { params: Promise<{ id: st
     db.user.findMany({ where: { orgId: user.orgId }, select: { id: true, name: true } }),
   ]);
   const nameOf = new Map(authors.map((u) => [u.id, u.name]));
+  /* ใบงานของลูกค้ารายนี้ทั้งหมด — ใช้แปลง requirementId เป็นรหัสที่พูดออกเสียงได้ */
+  const codeOfReq = new Map(requirements.map((r) => [r.id, r.code]));
 
   /* รูปกับรหัสของทรัพย์ที่ถูกอ้างถึงในประวัติ — สไลด์ 43 (และ 32/39/42 ที่เขียน
      เหมือนกัน) "จำเป็นต้องมีรูปเพราะ 1 ใช้ระบบรัน code ไม่รู้รหัส 2 คนทำงานหลาย
@@ -197,9 +199,15 @@ export const GET = handler(async (_req: Request, ctx: { params: Promise<{ id: st
     linked: {
       requirements: requirements.map((r) => ({ id: r.id, code: r.code, status: r.status })),
       shortlists: shortlists.map((s) => ({ id: s.id, name: s.name, status: s.status, count: s.items.length })),
-      visits: visits.map((v) => ({ id: v.id, date: v.date.getTime(), status: v.status })),
+      /* รหัสงานติดไปกับทุกชิป · ลูกค้ารายเดียวเปิดได้หลายใบ (REQ-1009/1010/
+         1011 มีอยู่จริง) แถบนี้จึงเคยบอกแค่ "2 Visits" โดยไม่บอกว่าของใบไหน */
+      visits: visits.map((v) => ({
+        id: v.id, date: v.date.getTime(), status: v.status,
+        requirementCode: v.requirementId ? codeOfReq.get(v.requirementId) ?? '' : '',
+      })),
       deals: deals.map((dl) => ({
         id: dl.id, title: dl.title, status: dl.status, amount: dl.amount,
+        requirementCode: dl.requirementId ? codeOfReq.get(dl.requirementId) ?? '' : '',
         closedAt: dl.closedAt ? dl.closedAt.getTime() : null,
         property: dl.propertyId ? propOf.get(dl.propertyId) ?? null : null,
       })),

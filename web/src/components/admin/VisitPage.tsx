@@ -36,7 +36,12 @@ export function VisitPage({ visitId }: { visitId?: string }) {
       active="visits"
       eyebrow={eyebrowNode as unknown as string}
       title={<VisitTitle /> as unknown as string}
-      actions={<><RecordPicker base="visits" endpoint="/api/visits" currentId={visitId} toRow={(v) => ({ id: String(v.id), label: `นัดชม ${new Date(Number(v.date)).toLocaleDateString('th-TH')}`, meta: `${(v.stops as unknown[] | undefined)?.length ?? 0} ทรัพย์ · ${v.status}` })} /><VisitActions /></>}
+      actions={<><RecordPicker base="visits" endpoint="/api/visits" currentId={visitId} toRow={(v) => ({
+        id: String(v.id),
+        label: `นัดชม ${new Date(Number(v.date)).toLocaleDateString('th-TH')}`,
+        /* รหัสงานนำหน้า — ลูกค้าขอให้ไล่ตรวจได้ว่าแผนไหนเป็นของงานไหน (25 ส.ค.) */
+        meta: [String(v.requirementCode || ''), `${(v.stops as unknown[] | undefined)?.length ?? 0} ทรัพย์`, String(v.status)].filter(Boolean).join(' · '),
+      })} /><VisitActions /></>}
       css={visitCss}
     >
       <VisitBody />
