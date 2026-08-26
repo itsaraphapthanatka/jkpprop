@@ -415,11 +415,17 @@ export const openapi = {
       },
     },
     '/api/visits/{id}': {
+      get: {
+        tags: ['Pipeline'], summary: 'แผนเข้าชมใบเดียว',
+        description: 'หน้ารายละเอียดใช้อันนี้ · รายการรวมถูกตัดไว้ 200 แถว แผนที่หลุดอันดับจึงต้องขอด้วย id',
+        parameters: [pathParam('id', 'id ของแผน')],
+        responses: { 200: okRes('แผนเข้าชม', { type: 'object' }), ...WITH_404 },
+      },
       patch: {
         tags: ['Pipeline'], summary: 'ยืนยันสถานะว่าง / ปิดแผน / บันทึกผลรายทรัพย์',
         description: 'ปิดแผน (status=done) ต้องยืนยันเกณฑ์กับลูกค้าก่อน (FR-VIS-07) ไม่งั้นได้ GATE_REQUIRED',
         parameters: [pathParam('id', 'id ของแผน')],
-        requestBody: body(obj({ gateConfirmed: BOOL, status: STR, note: STR, outcomes: { type: 'object', additionalProperties: STR } }, [])),
+        requestBody: body(obj({ gateConfirmed: BOOL, status: STR, note: STR, requirementId: STR, outcomes: { type: 'object', additionalProperties: STR } }, [])),
         responses: { 200: okRes('อัปเดตแล้ว'), ...WITH_404 },
       },
     },

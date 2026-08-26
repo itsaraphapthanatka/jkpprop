@@ -5,6 +5,23 @@ import { requireUser, requireRole } from '@/lib/server/auth';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
 import type { Prisma } from '@prisma/client';
+import { visitDtos, VISIT_INCLUDE } from '@/lib/server/visitDto';
+
+/* GET /api/visits/:id — แผนใบเดียว ขอด้วย id ตรง ๆ
+ *
+ * หน้ารายละเอียดเคยขอรายการทั้งหมดมาแล้วค้นหาตัวเองในนั้น แต่รายการถูกตัดไว้
+ * ที่ 200 แถว แผนที่หลุดอันดับจึงเปิดไม่ได้เลย — หน้าจอขึ้นว่า "ยังไม่มีแผน
+ * เข้าชม" ทั้งที่แถวยังอยู่ครบ และแถบเลือกด้านบนก็ยังลิสต์มันออกมาให้กด
+ * ตอนนี้ production มี 16 แผนจึงยังไม่มีใครเจอ แต่มันรออยู่
+ */
+export const GET = handler(async (_req: Request, ctx: { params: Promise<{ id: string }> }) => {
+  const user = await requireUser();
+  const { id } = await ctx.params;
+  const row = await db.visit.findFirst({ where: { id, orgId: user.orgId }, include: VISIT_INCLUDE });
+  if (!row) throw new ApiError('NOT_FOUND', 'ไม่พบแผนการเข้าชมนี้', 404);
+  const [item] = await visitDtos(user.orgId, [row]);
+  return ok(item);
+});
 
 export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: string }> }) => {
   const user = await requireUser();

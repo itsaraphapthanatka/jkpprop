@@ -1574,6 +1574,28 @@ test.describe('the visit plan shows the visit it will close', () => {
     return { id, codes };
   };
 
+  /* หน้ารายละเอียดเคยขอรายการทั้งหมดมาแล้วค้นหาตัวเองในนั้น แต่รายการถูกตัดไว้
+     200 แถว แผนที่หลุดอันดับจึงเปิดไม่ได้เลย — ขึ้นว่า "ยังไม่มีแผนเข้าชม"
+     ทั้งที่แถวยังอยู่ครบ และแถบเลือกด้านบนก็ยังลิสต์มันออกมาให้กด */
+  test('แผนที่อยู่นอก 200 แถวแรกของรายการ ก็ยังเปิดได้', async ({ page, request }) => {
+    const { id, codes } = await makeVisit(request);
+
+    const list = await (await request.get('/api/visits', { headers: { cookie } })).json();
+    const inList = (list.items as { id: string }[]).some((v) => v.id === id);
+
+    /* ขอด้วย id ต้องได้ของจริงเสมอ ไม่ว่าจะอยู่ในรายการที่ตัดแล้วหรือไม่ */
+    const one = await request.get(`/api/visits/${id}`, { headers: { cookie } });
+    expect(one.status(), await one.text()).toBe(200);
+    expect((await one.json()).id).toBe(id);
+
+    await page.goto(`/admin/visits/${id}`);
+    await expect(
+      page.getByText('ยังไม่มีแผนเข้าชม'),
+      inList ? 'แผนอยู่ในรายการแต่หน้ายังว่าง' : 'แผนหลุดนอก 200 แถวแรก แล้วหน้าเปิดไม่ขึ้น',
+    ).toHaveCount(0);
+    await expect(page.locator(`[data-stop="${codes[0]}"]`)).toBeVisible();
+  });
+
   test('the stops on screen are the stops on the plan', async ({ page, request }) => {
     const { id, codes } = await makeVisit(request);
     await page.goto(`/admin/visits/${id}`);
@@ -1591,10 +1613,11 @@ test.describe('the visit plan shows the visit it will close', () => {
     await page.goto(`/admin/visits/${id}`);
     await page.locator(`[data-outcome="${codes[0]}:สนใจมาก"]`).click();
 
+    /* ถามแผนใบนี้ตรง ๆ — รายการรวมถูกตัดไว้ 200 แถว ถามจากตรงนั้นแล้วเทสต์จะ
+       ล้มเพราะหาไม่เจอ ไม่ใช่เพราะผลไม่ถูกบันทึก */
     await expect.poll(async () => {
-      const d = await (await request.get('/api/visits', { headers: { cookie } })).json();
-      const v = (d.items as { id: string; stops: { code: string; result: string | null }[] }[]).find((x) => x.id === id);
-      return v?.stops.find((s) => s.code === codes[0])?.result ?? null;
+      const v = await (await request.get(`/api/visits/${id}`, { headers: { cookie } })).json();
+      return (v.stops as { code: string; result: string | null }[]).find((s) => s.code === codes[0])?.result ?? null;
     }, { message: 'the outcome never reached the server' }).toBe('สนใจมาก');
 
     await page.reload();

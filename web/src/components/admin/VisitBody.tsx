@@ -94,8 +94,12 @@ function useLatestVisit(): ApiVisit | null {
     window.addEventListener(VISIT_EVT, sync);
     if (visitCache) setVisit(visitCache);
     else {
-      visitInflight ??= apiGet<{ items: ApiVisit[] }>('/api/visits')
-        .then((r) => (visitCache = (pinnedVisitId ? r.items?.find((v) => v.id === pinnedVisitId) : r.items?.[0]) ?? null))
+      /* ปักหมุดไว้แล้วก็ขอใบนั้นตรง ๆ — เดิมขอทั้งรายการมาแล้วค้นหาในนั้น
+         แต่รายการถูกตัดไว้ 200 แถว แผนที่หลุดอันดับจึงเปิดไม่ได้เลย
+         หน้าจอขึ้นว่า "ยังไม่มีแผนเข้าชม" ทั้งที่แถวยังอยู่ครบ */
+      visitInflight ??= (pinnedVisitId
+        ? apiGet<ApiVisit>(`/api/visits/${pinnedVisitId}`).then((v) => (visitCache = v ?? null))
+        : apiGet<{ items: ApiVisit[] }>('/api/visits').then((r) => (visitCache = r.items?.[0] ?? null)))
         .catch(() => null)
         .finally(() => { visitInflight = null; window.dispatchEvent(new Event(VISIT_EVT)); });
       void visitInflight;

@@ -1363,6 +1363,29 @@ paths:
         "401": *a7
         "403": *a8
   /api/visits/{id}:
+    get:
+      tags:
+        - Pipeline
+      summary: แผนเข้าชมใบเดียว
+      description: หน้ารายละเอียดใช้อันนี้ · รายการรวมถูกตัดไว้ 200 แถว แผนที่หลุดอันดับจึงต้องขอด้วย id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของแผน
+          schema:
+            type: string
+      responses:
+        "200":
+          description: แผนเข้าชม
+          content:
+            application/json:
+              schema:
+                type: object
+        "400": *a6
+        "401": *a7
+        "403": *a8
+        "404": *a9
     patch:
       tags:
         - Pipeline
@@ -1385,6 +1408,7 @@ paths:
                 gateConfirmed: *a4
                 status: *a1
                 note: *a1
+                requirementId: *a1
                 outcomes:
                   type: object
                   additionalProperties: *a1
