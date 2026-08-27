@@ -11,6 +11,7 @@ import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
 import type { Prisma } from '@prisma/client';
 import { PROPERTY_TYPES, type FieldDef, type FieldKind } from '@/lib/propertySchema';
+import { refreshPublicPages } from '@/lib/server/publicCache';
 
 const KINDS: FieldKind[] = ['dealtype', 'text', 'textarea', 'number', 'price', 'date', 'select', 'multiselect', 'boolean', 'media', 'location', 'map', 'summary', 'group'];
 
@@ -144,5 +145,11 @@ export const PUT = handler(async (req: Request, ctx: { params: Promise<{ typeKey
 
   /* ต้องส่ง required กลับไปด้วย ไม่งั้นหน้าจอเอาคำตอบไปทับ state ตัวเองแล้ว
      ป้าย "บังคับ" เด้งกลับค่าเดิมทันทีที่กดบันทึก (ข้อ 10) */
+  /* ชื่อฟิลด์กับการเปิดปิดฟิลด์ไปโผล่บนหน้าเว็บสาธารณะ ซึ่งถูกแคชไว้ —
+     ถ้าไม่ล้างแคชตรงนี้ คนที่แก้ในหลังบ้านจะเห็นว่าบันทึกสำเร็จ แล้วเปิดหน้าเว็บ
+     มาเจอชื่อเดิม เหมือนกับที่เคยเจอตอนแก้ลายน้ำแล้วรูปไม่เปลี่ยน
+     หน้าอื่นที่แก้แล้วกระทบเว็บ (sections · branding · cms · company) ล้างกันหมด
+     แล้ว มีแต่ตรงนี้ที่ตกไป */
+  refreshPublicPages();
   return ok({ disabled: saved.disabled, order: saved.order, extra: saved.extra, required: saved.required, edits: saved.edits });
 });

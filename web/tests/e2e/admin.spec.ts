@@ -2213,7 +2213,10 @@ test.describe('the listings screen', () => {
     } finally {
       const full = await (await request.get(`/api/properties/${target!.id}`, { headers: { cookie } })).json();
       const { featured: _drop, ...rest } = full.values ?? {};
-      await request.patch(`/api/properties/${target!.id}`, { headers: { cookie, 'Content-Type': 'application/json' }, data: { values: rest } });
+      /* ลบธงด้วยการละคีย์ทิ้ง จึงต้องขอสิทธิ์เขียนทับ — ปลายทางรวมค่าให้เป็นค่า
+         ตั้งต้นแล้ว (กันคำสั่งบันทึกบางส่วนลบข้อมูลที่เหลือทิ้งเงียบ ๆ) ถ้าไม่ขอ
+         ธงจะค้างอยู่ และรอบถัดไปเมนูจะขึ้นว่า "เอาออกจากแนะนำ" แทน */
+      await request.patch(`/api/properties/${target!.id}`, { headers: { cookie, 'Content-Type': 'application/json' }, data: { values: rest, replaceValues: true } });
     }
   });
 
@@ -2653,29 +2656,33 @@ test.describe('the Field Builder reaches the public page', () => {
       headers: { cookie, 'Content-Type': 'application/json' },
       data: {
         typeKey: 'warehouse', title: 'ทดสอบปิดฟิลด์', status: 'active',
-        values: { province: 'ระยอง', deal_type: 'เช่า', price_rent: 1000, parking: '20 คัน', photos: ['/api/media/demo/raw'] },
+        /* เคยใช้ช่อง parking ('20 คัน') — ลูกค้าสั่งตัดตารางรายละเอียดเหลือ 22 แถว
+           เมื่อ 24 ส.ค. 2569 และที่จอดรถเป็นหนึ่งในช่องที่ถูกตัดออก ค่าจึงไม่ขึ้น
+           บนหน้าเว็บอีกแล้ว เทสต์เลยล้มตั้งแต่บรรทัดแรกที่ยืนยันว่า "มีอยู่ก่อน"
+           ย้ายมาใช้ช่องที่ยังอยู่ในตาราง เพื่อให้ทดสอบเรื่องการปิดฟิลด์ได้จริง */
+        values: { province: 'ระยอง', deal_type: 'เช่า', price_rent: 1000, floor_loading: '20 ตัน/ตร.ม.', photos: ['/api/media/demo/raw'] },
       },
     })).json();
     propId = made.id;
 
     // it is on the page to begin with
-    expect(await (await request.get(`/th/property/${made.publicCode}`)).text()).toContain('20 คัน');
+    expect(await (await request.get(`/th/property/${made.publicCode}`)).text()).toContain('20 ตัน/ตร.ม.');
 
     await request.put('/api/field-schema/warehouse', {
       headers: { cookie, 'Content-Type': 'application/json' },
-      data: { disabled: ['parking'], order: [], extra: [] },
+      data: { disabled: ['floor_loading'], order: [], extra: [] },
     });
 
     const html = await (await request.get(`/th/property/${made.publicCode}`)).text();
-    expect(html, 'a field switched off must not stay on the website').not.toContain('20 คัน');
+    expect(html, 'a field switched off must not stay on the website').not.toContain('20 ตัน/ตร.ม.');
     expect(html).toContain(made.publicCode);   // the rest of the page is intact
 
     // and it is gone from the JSON too — hidden has to mean hidden
     const api = await (await request.get(`/api/public/properties/${made.publicCode}`)).json();
-    expect('parking' in api.values).toBeFalsy();
+    expect('floor_loading' in api.values).toBeFalsy();
 
     await page.goto(`/admin/property-view?code=${made.publicCode}`);
-    await expect(page.getByText('20 คัน')).toHaveCount(0);
+    await expect(page.getByText('20 ตัน/ตร.ม.')).toHaveCount(0);
   });
 });
 

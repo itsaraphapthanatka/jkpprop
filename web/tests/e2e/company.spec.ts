@@ -17,10 +17,33 @@ async function signIn(page: Page) {
   await expect(page).toHaveURL(/\/admin(?!\/login)/);
 }
 
+/* ไฟล์นี้ล้างตาราง CompanyProfile หลังทุกเทสต์ เพื่อให้แต่ละเทสต์เริ่มจาก
+   "ยังไม่กรอกข้อมูลบริษัท" — แต่เดิมล้างแล้วไม่คืน ข้อมูลจึงหายไปจากทั้งรอบ
+   และไฟล์ที่รันทีหลัง (customer-feedback, public) ที่ต้องใช้เบอร์ อีเมล และ
+   ที่อยู่ของบริษัท ก็ล้มตามกันแปดตัว โดยที่โค้ดของเว็บไม่ได้ผิดอะไร
+   จำของเดิมไว้ตอนเริ่ม แล้วคืนตอนจบไฟล์ */
+let savedProfile: Record<string, unknown> | null = null;
+
+test.beforeAll(async () => {
+  const { PrismaClient } = await import('@prisma/client');
+  const db = new PrismaClient();
+  savedProfile = (await db.companyProfile.findFirst()) as Record<string, unknown> | null;
+  await db.$disconnect();
+});
+
 test.afterEach(async () => {
   const { PrismaClient } = await import('@prisma/client');
   const db = new PrismaClient();
   await db.companyProfile.deleteMany();
+  await db.$disconnect();
+});
+
+test.afterAll(async () => {
+  if (!savedProfile) return;
+  const { PrismaClient } = await import('@prisma/client');
+  const db = new PrismaClient();
+  await db.companyProfile.deleteMany();
+  await db.companyProfile.create({ data: savedProfile as never });
   await db.$disconnect();
 });
 
@@ -33,6 +56,24 @@ test('no page serves the placeholder mailbox or the dead phone number', async ({
 });
 
 test('every footer shows the same mailbox', async ({ page }) => {
+  /* ต้องกรอกข้อมูลบริษัทเองก่อน — afterEach ข้างบนล้างตาราง CompanyProfile ทิ้ง
+     ทุกครั้ง เทสต์นี้จึงเคยพึ่งแถวที่บังเอิญค้างอยู่จากที่อื่น ซึ่งไม่มีอยู่จริง
+     หลังรันครบหนึ่งรอบ ผลคือมันฟ้อง "ไม่มีอีเมลในฟุตเตอร์" ทุกรอบที่สอง
+     โดยที่โค้ดของเว็บไม่ได้ผิดอะไรเลย · ค่าตั้งต้นของช่องอีเมลถูกเอาออกไปแล้ว
+     ตั้งใจ (เด็ค Web 2026 ข้อ 20) ฟุตเตอร์ที่ไม่มีข้อมูลจึงต้องว่างจริง ๆ */
+  const { PrismaClient } = await import('@prisma/client');
+  const db = new PrismaClient();
+  const org = await db.org.findFirst({ select: { id: true } });
+  if (org) {
+    await db.companyProfile.upsert({
+      where: { orgId: org.id },
+      create: { orgId: org.id, generalEmail: 'hello@jkp.example', salesEmail: 'hello@jkp.example' },
+      update: { generalEmail: 'hello@jkp.example', salesEmail: 'hello@jkp.example' },
+    });
+  }
+  await db.$disconnect();
+  test.skip(!org, 'ฐานข้อมูลนี้ยังไม่ได้ seed');
+
   /* The contact page also lists the sales mailbox, which is deliberate — so
      this compares the footer, the one place all six pages share. */
   const seen = new Set<string>();

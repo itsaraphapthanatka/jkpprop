@@ -114,7 +114,9 @@ export function PropertyEditBody() {
     setSaving(true);
     setNotice(null);
     try {
-      await apiPatch(`/api/properties/${record.id}`, { title, values: valsRef.current, i18n, available });
+      /* ฟอร์มนี้ถือค่าทุกช่องอยู่แล้ว และต้องล้างช่องที่คนกรอกลบทิ้งได้จริง
+         จึงขอสิทธิ์เขียนทับ · ปลายทางรวมค่าให้เป็นค่าตั้งต้น ไม่ลบให้เอง */
+      await apiPatch(`/api/properties/${record.id}`, { title, values: valsRef.current, i18n, available, replaceValues: true });
       /* ลูกค้าแจ้งว่า "กดบันทึกแล้วไม่กลับไปหน้ารวม Property" — เดิมขึ้นแค่คำว่า
          บันทึกแล้วค้างอยู่หน้าเดิม คนแก้ทรัพย์ทีละหลายรายการต้องกดย้อนเองทุกครั้ง */
       setNotice({ kind: 'ok', text: 'บันทึกแล้ว — กำลังกลับไปหน้ารายการทรัพย์' });

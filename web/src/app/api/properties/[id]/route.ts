@@ -46,7 +46,12 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
   const p = await findScoped(id, user);
 
   const body = (await req.json().catch(() => null)) as
-    | { title?: string; status?: string; values?: Record<string, unknown>; publicCode?: string; i18n?: unknown; available?: boolean; ownerId?: string; contactShared?: boolean }
+    | {
+      title?: string; status?: string; values?: Record<string, unknown>; publicCode?: string;
+      i18n?: unknown; available?: boolean; ownerId?: string; contactShared?: boolean;
+      /** true = values ที่ส่งมาคือชุดเต็ม · ช่องที่ไม่ได้ส่งมาจะถูกล้าง */
+      replaceValues?: boolean;
+    }
     | null;
   if (!body) throw new ApiError('VALIDATION', 'ข้อมูลไม่ถูกต้อง', 400);
   if (body.publicCode && body.publicCode !== p.publicCode) {
@@ -100,7 +105,14 @@ export const PATCH = handler(async (req: Request, ctx: { params: Promise<{ id: s
     if (!hasPriv(user, 'internal_note') && prevVals.internal_note !== undefined && nextVals.internal_note === undefined) {
       nextVals.internal_note = prevVals.internal_note;
     }
-    data.values = nextVals as Prisma.InputJsonValue;
+    /* ค่าตั้งต้นคือรวมค่า ไม่ใช่เขียนทับ
+       เดิมเขียนทับทั้งก้อนเสมอ หน้าจอทุกที่ส่ง values เต็มอยู่แล้วจึงไม่มีปัญหา
+       แต่ใครที่ยิง API เองแล้วส่งมาบางช่อง — เช่น { photos } ช่องเดียวเพื่อสลับรูป
+       — จะลบทุกช่องที่เหลือของทรัพย์นั้นทิ้ง แล้วได้ 200 กลับไปเหมือนสำเร็จปกติ
+       เกิดขึ้นจริงเมื่อ 27 ส.ค. 2569 ทรัพย์หนึ่งเหลือช่องเดียวจากสามสิบเจ็ดช่อง
+       รูปแบบเดียวกับ PUT /api/sections ที่ลบบล็อกที่ไม่ได้ส่งมา
+       การล้างช่องจึงต้องบอกมาให้ชัดว่าตั้งใจ */
+    data.values = (body.replaceValues === true ? nextVals : { ...prevVals, ...nextVals }) as Prisma.InputJsonValue;
   }
 
   const before = { title: p.title, status: p.status, values: p.values, i18n: p.i18n };

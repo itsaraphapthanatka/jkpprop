@@ -329,6 +329,9 @@ export function SectionsBody() {
     try {
       await apiPut('/api/sections', {
         page,
+        /* หน้านี้ส่งรายการเต็มเสมอ จึงขอสิทธิ์ลบบล็อกที่ถูกเอาออกด้วย
+           ปลายทางไม่ลบให้เองแล้ว ถ้าไม่ได้ขอมา */
+        deleteMissing: true,
         sections: apiList.map((s) => ({
           key: s.key, name: s.name, desc: s.desc,
           enabled: on[s.key] !== false,

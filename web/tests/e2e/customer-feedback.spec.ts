@@ -392,6 +392,20 @@ test.describe('คอมเมนต์ลูกค้า · แก้ชื่�
     const TH = 'รับน้ำหนักพื้น (ทดสอบ)';
     const EN = 'Floor loading TEST';
 
+    /* ต้องหาทรัพย์ที่ "มีค่า" ในช่องนี้จริง — ตารางรายละเอียดวาดเฉพาะแถวที่มีค่า
+       เดิมเทสต์ล็อกรหัส JKPBKK1005 ไว้ตายตัว วันหนึ่งทรัพย์ตัวนั้นไม่มีค่าในช่องนี้
+       แล้ว แถวจึงหายไปทั้งแถว ชื่อใหม่ไม่มีทางโผล่ และเทสต์ก็ฟ้องว่า "หน้าเว็บยัง
+       ใช้ชื่อเดิม" ทั้งที่ชื่อเดิมก็ไม่ได้อยู่บนหน้าเหมือนกัน */
+    const cookie0 = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+    const all = (await (await request.get('/api/properties', { headers: { cookie: cookie0 } })).json())
+      .items as { id: string; publicCode: string; typeKey: string; status: string }[];
+    let code = '';
+    for (const p0 of all.filter((x) => x.typeKey === 'warehouse' && x.status === 'active').slice(0, 40)) {
+      const d = await (await request.get(`/api/properties/${p0.id}`, { headers: { cookie: cookie0 } })).json();
+      if (String(d?.values?.[key] ?? '').trim()) { code = p0.publicCode; break; }
+    }
+    test.skip(!code, `ยังไม่มีโกดังที่กรอกช่อง ${key} ไว้`);
+
     await page.goto('/admin/field-builder');
     await pickWarehouse(page);
 
@@ -416,9 +430,9 @@ test.describe('คอมเมนต์ลูกค้า · แก้ชื่�
 
       /* ต้องถึงตารางบนหน้าเว็บด้วย — ตารางนั้นมีตารางชื่อของตัวเอง ถ้าไม่ส่ง
          ค่าไปด้วย จะแก้ชื่อในหลังบ้านแล้วหน้าเว็บยังขึ้นชื่อเดิม */
-      expect(await (await request.get('/th/property/JKPBKK1005')).text(),
+      expect(await (await request.get(`/th/property/${code}`)).text(),
         'หน้าเว็บภาษาไทยยังใช้ชื่อเดิม').toContain(TH);
-      expect(await (await request.get('/en/property/JKPBKK1005')).text(),
+      expect(await (await request.get(`/en/property/${code}`)).text(),
         'หน้า /en ยังใช้ชื่อเดิม').toContain(EN);
     } finally {
       /* คืนค่าเดิมเสมอ ไม่งั้นเทสต์รอบหน้าเจอชื่อที่ตั้งไว้ */
@@ -503,10 +517,15 @@ test.describe('คอมเมนต์ลูกค้า · ค้นหาท�
     test.skip(sls.length === 0, 'ยังไม่มี shortlist ในระบบ');
     await page.goto(`/admin/shortlists/${sls[0].id}`);
 
+    /* รายการทรัพย์ที่ให้เลือกมาจากคำขอแยกอีกครั้ง (ทรัพย์ที่เผยแพร่ทั้งหมด)
+       ตัวเลขจึงขึ้นเป็น 0 อยู่ชั่วขณะก่อนคำขอนั้นกลับมา · เดิมอ่านค่าครั้งเดียว
+       ทันทีที่เห็นกล่อง จึงล้มเป็นครั้งคราวโดยไม่มีอะไรผิด — รอให้ค่านิ่งก่อน */
     const count = page.locator('#sl-pool-count');
     await expect(count).toBeVisible({ timeout: 20000 });
+    await expect
+      .poll(async () => Number((await count.innerText()).match(/\d+/)?.[0] ?? 0), { timeout: 20000, message: 'ไม่มีทรัพย์ให้เลือกเลย' })
+      .toBeGreaterThan(1);
     const total = Number((await count.innerText()).match(/\d+/)?.[0] ?? 0);
-    expect(total, 'ไม่มีทรัพย์ให้เลือกเลย').toBeGreaterThan(1);
 
     /* ช่องค้นหาเคยไม่มี value/onChange — พิมพ์แล้วรายการต้องเปลี่ยนจริง */
     const box = page.locator('input[placeholder*="รหัสทรัพย์"]').first();
@@ -4246,7 +4265,12 @@ test.describe('คอมเมนต์ลูกค้า · ลายน้ำ�
     const props = (await (await request.get('/api/properties', { headers: { cookie } })).json()).items as { id: string }[];
     test.skip(!props.length, 'ยังไม่มีประกาศในระบบ');
     const propId = props[0].id;
-    const before = ((await (await request.get(`/api/properties/${propId}`, { headers: { cookie } })).json())?.values?.photos ?? []) as string[];
+    /* ต้องเก็บ values ทั้งก้อน — PATCH /api/properties/:id เขียนทับ values ทั้งอัน
+       ไม่ได้รวมค่าให้ ส่งไปแค่ { photos } เมื่อไรคือลบทุกช่องที่เหลือของทรัพย์นั้น
+       ทิ้ง แล้วตอบ 200 ตามปกติ (เทสต์นี้เคยทำแบบนั้นจนทรัพย์ตัวหนึ่งเหลือช่องเดียว
+       และเทสต์อื่นที่ไปเจอทรัพย์ตัวนั้นก็ล้มตามกันสามตัว) */
+    const beforeValues = ((await (await request.get(`/api/properties/${propId}`, { headers: { cookie } })).json())?.values ?? {}) as Record<string, unknown>;
+    const before = (Array.isArray(beforeValues.photos) ? beforeValues.photos : []) as string[];
 
     /* อัปโหลดรูปใหม่จริง ๆ — ต้องเป็นไฟล์ที่เซิร์ฟเวอร์ไม่เคยเห็น ไม่งั้นคำตอบ
        ที่จำไว้จากคำขอก่อนหน้าจะบังสถานะ "ยังไม่เข้าประกาศ" ที่เทสต์นี้ต้องการ
@@ -4265,7 +4289,8 @@ test.describe('คอมเมนต์ลูกค้า · ลายน้ำ�
 
     const put = async (photos: string[]) => {
       const r = await request.patch(`/api/properties/${propId}`, {
-        headers: { cookie, 'Content-Type': 'application/json' }, data: { values: { photos } },
+        headers: { cookie, 'Content-Type': 'application/json' },
+        data: { values: { ...beforeValues, photos } },
       });
       expect(r.status(), await r.text()).toBe(200);
     };
@@ -4312,5 +4337,96 @@ test.describe('คอมเมนต์ลูกค้า · ลายน้ำ�
     expect(r.status()).toBe(200);
     expect(r.headers()['cache-control'] ?? '', 'สัญญา immutable ให้รูปที่ไม่ได้ปั๊มลายน้ำ')
       .not.toContain('immutable');
+  });
+});
+
+/* 26 ส.ค. 2569 · หน้าแรกของ production เหลือบล็อกเดียวจากเก้าบล็อก
+ *
+ * PUT /api/sections ตีความ payload ว่าเป็น "รายการเต็มของหน้านั้น" เสมอ แล้วลบ
+ * ทุกบล็อกที่ไม่ได้ส่งมาด้วย · คำสั่งบันทึกที่มีบล็อกเดียว (ยิงไปเพื่อแก้ค่าการ
+ * แสดงรูปของบล็อกนั้น) จึงลบอีกแปดบล็อกทิ้ง พร้อมรูปหัวเว็บ รูปบล็อกเหตุผลที่
+ * ลูกค้าเลือกเรา และรูปแถบท้ายหน้า — แล้วตอบ 200 ตามปกติ ไม่มีอะไรบอกว่าเพิ่ง
+ * ลบอะไรไป
+ */
+/* รูปแบบเดียวกับบั๊กลบ section — payload บางส่วนลบข้อมูลที่เหลือเงียบ ๆ แล้วตอบ
+   200 · 27 ส.ค. 2569 ทรัพย์ JKPBKK1005 เหลือช่องเดียวจากสามสิบเจ็ดช่อง เพราะมี
+   คำสั่งบันทึกที่ส่งไปแค่ { photos } เพื่อสลับรูป */
+test.describe('คอมเมนต์ลูกค้า · บันทึกทรัพย์บางช่อง ต้องไม่ลบช่องอื่นทิ้ง', () => {
+  const admin = { email: 'owner@jkp.local', password: 'jkp12345' };
+
+  test('ส่ง values มาช่องเดียว ช่องที่เหลือของทรัพย์ต้องอยู่ครบ', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill(admin.email);
+    await page.locator('#login-password').fill(admin.password);
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const props = (await (await request.get('/api/properties', { headers: { cookie } })).json()).items as { id: string }[];
+    test.skip(!props.length, 'ยังไม่มีทรัพย์ในระบบ');
+    let target = '';
+    let before: Record<string, unknown> = {};
+    for (const p0 of props.slice(0, 20)) {
+      const v = ((await (await request.get(`/api/properties/${p0.id}`, { headers: { cookie } })).json())?.values ?? {}) as Record<string, unknown>;
+      if (Object.keys(v).length >= 5) { target = p0.id; before = v; break; }
+    }
+    test.skip(!target, 'ยังไม่มีทรัพย์ที่กรอกไว้พอจะทดสอบ');
+
+    /* คำสั่งเดียวกับที่ทำให้ข้อมูลหาย — บันทึกช่องเดียวโดยไม่ขอสิทธิ์เขียนทับ */
+    const r = await request.patch(`/api/properties/${target}`, {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { values: { internal_probe: 'x' } },
+    });
+    expect(r.status(), await r.text()).toBe(200);
+
+    const after = ((await (await request.get(`/api/properties/${target}`, { headers: { cookie } })).json())?.values ?? {}) as Record<string, unknown>;
+    for (const k of Object.keys(before)) {
+      expect(k in after, `ช่อง ${k} หายไปหลังบันทึกช่องเดียว`).toBe(true);
+    }
+    expect(after.internal_probe, 'ช่องที่ส่งไปไม่ถูกบันทึก').toBe('x');
+
+    /* คืนสภาพเดิม — ครั้งนี้ขอสิทธิ์เขียนทับ เพื่อให้ช่องที่เพิ่มไว้หายไปจริง */
+    await request.patch(`/api/properties/${target}`, {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { values: before, replaceValues: true },
+    });
+    const restored = ((await (await request.get(`/api/properties/${target}`, { headers: { cookie } })).json())?.values ?? {}) as Record<string, unknown>;
+    expect('internal_probe' in restored, 'ขอเขียนทับแล้วช่องที่เพิ่มไว้ต้องหาย').toBe(false);
+  });
+});
+
+test.describe('คอมเมนต์ลูกค้า · บันทึกบล็อกเดียว ต้องไม่ลบบล็อกอื่นทิ้ง', () => {
+  const admin = { email: 'owner@jkp.local', password: 'jkp12345' };
+
+  test('ส่ง section มาบล็อกเดียว บล็อกที่เหลือของหน้านั้นต้องอยู่ครบ', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill(admin.email);
+    await page.locator('#login-password').fill(admin.password);
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const list = async () => {
+      const r = await request.get('/api/sections?page=home', { headers: { cookie } });
+      expect(r.status()).toBe(200);
+      return ((await r.json()).items as { key: string; sort: number }[]);
+    };
+
+    const before = await list();
+    test.skip(before.length < 2, 'หน้าแรกมีบล็อกเดียว ทดสอบการลบไม่ได้');
+    const one = before[Math.floor(before.length / 2)];
+
+    /* คำสั่งเดียวกับที่ทำให้ production พัง — บันทึกบล็อกเดียวโดยไม่ขอสิทธิ์ลบ */
+    const r = await request.put('/api/sections', {
+      headers: { cookie, 'Content-Type': 'application/json' },
+      data: { page: 'home', sections: [{ key: one.key }] },
+    });
+    expect(r.status(), await r.text()).toBe(200);
+
+    const after = await list();
+    expect(after.length, 'บันทึกบล็อกเดียวแล้วบล็อกอื่นหายไป').toBe(before.length);
+    expect(after.map((s) => s.key).sort(), 'รายชื่อบล็อกเปลี่ยนไป').toEqual(before.map((s) => s.key).sort());
+    /* ลำดับต้องไม่ถูกเขียนทับด้วยดัชนีของ payload ที่ส่งมาแค่ตัวเดียว */
+    expect(after.find((s) => s.key === one.key)?.sort, 'ลำดับของบล็อกถูกเขียนทับ').toBe(one.sort);
   });
 });

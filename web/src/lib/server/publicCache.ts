@@ -22,6 +22,13 @@ export function refreshPublicPages() {
        ถูกล้างเลย (เขียนเทสต์แล้วเห็นว่าเงียบ ๆ ไม่ทำอะไรจริง ๆ) */
     revalidatePath('/[locale]', 'layout');
     revalidatePath('/', 'layout');
+    /* หน้าทรัพย์อยู่ลึกกว่านั้นหนึ่งชั้น และเป็น route ที่มีพารามิเตอร์
+       การล้างที่ '/[locale]' แบบ layout ครอบหน้าที่เป็นลูกตรง ๆ (/th /th/about)
+       แต่ไม่ครอบ /[locale]/property/[code] — ผลคือแก้ชื่อฟิลด์หรือปิดฟิลด์ใน
+       Field Builder แล้วตารางรายละเอียดบนหน้าทรัพย์ยังขึ้นของเก่า ทั้งที่บันทึก
+       สำเร็จ · อาการเดียวกับที่เคยเจอตอนแก้ลายน้ำแล้วรูปไม่เปลี่ยน */
+    revalidatePath('/[locale]/property/[code]', 'page');
+    revalidatePath('/[locale]/listing', 'page');
   } catch {
     /* ignore */
   }
