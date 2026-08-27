@@ -23,6 +23,15 @@ type Wm = { cfg: WatermarkConfig; version: number };
 
 const MEMO_TTL_MS = 60_000;
 
+/* ?v= คือเวอร์ชันของ "ตั้งค่าลายน้ำ" ไม่ใช่เวอร์ชันของรูป
+   URL เดิมจึงคงที่ก็ต่อเมื่อผลของการปั๊มคงที่ด้วย — ซึ่งจริงเฉพาะกับรูปที่
+   เข้าประกาศแล้ว รูปที่ยังไม่เข้ายังเปลี่ยนสถานะได้ทุกเมื่อ ถ้าสัญญา immutable
+   ไปหนึ่งปีแล้วมันเปลี่ยน ก็ไม่มีทางบอกเบราว์เซอร์ให้ทิ้งของเก่าได้อีกเลย */
+const cacheControl = (versioned: boolean, stamped: boolean) =>
+  versioned && stamped
+    ? 'public, max-age=31536000, immutable'
+    : 'public, max-age=300, must-revalidate';
+
 /* ห้ามจำค่านี้ไว้เด็ดขาด — เคยจำไว้ 60 วินาทีเพื่อประหยัดคิวรี แล้วกลายเป็น
    บั๊กที่ "แก้ที่หลังบ้านแล้วลายน้ำไม่เปลี่ยน":
      บันทึก → wmVersion เด้ง → URL กลายเป็น ?v=N+1 → เบราว์เซอร์ขอรูปใหม่
@@ -55,7 +64,14 @@ async function isListingPhoto(orgId: string, assetId: string): Promise<boolean> 
     where: { orgId, values: { path: ['photos'], array_contains: `/api/media/${assetId}/raw` } },
   });
   const is = n > 0;
-  listingPhotoMemo.set(assetId, { at: Date.now(), is });
+  /* จำเฉพาะคำตอบ "ใช่" — รูปที่เข้าประกาศแล้วไม่มีวันถอยกลับ แต่ "ยังไม่ใช่"
+     เป็นคำตอบชั่วคราวเสมอ: ทีมอัปโหลดรูปเข้าคลังก่อน แล้วค่อยกดบันทึกประกาศ
+     ไม่กี่วินาทีถัดมา
+     เดิมจำคำว่า "ไม่ใช่" ไว้ 60 วินาทีเหมือนกัน ระหว่างนั้นรูปที่เพิ่งผูกเข้า
+     ประกาศจึงถูกเสิร์ฟแบบไม่มีลายน้ำ — และเสิร์ฟพร้อมสัญญา immutable หนึ่งปี
+     เบราว์เซอร์ของคนที่อัปโหลด (ซึ่งเป็นคนแรกที่เข้าไปดูเสมอ) จึงเก็บรูปไม่มี
+     ลายน้ำไว้ข้ามปี ส่วนคนอื่นเห็นลายน้ำปกติ */
+  if (is) listingPhotoMemo.set(assetId, { at: Date.now(), is });
   return is;
 }
 
@@ -144,7 +160,7 @@ export const GET = handler(async (req: Request, ctx: { params: Promise<{ id: str
       headers: {
         'Content-Type': 'image/jpeg',
         'Content-Length': String(buf.length),
-        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Cache-Control': cacheControl(versioned, stampable),
       },
     });
   }
@@ -160,9 +176,7 @@ export const GET = handler(async (req: Request, ctx: { params: Promise<{ id: str
          ทางบอกเบราว์เซอร์ให้ทิ้งของเก่าได้เลยถ้าสัญญาว่า immutable ไว้หนึ่งปี —
          ซึ่งเป็นเหตุผลที่การเลิกปั๊มลายน้ำรูปพวกนี้ไม่มีผลกับคนที่เคยเปิดหน้าไว้
          จึงให้ไปถามเซิร์ฟเวอร์ก่อนทุกครั้งแทน */
-      'Cache-Control': wantsOriginal
-        ? 'private, no-store'
-        : versioned ? 'public, max-age=31536000, immutable' : 'public, max-age=300, must-revalidate',
+      'Cache-Control': wantsOriginal ? 'private, no-store' : cacheControl(versioned, stampable),
     },
   });
 });

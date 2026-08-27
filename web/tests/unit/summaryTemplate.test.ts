@@ -46,6 +46,31 @@ describe('หัวข้อความโพสต์ = ชื่อประ�
     assert.ok(s.total > s.filled, 'ต้องนับได้ว่ายังกรอกไม่ครบกี่แถว');
   });
 
+  /* คุณกิตติพงษ์แจ้ง 26 ส.ค. 2569 · "รายละเอียดที่ทีม Marketing ลง คั่นหน่วยหาย
+     ครับ พวกราคากับขนาด เช่น 1000" — บรรทัดหัวใส่จุลภาคให้อยู่แล้ว แต่แถว
+     รายละเอียดข้างล่างพิมพ์ตัวเลขออกดิบ ๆ ข้อความก้อนเดียวกันจึงคั่นหลักสองแบบ */
+  test('ราคาและขนาดในแถวรายละเอียด คั่นหลักพันเหมือนบรรทัดหัว', () => {
+    const s = buildSummary({
+      typeLabel: 'โรงงาน', code: 'JKPBKK1044',
+      values: { ...values, building_area_total: 1875, price_sale: 50000000, price_rent: 150000, office_area_total: 800 },
+    });
+    assert.ok(s.text.includes('- พื้นที่ใช้สอยรวม : 1,875 ตร.ม.'), s.text);
+    assert.ok(s.text.includes('- ราคาขาย : 50,000,000 บาท'), s.text);
+    assert.ok(s.text.includes('- ค่าเช่า : 150,000 บาท/เดือน'), s.text);
+    assert.ok(s.text.includes('800 ตร.ม.'), s.text);
+  });
+
+  /* ช่องที่คนกรอกพิมพ์เป็นข้อความเอง ต้องออกมาเหมือนที่พิมพ์ — จัดหลักให้มันคือ
+     การแก้คำพูดของคนกรอก ไม่ใช่จัดรูปแบบตัวเลข */
+  test('ค่าที่เก็บเป็นข้อความ ไม่ถูกจัดหลักใหม่', () => {
+    const s = buildSummary({
+      typeLabel: 'โรงงาน', code: 'JKPBKK1044',
+      values: { ...values, floor_loading: '3 ตัน', power_system: '3 Phase 30/100 amp (Upgradeable)' },
+    });
+    assert.ok(s.text.includes('- พื้นรับน้ำหนัก : 3 ตัน'), s.text);
+    assert.ok(s.text.includes('- ระบบไฟฟ้า : 3 Phase 30/100 amp (Upgradeable)'), s.text);
+  });
+
   test('ทรัพย์ที่ยังไม่มีทำเล ก็ยังได้หัวข้อความที่อ่านรู้เรื่อง', () => {
     const head2 = buildSummary({ typeLabel: 'โกดัง', code: 'JKPBKK9999', values: { deal_type: 'ขาย' } }).text.split('\n')[0];
     assert.ok(head2.startsWith('โกดัง'), head2);

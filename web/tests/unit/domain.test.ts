@@ -80,11 +80,15 @@ describe('post summary', () => {
     assert.ok(!text.includes('08x'));
   });
 
+  /* เดิมยืนยันว่าเห็น "2700" กับ "405000" ซึ่งเป็นรูปแบบที่ไม่มีตัวคั่นหลักพัน
+     — เท่ากับตรึงอาการที่คุณกิตติพงษ์แจ้งเมื่อ 26 ส.ค. 2569 ไว้ในเทสต์
+     ("คั่นหน่วยหายครับ พวกราคากับขนาด เช่น 1000") · เจตนาของเทสต์คือ
+     "ตัวเลขหลักโผล่อยู่ในข้อความ" ไม่ใช่ "ห้ามมีตัวคั่น" */
   test('includes the code and the headline figures', () => {
     const { text } = buildSummary({ typeLabel: 'โกดัง', code: 'JKP-SPK0042', values });
     assert.ok(text.includes('JKP-SPK0042'));
-    assert.ok(text.includes('2700'));
-    assert.ok(text.includes('405000'));
+    assert.ok(text.includes('2,700'), text);
+    assert.ok(text.includes('405,000'), text);
   });
 
   test('keeps empty rows — ops paste the skeleton and fill it in', () => {

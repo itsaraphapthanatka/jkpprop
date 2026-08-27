@@ -2118,8 +2118,11 @@ test.describe('คอมเมนต์ลูกค้า · ข้อควา�
       await expect.poll(async () => (await box.inputValue()).includes('1,500') || (await box.inputValue()).includes('1500'), { timeout: 15000 }).toBe(true);
 
       const text = await box.inputValue();
+      /* ตัวเลขในข้อความคั่นหลักพันแล้ว (ลูกค้าแจ้ง 26 ส.ค. 2569 ว่า "คั่นหน่วยหาย")
+         เจตนาของเทสต์นี้คือ "บรรทัดมีค่าจริง ไม่ใช่โครงเปล่า" — ไม่ใช่การล็อก
+         ว่าห้ามมีตัวคั่น */
       for (const [label, want] of [
-        ['พื้นที่ใช้สอยรวม', '1500'],
+        ['พื้นที่ใช้สอยรวม', '1,500'],
         ['ความสูง', '12'],
         ['พื้นรับน้ำหนัก', '3 ตัน'],
         ['ออฟฟิศ', '200'],
@@ -4214,5 +4217,100 @@ test.describe('คอมเมนต์ลูกค้า · รหัสงา�
     const after = ((await (await request.get('/api/visits', { headers: { cookie } })).json()).items as { id: string; requirementCode?: string }[])
       .find((v) => v.id === visitId);
     expect(after?.requirementCode, 'ผูกจากหน้าจอแล้วต้องบันทึกจริง ไม่ใช่ขึ้นแค่บนจอ').toBe(req0.code);
+  });
+});
+
+/* คุณกิตติพงษ์แจ้ง 26 ส.ค. 2569 ว่า "ลงภาพเพิ่มเติมแล้วบางรูปภาพลายน้ำไม่ขึ้น"
+ *
+ * เหตุ: isListingPhoto เคยจำคำตอบ "ยังไม่ใช่รูปประกาศ" ไว้ 60 วินาที
+ * ทีมอัปโหลดรูปเข้าคลังก่อน แล้วกดบันทึกประกาศไม่กี่วินาทีถัดมา ระหว่างนั้น
+ * เซิร์ฟเวอร์ยังตอบด้วยคำตอบเก่า จึงเสิร์ฟรูปไม่มีลายน้ำ — พร้อมหัวข้อความ
+ * Cache-Control: immutable หนึ่งปี เบราว์เซอร์ของคนที่อัปโหลด (คนแรกที่เข้าไป
+ * ตรวจเสมอ) จึงเก็บรูปไม่มีลายน้ำไว้ข้ามปี ขณะที่คนอื่นเห็นลายน้ำปกติ
+ */
+test.describe('คอมเมนต์ลูกค้า · ลายน้ำต้องขึ้นทันทีที่รูปเข้าประกาศ', () => {
+  const admin = { email: 'owner@jkp.local', password: 'jkp12345' };
+
+  test('ผูกรูปเข้าประกาศแล้วขอรูปทันที ต้องได้รูปที่ปั๊มลายน้ำแล้ว', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill(admin.email);
+    await page.locator('#login-password').fill(admin.password);
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const brand = await (await request.get('/api/branding', { headers: { cookie } })).json();
+    test.skip(!brand?.watermark?.enabled || !brand?.watermark?.src, 'องค์กรนี้ยังไม่ได้เปิดลายน้ำโลโก้');
+    const v = String(brand.watermarkVersion ?? 1);
+
+    const props = (await (await request.get('/api/properties', { headers: { cookie } })).json()).items as { id: string }[];
+    test.skip(!props.length, 'ยังไม่มีประกาศในระบบ');
+    const propId = props[0].id;
+    const before = ((await (await request.get(`/api/properties/${propId}`, { headers: { cookie } })).json())?.values?.photos ?? []) as string[];
+
+    /* อัปโหลดรูปใหม่จริง ๆ — ต้องเป็นไฟล์ที่เซิร์ฟเวอร์ไม่เคยเห็น ไม่งั้นคำตอบ
+       ที่จำไว้จากคำขอก่อนหน้าจะบังสถานะ "ยังไม่เข้าประกาศ" ที่เทสต์นี้ต้องการ
+       และนี่คือลำดับจริงที่ลูกค้าทำ: ลงภาพเพิ่ม แล้วกดบันทึกประกาศ */
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAIAAAD/gAIDAAAAV0lEQVR4nO3QMQEAAAjDMMC/56EB'
+      + 'a0iInmnpBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+      + 'AAAAAAAAAAAAgKcFRk8AAdI7wZEAAAAASUVORK5CYII=', 'base64');
+    const up = await request.post('/api/media', {
+      headers: { cookie },
+      multipart: { file: { name: 'wm-regression.png', mimeType: 'image/png', buffer: png } },
+    });
+    expect(up.ok(), await up.text()).toBe(true);
+    const assetId = String((await up.json()).id);
+    const src = `/api/media/${assetId}/raw`;
+
+    const put = async (photos: string[]) => {
+      const r = await request.patch(`/api/properties/${propId}`, {
+        headers: { cookie, 'Content-Type': 'application/json' }, data: { values: { photos } },
+      });
+      expect(r.status(), await r.text()).toBe(200);
+    };
+
+    try {
+      /* ขอรูปตอนที่ยังอยู่ในคลังเฉย ๆ — จังหวะเดียวกับที่หลังบ้านโชว์ตัวอย่าง */
+      const off = await request.get(`${src}?v=${v}`, { headers: { cookie } });
+      expect(off.status()).toBe(200);
+      const plain = Buffer.from(await off.body());
+      expect(off.headers()['cache-control'] ?? '', 'สัญญา immutable ให้รูปที่ยังไม่ได้ปั๊ม')
+        .not.toContain('immutable');
+
+      /* กดบันทึกประกาศ แล้วขอรูปทันที ไม่รอ */
+      await put([...before, src]);
+      const on = await request.get(`${src}?v=${v}`, { headers: { cookie } });
+      expect(on.status()).toBe(200);
+      const stamped = Buffer.from(await on.body());
+
+      expect(stamped.equals(plain), 'รูปที่เพิ่งเข้าประกาศยังถูกเสิร์ฟแบบไม่มีลายน้ำ').toBe(false);
+      expect(on.headers()['cache-control'] ?? '').toContain('immutable');
+    } finally {
+      await put(before).catch(() => null);
+      await request.delete(`/api/media/${assetId}`, { headers: { cookie } }).catch(() => null);
+    }
+  });
+
+  /* ด่านที่สอง · ถึงจะพลาดไปเสิร์ฟรูปที่ยังไม่ปั๊ม ก็ต้องไม่สัญญาว่ามันจะไม่
+     เปลี่ยนอีกหนึ่งปี ไม่งั้นความผิดพลาดชั่วขณะเดียวจะติดอยู่ในเบราว์เซอร์ข้ามปี
+     (?v= คือเวอร์ชันของ "ตั้งค่าลายน้ำ" ไม่ใช่ของรูป มันจึงไม่เปลี่ยนตอนที่รูป
+     เข้าประกาศ — URL เดิมไม่มีทางบอกให้เบราว์เซอร์ไปโหลดใหม่ได้เลย) */
+  test('รูปที่ไม่ได้ปั๊มลายน้ำ ต้องไม่ถูกสัญญาว่า immutable', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill(admin.email);
+    await page.locator('#login-password').fill(admin.password);
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const brand = await (await request.get('/api/branding', { headers: { cookie } })).json();
+    const src = String(brand?.watermark?.src ?? '');
+    test.skip(!src, 'องค์กรนี้ยังไม่ได้อัปโหลดโลโก้ลายน้ำ');
+    /* ตัวโลโก้เองไม่เคยเป็นรูปประกาศ และถูกกันไม่ให้ปั๊มทับตัวเองอยู่แล้ว */
+    const r = await request.get(`${src}?v=${brand.watermarkVersion ?? 1}`, { headers: { cookie } });
+    expect(r.status()).toBe(200);
+    expect(r.headers()['cache-control'] ?? '', 'สัญญา immutable ให้รูปที่ไม่ได้ปั๊มลายน้ำ')
+      .not.toContain('immutable');
   });
 });

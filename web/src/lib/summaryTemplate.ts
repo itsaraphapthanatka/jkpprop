@@ -33,9 +33,25 @@ const str = (v: SummaryValues, k: string) => {
   const x = v[k];
   return x === undefined || x === null ? '' : String(x);
 };
+
+/* ตัวเลขในข้อความนี้เคยพิมพ์ออกดิบ ๆ — "ราคาขาย : 50000000 บาท" กับ
+   "พื้นที่ใช้สอยรวม : 1875 ตร.ม." ขณะที่บรรทัดหัวเรื่องข้างบน (composeTitle)
+   ใส่จุลภาคให้อยู่แล้ว ข้อความก้อนเดียวกันจึงคั่นหลักไม่เหมือนกันสองแบบ
+   คุณกิตติพงษ์แจ้ง 26 ส.ค. 2569 ว่า "ขั้นหน่วยหายครับพวกราคากับขนาด เช่น 1000"
+
+   จัดหลักเฉพาะค่าที่เก็บเป็นตัวเลขจริงเท่านั้น — ช่องอย่าง floor_loading
+   ("3 ตัน") กับ power_system ("3 Phase 30/100 amp") เก็บเป็นข้อความที่คนพิมพ์เอง
+   ถ้าไปยุ่งกับมันจะกลายเป็นแก้คำพูดของคนกรอก ไม่ใช่จัดรูปแบบตัวเลข */
+const numStr = (v: SummaryValues, k: string) => {
+  const x = v[k];
+  if (typeof x === 'number') return Number.isFinite(x) ? x.toLocaleString('th-TH') : '';
+  return x === undefined || x === null ? '' : String(x);
+};
+
 const sub = (v: SummaryValues, k: string, sk: string) => {
   const o = v[k] as SummaryValues | undefined;
   const x = o?.[sk];
+  if (typeof x === 'number') return Number.isFinite(x) ? x.toLocaleString('th-TH') : '';
   return x === undefined || x === null ? '' : String(x);
 };
 const list = (v: SummaryValues, k: string) => {
@@ -64,18 +80,18 @@ export function buildSummary({ typeLabel, code, values: v }: SummaryInput): Summ
     { typeLabel, values: v, area: areaOf(v), code: code ?? '' },
     'th',
   );
-  const office = [str(v, 'office_floors'), str(v, 'office_area_total') && `${str(v, 'office_area_total')} ตร.ม.`].filter(Boolean).join(' ');
+  const office = [str(v, 'office_floors'), numStr(v, 'office_area_total') && `${numStr(v, 'office_area_total')} ตร.ม.`].filter(Boolean).join(' ');
 
   const rows: [string, string][] = [
     ['ที่ตั้ง', place],
-    ['พื้นที่ใช้สอยรวม', str(v, 'building_area_total') && `${str(v, 'building_area_total')} ตร.ม.`],
+    ['พื้นที่ใช้สอยรวม', numStr(v, 'building_area_total') && `${numStr(v, 'building_area_total')} ตร.ม.`],
     ['ออฟฟิศ', office],
     ['พื้นที่ดิน', land],
-    ['ความสูง', str(v, 'building_height') && `${str(v, 'building_height')} ม.`],
+    ['ความสูง', numStr(v, 'building_height') && `${numStr(v, 'building_height')} ม.`],
     ['พื้นรับน้ำหนัก', str(v, 'floor_loading')],
     ['ระบบไฟฟ้า', str(v, 'power_system') || str(v, 'power_phase')],
-    ['ราคาขาย', str(v, 'price_sale') && `${str(v, 'price_sale')} บาท`],
-    ['ค่าเช่า', str(v, 'price_rent') && `${str(v, 'price_rent')} บาท/เดือน`],
+    ['ราคาขาย', numStr(v, 'price_sale') && `${numStr(v, 'price_sale')} บาท`],
+    ['ค่าเช่า', numStr(v, 'price_rent') && `${numStr(v, 'price_rent')} บาท/เดือน`],
   ];
   const highlights: [string, string][] = [
     ['โซน', str(v, 'zone')],
