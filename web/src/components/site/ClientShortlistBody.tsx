@@ -8,6 +8,7 @@ import { DEFAULT_LOCALE, type Locale } from '@/i18n/config';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import { thumb } from '@/lib/mediaThumb';
 
 /* ============================================================
    Ported verbatim from ClientShortlist.dc.html — a standalone
@@ -82,7 +83,11 @@ const numFmt = (locale: Locale) => (locale === 'th' ? 'th-TH' : locale === 'zh' 
 const money = (n: number, locale: Locale) => `฿${n.toLocaleString(numFmt(locale))}`;
 const FALLBACK_IMG = 'https://images.unsplash.com/photo-1553413077-190dd305871c?w=700&q=80';
 
-type Contact = { name: string; phone: string; tel: string; email: string; address?: string };
+type Contact = {
+  name: string; phone: string; tel: string; email: string; address?: string;
+  /* โลโก้กับชื่อแบรนด์ที่อัปโหลดไว้ที่ /admin/branding · ว่าง = ยังไม่ได้อัป */
+  brandName?: string; brandLogo?: string;
+};
 
 /* The page has no [locale] segment — the team appends ?lang=en to the link for
    a customer who does not read Thai, and the switcher lets the customer change
@@ -263,7 +268,19 @@ export function ClientShortlistBody({ contact, initialLocale }: { contact?: Cont
           <div style={{ position: 'absolute', top: -50, right: -30, width: 200, height: 200, borderRadius: 9999, background: 'rgba(var(--neon-rgb),.1)', pointerEvents: 'none' }} />
           <div id="cs-brandrow" style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-              <div style={{ width: 72, height: 72, borderRadius: 16, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden', padding: 8, color: 'var(--muted3)', fontSize: 11, fontWeight: 700, textAlign: 'center' }}>{d.clientLogo}</div>
+              {/* กล่องนี้เคยพิมพ์คำว่า "โลโก้ลูกค้า" ไว้ตายตัว — เป็นข้อความจากไฟล์
+                  ออกแบบที่หลุดขึ้นเว็บจริง คุณกิตติพงษ์แจ้ง 27 ส.ค. 2569 ว่าต้องเป็น
+                  โลโก้ JKP ที่อัปโหลดไว้ในหลังบ้าน · ช่องอัปโหลดนั้นมีอยู่แล้วที่
+                  Settings › แบรนด์ แต่หน้านี้ไม่เคยอ่านค่ามาใช้
+                  ยังไม่ได้อัปโหลด → ใช้ตัวย่อของชื่อแบรนด์แทนกล่องเปล่า */}
+              <div data-cs-brandlogo style={{ width: 72, height: 72, borderRadius: 16, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden', padding: 8, color: 'var(--muted3)', fontSize: 11, fontWeight: 700, textAlign: 'center' }}>
+                {contact?.brandLogo
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  ? <img src={thumb(contact.brandLogo, 160)} alt={contact.brandName || 'JKP Property'} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }} />
+                  : <span style={{ fontSize: 17, fontWeight: 800, color: '#043F20', letterSpacing: '.02em' }}>
+                    {(contact?.brandName || 'JKP Property').replace(/[^A-Za-z\u0E00-\u0E7F ]/g, ' ').split(/\s+/).filter(Boolean).map((w) => w[0]).join('').slice(0, 3).toUpperCase() || 'JKP'}
+                  </span>}
+              </div>
               <div>
                 <div style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '.06em', color: '#8FE6B6', textTransform: 'uppercase' }}>{d.forCustomer}</div>
                 <div style={{ marginTop: 4, fontSize: 22, fontWeight: 800, color: '#fff' }}>{meta?.name || d.defaultName}</div>

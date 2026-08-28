@@ -56,6 +56,10 @@ export default async function ClientShortlistPage({ searchParams }: { searchPara
           tel: phone ? telHref(phone) : '',
           email: company?.salesEmail ?? '',
           address: company?.address ?? '',
+          /* โลโก้ที่อัปโหลดไว้ที่ /admin/branding — หัวหน้านี้เคยขึ้นกล่องเปล่า
+             ที่เขียนว่า "โลโก้ลูกค้า" ทั้งที่ค่าอยู่ในระบบแล้ว */
+          brandName: company?.brandName ?? '',
+          brandLogo: company?.brandLogo ?? '',
         }}
       />
     </>

@@ -4430,3 +4430,42 @@ test.describe('คอมเมนต์ลูกค้า · บันทึก�
     expect(after.find((s) => s.key === one.key)?.sort, 'ลำดับของบล็อกถูกเขียนทับ').toBe(one.sort);
   });
 });
+
+/* คุณกิตติพงษ์แจ้ง 27 ส.ค. 2569 · หัวหน้า "คัดทรัพย์สำหรับ" ที่ส่งให้ลูกค้า
+ * ขึ้นกล่องขาวเปล่าที่เขียนว่า "โลโก้ลูกค้า" — เป็นข้อความจากไฟล์ออกแบบที่หลุด
+ * ขึ้นเว็บจริง ที่ถูกต้องคือโลโก้ JKP ที่อัปโหลดไว้ในหลังบ้าน
+ * ช่องอัปโหลดมีอยู่แล้วที่ Settings › แบรนด์ แต่หน้านี้ไม่เคยอ่านค่ามาใช้
+ * (อาการเดียวกับกล่อง "ขอข้อมูลเพิ่มเติม" ที่แก้ไปเมื่อ 24 ส.ค.)
+ */
+test.describe('คอมเมนต์ลูกค้า · โลโก้บนหน้า Shortlist ที่ส่งให้ลูกค้า', () => {
+  test('ต้องเป็นโลโก้จากหลังบ้าน ไม่ใช่กล่องที่เขียนว่า "โลโก้ลูกค้า"', async ({ page, request }) => {
+    await page.goto('/admin/login');
+    await page.locator('#login-email').fill('owner@jkp.local');
+    await page.locator('#login-password').fill('jkp12345');
+    await page.getByRole('button', { name: /เข้าสู่ระบบ/ }).click();
+    await expect(page).toHaveURL(/\/admin(?!\/login)/);
+    const cookie = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join('; ');
+
+    const sls = (await (await request.get('/api/shortlists', { headers: { cookie } })).json()).items as { id: string; url: string }[];
+    test.skip(!sls.length, 'ยังไม่มี shortlist ในระบบ');
+
+    await page.goto(sls[0].url);
+    const box = page.locator('[data-cs-brandlogo]');
+    await expect(box).toBeVisible();
+
+    /* ข้อความจากไฟล์ออกแบบต้องไม่อยู่บนหน้าจริงอีกแล้ว */
+    await expect(page.locator('body'), 'ยังมีคำว่า "โลโก้ลูกค้า" จากไฟล์ออกแบบอยู่').not.toContainText('โลโก้ลูกค้า');
+
+    const brand = await (await request.get('/api/branding', { headers: { cookie } })).json();
+    if (String(brand?.logo ?? '').trim()) {
+      const img = box.locator('img');
+      await expect(img, 'อัปโหลดโลโก้ไว้แล้ว แต่หน้านี้ยังไม่เอามาแสดง').toHaveCount(1);
+      /* ต้องชี้ไปที่ไฟล์ที่อัปโหลดจริง ไม่ใช่รูปที่ฝังไว้ในโค้ด */
+      const src = await img.getAttribute('src');
+      expect(src ?? '', 'โลโก้ไม่ได้มาจากคลังสื่อของระบบ').toContain('/api/media/');
+    } else {
+      /* ยังไม่อัปโหลด → ต้องเห็นตัวย่อของชื่อแบรนด์ ไม่ใช่กล่องว่าง */
+      await expect(box, 'ยังไม่ได้อัปโหลดโลโก้ ก็ต้องไม่ปล่อยกล่องว่าง').not.toHaveText('');
+    }
+  });
+});
