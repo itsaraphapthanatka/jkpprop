@@ -21,4 +21,5 @@ if ! printf '%s' "$tag" | grep -Eq '^(latest|[0-9a-f]{7,40})$'; then
   exit 1
 fi
 
-exec /srv/jkpprop/pull-and-restart.sh "$tag"
+root="${JKP_ROOT:-/srv/jkpprop}"
+exec "$root/pull-and-restart.sh" "$tag"

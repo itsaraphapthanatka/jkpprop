@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
-# Bring the VPS up to a published image. Run it on the VPS:
+# Bring a server up to a published image. Run it on that server:
 #
-#   /srv/jkpprop/pull-and-restart.sh            # latest
-#   /srv/jkpprop/pull-and-restart.sh <git-sha>  # a specific build, to roll back
+#   ./pull-and-restart.sh            # latest
+#   ./pull-and-restart.sh <git-sha>  # a specific build, to roll back
+#
+# Two machines run this now, and they do not agree on anything but the name:
+# the old VPS keeps the stack in /srv/jkpprop as root, the new one keeps it
+# under /website/<domain>/html/jkpprop as an ordinary user. So the directory
+# and the compose file are read from the environment instead of being written
+# in here, and the script is installed unchanged on both — a second copy would
+# drift, and the copy that drifts is always the one you are not looking at.
 #
 # This replaces `docker build` on the box. That build took the machine's free
 # memory from 1.4 GB to 66 MB and wiped its page cache, which stalled the
@@ -10,10 +17,10 @@
 # Pulling a finished image costs a download and nothing else.
 set -euo pipefail
 
-cd /srv/jkpprop
+cd "${JKP_ROOT:-/srv/jkpprop}"
 TAG="${1:-latest}"
 OWNER="${GHCR_OWNER:-itsaraphapthanatka}"
-COMPOSE="docker compose -f docker-compose.behind-nginx.yml"
+COMPOSE="docker compose -f ${JKP_COMPOSE:-docker-compose.behind-nginx.yml}"
 
 APP="ghcr.io/${OWNER}/jkpprop-app:${TAG}"
 MIG="ghcr.io/${OWNER}/jkpprop-migrate:${TAG}"
@@ -25,12 +32,12 @@ if [ -f .ghcr-token ]; then
   docker login ghcr.io -u "$OWNER" --password-stdin < .ghcr-token >/dev/null
 else
   cat >&2 <<'MSG'
-✗ ไม่พบ /srv/jkpprop/.ghcr-token
+✗ ไม่พบ .ghcr-token ในโฟลเดอร์นี้
 
   image เป็น package ส่วนตัว ต้องมี token อ่านอย่างเดียววางไว้ก่อน:
     1. สร้างที่ https://github.com/settings/tokens  (classic → ติ๊ก read:packages อย่างเดียว)
     2. บนเครื่องนี้:
-         printf '%s' 'ghp_xxxxx' > /srv/jkpprop/.ghcr-token && chmod 600 /srv/jkpprop/.ghcr-token
+         printf '%s' 'ghp_xxxxx' > .ghcr-token && chmod 600 .ghcr-token
     3. รันสคริปต์นี้ใหม่
 MSG
   exit 2
@@ -67,9 +74,13 @@ grep -q '^MIGRATE_IMAGE=' .env && sed -i "s|^MIGRATE_IMAGE=.*|MIGRATE_IMAGE=$MIG
 # the photos already there keep serving, so nothing looks wrong until an admin
 # tries to add a file. One stat per deploy is cheaper than finding that twice.
 VOL=$(docker volume inspect jkpprop_uploads --format '{{.Mountpoint}}' 2>/dev/null || true)
-if [ -n "$VOL" ] && [ "$(stat -c %u "$VOL")" != "1001" ]; then
+if [ -n "$VOL" ] && [ "$(stat -c %u "$VOL" 2>/dev/null || echo 1001)" != "1001" ]; then
   echo "→ คืนสิทธิ์โฟลเดอร์ uploads ให้ uid 1001 (เดิมเป็นของ uid $(stat -c %u "$VOL"))"
-  chown -R 1001:1001 "$VOL"
+  # เครื่องใหม่ deploy ด้วยผู้ใช้ธรรมดา chown จึงต้องผ่าน sudo และอาจไม่มีสิทธิ์
+  # ถ้าแก้ไม่ได้ก็บอกให้รู้ ดีกว่าล้มทั้ง deploy เพราะเรื่องที่ยังไม่เป็นปัญหา
+  chown -R 1001:1001 "$VOL" 2>/dev/null \
+    || sudo -n chown -R 1001:1001 "$VOL" 2>/dev/null \
+    || echo "  ⚠ คืนสิทธิ์ไม่ได้ (ไม่มีสิทธิ์) — ถ้าอัปโหลดไฟล์ไม่ผ่านให้ดูตรงนี้ก่อน" >&2
 fi
 
 echo "→ migrate"
@@ -104,5 +115,5 @@ for i in $(seq 1 20); do
   sleep 3
 done
 
-echo "✗ app ไม่ตอบภายใน 60 วินาที — ดู: docker compose -f docker-compose.behind-nginx.yml logs --tail 50 app" >&2
+echo "✗ app ไม่ตอบภายใน 60 วินาที — ดู: $COMPOSE logs --tail 50 app" >&2
 exit 1
