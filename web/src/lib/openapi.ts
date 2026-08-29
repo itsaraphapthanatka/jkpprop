@@ -902,6 +902,30 @@ export const openapi = {
         },
       },
     },
+    /* ค่าเซิร์ฟเวอร์อีเมลเคยอยู่ในไฟล์ตั้งค่าของเครื่อง เจ้าของระบบแก้เองไม่ได้ */
+    '/api/mail-settings': {
+      get: {
+        tags: ['Admin'], summary: 'อ่านค่าเซิร์ฟเวอร์อีเมล (owner)',
+        description: 'รหัสผ่าน/API key ไม่เคยถูกส่งกลับ — บอกแค่ hasPassword ว่าตั้งไว้แล้วหรือยัง',
+        responses: { 200: okRes('ค่าปัจจุบัน', obj({ host: STR, port: NUM, secure: BOOL, username: STR, fromEmail: STR, fromName: STR, hasPassword: BOOL, lastTestOk: BOOL, lastTestError: STR })), ...AUTH_ERRORS },
+      },
+      put: {
+        tags: ['Admin'], summary: 'บันทึกค่าเซิร์ฟเวอร์อีเมล (owner)',
+        description: 'เว้นช่อง password ว่าง = ใช้รหัสเดิมต่อ · ถ้าตีความว่าลบ การแก้แค่พอร์ตจะทำให้ส่งอีเมลไม่ได้ทันที',
+        requestBody: body(obj({ host: STR, port: NUM, secure: BOOL, username: STR, password: STR, fromEmail: STR, fromName: STR }, [])),
+        /* ...AUTH_ERRORS มี 400 อยู่แล้ว ต้องกระจายก่อนแล้วค่อยทับด้วยข้อความ
+           ที่ตรงกับปลายทางนี้ — สลับลำดับเมื่อไรของเราจะถูกทับเงียบ ๆ */
+        responses: { 200: okRes('บันทึกแล้ว', obj({ saved: BOOL, hasPassword: BOOL })), ...AUTH_ERRORS, 400: errRes('ข้อมูลไม่ถูกต้อง') },
+      },
+    },
+    '/api/mail-settings/test': {
+      post: {
+        tags: ['Admin'], summary: 'ส่งอีเมลทดสอบ (owner)',
+        description: 'บันทึกแล้วไม่ได้แปลว่าส่งได้ — ปลายทางอาจปฏิเสธรหัสผ่าน ปิดพอร์ต หรือไม่ยอมให้ส่งจากอีเมลผู้ส่งที่ยังไม่ได้ยืนยันโดเมน',
+        requestBody: body(obj({ to: STR }, [])),
+        responses: { 200: okRes('ส่งแล้ว', obj({ sent: BOOL, to: STR })), ...AUTH_ERRORS, 400: errRes('ยังไม่ได้ตั้งค่า หรือส่งไม่สำเร็จ') },
+      },
+    },
     '/api/users/{id}/reset-link': {
       post: {
         tags: ['Admin'], summary: 'ออกลิงก์ตั้งรหัสผ่านใหม่ให้ผู้ใช้ (owner)',

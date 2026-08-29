@@ -3245,6 +3245,103 @@ paths:
         "400": *a6
         "401": *a7
         "403": *a8
+  /api/mail-settings:
+    get:
+      tags:
+        - Admin
+      summary: อ่านค่าเซิร์ฟเวอร์อีเมล (owner)
+      description: รหัสผ่าน/API key ไม่เคยถูกส่งกลับ — บอกแค่ hasPassword ว่าตั้งไว้แล้วหรือยัง
+      responses:
+        "200":
+          description: ค่าปัจจุบัน
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  host: *a1
+                  port: *a10
+                  secure: *a4
+                  username: *a1
+                  fromEmail: *a1
+                  fromName: *a1
+                  hasPassword: *a4
+                  lastTestOk: *a4
+                  lastTestError: *a1
+        "400": *a6
+        "401": *a7
+        "403": *a8
+    put:
+      tags:
+        - Admin
+      summary: บันทึกค่าเซิร์ฟเวอร์อีเมล (owner)
+      description: เว้นช่อง password ว่าง = ใช้รหัสเดิมต่อ · ถ้าตีความว่าลบ การแก้แค่พอร์ตจะทำให้ส่งอีเมลไม่ได้ทันที
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                host: *a1
+                port: *a10
+                secure: *a4
+                username: *a1
+                password: *a1
+                fromEmail: *a1
+                fromName: *a1
+              required: []
+      responses:
+        "200":
+          description: บันทึกแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  saved: *a4
+                  hasPassword: *a4
+        "400":
+          description: ข้อมูลไม่ถูกต้อง
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401": *a7
+        "403": *a8
+  /api/mail-settings/test:
+    post:
+      tags:
+        - Admin
+      summary: ส่งอีเมลทดสอบ (owner)
+      description: บันทึกแล้วไม่ได้แปลว่าส่งได้ — ปลายทางอาจปฏิเสธรหัสผ่าน ปิดพอร์ต หรือไม่ยอมให้ส่งจากอีเมลผู้ส่งที่ยังไม่ได้ยืนยันโดเมน
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                to: *a1
+              required: []
+      responses:
+        "200":
+          description: ส่งแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sent: *a4
+                  to: *a1
+        "400":
+          description: ยังไม่ได้ตั้งค่า หรือส่งไม่สำเร็จ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401": *a7
+        "403": *a8
   /api/users/{id}/reset-link:
     post:
       tags:

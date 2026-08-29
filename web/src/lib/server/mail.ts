@@ -15,6 +15,7 @@
    ปล่อยให้หน้าจอโกหกซ้ำรอยเดิม
    ============================================================ */
 import nodemailer from 'nodemailer';
+import { db } from './db';
 
 export type MailConfig = {
   host: string; port: number; secure: boolean;
@@ -22,8 +23,12 @@ export type MailConfig = {
   from: string;
 };
 
-/** อ่านค่าตั้งค่าจาก environment · null = ยังไม่ได้ตั้ง */
-export function mailConfig(): MailConfig | null {
+/** ผู้ส่งที่แสดงในกล่องจดหมาย — มีชื่อก็ใส่ชื่อ ไม่มีก็อีเมลเปล่า */
+const fromLine = (email: string, name: string) => (name.trim() ? `"${name.trim()}" <${email}>` : email);
+
+/* ค่าจากไฟล์ตั้งค่าเซิร์ฟเวอร์ — ใช้เป็นทางถอยเท่านั้น
+   ทางหลักคือหน้า Settings › อีเมล ที่เจ้าของระบบกรอกเอง ไม่ต้องรอทีมพัฒนา */
+function envConfig(): MailConfig | null {
   const host = (process.env.SMTP_HOST ?? '').trim();
   const from = (process.env.MAIL_FROM ?? '').trim();
   if (!host || !from) return null;
@@ -40,7 +45,23 @@ export function mailConfig(): MailConfig | null {
   };
 }
 
-export const mailConfigured = () => mailConfig() !== null;
+/** อ่านค่าที่ใช้จริง — ฐานข้อมูลก่อน แล้วค่อยถอยไปที่ไฟล์ตั้งค่า · null = ยังไม่ได้ตั้ง */
+export async function mailConfig(orgId?: string): Promise<MailConfig | null> {
+  const row = await db.mailSetting.findFirst({ where: orgId ? { orgId } : {} }).catch(() => null);
+  if (row && row.host.trim() && row.fromEmail.trim()) {
+    return {
+      host: row.host.trim(),
+      port: row.port > 0 ? row.port : 587,
+      secure: row.secure || row.port === 465,
+      user: row.username.trim(),
+      pass: row.password,
+      from: fromLine(row.fromEmail.trim(), row.fromName),
+    };
+  }
+  return envConfig();
+}
+
+export const mailConfigured = async (orgId?: string) => (await mailConfig(orgId)) !== null;
 
 type Sent = { ok: true } | { ok: false; reason: 'not_configured' | 'send_failed'; detail?: string };
 
@@ -48,9 +69,14 @@ type Sent = { ok: true } | { ok: false; reason: 'not_configured' | 'send_failed'
  * ส่งอีเมลหนึ่งฉบับ · ไม่โยน error ออกไป — คนเรียกตัดสินใจเองว่าจะทำอย่างไรต่อ
  * เพราะงานหลัก (สร้างบัญชี / ออกโทเคน) สำเร็จไปแล้วก่อนถึงตรงนี้
  */
-export async function sendMail(to: string, subject: string, html: string, text: string): Promise<Sent> {
-  const cfg = mailConfig();
+export async function sendMail(to: string, subject: string, html: string, text: string, orgId?: string): Promise<Sent> {
+  const cfg = await mailConfig(orgId);
   if (!cfg) return { ok: false, reason: 'not_configured' };
+  return sendWith(cfg, to, subject, html, text);
+}
+
+/** ส่งด้วยค่าที่ระบุมาตรง ๆ — ใช้ตอนกด "ส่งอีเมลทดสอบ" ก่อนบันทึกค่า */
+export async function sendWith(cfg: MailConfig, to: string, subject: string, html: string, text: string): Promise<Sent> {
   try {
     const transport = nodemailer.createTransport({
       host: cfg.host,

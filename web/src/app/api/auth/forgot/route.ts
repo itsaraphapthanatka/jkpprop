@@ -17,23 +17,23 @@ export const runtime = 'nodejs';
    mailConfigured เป็นข้อเท็จจริงของ "ระบบ" ไม่ใช่ของบัญชีใดบัญชีหนึ่ง จึงติดไป
    ได้ทุกคำตอบโดยไม่บอกใบ้ว่าอีเมลนั้นมีอยู่จริงหรือเปล่า — ตอนแรกใส่เฉพาะตอน
    เจอผู้ใช้ ซึ่งทำให้รูปร่างของคำตอบสองกรณีต่างกัน และนั่นคือการรั่วเสียเอง */
-const sameAnswer = () => ({ sent: true, mailConfigured: mailConfigured() });
+const sameAnswer = async () => ({ sent: true, mailConfigured: await mailConfigured() });
 
 export const POST = handler(async (req: Request) => {
   const body = (await req.json().catch(() => null)) as { email?: string } | null;
   const email = String(body?.email ?? '').trim().toLowerCase();
-  if (!email || !email.includes('@')) return ok(sameAnswer());
+  if (!email || !email.includes('@')) return ok(await sameAnswer());
 
   const user = await db.user.findUnique({ where: { email } });
   /* ปิดใช้งานหรือหมดอายุแล้วก็ไม่ต้องส่ง — ตั้งรหัสใหม่ไปก็เข้าไม่ได้อยู่ดี */
   const usable = user && user.active && (!user.expiresAt || user.expiresAt.getTime() > Date.now());
-  if (!usable) return ok(sameAnswer());
+  if (!usable) return ok(await sameAnswer());
 
   await pruneExpiredTokens().catch(() => 0);
   const { token, hours } = await issueResetToken(user.id, 'reset');
   const url = new URL(`/admin/reset-password?token=${encodeURIComponent(token)}`, new URL(req.url).origin).toString();
   const mail = resetMail(user.name || email, url, hours);
-  const res = await sendMail(email, mail.subject, mail.html, mail.text);
+  const res = await sendMail(email, mail.subject, mail.html, mail.text, user.orgId);
 
   await audit({
     user, orgId: user.orgId, action: 'user.forgot_password', entity: 'user', entityId: user.id,
@@ -42,5 +42,5 @@ export const POST = handler(async (req: Request) => {
 
   /* ส่งไม่สำเร็จก็ยังตอบแบบเดียวกัน แต่บอกหน้าจอว่าระบบอีเมลยังไม่ได้ตั้งค่า
      เพื่อไม่ให้หน้าจอบอกผู้ใช้ว่า "ส่งแล้ว" ทั้งที่ไม่ได้ส่ง — ความผิดพลาดเดิม */
-  return ok(sameAnswer());
+  return ok(await sameAnswer());
 });

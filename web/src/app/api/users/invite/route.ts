@@ -60,7 +60,7 @@ export const POST = handler(async (req: Request) => {
   const { token, hours } = await issueResetToken(created.id, 'invite');
   const url = new URL(`/admin/reset-password?token=${encodeURIComponent(token)}`, new URL(req.url).origin).toString();
   const mail = inviteMail(created.name, url, hours);
-  const sent = await sendMail(email, mail.subject, mail.html, mail.text);
+  const sent = await sendMail(email, mail.subject, mail.html, mail.text, actor.orgId);
 
   await audit({
     user: actor, orgId: actor.orgId, action: 'user.invite', entity: 'user', entityId: created.id,
@@ -73,7 +73,7 @@ export const POST = handler(async (req: Request) => {
     id: created.id,
     email,
     mailed: sent.ok,
-    mailConfigured: mailConfigured(),
+    mailConfigured: await mailConfigured(actor.orgId),
     tempPassword: sent.ok ? null : tempPassword,
   }, { status: 201 });
 });

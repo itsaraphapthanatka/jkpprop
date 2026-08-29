@@ -27,7 +27,7 @@ export const POST = handler(async (req: Request, ctx: { params: Promise<{ id: st
   const url = new URL(`/admin/reset-password?token=${encodeURIComponent(token)}`, new URL(req.url).origin).toString();
 
   const mail = resetMail(target.name || target.email, url, hours);
-  const sent = await sendMail(target.email, mail.subject, mail.html, mail.text);
+  const sent = await sendMail(target.email, mail.subject, mail.html, mail.text, actor.orgId);
 
   await audit({
     user: actor, orgId: actor.orgId, action: 'user.reset_link', entity: 'user', entityId: target.id,
@@ -36,5 +36,5 @@ export const POST = handler(async (req: Request, ctx: { params: Promise<{ id: st
 
   /* ส่งเมลไม่ได้ → คืนลิงก์มาให้เจ้าของระบบคัดลอกส่งเองทางไลน์หรือช่องทางอื่น
      ลิงก์นี้เปิดบัญชีได้จริง จึงคืนให้เฉพาะเจ้าของระบบที่เพิ่งกดขอเท่านั้น */
-  return ok({ email: target.email, mailed: sent.ok, mailConfigured: mailConfigured(), hours, url: sent.ok ? null : url });
+  return ok({ email: target.email, mailed: sent.ok, mailConfigured: await mailConfigured(actor.orgId), hours, url: sent.ok ? null : url });
 });

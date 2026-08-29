@@ -26,6 +26,7 @@ model Org {
   users      User[]
   properties Property[]
   leads      Lead[]
+  mailSetting MailSetting?
 }
 
 model User {
@@ -69,6 +70,33 @@ model User {
  * เก็บเฉพาะค่าแฮชของโทเคน แบบเดียวกับ Session — ฐานข้อมูลที่รั่วจึงเปิดบัญชี
  * ใครไม่ได้ · โทเคนตัวจริงอยู่ในอีเมลของเจ้าตัวเท่านั้น
  */
+/* ตั้งค่าเซิร์ฟเวอร์อีเมลขาออก — กรอกจากหน้า Settings ไม่ใช่จากไฟล์ตั้งค่า
+ *
+ * ทีมที่ดูแลเว็บนี้ไม่ได้เข้าเครื่องเซิร์ฟเวอร์เอง การให้แก้ที่ .env แปลว่าต้อง
+ * รอทีมพัฒนาทุกครั้งที่เปลี่ยนผู้ให้บริการหรือรหัสหมดอายุ
+ *
+ * รหัสผ่าน SMTP เก็บแยกคอลัมน์และไม่เคยถูกส่งกลับออกไปทาง API — หน้าจอรู้แค่ว่า
+ * "ตั้งไว้แล้วหรือยัง" · เว้นว่างตอนบันทึก = ใช้ค่าเดิมต่อ
+ */
+model MailSetting {
+  orgId     String   @id
+  org       Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  host      String   @default("")
+  port      Int      @default(587)
+  /* true = เข้ารหัสตั้งแต่เชื่อมต่อ (พอร์ต 465) · false = ยกระดับด้วย STARTTLS */
+  secure    Boolean  @default(false)
+  username  String   @default("")
+  password  String   @default("")
+  fromEmail String   @default("")
+  fromName  String   @default("")
+  /* ผลการส่งครั้งล่าสุด — ให้หน้าจอบอกได้ว่าตั้งค่าแล้วใช้ได้จริงไหม
+     ไม่ใช่แค่ "บันทึกแล้ว" */
+  lastTestAt    DateTime?
+  lastTestOk    Boolean?
+  lastTestError String    @default("")
+  updatedAt DateTime @updatedAt
+}
+
 model PasswordReset {
   tokenHash String   @id
   userId    String
