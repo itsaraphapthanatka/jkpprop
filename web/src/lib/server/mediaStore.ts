@@ -9,7 +9,7 @@
 
    Callers only ever use put/get/remove, so switching drivers is an env change.
    ============================================================ */
-import { mkdir, readFile, unlink, writeFile } from 'fs/promises';
+import { mkdir, readdir, readFile, unlink, writeFile } from 'fs/promises';
 import { createHash } from 'crypto';
 import path from 'path';
 
@@ -168,6 +168,37 @@ export async function getObject(id: string, mime: string, key = objectKey(id, mi
   const res = await signedFetch('GET', key);
   if (!res.ok) return null;
   return Buffer.from(await res.arrayBuffer());
+}
+
+/* ============================================================
+   เก็บกวาดไฟล์ปั๊มลายน้ำรุ่นเก่า
+
+   ทุกครั้งที่มีคนแก้ตั้งค่าลายน้ำ wmVersion จะเด้ง แล้วรูปประกาศทุกใบก็ถูกปั๊ม
+   ใหม่ทั้งชุดใต้คีย์ของเวอร์ชันใหม่ — โดยที่ชุดเก่าไม่เคยถูกลบ
+   29 ส.ค. 2569 บนเครื่องจริงมีค้างอยู่สิบกว่ารุ่น (v4 v5 v6 v18 v52 v55 v70
+   v72 …) รวม 3,098 ไฟล์ 1.1GB และดิสก์ของเครื่องซึ่งมีเว็บ production อีก
+   17 ตัวใช้ร่วมกันเต็ม 100% เหลือ 49MB
+
+   ไฟล์พวกนี้เป็นแคชล้วน ลบแล้วสร้างใหม่เองเมื่อมีคนเปิดรูป จึงลบได้ปลอดภัย
+   ============================================================ */
+const WM_FILE = /^[a-z0-9]+-wm(\d+)\.[a-z0-9]+$/i;
+const THUMB_FILE = /^[a-z0-9]+-w\d+v(\d+)\.[a-z0-9]+$/i;
+
+/** ลบไฟล์ปั๊มของทุกเวอร์ชันที่ไม่ใช่ `keep` · คืนจำนวนไฟล์ที่ลบ */
+export async function pruneWatermarkVersions(keep: number): Promise<number> {
+  /* ที่เก็บแบบ S3 ยังไม่มีคำสั่งไล่รายชื่อไฟล์ในโค้ดชุดนี้ (มีแค่ GET/PUT/DELETE
+     ทีละคีย์) — เครื่องจริงเก็บบนดิสก์ ถ้าวันหนึ่งย้ายไป S3 ต้องกลับมาทำตรงนี้
+     ไม่งั้นจะโตเงียบ ๆ แบบเดิม */
+  if (usingS3) return 0;
+  const names = await readdir(UPLOAD_DIR).catch(() => [] as string[]);
+  let removed = 0;
+  for (const name of names) {
+    const m = WM_FILE.exec(name) ?? THUMB_FILE.exec(name);
+    if (!m || Number(m[1]) === keep) continue;
+    await unlink(path.join(UPLOAD_DIR, name)).catch(() => { /* already gone */ });
+    removed += 1;
+  }
+  return removed;
 }
 
 export async function removeObject(id: string, mime: string, key = objectKey(id, mime)) {

@@ -2,6 +2,7 @@
    GET is public-readable so the site can theme itself; PUT is owner+marketing. */
 import { ok, handler, ApiError } from '@/lib/server/api';
 import { refreshPublicPages } from '@/lib/server/publicCache';
+import { pruneWatermarkVersions } from '@/lib/server/mediaStore';
 import { requireUser, requireRole } from '@/lib/server/auth';
 import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
@@ -91,6 +92,15 @@ export const PUT = handler(async (req: Request) => {
     before: before ? { primary: before.primary, font: before.font, radius: before.radius, watermark: wmFingerprint(wmNow) } : null,
     after: { primary: saved.primary, font: saved.font, radius: saved.radius, watermark: wmFingerprint(wmNext) },
   });
+  /* เวอร์ชันลายน้ำเพิ่งเด้ง → รูปทุกใบจะถูกปั๊มใหม่ใต้คีย์ของเวอร์ชันใหม่
+     เก็บกวาดชุดเก่าทิ้งด้วย ไม่งั้นทุกครั้งที่แก้ตั้งค่าจะทิ้งสำเนาทั้งคลังไว้
+     อีกหนึ่งชุด · บนเครื่องจริงสะสมไปสิบกว่ารุ่น 1.1GB จนดิสก์เต็ม 100%
+     ทำแบบไม่ให้ล้มการบันทึก — ข้อมูลลงฐานไปแล้ว แค่เก็บกวาดไม่สำเร็จไม่ควร
+     ทำให้คนใช้เห็นว่าบันทึกไม่ผ่าน */
+  if (wmChanged) {
+    const removed = await pruneWatermarkVersions(saved.wmVersion).catch(() => 0);
+    if (removed) console.info(`[branding] เก็บกวาดไฟล์ปั๊มลายน้ำรุ่นเก่า ${removed} ไฟล์`);
+  }
   refreshPublicPages();
   return ok({ ...data, watermark: wmNext, watermarkVersion: saved.wmVersion });
 });
