@@ -62,7 +62,9 @@ describe('ย่อรูปตอนอัปโหลด', () => {
 
   test('ข้อมูล EXIF ถูกตัดออก — พิกัดที่ถ่ายต้องไม่ติดไปกับรูปบนเว็บ', async () => {
     const withExif = await photo(3000, 2000)
-      .withExif({ IFD0: { Copyright: 'JKP' }, GPS: { GPSLatitudeRef: 'N' } })
+      /* sharp รับเฉพาะกลุ่ม IFD ตามชนิดของมัน — ใส่ EXIF จริงเข้าไปหนึ่งช่อง
+         ก็พอพิสูจน์ว่าถูกตัดทิ้ง (พิกัด GPS อยู่ในก้อน EXIF เดียวกันนี้) */
+      .withExif({ IFD0: { Copyright: 'JKP' } })
       .jpeg({ quality: 90 }).toBuffer();
     const r = await shrinkImage(withExif, 'image/jpeg');
     const meta = await sharp(r.buffer).metadata();

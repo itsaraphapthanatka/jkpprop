@@ -2,19 +2,30 @@
    the numbers are in the first paint) and GET /api/dashboard. */
 import type { User } from '@prisma/client';
 import { db } from './db';
+import { PIPELINE } from './leadPipeline';
 import { scopeWhere, hasPriv } from './auth';
 import { actionLabel } from './auditLabel';
 
 const DAY = 86400000;
 
-const FUNNEL_ROWS: { label: string; statuses: string[]; color: string }[] = [
-  { label: 'New', statuses: ['new'], color: '#034956' },
-  { label: 'Qualified', statuses: ['qualified'], color: '#0B6B4F' },
-  { label: 'Profile received', statuses: ['profile_received'], color: '#0D6C3B' },
-  { label: 'Requirements confirmed', statuses: ['requirements_confirmed'], color: '#1E8A4C' },
-  { label: 'Shortlisted', statuses: ['shortlisted'], color: '#3AAE5F' },
-  { label: 'Visit scheduled', statuses: ['visit_scheduled'], color: '#5BC97C' },
-  { label: 'Negotiating → Won', statuses: ['negotiating', 'won'], color: '#2DFB91' },
+/* กรวยของลีด — แต่ละแถวคือ "ไปถึงขั้นนี้แล้วอย่างน้อย" ไม่ใช่ "ค้างอยู่ขั้นนี้"
+ *
+ * ของเดิมนับเฉพาะลีดที่ค้างอยู่ในสถานะนั้นพอดี แล้วหารด้วยจำนวนลีดสถานะ new
+ * ผลคือกรวยที่ไม่ใช่กรวย — 29 ส.ค. 2569 บนเครื่องจริงมีลีด new 1 ใบ กับ won 3 ใบ
+ * แถวสุดท้ายจึงขึ้นเป็น 300% และแถวกลางเป็น 0 ทั้งแถบ
+ *
+ * และสองขั้น qualified / profile_received ถูกตัดออก เพราะไม่มีปุ่มไหนในระบบ
+ * พาลีดไปถึงสองสถานะนั้นได้เลย มันจึงเป็น 0 ตลอดกาลและทำให้กรวยดูเหมือน
+ * ลูกค้าหลุดหมดตั้งแต่ต้นทาง ทั้งที่งานเดินต่อไปได้ตามปกติ
+ * (ถ้าวันหนึ่งทำสองขั้นนี้ให้ใช้งานได้จริง ให้เพิ่มกลับมาตรงนี้)
+ */
+const FUNNEL_ROWS: { label: string; stage: string; color: string }[] = [
+  { label: 'ลีดเข้ามา', stage: 'new', color: '#034956' },
+  { label: 'ยืนยันความต้องการ', stage: 'requirements_confirmed', color: '#1E8A4C' },
+  { label: 'ส่ง shortlist', stage: 'shortlisted', color: '#3AAE5F' },
+  { label: 'นัดเข้าชม', stage: 'visit_scheduled', color: '#5BC97C' },
+  { label: 'กำลังเจรจา', stage: 'negotiating', color: '#26D97F' },
+  { label: 'ปิดดีลสำเร็จ', stage: 'won', color: '#2DFB91' },
 ];
 
 export const agoLabel = (d: Date) => {
@@ -29,15 +40,42 @@ export const agoLabel = (d: Date) => {
 
 export type DashboardData = Awaited<ReturnType<typeof buildDashboard>>;
 
+/**
+ * กรวยของลีด — แต่ละแถวคือ "ไปถึงขั้นนี้แล้วอย่างน้อย" ไม่ใช่ "ค้างอยู่ขั้นนี้"
+ *
+ * แยกออกมาเป็นฟังก์ชันของตัวเองเพราะตรรกะตรงนี้เคยผิดเงียบ ๆ อยู่นาน และการ
+ * ทดสอบมันต้องไม่ต้องต่อฐานข้อมูล
+ */
+export function buildFunnel(leads: { status: string }[]) {
+  /* สถานะเลื่อนไปข้างหน้าอย่างเดียว ลำดับในไปป์ไลน์จึงใช้เทียบได้ตรง ๆ
+     ยกเว้น lost ที่เป็นทางออก ไม่ใช่ขั้นที่ไกลกว่า won — ลีดที่ไม่สำเร็จนับว่า
+     เข้ามาแล้วเท่านั้น เพราะระบบไม่ได้บันทึกว่ามันไปได้ไกลแค่ไหนก่อนจะหลุด */
+  const rankOf = (st: string) => PIPELINE.indexOf(st as (typeof PIPELINE)[number]);
+  const reached = (stage: string) => leads.filter((l) => (
+    l.status === 'lost' ? stage === 'new' : rankOf(l.status) >= rankOf(stage)
+  )).length;
+  /* ฐานคือลีดทั้งหมด กรวยจึงลดหลั่นลงเสมอและไม่มีทางเกิน 100%
+     เดิมหารด้วยจำนวนลีดสถานะ new อย่างเดียว ทำให้แถวท้ายขึ้นเป็น 300% ได้ */
+  const top = Math.max(1, leads.length);
+  return FUNNEL_ROWS.map((r) => {
+    const count = reached(r.stage);
+    return { label: r.label, count, pct: `${Math.round((count / top) * 100)}%`, color: r.color };
+  });
+}
+
 export async function buildDashboard(user: User) {
   const orgId = user.orgId;
   const leadScope = scopeWhere(user, 'assigneeId');
   const weekAgo = new Date(Date.now() - 7 * DAY);
   const weekAhead = new Date(Date.now() + 7 * DAY);
 
-  const [newLeads, allLeads, shortlists, visits, deals, properties, tasks] = await Promise.all([
+  const [newLeads, allLeads, openRequirements, shortlists, visits, deals, properties, tasks] = await Promise.all([
     db.lead.count({ where: { orgId, ...leadScope, createdAt: { gte: weekAgo } } }),
     db.lead.findMany({ where: { orgId, ...leadScope }, select: { status: true } }),
+    /* ใบงานที่ยังทำอยู่ — นับจากตาราง Requirement ตรง ๆ
+       การ์ดนี้เคยนับลีดที่อยู่ในสถานะ qualified/profile_received ซึ่งไม่มีปุ่มไหน
+       พาไปถึง ตัวเลขจึงเป็น 0 เสมอ ทั้งที่บนเครื่องจริงมีใบงานอยู่เก้าใบ */
+    db.requirement.count({ where: { orgId, status: { not: 'cancelled' } } }),
     db.shortlist.count({ where: { orgId, status: 'open' } }),
     db.visit.count({ where: { orgId, date: { gte: new Date(), lte: weekAhead } } }),
     db.deal.count({ where: { orgId, status: 'negotiating' } }),
@@ -57,8 +95,6 @@ export async function buildDashboard(user: User) {
     }),
   ]);
 
-  const countOf = (statuses: string[]) => allLeads.filter((l) => statuses.includes(l.status)).length;
-  const top = Math.max(1, countOf(FUNNEL_ROWS[0].statuses));
 
   // the activity feed is the audit trail — only for users allowed to read it
   const activity = hasPriv(user, 'audit')
@@ -68,15 +104,12 @@ export async function buildDashboard(user: User) {
   return {
     stats: {
       leads: newLeads,
-      requirements: allLeads.filter((l) => ['qualified', 'profile_received'].includes(l.status)).length,
+      requirements: openRequirements,
       shortlists,
       visits,
       deals,
     } as Record<string, number>,
-    funnel: FUNNEL_ROWS.map((r) => {
-      const count = countOf(r.statuses);
-      return { label: r.label, count, pct: `${Math.round((count / top) * 100)}%`, color: r.color };
-    }),
+    funnel: buildFunnel(allLeads),
     tasks: tasks.map((t) => ({
       id: t.id,
       // the checkbox writes back through /api/leads/:leadId/tasks
