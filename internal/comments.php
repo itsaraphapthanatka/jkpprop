@@ -33,7 +33,11 @@ $ALLOWED_ITEMS = ['2','3','4','5','6','7','8','9','10','11','12',
 // ถ้าคีย์ชนกัน ความคิดเห็นของอีกหน้าจะไปโผล่ผิดที่
                   'f2','f3','f4','f5','f6','f7','f8','f9','f10',
                   'f11','f13','f14','f15','f16','f17','f18',
-                  'fplan','fgeneral'];
+                  'fplan','fgeneral',
+// หน้าเทียบ flow เดิมกับของจริง (flow-compare.html)
+                  'c1','c2','c3','c4','c5','c6','c7','c8','c9','c10',
+                  'c11','c12','c13','c14','c15','c16','c17','c18',
+                  'cplan','cgeneral'];
 
 function respond(int $code, array $obj): void {
     http_response_code($code);
