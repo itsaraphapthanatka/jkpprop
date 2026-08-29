@@ -16,6 +16,7 @@ import { db } from '@/lib/server/db';
 import { ROLES, initialPrivs, type RoleKey } from '@/lib/rbac';
 import { issueResetToken } from '@/lib/server/passwordReset';
 import { sendMail, inviteMail, mailConfigured } from '@/lib/server/mail';
+import { publicUrl } from '@/lib/server/publicUrl';
 
 export const POST = handler(async (req: Request) => {
   const actor = await requireUser();
@@ -58,7 +59,7 @@ export const POST = handler(async (req: Request) => {
 
   /* ลิงก์ตั้งรหัสผ่านของตัวเอง — ส่งไปทางอีเมล ไม่ต้องส่งรหัสผ่านตัวจริงออกไป */
   const { token, hours } = await issueResetToken(created.id, 'invite');
-  const url = new URL(`/admin/reset-password?token=${encodeURIComponent(token)}`, new URL(req.url).origin).toString();
+  const url = publicUrl(req, `/admin/reset-password?token=${encodeURIComponent(token)}`);
   const mail = inviteMail(created.name, url, hours);
   const sent = await sendMail(email, mail.subject, mail.html, mail.text, actor.orgId);
 

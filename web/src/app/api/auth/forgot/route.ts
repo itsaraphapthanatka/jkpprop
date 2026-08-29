@@ -9,6 +9,7 @@ import { db } from '@/lib/server/db';
 import { issueResetToken, pruneExpiredTokens } from '@/lib/server/passwordReset';
 import { sendMail, resetMail, mailConfigured } from '@/lib/server/mail';
 import { audit } from '@/lib/server/audit';
+import { publicUrl } from '@/lib/server/publicUrl';
 
 export const runtime = 'nodejs';
 
@@ -31,7 +32,7 @@ export const POST = handler(async (req: Request) => {
 
   await pruneExpiredTokens().catch(() => 0);
   const { token, hours } = await issueResetToken(user.id, 'reset');
-  const url = new URL(`/admin/reset-password?token=${encodeURIComponent(token)}`, new URL(req.url).origin).toString();
+  const url = publicUrl(req, `/admin/reset-password?token=${encodeURIComponent(token)}`);
   const mail = resetMail(user.name || email, url, hours);
   const res = await sendMail(email, mail.subject, mail.html, mail.text, user.orgId);
 
