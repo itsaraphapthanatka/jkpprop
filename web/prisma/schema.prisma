@@ -78,6 +78,31 @@ model User {
  * รหัสผ่าน SMTP เก็บแยกคอลัมน์และไม่เคยถูกส่งกลับออกไปทาง API — หน้าจอรู้แค่ว่า
  * "ตั้งไว้แล้วหรือยัง" · เว้นว่างตอนบันทึก = ใช้ค่าเดิมต่อ
  */
+/* ความคิดเห็นบนหน้าเช็คลิสต์ที่ส่งให้ลูกค้า (/internal/*)
+ *
+ * เดิมเก็บเป็นไฟล์ JSON บนดิสก์ของเครื่องเก่า และมี PHP หนึ่งไฟล์คอยอ่านเขียน
+ * โดยมี nginx ตั้งกฎเสิร์ฟให้เป็นพิเศษ · 29 ส.ค. 2569 ย้ายเว็บไปเครื่องใหม่ที่
+ * ใช้ Cloudflare Tunnel ส่งเข้าแอปตรง ๆ ไม่มี nginx คั่น หน้าเหล่านั้นจึง 404
+ * ทั้งหมดสำหรับลูกค้า ทั้งที่ไฟล์ถูกคัดลอกไปแล้ว
+ *
+ * ย้ายมาเก็บในฐานข้อมูลเดียวกับข้อมูลอื่น — ย้ายเครื่องเมื่อไรก็ตามไปด้วย
+ * และได้สำรองรายคืนเหมือนของอื่นโดยไม่ต้องดูแลแยก
+ */
+model PageComment {
+  id        String   @id @default(cuid())
+  /* หน้าไหน + ข้อไหน — เช่น "checklist:14" หรือ "flow:f2" */
+  page      String
+  item      String
+  name      String
+  text      String   @default("")
+  /* ที่อยู่ของภาพแนบในคลังสื่อ ไม่ได้เก็บตัวไฟล์ไว้ตรงนี้ */
+  images    String[] @default([])
+  createdAt DateTime @default(now())
+
+  @@index([page, item])
+  @@index([createdAt])
+}
+
 model MailSetting {
   orgId     String   @id
   org       Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)

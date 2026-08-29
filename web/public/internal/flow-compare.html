@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Flow ที่ตกลงไว้ กับ Flow ที่รันอยู่จริง</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #F5F4F0;
+    --surface: #FFFFFF;
+    --line: #E2E0D9;
+    --ink: #17211D;
+    --muted: #626D67;
+    --muted2: #8B948F;
+    --accent: #034956;
+    --accent-soft: rgba(3, 73, 86, .08);
+    --done: #0D6C3B;
+    --done-soft: rgba(13, 108, 59, .10);
+    --ask: #8A6A12;
+    --ask-soft: rgba(154, 116, 28, .13);
+    --big: #A83B27;
+    --big-soft: rgba(168, 59, 39, .10);
+    --quote: #FBF7EC;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121815;
+      --surface: #19211D;
+      --line: #2B3531;
+      --ink: #EDF1EE;
+      --muted: #9DA9A3;
+      --muted2: #74807A;
+      --accent: #63C8D8;
+      --accent-soft: rgba(99, 200, 216, .12);
+      --done: #52C98A;
+      --done-soft: rgba(82, 201, 138, .13);
+      --ask: #D9B14F;
+      --ask-soft: rgba(217, 177, 79, .14);
+      --big: #E5836D;
+      --big-soft: rgba(229, 131, 109, .13);
+      --quote: #1E2622;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Noto Sans Thai', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+  }
+  img { max-width: 100%; }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 44px 22px 90px; }
+
+  header { display: flex; flex-direction: column; gap: 10px; margin-bottom: 30px; }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
+    letter-spacing: .13em; text-transform: uppercase; color: var(--accent);
+  }
+  h1 { margin: 0; font-size: clamp(26px, 4.4vw, 36px); font-weight: 800; line-height: 1.3; text-wrap: balance; }
+  .sub { margin: 0; color: var(--muted); max-width: 62ch; }
+
+  .tally { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .tally span {
+    display: inline-flex; align-items: baseline; gap: 7px;
+    padding: 7px 13px; border-radius: 9px; background: var(--surface);
+    border: 1px solid var(--line); font-size: 13px; color: var(--muted);
+  }
+  .tally b { font-family: 'JetBrains Mono', monospace; font-size: 15px; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  .note {
+    margin: 26px 0 34px; padding: 15px 17px; border-radius: 11px;
+    background: var(--accent-soft); border: 1px solid var(--line);
+    font-size: 13.5px; color: var(--muted); line-height: 1.7;
+  }
+  .note b { color: var(--ink); }
+
+  h2 {
+    margin: 42px 0 4px; font-size: 19px; font-weight: 800;
+    padding-bottom: 10px; border-bottom: 2px solid var(--line);
+  }
+  h2 .count { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; color: var(--muted2); margin-left: 8px; }
+
+  .list { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; }
+
+  .item {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 13px;
+    padding: 16px 18px; display: grid; gap: 11px;
+    grid-template-columns: 44px 1fr; align-items: start;
+  }
+  .no {
+    font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px;
+    color: var(--accent); background: var(--accent-soft);
+    border-radius: 8px; padding: 5px 0; text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .body { display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+  .head { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
+  .head h3 { margin: 0; font-size: 15.5px; font-weight: 700; line-height: 1.5; }
+
+  .chip {
+    font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+    white-space: nowrap; letter-spacing: .01em;
+  }
+  .c-done { background: var(--done-soft); color: var(--done); }
+  .c-doing { background: var(--accent); color: var(--bg); }
+  .c-small { background: var(--accent-soft); color: var(--accent); }
+  .c-ask { background: var(--ask-soft); color: var(--ask); }
+  .c-big { background: var(--big-soft); color: var(--big); }
+
+  blockquote {
+    margin: 0; padding: 9px 13px; border-left: 3px solid var(--line);
+    background: var(--quote); border-radius: 0 8px 8px 0;
+    font-size: 13.5px; color: var(--muted); line-height: 1.65;
+  }
+  .fix { font-size: 14px; color: var(--ink); }
+  .fix .lbl {
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--muted2);
+    display: block; margin-bottom: 2px;
+  }
+  code {
+    font-family: 'JetBrains Mono', monospace; font-size: 12.5px;
+    background: var(--accent-soft); padding: 1.5px 6px; border-radius: 5px;
+    color: var(--accent); word-break: break-word;
+  }
+  ol.steps { margin: 4px 0 0; padding-left: 20px; font-size: 14px; }
+  ol.steps li { margin-bottom: 3px; }
+
+  .scroller { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 420px; }
+  th, td { text-align: left; padding: 6px 12px 6px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted2); font-weight: 700; }
+  td.n { font-family: 'JetBrains Mono', monospace; color: var(--muted2); font-variant-numeric: tabular-nums; width: 34px; }
+
+  footer { margin-top: 46px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted2); font-size: 13px; }
+
+  /* ---- ความคิดเห็นและภาพแนบ ---- */
+  .cwrap { border-top: 1px dashed var(--line); padding-top: 10px; margin-top: 4px; }
+  .cbtn { background: none; border: none; padding: 0; font: inherit; font-size: 13px; color: var(--muted2); cursor: pointer; }
+  .cbtn:hover { color: var(--accent); }
+  .cthread { display: flex; flex-direction: column; gap: 9px; margin-bottom: 10px; }
+  .cmt { background: var(--quote); border: 1px solid var(--line); border-radius: 10px; padding: 9px 13px 11px; font-size: 13.5px; }
+  .cmeta { display: flex; align-items: baseline; gap: 9px; font-size: 12px; color: var(--muted2); }
+  .cname { font-weight: 700; color: var(--ink); font-size: 13px; }
+  .ctext { white-space: pre-wrap; margin-top: 3px; word-break: break-word; color: var(--ink); }
+  .cimgs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 9px; }
+  .cimgs img { height: 88px; width: auto; max-width: 220px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); cursor: zoom-in; display: block; }
+  .pv { position: relative; display: inline-block; }
+  .pv img { cursor: default; }
+  .pvx { position: absolute; top: -7px; right: -7px; width: 21px; height: 21px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; font-size: 13px; line-height: 1; padding: 0; }
+  .pvx:hover { color: var(--big); border-color: var(--big); }
+  .cform { display: flex; flex-direction: column; gap: 8px; }
+  .cform input[type="text"], .cform textarea {
+    font: inherit; font-size: 13.5px; line-height: 1.6; background: var(--surface);
+    color: var(--ink); border: 1px solid var(--line); border-radius: 9px; padding: 8px 12px; width: 100%;
+  }
+  .cform input[type="text"] { max-width: 260px; }
+  .cform textarea { min-height: 66px; resize: vertical; }
+  .cform input:focus-visible, .cform textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .crow { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
+  .cattach { background: var(--surface); border: 1px solid var(--line); border-radius: 9px; padding: 6px 12px; font: inherit; font-size: 13px; color: var(--ink); cursor: pointer; }
+  .cattach:hover { border-color: var(--accent); color: var(--accent); }
+  .chint { font-size: 11.5px; color: var(--muted2); }
+  .csend { margin-left: auto; background: var(--accent); color: var(--bg); border: none; border-radius: 9px; padding: 7px 16px; font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; }
+  .csend:hover { filter: brightness(1.12); }
+  .csend:disabled { opacity: .6; cursor: default; filter: none; }
+  .ccancel { background: none; border: none; font: inherit; font-size: 13px; color: var(--muted2); cursor: pointer; }
+  .ccancel:hover { color: var(--ink); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .ronote { font-size: 12.5px; color: var(--muted2); }
+  .ghint { margin: 0; font-size: 13.5px; color: var(--muted); }
+  .toast {
+    position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 16px);
+    background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 11px;
+    font-size: 13.5px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+    max-width: min(92vw, 480px); z-index: 60; box-shadow: 0 8px 24px rgba(0,0,0,.25);
+  }
+  .toast.on { opacity: 1; transform: translate(-50%, 0); }
+  .lb { position: fixed; inset: 0; background: rgba(10,14,12,.86); display: flex; align-items: center; justify-content: center; cursor: zoom-out; z-index: 70; padding: 4vmin; }
+  .lb img { max-width: 100%; max-height: 100%; border-radius: 10px; }
+  @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+
+  @media (max-width: 560px) {
+    .item { grid-template-columns: 1fr; }
+    .no { width: 44px; }
+  }
+</style>
+</head>
+<body>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">ตรวจสอบ · 29/8/2569</div>
+    <h1>Flow ที่ตกลงไว้ กับ Flow ที่รันอยู่จริง</h1>
+    <p class="sub">ไล่เทียบทีละเส้นทางระหว่างเอกสาร Flow Charts v1.0 ที่ส่งให้เมื่อ 6 ก.ค. กับโค้ดที่ทำงานอยู่บนเว็บวันนี้ พร้อมสรุปเส้นทางของลีดตั้งแต่กรอกฟอร์มจนปิดดีล</p>
+    <div class="tally" id="tally"><span id="ctotal" hidden><b>0</b> ความคิดเห็น</span></div>
+  </header>
+
+<script>
+/* นับป้ายสถานะจากการ์ดจริง แล้วเติมลงแถบสรุปด้านบน (ตัวเลขเดิมเป็นค่าคงที่
+   ที่ค้างอยู่ตั้งแต่รอบแรก) · เรียงตามลำดับที่อยากให้อ่าน แล้วซ่อนหมวดที่ว่าง */
+/* ต้องรอให้การ์ดถูก parse ก่อน — สคริปต์นี้อยู่ใต้ header ซึ่งมาก่อนรายการ
+   ทั้งหมด ถ้ารันทันทีจะนับได้ศูนย์ */
+function jkpTally() {
+  var order = ['ตรง', 'ต่าง · สำคัญที่สุด', 'ต่าง', 'ด่านบังคับ', 'ขึ้นเว็บแล้ว'];
+  var box = document.getElementById('tally');
+  if (!box) return;
+  var count = {};
+  var cards = document.querySelectorAll('.item .head .chip');
+  for (var i = 0; i < cards.length; i++) {
+    var t = (cards[i].textContent || '').trim();
+    if (t) count[t] = (count[t] || 0) + 1;
+  }
+  var seen = {}, frag = document.createDocumentFragment();
+  order.concat(Object.keys(count)).forEach(function (k) {
+    if (seen[k] || !count[k]) return;
+    seen[k] = 1;
+    var sp = document.createElement('span');
+    sp.innerHTML = '<b>' + count[k] + '</b> ' + k;
+    frag.appendChild(sp);
+  });
+  box.insertBefore(frag, box.firstChild);
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', jkpTally);
+else jkpTally();
+</script>
+
+  <div class="note">
+    <b>เทียบอะไรกับอะไร</b> — เอกสาร <a href="https://appreview.cloud/FLOWCHARTS.html">Flow Charts v1.0</a> ที่ส่งให้เมื่อ 6 ก.ค. 2569
+    เทียบกับ<b>โค้ดที่รันอยู่จริงบนเว็บวันนี้</b> ไล่อ่านทีละเส้นทาง ไม่ได้เทียบกับเอกสารอื่น
+    <br>ทุกข้อที่เขียนว่า “ของจริง” ตรวจจากโค้ดที่ทำงานอยู่ ไม่ใช่จากแผนหรือความตั้งใจ
+  </div>
+
+  <div class="note">
+    <b>สรุปสั้น</b> — โครงหลักยังตรงกับที่ตกลงไว้ ด่านสำคัญทุกด่านยังอยู่และบังคับที่เซิร์ฟเวอร์จริง
+    <br>ที่ต่างมี <b>3 เรื่อง</b> และ <b>2 ใน 3 เป็นเรื่องเดียวกับที่แจ้งไว้ในเด็คชุดใหม่</b> — ดูข้อ ต1 และ ต3
+    <br>มีของที่ทำเพิ่มหลังจากนั้นอีก <b>5 อย่าง</b> ซึ่งเอกสารเดิมยังไม่มี
+  </div>
+
+  <h2>ยังตรงกับที่ตกลงไว้ <span class="count">6 เรื่อง</span></h2>
+  <div class="list">
+
+    <div class="item">
+      <div class="no" data-cid="c1">ต✓</div>
+      <div class="body">
+        <div class="head"><h3>สถานะลีด 9 ขั้น และการเลื่อนอัตโนมัติ</h3><span class="chip c-done">ตรง</span></div>
+        <div class="fix"><span class="lbl">ทั้ง 9 ค่าตรงเป๊ะ</span>
+          <code>ใหม่</code> → <code>คัดกรองแล้ว</code> → <code>ได้ข้อมูลลูกค้าแล้ว</code> → <code>ยืนยันความต้องการแล้ว</code> → <code>ส่ง shortlist แล้ว</code> → <code>นัดเข้าชมแล้ว</code> → <code>กำลังเจรจา</code> → <code>ปิดดีลสำเร็จ</code> / <code>ไม่สำเร็จ</code>
+          <br>และเลื่อนไปข้างหน้าอย่างเดียวตามที่ออกแบบไว้ — เหตุการณ์ที่เกิดทีหลังจะไม่ดึงสถานะถอยกลับ</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="no" data-cid="c2">ต✓</div>
+      <div class="body">
+        <div class="head"><h3>เช็คทรัพย์ว่างก่อนสร้าง Shortlist</h3><span class="chip c-done">ตรง</span></div>
+        <div class="fix"><span class="lbl">บังคับที่เซิร์ฟเวอร์จริง ไม่ใช่แค่ซ่อนปุ่ม</span>
+          สร้าง shortlist ไม่ได้ถ้ายังไม่กดยืนยันใบงาน และหยิบได้เฉพาะทรัพย์ที่เช็คแล้วว่าว่างเท่านั้น
+          <br>ทรัพย์ที่ถูกปิดประกาศไปแล้วไม่มีทางขึ้นว่า “ว่าง” ได้อีก แม้ผลเช็คเก่าจะเคยบอกว่าว่าง</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="no" data-cid="c3">ต✓</div>
+      <div class="body">
+        <div class="head"><h3>ส่ง Shortlist ไม่ได้ถ้ามีทรัพย์ที่ไม่ว่างแล้วค้างอยู่</h3><span class="chip c-done">ตรง</span></div>
+        <div class="fix"><span class="lbl">และบอกด้วยว่าติดตัวไหน</span>
+          ระบบขึ้นข้อความว่า “ส่งไม่ได้ — มี N ทรัพย์ที่ไม่ว่างแล้ว” พร้อมรหัสทรัพย์ ไม่ใช่ปฏิเสธเฉย ๆ</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="no" data-cid="c4">ต✓</div>
+      <div class="body">
+        <div class="head"><h3>ยกเลิกใบงานต้องระบุข้อที่เป็นปัญหา</h3><span class="chip c-done">ตรง</span></div>
+        <div class="fix"><span class="lbl">เลือกจากรายการ ไม่ใช่พิมพ์ลอย ๆ</span>
+          งบประมาณ · ขนาด · ทำเล · ใบอนุญาต · ระยะเวลา · อื่น ๆ — ทำให้ย้อนดูได้ว่าปิดเพราะอะไรบ่อยที่สุด</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="no" data-cid="c5">ต✓</div>
+      <div class="body">
+        <div class="head"><h3>ยืนยันเกณฑ์กับลูกค้าก่อนจัดนัด</h3><span class="chip c-done">ตรง</span></div>
+        <div class="fix"><span class="lbl">เป็นด่านจริง</span>
+          ปิดแผนเข้าชมหรือเปิดดีลไม่ได้ถ้ายังไม่กดยืนยันเกณฑ์ · กันไว้ทั้งที่หน้าจอและที่เซิร์ฟเวอร์ ยิงคำสั่งตรงก็ข้ามไม่ได้</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="no" data-cid="c6">ต✓</div>
+      <div class="body">
+        <div class="head"><h3>ปิดดีลแล้วตัวเงินถูกล็อก</h3><span class="chip c-done">ตรง</span></div>
+        <div class="fix"><span class="lbl">แก้ได้เฉพาะผู้มีสิทธิ์ และต้องบอกเหตุผล</span>
+          ทุกครั้งที่ปลดล็อกถูกบันทึกไว้ในประวัติการแก้ไข พร้อมชื่อคนทำและเหตุผล</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>ต่างจากเอกสาร <span class="count">3 เรื่อง</span></h2>
+  <div class="list">
+
+    <div class="item">
+      <div class="no" data-cid="c7">ต1</div>
+      <div class="body">
+        <div class="head"><h3>ทางเข้าจากหน้าเว็บรวมเหลือเส้นเดียว และเปิดใบงานให้ทุกครั้ง</h3><span class="chip c-big">ต่าง · สำคัญที่สุด</span></div>
+        <div class="scroller">
+          <table>
+            <thead><tr><th style="width:50%">เอกสารเดิมเขียนว่า</th><th>ของจริงวันนี้</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><b>สองทางแยกกัน</b><br>· ถามเรื่องทรัพย์หลังเดียว → สร้าง<u>ลีด</u>อย่างเดียว<br>· ฝากทีมหาให้ → สร้าง<u>ลีด + ใบงาน</u></td>
+                <td><b>ทางเดียว</b> — ทั้งสองฟอร์มยิงมาที่เส้นเดียวกัน<br>และ<b>สร้างใบงาน (REQ) ให้เสมอ</b> แม้เป็นการถามเรื่องทรัพย์หลังเดียว</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="fix"><span class="lbl">ผลที่ตามมา</span> ใบงานที่แท้จริงเป็นแค่ “สนใจหลังนี้” ปนอยู่กับใบงานที่ลูกค้าตั้งใจฝากหา
+          คิวใบงานจึงยาวกว่าความเป็นจริง และลูกค้ารายเดียวมีใบงานหลายใบโดยไม่ได้ตั้งใจ</div>
+        <div class="fix"><span class="lbl">ตรงกับที่แจ้งไว้แล้ว</span> อาการนี้คือสิ่งที่เขียนไว้ในเด็คชุดใหม่ว่า
+          <b>“ทำไม 1 Leads เปิดใบงานได้หลายใบ”</b> และเป็นรากเดียวกับสไลด์ 2 ที่ขอให้ทุกขั้นตอนยึดใบงานเป็นศูนย์กลาง
+          — ยังไม่ได้เริ่มทำ</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="no" data-cid="c8">ต2</div>
+      <div class="body">
+        <div class="head"><h3>ขั้นตอนเจรจาไม่มีสถานะย่อย</h3><span class="chip c-doing">ต่าง</span></div>
+        <div class="scroller">
+          <table>
+            <thead><tr><th style="width:50%">เอกสารเดิมเขียนว่า</th><th>ของจริงวันนี้</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>ดีลไล่ผ่านสถานะย่อย<br><code>เจรจา</code> → <code>รวบรวมเอกสาร</code> → <code>ตรวจสัญญา</code> → <code>เซ็นแล้ว</code></td>
+                <td>ดีลมีแค่ <code>กำลังเจรจา</code> · <code>ปิดได้</code> · <code>ไม่สำเร็จ</code><br>เอกสารแนบได้ แต่ไม่มีสถานะบอกว่าอยู่ขั้นไหนของการทำสัญญา</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="fix"><span class="lbl">ผลที่ตามมา</span> ดีลที่รอเอกสารกับดีลที่รอลูกค้าตัดสินใจ หน้าตาเหมือนกันหมด — ดูจากหน้าจอไม่ออกว่าค้างเพราะอะไร</div>
+        <div class="fix"><span class="lbl">ทางเลือก</span> เพิ่มสถานะย่อยตามเอกสารเดิม หรือปล่อยไว้แล้วใช้ช่องบันทึกแทน — <b>เรื่องนี้ยังไม่มีใครสั่ง ขอให้ตัดสินว่าจะเอาแบบไหน</b></div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="no" data-cid="c9">ต3</div>
+      <div class="body">
+        <div class="head"><h3>สถานะลีดสองขั้นแรกไม่มีปุ่มให้กด</h3><span class="chip c-doing">ต่าง</span></div>
+        <div class="scroller">
+          <table>
+            <thead><tr><th style="width:50%">เอกสารเดิมเขียนว่า</th><th>ของจริงวันนี้</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>ทีมงานกดเลื่อนเอง<br><code>คัดกรองแล้ว</code> เมื่อตรวจว่าเป็นลูกค้าจริง<br><code>ได้ข้อมูลลูกค้าแล้ว</code> เมื่อได้ข้อมูลบริษัทครบ</td>
+                <td>สองสถานะนี้<b>มีอยู่ในระบบแต่ไม่มีปุ่มไหนพาไปถึง</b><br>ในทางปฏิบัติลีดกระโดดจาก <code>ใหม่</code> ไป <code>ยืนยันความต้องการแล้ว</code> ตอนกดยืนยันใบงาน</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="fix"><span class="lbl">ผลที่ตามมา</span> วัดไม่ได้ว่าลีดตกหล่นตรงขั้นคัดกรอง เพราะไม่มีใครเคยอยู่ในสถานะนั้น</div>
+        <div class="fix"><span class="lbl">เกี่ยวกับสไลด์ 8</span> ในเด็คชุดใหม่ขอเพิ่มสถานะใบงานอีก 4 สถานะ ซึ่งเป็นคนละชุดกับสถานะลีด
+          ถ้าทำข้อนั้น ควรตัดสินพร้อมกันว่าจะเก็บสองขั้นนี้ไว้หรือตัดออกจากระบบ</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>ทำเพิ่มหลังจากนั้น · เอกสารเดิมยังไม่มี <span class="count">5 อย่าง</span></h2>
+  <div class="list">
+    <div class="item">
+      <div class="no" data-cid="c10">+</div>
+      <div class="body">
+        <div class="head"><h3>ของที่เพิ่มเข้ามาหลัง 6 ก.ค.</h3><span class="chip c-done">ขึ้นเว็บแล้ว</span></div>
+        <ol class="steps">
+          <li><b>รหัสงานเดียวกันทั้งสาย</b> — <code>REQ-1018</code> ไหลไปถึง <code>DEAL-REQ-1018</code> ตรวจงานเป็นชุดได้</li>
+          <li><b>ลูกค้าตอบกลับเองจากลิงก์ Shortlist</b> — สนใจ / ยังไม่ตัดสินใจ / ไม่สนใจ + เขียนโน้ต เข้าหลังบ้านทันที ทีมไม่ต้องโทรถาม</li>
+          <li><b>ปิดดีลแล้วเขียนสัญญาเช่าให้อัตโนมัติ</b> — ถ้าใส่วันหมดสัญญา ระบบสร้างให้แล้วไปโผล่ที่กระดิ่งเตือนก่อนหมดอายุ ไม่ต้องคีย์ซ้ำ</li>
+          <li><b>ลายน้ำบนรูปประกาศ</b> — ตั้งตำแหน่งและขนาดได้จากหลังบ้าน</li>
+          <li><b>Field Builder</b> — เพิ่มและแก้ชื่อฟิลด์ทรัพย์เองได้ ไม่ต้องรอทีมพัฒนา</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <h2>เส้นทางของลีดวันนี้ ตั้งแต่ต้นจนจบ <span class="count">8 ขั้น</span></h2>
+  <div class="list">
+
+    <div class="item">
+      <div class="no" data-cid="c11">1</div>
+      <div class="body">
+        <div class="head"><h3>ลูกค้ากรอกฟอร์มบนเว็บ</h3></div>
+        <div class="fix"><span class="lbl">เข้าได้ 2 ทาง</span> ฟอร์ม “แจ้งความต้องการ” หน้าติดต่อ · หรือกล่อง “ขอข้อมูลเพิ่มเติม” ในหน้าทรัพย์ (แนบรหัสทรัพย์มาด้วย)</div>
+        <div class="fix"><span class="lbl">ระบบทำอะไร</span> กันบอทด้วยช่องซ่อนและจำกัด 5 ครั้งต่อนาทีต่อผู้ใช้ · บังคับกรอก <b>ชื่อ · เบอร์โทร · สถานะผู้ตอบ</b>
+          <br>แล้วสร้างให้พร้อมกันสองอย่าง: <b>ลีด</b> สถานะ <code>ใหม่</code> และ <b>ใบงาน REQ-xxxx</b> สถานะ <code>รอตรวจสอบ</code>
+          <br>ถ้าเน็ตหลุดตอนกดส่ง ฟอร์มเก็บไว้ในเครื่องลูกค้าไม่ให้หาย</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="no" data-cid="c12">2</div>
+      <div class="body">
+        <div class="head"><h3>ทีมตรวจใบงาน</h3></div>
+        <div class="fix"><span class="lbl">ทำได้ 3 อย่าง</span>
+          <b>ยืนยัน</b> → ลีดเลื่อนเป็น <code>ยืนยันความต้องการแล้ว</code> ·
+          <b>ยกเลิก</b> ต้องระบุข้อที่เป็นปัญหา ·
+          <b>เปิดใหม่</b> ถ้ายกเลิกผิด</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="no" data-cid="c13">3</div>
+      <div class="body">
+        <div class="head"><h3>เช็คว่างกับเจ้าของทรัพย์</h3><span class="chip c-small">ด่านบังคับ</span></div>
+        <div class="fix"><span class="lbl">บันทึกผลรายหลัง</span> ว่าง / ไม่ว่าง พร้อมโน้ตและชื่อคนที่โทรถาม
+          <br>ข้ามขั้นนี้ไม่ได้ — สร้าง shortlist ไม่ได้ถ้ายังไม่มีทรัพย์ที่เช็คแล้วว่าว่าง</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="no" data-cid="c14">4</div>
+      <div class="body">
+        <div class="head"><h3>สร้าง Shortlist แล้วส่งให้ลูกค้า</h3></div>
+        <div class="fix"><span class="lbl">ทำได้</span> จัดลำดับ · ใส่โน้ตรายทรัพย์ · เพิ่มหรือเอาออก · ค้นหาทรัพย์เพิ่มด้วยตัวกรองชุดเดียวกับหน้าอื่น</div>
+        <div class="fix"><span class="lbl">กดส่งให้ลูกค้า</span> ได้ลิงก์ส่วนตัวที่เปิดได้โดยไม่ต้องเข้าสู่ระบบ → ลีดเลื่อนเป็น <code>ส่ง shortlist แล้ว</code></div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="no" data-cid="c15">5</div>
+      <div class="body">
+        <div class="head"><h3>ลูกค้าตอบกลับเอง</h3></div>
+        <div class="fix"><span class="lbl">จากลิงก์ที่ได้รับ</span> เลือกต่อรายการว่า <b>สนใจ / ยังไม่ตัดสินใจ / ไม่สนใจ</b> และเขียนโน้ตได้
+          <br>คำตอบเข้าหลังบ้านทันที · ดูเทียบเป็นตารางหรือการ์ดก็ได้ · เปลี่ยนภาษาได้เอง</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="no" data-cid="c16">6</div>
+      <div class="body">
+        <div class="head"><h3>นัดเข้าชม</h3><span class="chip c-small">ด่านบังคับ</span></div>
+        <div class="fix"><span class="lbl">สร้างจาก Shortlist</span> ตั้งต้นเลือกเฉพาะหลังที่ลูกค้าบอกว่าสนใจ → ลีดเลื่อนเป็น <code>นัดเข้าชมแล้ว</code>
+          <br>แผนพกรหัสงานเดียวกับใบงาน · เตือนเมื่อเกิน 8 จุดต่อรอบ</div>
+        <div class="fix"><span class="lbl">ทำได้</span> ยืนยันเกณฑ์กับลูกค้า · บันทึกผลรายทรัพย์ · เปิดประกาศ โทรหาเจ้าของ และนำทางจากในแผน · พิมพ์ใบเส้นทาง (ปิดเบอร์โทรได้) · ยกเลิกพร้อมเหตุผล · ปิดแผน</div>
+        <div class="fix"><span class="lbl">ด่าน</span> ปิดแผนหรือเปิดดีลไม่ได้ถ้ายังไม่กด <b>“ยืนยันเกณฑ์”</b></div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="no" data-cid="c17">7</div>
+      <div class="body">
+        <div class="head"><h3>เปิดดีล</h3></div>
+        <div class="fix"><span class="lbl">รหัสสืบจากใบงาน</span> <code>DEAL-REQ-xxxx</code> → ลีดเลื่อนเป็น <code>กำลังเจรจา</code></div>
+        <div class="fix"><span class="lbl">ทำได้</span> บันทึกข้อเสนอกลับไปกลับมาได้หลายรอบ (ฝั่งลูกค้า / ฝั่งเจ้าของ) · แนบเอกสาร · ดูประวัติการติดต่อจากลีดในหน้าเดียวกัน</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="no" data-cid="c18">8</div>
+      <div class="body">
+        <div class="head"><h3>จบ</h3></div>
+        <div class="scroller">
+          <table>
+            <thead><tr><th>ปลายทาง</th><th>เกิดอะไรขึ้น</th></tr></thead>
+            <tbody>
+              <tr><td><b>ปิดได้</b></td><td>ลีด → <code>ปิดดีลสำเร็จ</code> · ตัวเงินถูกล็อก · ถ้าใส่วันหมดสัญญา ระบบเขียนสัญญาเช่าให้เอง แล้วไปเตือนก่อนหมดอายุที่กระดิ่ง</td></tr>
+              <tr><td><b>ไม่สำเร็จ</b></td><td>ลีด → <code>ไม่สำเร็จ</code> · เก็บข้อมูลไว้วิเคราะห์ ไม่ลบทิ้ง</td></tr>
+              <tr><td><b>ยกเลิกกลางทาง</b></td><td>ปิดใบงานพร้อมเหตุผล · shortlist ที่ค้างอยู่ปิดตามอัตโนมัติ</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>ที่ต้องตัดสิน</h2>
+  <div class="list">
+    <div class="item">
+      <div class="no" data-cid="cplan">→</div>
+      <div class="body">
+        <div class="head"><h3>สามเรื่อง เรียงตามผลกระทบ</h3></div>
+        <ol class="steps">
+          <li><b>ต1 · ทางเข้าที่เปิดใบงานให้ทุกครั้ง</b> — เป็นรากของสไลด์ 2 ในเด็คชุดใหม่ กระทบทั้งสายงาน ควรตัดสินก่อนเริ่มยกเครื่อง</li>
+          <li><b>ต3 · สถานะลีดสองขั้นแรก</b> — ตัดสินพร้อมกับสไลด์ 8 ที่ขอเพิ่มสถานะใบงาน จะได้ไม่มีสถานะสองชุดที่ทับซ้อนกัน</li>
+          <li><b>ต2 · สถานะย่อยของดีล</b> — แยกทำทีหลังได้ ไม่ขวางข้ออื่น</li>
+        </ol>
+        <div class="fix"><span class="lbl">ถ้าตกลงว่าจะไม่แก้ตามเอกสารเดิม</span> ผมอัปเดตเอกสาร Flow Charts ให้ตรงกับของจริงแทน จะได้ไม่มีเอกสารสองฉบับที่ขัดกันอยู่</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>ความคิดเห็นเพิ่มเติม</h2>
+  <div class="list">
+    <div class="item">
+      <div class="no" data-cid="cgeneral">✎</div>
+      <div class="body">
+        <p class="ghint">ฝากคำถามหรือจุดที่อยากให้ตรวจเพิ่มได้ที่นี่ — ถ้าอยากให้ไล่เทียบเส้นทางอื่นด้วย (การลงประกาศ · เนื้อหาเว็บ · สิทธิ์ผู้ใช้) บอกได้เลย</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    เทียบจากเอกสาร <a href="https://appreview.cloud/FLOWCHARTS.html">Flow Charts v1.0</a> (6 ก.ค. 2569) กับโค้ดที่รันอยู่จริง ณ 29 ส.ค. 2569 ·
+    <a href="web2026-flow-checklist.html">หน้าวิเคราะห์สายงาน CRM 18 สไลด์</a> ·
+    <a href="web2026-checklist.html">หน้าวิเคราะห์ 24 ข้อ</a>
+  </footer>
+</div>
+
+
+  <footer>
+    วิเคราะห์จากเด็ค “Web 2026” ที่แก้ล่าสุด 23 ส.ค. 2026 08:45 น. · อัปเดตสถานะล่าสุด 23 ส.ค. 2026 22:45 น. · ความคิดเห็นและภาพแนบถูกเก็บไว้ในหน้านี้
+  </footer>
+</div>
+
+<script>
+(function () {
+'use strict';
+
+/* ย้ายจาก comments.php มาเป็นเส้นทางของแอปเอง — เครื่องใหม่ใช้ Cloudflare
+   Tunnel ส่งเข้าแอปตรง ๆ ไม่มี nginx คอยเสิร์ฟไฟล์ PHP ให้อีก
+   page= แยกความคิดเห็นของแต่ละหน้าออกจากกัน เดิมใช้ที่เก็บก้อนเดียวกันแล้ว
+   ต้องตั้งชื่อคีย์ไม่ให้ชนกันเอง */
+var PAGE = 'compare';
+var API = '/api/page-comments?page=' + PAGE;
+var state = { comments: [] };
+var openForms = {};   // item id -> ฟอร์มเปิดอยู่
+var pend = {};        // item id -> data URI ของภาพที่รอส่ง
+var busy = false;
+var apiDown = false;
+
+// สร้างจุดวางคอมเมนต์ใต้ทุกข้อ โดยอ่านเลขข้อจากป้ายซ้ายมือ
+document.querySelectorAll('.item').forEach(function (it) {
+  var no = it.querySelector('.no'), body = it.querySelector('.body');
+  if (!no || !body) return;
+  var id = no.getAttribute('data-cid') || no.textContent.trim();
+  if (id === '→') id = 'cplan';
+  if (!id) return;
+  var d = document.createElement('div');
+  d.className = 'cwrap';
+  d.setAttribute('data-c', id);
+  body.appendChild(d);
+});
+var root = document.body;
+
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function fmt(ts) {
+  try {
+    return new Date(ts).toLocaleString('th-TH', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' น.';
+  } catch (e) { return ''; }
+}
+function savedName() { try { return localStorage.getItem('jkp_cname') || ''; } catch (e) { return ''; } }
+function mountOf(id) { return document.querySelector('.cwrap[data-c="' + id + '"]'); }
+
+function threadHtml(id) {
+  var list = state.comments.filter(function (c) { return c.item === id; });
+  var h = '';
+  if (list.length) {
+    h += '<div class="cthread">' + list.map(function (c) {
+      var imgs = (c.imgs && c.imgs.length)
+        ? '<div class="cimgs">' + c.imgs.map(function (u, i) {
+            return '<img src="' + esc(u) + '" alt="ภาพแนบ ' + (i + 1) + '" data-zoom="1" loading="lazy">';
+          }).join('') + '</div>'
+        : '';
+      return '<div class="cmt"><div class="cmeta"><span class="cname">' + esc(c.name) + '</span><span>' + esc(fmt(c.ts)) + '</span></div>'
+        + (c.text ? '<div class="ctext">' + esc(c.text) + '</div>' : '')
+        + imgs + '</div>';
+    }).join('') + '</div>';
+  }
+  if (apiDown) {
+    h += '<div class="ronote">โหลดระบบความคิดเห็นไม่ได้ตอนนี้ — รีเฟรชหน้าแล้วลองใหม่</div>';
+    return h;
+  }
+  var always = id === 'cgeneral';
+  if (!always && !openForms[id]) {
+    var label = list.length ? '＋ เพิ่มความคิดเห็น / แนบภาพ' : '💬 เพิ่มความคิดเห็น / แนบภาพ';
+    h += '<button class="cbtn" data-open="' + esc(id) + '" type="button">' + label + '</button>';
+    return h;
+  }
+  var pimgs = pend[id] || [];
+  h += '<div class="cform">'
+    + '<input type="text" class="cnm" maxlength="60" placeholder="ชื่อของคุณ" value="' + esc(savedName()) + '">'
+    + '<textarea class="ctx" maxlength="4000" placeholder="เขียนความคิดเห็น…"></textarea>'
+    + (pimgs.length
+        ? '<div class="cimgs">' + pimgs.map(function (u, i) {
+            return '<span class="pv"><img src="' + esc(u) + '" alt="ภาพที่จะแนบ ' + (i + 1) + '"><button type="button" class="pvx" data-rm="' + i + '" title="เอาภาพนี้ออก">×</button></span>';
+          }).join('') + '</div>'
+        : '')
+    + '<div class="crow">'
+    + '<button type="button" class="cattach">📎 แนบรูป</button>'
+    + '<input type="file" class="cfile" accept="image/*" multiple hidden>'
+    + '<span class="chint">ภาพถูกย่ออัตโนมัติ · ไม่เกิน 6 ภาพต่อความคิดเห็น</span>'
+    + '<button type="button" class="csend">บันทึกความคิดเห็น</button>'
+    + (always ? '' : '<button type="button" class="ccancel" data-close="' + esc(id) + '">ยกเลิก</button>')
+    + '</div></div>';
+  return h;
+}
+
+function rerender(id) {
+  var m = mountOf(id);
+  if (!m) return;
+  var nm = m.querySelector('.cnm'), tx = m.querySelector('.ctx');
+  var keptName = nm ? nm.value : null, keptText = tx ? tx.value : null;
+  m.innerHTML = threadHtml(id);
+  var nm2 = m.querySelector('.cnm'), tx2 = m.querySelector('.ctx');
+  if (nm2 && keptName != null) nm2.value = keptName;
+  if (tx2 && keptText != null) tx2.value = keptText;
+}
+
+function renderAll() {
+  document.querySelectorAll('.cwrap').forEach(function (m) {
+    m.innerHTML = threadHtml(m.getAttribute('data-c'));
+  });
+  var chip = document.getElementById('ctotal');
+  if (chip) {
+    chip.hidden = state.comments.length === 0;
+    var b = chip.querySelector('b');
+    if (b) b.textContent = state.comments.length;
+  }
+}
+
+var toastEl, toastT;
+function toast(msg) {
+  if (!toastEl) { toastEl = document.createElement('div'); toastEl.className = 'toast'; document.body.appendChild(toastEl); }
+  toastEl.textContent = msg;
+  toastEl.classList.add('on');
+  clearTimeout(toastT);
+  toastT = setTimeout(function () { toastEl.classList.remove('on'); }, 4500);
+}
+
+function zoom(src) {
+  var o = document.createElement('div');
+  o.className = 'lb';
+  var im = document.createElement('img');
+  im.src = src; im.alt = 'ภาพแนบขยาย';
+  o.appendChild(im);
+  o.addEventListener('click', function () { o.remove(); });
+  document.body.appendChild(o);
+}
+
+function shrink(file) {
+  return new Promise(function (res, rej) {
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function () {
+      try {
+        var MAX = 1400, w = img.naturalWidth, h = img.naturalHeight;
+        var k = Math.min(1, MAX / Math.max(w, h, 1));
+        w = Math.max(1, Math.round(w * k)); h = Math.max(1, Math.round(h * k));
+        var c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        var ctx = c.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        res(c.toDataURL('image/jpeg', 0.82));
+      } catch (e) { rej(e); }
+      finally { URL.revokeObjectURL(url); }
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); rej(new Error('bad image')); };
+    img.src = url;
+  });
+}
+
+function addFiles(id, files) {
+  var cur = pend[id] || (pend[id] = []);
+  var room = Math.max(0, 6 - cur.length);
+  var take = Array.prototype.slice.call(files, 0, room);
+  if (files.length > take.length) toast('แนบได้ไม่เกิน 6 ภาพต่อความคิดเห็น');
+  var chain = Promise.resolve();
+  take.forEach(function (f) {
+    chain = chain.then(function () {
+      return shrink(f).then(
+        function (u) { cur.push(u); },
+        function () { toast('เปิดไฟล์ "' + f.name + '" ไม่ได้ — ต้องเป็นไฟล์ภาพ'); }
+      );
+    });
+  });
+  chain.then(function () { rerender(id); });
+}
+
+function submit(id, btn) {
+  if (busy) return;
+  var m = mountOf(id);
+  if (!m) return;
+  var name = (m.querySelector('.cnm').value || '').trim() || 'ไม่ระบุชื่อ';
+  var text = (m.querySelector('.ctx').value || '').trim();
+  var imgs = (pend[id] || []).slice();
+  if (!text && !imgs.length) { toast('พิมพ์ข้อความหรือแนบภาพอย่างน้อยหนึ่งอย่างก่อนบันทึก'); return; }
+  try { localStorage.setItem('jkp_cname', name); } catch (e) {}
+  busy = true;
+  if (btn) { btn.disabled = true; btn.textContent = 'กำลังบันทึก…'; }
+  fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ page: PAGE, item: id, name: name, text: text, imgs: imgs })
+  }).then(function (r) {
+    return r.json().then(function (d) { return { status: r.status, data: d }; });
+  }).then(function (res) {
+    busy = false;
+    if (btn) { btn.disabled = false; btn.textContent = 'บันทึกความคิดเห็น'; }
+    /* API ตอบ 201 ตอนสร้างสำเร็จ ไม่ใช่ 200 — เดิมรับแค่ 200 ความคิดเห็น
+       จึงบันทึกลงฐานข้อมูลจริงแต่หน้าจอขึ้นว่าไม่สำเร็จ */
+    if ((res.status === 200 || res.status === 201) && res.data && res.data.ok && res.data.comment) {
+      state.comments.push(res.data.comment);
+      delete pend[id];
+      delete openForms[id];
+      rerender(id);
+      var chip = document.getElementById('ctotal');
+      if (chip) {
+        chip.hidden = false;
+        var b = chip.querySelector('b');
+        if (b) b.textContent = state.comments.length;
+      }
+      toast('บันทึกความคิดเห็นแล้ว');
+      refresh(); // ดึงชุดเต็มทันที เผื่อมีคอมเมนต์คนอื่นแทรกเข้ามาระหว่างนั้น
+    } else if (res.status === 429) {
+      toast('ส่งถี่เกินไป พักสักครู่แล้วลองใหม่');
+    } else if (res.status === 413) {
+      toast('ภาพแนบใหญ่เกินไป ลองลดจำนวนภาพ');
+    } else {
+      toast('บันทึกไม่สำเร็จ ลองอีกครั้งได้เลย');
+    }
+  }).catch(function () {
+    busy = false;
+    if (btn) { btn.disabled = false; btn.textContent = 'บันทึกความคิดเห็น'; }
+    toast('เชื่อมต่อไม่ได้ ลองอีกครั้ง');
+  });
+}
+
+root.addEventListener('click', function (ev) {
+  var t = ev.target && ev.target.closest ? ev.target.closest('button, img[data-zoom]') : null;
+  if (!t) return;
+  if (t.classList.contains('cbtn')) {
+    var id = t.getAttribute('data-open');
+    openForms[id] = true;
+    rerender(id);
+    var m = mountOf(id), tx = m && m.querySelector('.ctx');
+    if (tx) tx.focus();
+  } else if (t.classList.contains('ccancel')) {
+    var cid = t.getAttribute('data-close');
+    delete openForms[cid];
+    delete pend[cid];
+    rerender(cid);
+  } else if (t.classList.contains('cattach')) {
+    var w = t.closest('.cwrap');
+    var f = w && w.querySelector('.cfile');
+    if (f) f.click();
+  } else if (t.classList.contains('csend')) {
+    var w2 = t.closest('.cwrap');
+    if (w2) submit(w2.getAttribute('data-c'), t);
+  } else if (t.classList.contains('pvx')) {
+    var w3 = t.closest('.cwrap');
+    if (w3) {
+      var pid = w3.getAttribute('data-c');
+      (pend[pid] || []).splice(Number(t.getAttribute('data-rm')), 1);
+      rerender(pid);
+    }
+  } else if (t.hasAttribute('data-zoom')) {
+    zoom(t.getAttribute('src'));
+  }
+});
+
+root.addEventListener('change', function (ev) {
+  var t = ev.target;
+  if (t && t.classList && t.classList.contains('cfile')) {
+    var w = t.closest('.cwrap');
+    if (w && t.files && t.files.length) addFiles(w.getAttribute('data-c'), t.files);
+    t.value = '';
+  }
+});
+
+/* -------- โหลดครั้งแรก + อัปเดตสด --------
+   poll ทุก 5 วิ ด้วยคำขอจิ๋ว (?check=1 ตอบแค่เวอร์ชันข้อมูล) — มีของใหม่
+   ค่อยโหลดชุดเต็ม แล้ว rerender ทีละกล่องซึ่งเก็บข้อความที่พิมพ์ค้างไว้ให้ */
+var lastV = null;
+
+function applyData(d) {
+  state.comments = (d && Array.isArray(d.comments)) ? d.comments : [];
+  if (d && d.v) lastV = d.v;
+  document.querySelectorAll('.cwrap').forEach(function (m) { rerender(m.getAttribute('data-c')); });
+  var chip = document.getElementById('ctotal');
+  if (chip) {
+    chip.hidden = state.comments.length === 0;
+    var b = chip.querySelector('b');
+    if (b) b.textContent = state.comments.length;
+  }
+}
+
+function refresh() {
+  return fetch(API, { cache: 'no-store' }).then(function (r) {
+    if (!r.ok) throw new Error('bad status');
+    return r.json();
+  }).then(function (d) {
+    var before = state.comments.length;
+    applyData(d);
+    if (before > 0 && state.comments.length > before && !busy) toast('มีความคิดเห็นใหม่');
+  });
+}
+
+function checkForUpdates() {
+  if (document.hidden || apiDown || busy) return;
+  fetch(API + '?check=1', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
+    if (d && d.v && d.v !== lastV) refresh().catch(function () {});
+  }).catch(function () {});
+}
+
+refresh().catch(function () {
+  apiDown = true;
+  renderAll();
+});
+
+setInterval(checkForUpdates, 5000);
+document.addEventListener('visibilitychange', function () { if (!document.hidden) checkForUpdates(); });
+
+renderAll();
+})();
+</script>
+</body>
+</html>

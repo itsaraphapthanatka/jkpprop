@@ -238,6 +238,83 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /api/page-comments:
+    get:
+      tags:
+        - Public
+      summary: ความคิดเห็นบนหน้าเช็คลิสต์
+      security: *a5
+      description: ส่ง page= เพื่อเอาเฉพาะของหน้านั้น (checklist · flow · compare) · ไม่ส่ง = ทุกหน้า
+      parameters:
+        - name: page
+          in: query
+          required: false
+          description: หน้าไหน — checklist · flow · compare
+          schema:
+            type: string
+      responses:
+        "200":
+          description: รายการความคิดเห็น
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  comments:
+                    type: array
+                    items:
+                      type: object
+    post:
+      tags:
+        - Public
+      summary: เพิ่มความคิดเห็น
+      security: *a5
+      description: เปิดสาธารณะเพราะลิงก์ถูกส่งให้ลูกค้าที่ไม่มีบัญชี · จำกัด 10 ครั้งต่อ 10 นาทีต่อผู้ใช้ · ภาพแนบส่งเป็น data URI แล้วถูกเก็บเข้าคลังสื่อ ไฟล์ที่ไม่ใช่ภาพถูกข้ามโดยไม่ทิ้งข้อความ
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                page: *a1
+                item: *a1
+                name: *a1
+                text: *a1
+                imgs:
+                  type: array
+                  items: *a1
+              required:
+                - item
+      responses:
+        "201":
+          description: บันทึกแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: *a4
+                  comment:
+                    type: object
+        "400":
+          description: ไม่ระบุข้อ หรือไม่มีทั้งข้อความและภาพ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "413":
+          description: ข้อมูลใหญ่เกินไป
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: ส่งถี่เกินไป
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /api/auth/forgot:
     post:
       tags:

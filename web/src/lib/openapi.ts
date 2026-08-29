@@ -155,6 +155,28 @@ export const openapi = {
     },
     /* 29 ส.ค. 2569 · ก่อนหน้านี้ทั้งระบบไม่มีการส่งอีเมลเลย หน้า "ลืมรหัสผ่าน"
        เป็นฉากเปล่าที่ขึ้นว่าส่งแล้วโดยไม่มี API อยู่จริง */
+    /* 29 ส.ค. 2569 · ย้ายเว็บไปเครื่องที่ใช้ Cloudflare Tunnel ส่งเข้าแอปตรง ๆ
+       ไม่มี nginx คอยเสิร์ฟไฟล์ static และ PHP ให้อีก หน้าเช็คลิสต์ที่ส่งให้
+       ลูกค้าจึง 404 ทั้งหมด — ย้ายมาให้แอปเสิร์ฟเองและเก็บลงฐานข้อมูล */
+    '/api/page-comments': {
+      get: {
+        tags: ['Public'], summary: 'ความคิดเห็นบนหน้าเช็คลิสต์', ...PUBLIC,
+        description: 'ส่ง page= เพื่อเอาเฉพาะของหน้านั้น (checklist · flow · compare) · ไม่ส่ง = ทุกหน้า',
+        parameters: [queryParam('page', 'หน้าไหน — checklist · flow · compare')],
+        responses: { 200: okRes('รายการความคิดเห็น', obj({ comments: arrayOf({ type: 'object' }) })) },
+      },
+      post: {
+        tags: ['Public'], summary: 'เพิ่มความคิดเห็น', ...PUBLIC,
+        description: 'เปิดสาธารณะเพราะลิงก์ถูกส่งให้ลูกค้าที่ไม่มีบัญชี · จำกัด 10 ครั้งต่อ 10 นาทีต่อผู้ใช้ · ภาพแนบส่งเป็น data URI แล้วถูกเก็บเข้าคลังสื่อ ไฟล์ที่ไม่ใช่ภาพถูกข้ามโดยไม่ทิ้งข้อความ',
+        requestBody: body(obj({ page: STR, item: STR, name: STR, text: STR, imgs: arrayOf(STR) }, ['item'])),
+        responses: {
+          201: okRes('บันทึกแล้ว', obj({ ok: BOOL, comment: { type: 'object' } })),
+          400: errRes('ไม่ระบุข้อ หรือไม่มีทั้งข้อความและภาพ'),
+          413: errRes('ข้อมูลใหญ่เกินไป'),
+          429: errRes('ส่งถี่เกินไป'),
+        },
+      },
+    },
     '/api/auth/forgot': {
       post: {
         tags: ['Auth'], summary: 'ขอลิงก์ตั้งรหัสผ่านใหม่', ...PUBLIC,
