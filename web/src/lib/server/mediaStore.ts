@@ -9,7 +9,7 @@
 
    Callers only ever use put/get/remove, so switching drivers is an env change.
    ============================================================ */
-import { mkdir, readdir, readFile, unlink, writeFile } from 'fs/promises';
+import { mkdir, readdir, readFile, rename, unlink, writeFile } from 'fs/promises';
 import { createHash } from 'crypto';
 import path from 'path';
 
@@ -150,7 +150,21 @@ export async function putObject(id: string, mime: string, body: Buffer, key = ob
   if (!usingS3) {
     try {
       await ensureUploadDir();
-      await writeFile(path.join(UPLOAD_DIR, key), body);
+      /* เขียนลงไฟล์ชั่วคราวก่อนแล้วค่อยเปลี่ยนชื่อ — การเปลี่ยนชื่อในระบบไฟล์
+         เดียวกันเกิดขึ้นทันทีทั้งอันหรือไม่เกิดเลย ไฟล์ปลายทางจึงไม่มีทางเป็น
+         ของครึ่ง ๆ
+         29 ส.ค. 2569 ดิสก์เต็ม 100% ระหว่างที่ระบบกำลังเขียนแคช เขียนไม่ลงแต่
+         ไฟล์เปล่าถูกสร้างค้างไว้ 145 ไฟล์ · คำสั่งที่เรียกใช้ก็กลืน error ทิ้ง
+         (แคชพังไม่ควรทำให้คำขอล้ม) ผลคือระบบเสิร์ฟไฟล์ 0 ไบต์เป็นแคชที่ใช้ได้
+         รูปในคลังสื่อจึงขึ้นเป็นช่องว่างทั้งหน้า */
+      const tmp = path.join(UPLOAD_DIR, `${key}.tmp-${process.pid}-${Date.now().toString(36)}`);
+      try {
+        await writeFile(tmp, body);
+        await rename(tmp, path.join(UPLOAD_DIR, key));
+      } catch (e) {
+        await unlink(tmp).catch(() => { /* ไม่มีให้ลบก็ดีแล้ว */ });
+        throw e;
+      }
     } catch (e) {
       if ((e as NodeJS.ErrnoException)?.code === 'EACCES' || (e as NodeJS.ErrnoException)?.code === 'EPERM') {
         throw new StorageWriteError(e);
@@ -163,11 +177,16 @@ export async function putObject(id: string, mime: string, body: Buffer, key = ob
   if (!res.ok) throw new Error(`S3 upload failed: ${res.status} ${await res.text().catch(() => '')}`);
 }
 
+/* ไฟล์ขนาดศูนย์ไบต์ไม่ใช่รูป — ถือว่าไม่มี ดีกว่าเสิร์ฟช่องว่างออกไป
+   ตัวเรียกที่ใช้มันเป็นแคชจะสร้างใหม่ให้เอง ส่วนตัวที่อ่านของจริงจะได้ 404
+   ซึ่งบอกความจริงมากกว่ารูปเปล่า */
+const notEmpty = (b: Buffer | null) => (b && b.length > 0 ? b : null);
+
 export async function getObject(id: string, mime: string, key = objectKey(id, mime)): Promise<Buffer | null> {
-  if (!usingS3) return readFile(path.join(UPLOAD_DIR, key)).catch(() => null);
+  if (!usingS3) return notEmpty(await readFile(path.join(UPLOAD_DIR, key)).catch(() => null));
   const res = await signedFetch('GET', key);
   if (!res.ok) return null;
-  return Buffer.from(await res.arrayBuffer());
+  return notEmpty(Buffer.from(await res.arrayBuffer()));
 }
 
 /* ============================================================

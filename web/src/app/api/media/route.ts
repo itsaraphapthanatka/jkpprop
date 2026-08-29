@@ -8,6 +8,7 @@ import { audit } from '@/lib/server/audit';
 import { db } from '@/lib/server/db';
 import { putObject, publicUrlFor, originalKey, EXT_BY_MIME, MAX_UPLOAD_BYTES, StorageWriteError } from '@/lib/server/mediaStore';
 import { applyWatermark, isWatermarkType, canWatermark } from '@/lib/server/watermark';
+import { shrinkImage } from '@/lib/server/imageIngest';
 
 export const runtime = 'nodejs';
 
@@ -89,12 +90,21 @@ export const POST = handler(async (req: Request) => {
   // file behind it shows up in the library as a permanently broken thumbnail.
   let src: string;
   try {
-    const original = Buffer.from(await file.arrayBuffer());
+    const uploaded = Buffer.from(await file.arrayBuffer());
+    /* ย่อครั้งเดียวตอนรับเข้า แล้วทั้งสองชุด (ต้นฉบับสะอาดกับชุดที่มีลายน้ำ)
+       สร้างจากตัวที่ย่อแล้ว — ไม่งั้นรูปจากมือถือขนาดเต็มจะถูกเก็บสองชุด
+       ทั้งที่ไม่มีหน้าไหนบนเว็บใช้ความละเอียดขนาดนั้น */
+    const shrunk = await shrinkImage(uploaded, file.type);
+    const original = shrunk.buffer;
+
     await putObject(asset.id, file.type, original, originalKey(asset.id, file.type));
     const shown = await applyWatermark(original, file.type, watermarkType);
     await putObject(asset.id, file.type, shown);
     src = publicUrlFor(asset.id, file.type);
-    await db.mediaAsset.update({ where: { id: asset.id }, data: { path: src } });
+    /* บันทึกขนาดที่เก็บจริง ไม่ใช่ขนาดที่ผู้ใช้เลือกมา — ไม่งั้นตัวเลขในคลังสื่อ
+       กับพื้นที่ที่ใช้จริงจะไม่ตรงกัน และไม่มีใครเห็นว่าการย่อได้ผลแค่ไหน */
+    await db.mediaAsset.update({ where: { id: asset.id }, data: { path: src, size: original.length } });
+    asset.size = original.length;
   } catch (e) {
     await db.mediaAsset.delete({ where: { id: asset.id } }).catch(() => { /* nothing to undo */ });
     if (e instanceof StorageWriteError) throw new ApiError('STORAGE', e.message, 500);
