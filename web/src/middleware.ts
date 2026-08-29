@@ -9,7 +9,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/config';
 
-const OPEN_ADMIN = ['/admin/login', '/admin/forgot-password'];
+/* หน้าที่คนยังไม่ได้เข้าสู่ระบบต้องเปิดได้
+   reset-password คือปลายทางของลิงก์ในอีเมล — คนที่ลืมรหัสผ่านย่อมยังไม่ได้
+   ล็อกอิน ถ้ากันไว้ด้วย ลิงก์ในอีเมลจะเด้งกลับไปหน้าเข้าสู่ระบบทุกครั้ง */
+const OPEN_ADMIN = ['/admin/login', '/admin/forgot-password', '/admin/reset-password'];
 
 /* Paths that are intentionally locale-free: the API, the admin app (Thai only,
    AGENT.md §8), the tokenized client view, and the internal reference pages. */

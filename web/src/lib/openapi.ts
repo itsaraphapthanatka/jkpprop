@@ -153,6 +153,28 @@ export const openapi = {
         },
       },
     },
+    /* 29 ส.ค. 2569 · ก่อนหน้านี้ทั้งระบบไม่มีการส่งอีเมลเลย หน้า "ลืมรหัสผ่าน"
+       เป็นฉากเปล่าที่ขึ้นว่าส่งแล้วโดยไม่มี API อยู่จริง */
+    '/api/auth/forgot': {
+      post: {
+        tags: ['Auth'], summary: 'ขอลิงก์ตั้งรหัสผ่านใหม่', ...PUBLIC,
+        description: 'ส่งลิงก์ไปทางอีเมล · ตอบเหมือนกันทุกกรณีไม่ว่าอีเมลนั้นจะมีบัญชีหรือไม่ เพื่อไม่ให้ใช้ไล่เดาว่าบัญชีไหนมีอยู่ · mailConfigured=false แปลว่าระบบอีเมลยังไม่ได้ตั้งค่า จึงยังไม่ได้ส่งจริง',
+        requestBody: body(obj({ email: STR }, ['email'])),
+        responses: { 200: okRes('รับคำขอแล้ว', obj({ sent: BOOL, mailConfigured: BOOL })) },
+      },
+    },
+    '/api/auth/reset': {
+      post: {
+        tags: ['Auth'], summary: 'ตั้งรหัสผ่านใหม่ด้วยโทเคนจากอีเมล', ...PUBLIC,
+        description: 'โทเคนใช้ได้ครั้งเดียวและมีอายุจำกัด · ตั้งสำเร็จแล้ว session เดิมของบัญชีนั้นถูกล้างทั้งหมด',
+        requestBody: body(obj({ token: STR, password: STR }, ['token', 'password'])),
+        responses: {
+          200: okRes('ตั้งรหัสผ่านใหม่แล้ว', obj({ email: STR })),
+          400: errRes('รหัสสั้นเกินไป หรือลิงก์หมดอายุ/ถูกใช้ไปแล้ว'),
+          404: errRes('ไม่พบบัญชีผู้ใช้'),
+        },
+      },
+    },
     '/api/auth/logout': {
       post: {
         tags: ['Auth'], summary: 'ออกจากระบบ',
@@ -869,9 +891,26 @@ export const openapi = {
     '/api/users/invite': {
       post: {
         tags: ['Admin'], summary: 'เชิญผู้ใช้ใหม่ (owner)',
-        description: 'ยังไม่มีระบบส่งอีเมล — คืนรหัสผ่านชั่วคราวมาครั้งเดียว และบัญชีจะใช้งานไม่ได้จนกว่าเจ้าตัวจะตั้งรหัสเอง',
+        description: 'ส่งลิงก์ตั้งรหัสผ่านไปทางอีเมล ไม่ได้ส่งรหัสผ่านตัวจริง · ถ้าระบบอีเมลยังไม่ได้ตั้งค่าหรือส่งไม่สำเร็จ จะคืน tempPassword มาให้ส่งต่อเอง และ mailed=false',
         requestBody: body(obj({ email: STR, name: STR, role: STR, expiresAt: STR }, ['email', 'role'])),
-        responses: { 201: okRes('สร้างแล้ว', obj({ id: STR, email: STR, tempPassword: STR })), ...AUTH_ERRORS },
+        responses: {
+          201: okRes('สร้างแล้ว', obj({
+            id: STR, email: STR, mailed: BOOL, mailConfigured: BOOL,
+            tempPassword: { ...STR, description: 'มีค่าเฉพาะตอนส่งอีเมลไม่สำเร็จ' },
+          })),
+          ...AUTH_ERRORS,
+        },
+      },
+    },
+    '/api/users/{id}/reset-link': {
+      post: {
+        tags: ['Admin'], summary: 'ออกลิงก์ตั้งรหัสผ่านใหม่ให้ผู้ใช้ (owner)',
+        description: 'ใช้เมื่อคนในทีมเข้าระบบไม่ได้ · ส่งลิงก์ไปทางอีเมล ถ้าส่งไม่ได้จะคืน url มาให้เจ้าของระบบส่งต่อเอง · ลิงก์ใบเก่าที่ยังไม่ถูกใช้จะถูกยกเลิกทันที',
+        parameters: [pathParam('id', 'id ของผู้ใช้')],
+        responses: {
+          200: okRes('ออกลิงก์แล้ว', obj({ email: STR, mailed: BOOL, mailConfigured: BOOL, hours: NUM, url: STR })),
+          ...WITH_404,
+        },
       },
     },
     /* ลูกค้าแจ้งว่า "Users & Roles ไม่มี ลบ user และไม่มีแก้ไข email" */

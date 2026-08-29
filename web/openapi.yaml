@@ -238,6 +238,73 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /api/auth/forgot:
+    post:
+      tags:
+        - Auth
+      summary: ขอลิงก์ตั้งรหัสผ่านใหม่
+      security: *a5
+      description: ส่งลิงก์ไปทางอีเมล · ตอบเหมือนกันทุกกรณีไม่ว่าอีเมลนั้นจะมีบัญชีหรือไม่ เพื่อไม่ให้ใช้ไล่เดาว่าบัญชีไหนมีอยู่ · mailConfigured=false แปลว่าระบบอีเมลยังไม่ได้ตั้งค่า จึงยังไม่ได้ส่งจริง
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: *a1
+              required:
+                - email
+      responses:
+        "200":
+          description: รับคำขอแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sent: *a4
+                  mailConfigured: *a4
+  /api/auth/reset:
+    post:
+      tags:
+        - Auth
+      summary: ตั้งรหัสผ่านใหม่ด้วยโทเคนจากอีเมล
+      security: *a5
+      description: โทเคนใช้ได้ครั้งเดียวและมีอายุจำกัด · ตั้งสำเร็จแล้ว session เดิมของบัญชีนั้นถูกล้างทั้งหมด
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token: *a1
+                password: *a1
+              required:
+                - token
+                - password
+      responses:
+        "200":
+          description: ตั้งรหัสผ่านใหม่แล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  email: *a1
+        "400":
+          description: รหัสสั้นเกินไป หรือลิงก์หมดอายุ/ถูกใช้ไปแล้ว
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: ไม่พบบัญชีผู้ใช้
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /api/auth/logout:
     post:
       tags:
@@ -3145,7 +3212,7 @@ paths:
       tags:
         - Admin
       summary: เชิญผู้ใช้ใหม่ (owner)
-      description: ยังไม่มีระบบส่งอีเมล — คืนรหัสผ่านชั่วคราวมาครั้งเดียว และบัญชีจะใช้งานไม่ได้จนกว่าเจ้าตัวจะตั้งรหัสเอง
+      description: ส่งลิงก์ตั้งรหัสผ่านไปทางอีเมล ไม่ได้ส่งรหัสผ่านตัวจริง · ถ้าระบบอีเมลยังไม่ได้ตั้งค่าหรือส่งไม่สำเร็จ จะคืน tempPassword มาให้ส่งต่อเอง และ mailed=false
       requestBody:
         required: true
         content:
@@ -3170,10 +3237,44 @@ paths:
                 properties:
                   id: *a1
                   email: *a1
-                  tempPassword: *a1
+                  mailed: *a4
+                  mailConfigured: *a4
+                  tempPassword:
+                    type: string
+                    description: มีค่าเฉพาะตอนส่งอีเมลไม่สำเร็จ
         "400": *a6
         "401": *a7
         "403": *a8
+  /api/users/{id}/reset-link:
+    post:
+      tags:
+        - Admin
+      summary: ออกลิงก์ตั้งรหัสผ่านใหม่ให้ผู้ใช้ (owner)
+      description: ใช้เมื่อคนในทีมเข้าระบบไม่ได้ · ส่งลิงก์ไปทางอีเมล ถ้าส่งไม่ได้จะคืน url มาให้เจ้าของระบบส่งต่อเอง · ลิงก์ใบเก่าที่ยังไม่ถูกใช้จะถูกยกเลิกทันที
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: id ของผู้ใช้
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ออกลิงก์แล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  email: *a1
+                  mailed: *a4
+                  mailConfigured: *a4
+                  hours: *a10
+                  url: *a1
+        "400": *a6
+        "401": *a7
+        "403": *a8
+        "404": *a9
   /api/nav-menu:
     get:
       tags:

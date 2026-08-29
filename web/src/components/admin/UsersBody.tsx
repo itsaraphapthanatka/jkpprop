@@ -68,6 +68,12 @@ export function UsersBody() {
   const [editing, setEditing] = React.useState<string | null>(null); // email
   const [draft, setDraft] = React.useState<{ role: RoleKey; scope: Scope; privs: PrivKey[]; expires: string }>({ role: 'agent', scope: 'own', privs: [], expires: '' });
   const [inviteOpen, setInviteOpen] = React.useState(false);
+  /* ผลลัพธ์ของการเชิญ/ออกลิงก์ใหม่ · เดิมโชว์ใน window.alert ครั้งเดียว ปิดแล้ว
+     หายถาวร คัดลอกก็ลำบาก และไม่มีทางเรียกกลับมาดูได้อีก */
+  const [handover, setHandover] = React.useState<
+    { email: string; mailed: boolean; mailConfigured: boolean; url?: string | null; tempPassword?: string | null } | null
+  >(null);
+  const [copied, setCopied] = React.useState('');
   const [inviteRole, setInviteRole] = React.useState<RoleKey>('agent');
   const [inviteEmail, setInviteEmail] = React.useState('');
   const [inviteExpires, setInviteExpires] = React.useState('');
@@ -151,6 +157,23 @@ export function UsersBody() {
   const [mailBusy, setMailBusy] = React.useState(false);
   const [mailErr, setMailErr] = React.useState('');
 
+  /* ออกลิงก์ตั้งรหัสผ่านใหม่ให้คนที่เข้าระบบไม่ได้ — เดิมไม่มีคำสั่งนี้เลย
+     รหัสชั่วคราวโชว์ครั้งเดียวตอนเชิญ พลาดแล้วคือเข้าไม่ได้อีก */
+  const [linking, setLinking] = React.useState('');
+  const sendResetLink = async (u: UserRow) => {
+    const id = idByEmail[u.email];
+    if (!id || linking) return;
+    setLinking(u.email);
+    try {
+      const r = await apiPost<{ email: string; mailed: boolean; mailConfigured: boolean; url: string | null }>(`/api/users/${id}/reset-link`, {});
+      setHandover({ email: r.email, mailed: r.mailed, mailConfigured: r.mailConfigured, url: r.url });
+    } catch (e) {
+      window.alert(e instanceof ApiClientError ? e.message : 'ออกลิงก์ไม่สำเร็จ');
+    } finally {
+      setLinking('');
+    }
+  };
+
   const openMail = (u: UserRow) => { setMailFor(u); setMailDraft(u.email); setMailErr(''); };
   const saveMail = async () => {
     if (!mailFor || mailBusy) return;
@@ -230,12 +253,12 @@ export function UsersBody() {
     if (saving) return;
     setSaving(true);
     try {
-      const r = await apiPost<{ tempPassword: string; email: string }>('/api/users/invite', {
+      const r = await apiPost<{ email: string; mailed: boolean; mailConfigured: boolean; tempPassword: string | null }>('/api/users/invite', {
         email: inviteEmail.trim(),
         role: inviteRole,
         expiresAt: roleOf(inviteRole).external ? inviteExpires : '',
       });
-      window.alert(`สร้างบัญชี ${r.email} แล้ว\nรหัสผ่านชั่วคราว: ${r.tempPassword}\n(แสดงครั้งเดียว — กรุณาส่งให้ผู้ใช้และให้เปลี่ยนทันที)`);
+      setHandover({ email: r.email, mailed: r.mailed, mailConfigured: r.mailConfigured, tempPassword: r.tempPassword });
       setInviteOpen(false);
       setInviteEmail('');
       setInviteExpires('');
@@ -363,6 +386,18 @@ export function UsersBody() {
                           <button type="button" className="users-edit" onClick={() => openEdit(u)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 13px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" /></svg>
                             ตั้งค่าสิทธิ์
+                          </button>
+                          {/* เข้าระบบไม่ได้ → ออกลิงก์ตั้งรหัสใหม่ให้ได้จากตรงนี้ */}
+                          <button
+                            type="button"
+                            data-user-resetlink={u.email}
+                            onClick={() => void sendResetLink(u)}
+                            disabled={!u.active || linking === u.email}
+                            title={u.active ? 'ส่งลิงก์ตั้งรหัสผ่านใหม่ให้ผู้ใช้รายนี้' : 'บัญชีถูกปิดใช้งานอยู่'}
+                            style={{ marginLeft: 6, display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 13px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: u.active ? 'var(--text)' : 'var(--muted3)', fontSize: 12, fontWeight: 700, cursor: u.active ? 'pointer' : 'default', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+                          >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>
+                            {linking === u.email ? 'กำลังส่ง…' : 'ส่งลิงก์ตั้งรหัส'}
                           </button>
                           {/* สไลด์ 46 · "เจ้าของสามารถโอนสิทธิ์ Property ได้ · เตรียมไว้
                               คนลาออก" — คนลาออกหนึ่งคนมีทรัพย์เป็นร้อย โอนทีละใบ
@@ -686,6 +721,62 @@ export function UsersBody() {
       )}
 
       {/* ---------- INVITE ---------- */}
+      {/* ผลลัพธ์ของการเชิญ / ออกลิงก์ตั้งรหัส
+          เดิมเป็น window.alert ที่ปิดแล้วหายถาวร — รหัสหรือลิงก์ที่ต้องส่งต่อ
+          จึงหายไปพร้อมกัน และไม่มีทางเรียกกลับมาดูได้อีก */}
+      {handover && (
+        <div onClick={() => setHandover(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(10,14,12,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 90 }}>
+          <div data-handover onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 460, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '22px 24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+              <span style={{ width: 34, height: 34, borderRadius: 10, background: handover.mailed ? '#E8F3EC' : '#FBF3E1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={handover.mailed ? '#0D6C3B' : '#9A741C'} strokeWidth="2.2">
+                  {handover.mailed ? <><path d="M22 6l-10 7L2 6" /><rect x="2" y="4" width="20" height="16" rx="2" /></> : <><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16h.01" /></>}
+                </svg>
+              </span>
+              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>
+                {handover.mailed ? 'ส่งอีเมลแล้ว' : 'ยังส่งอีเมลไม่ได้'}
+              </div>
+            </div>
+            <div style={{ fontSize: '13.5px', color: 'var(--muted)', lineHeight: 1.7 }}>
+              {handover.mailed
+                ? <>ลิงก์ตั้งรหัสผ่านถูกส่งไปที่ <b style={{ color: 'var(--text)' }}>{handover.email}</b> แล้ว ให้ผู้ใช้กดลิงก์ในอีเมลเพื่อตั้งรหัสของตัวเอง</>
+                : handover.mailConfigured
+                  ? <>ส่งอีเมลไปที่ <b style={{ color: 'var(--text)' }}>{handover.email}</b> ไม่สำเร็จ — ส่งข้อมูลด้านล่างให้ผู้ใช้ทางช่องทางอื่นไปก่อน</>
+                  : <>ระบบส่งอีเมลยังไม่ได้ตั้งค่า — <b style={{ color: 'var(--text)' }}>อีเมลยังไม่ถูกส่งออกไป</b> กรุณาส่งข้อมูลด้านล่างให้ผู้ใช้ด้วยตัวเอง</>}
+            </div>
+
+            {(handover.url || handover.tempPassword) && (
+              <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 12, background: 'var(--bg)', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted2)' }}>
+                  {handover.url ? 'ลิงก์ตั้งรหัสผ่าน' : 'รหัสผ่านชั่วคราว'}
+                </div>
+                <div style={{ marginTop: 6, fontFamily: "'JetBrains Mono',monospace", fontSize: 12.5, color: 'var(--text)', wordBreak: 'break-all', lineHeight: 1.6 }}>
+                  {handover.url ?? handover.tempPassword}
+                </div>
+                <button
+                  type="button"
+                  data-handover-copy
+                  onClick={() => {
+                    const v = handover.url ?? handover.tempPassword ?? '';
+                    void navigator.clipboard.writeText(v).then(() => { setCopied(v); window.setTimeout(() => setCopied(''), 1800); }).catch(() => setCopied(''));
+                  }}
+                  style={{ marginTop: 10, height: 32, padding: '0 14px', borderRadius: 9999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  {copied ? 'คัดลอกแล้ว' : 'คัดลอก'}
+                </button>
+                {handover.tempPassword && (
+                  <div style={{ marginTop: 8, fontSize: 11.5, color: '#9A741C', lineHeight: 1.6 }}>ผู้ใช้ต้องเปลี่ยนรหัสทันทีที่เข้าระบบครั้งแรก</div>
+                )}
+              </div>
+            )}
+
+            <div style={{ marginTop: 18, display: 'flex', justifyContent: 'flex-end' }}>
+              <button type="button" onClick={() => setHandover(null)} style={{ height: 36, padding: '0 18px', borderRadius: 9999, border: 0, background: 'var(--accent)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>ปิด</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {inviteOpen && (
         <div onClick={() => setInviteOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 810, background: 'rgba(2,14,8,.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div onClick={stop} style={{ width: '100%', maxWidth: 460, maxHeight: '88vh', overflowY: 'auto', background: 'var(--surface)', borderRadius: 20, boxShadow: '0 40px 80px rgba(0,0,0,.4)', padding: 26 }}>

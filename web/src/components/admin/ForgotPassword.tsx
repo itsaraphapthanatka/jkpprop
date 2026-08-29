@@ -4,22 +4,42 @@ import { useState } from 'react';
 import { AuthShell, authInputWrap, authInput, authLeadIcon, authLabel, authBtn } from './AuthShell';
 import Link from 'next/link';
 
-/* Admin CMS forgot-password. Mock (no backend): submit → show a
-   "reset link sent" success state. Layout provided by <AuthShell>. */
+/* Admin CMS forgot-password.
+ *
+ * หน้านี้เคยเป็นฉากเปล่า — กดส่งแล้วรอครึ่งวินาทีด้วย setTimeout แล้วขึ้นว่า
+ * "เราได้ส่งลิงก์รีเซ็ตรหัสผ่านไปที่ … แล้ว" โดยไม่เคยยิงไปที่เซิร์ฟเวอร์เลย
+ * และไม่มี API อยู่จริงด้วยซ้ำ · คนที่ลืมรหัสผ่านจึงนั่งรอเมลที่ไม่มีวันมา
+ * (คุณกิตติพงษ์แจ้ง 29 ส.ค. 2569 ว่าให้สิทธิ์ทีม Marketing แล้วแต่ไม่มีเมลส่งไป)
+ */
 
 export function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  /* ระบบอีเมลยังไม่ได้ตั้งค่า = ลิงก์ไม่ได้ถูกส่งจริง ต้องบอกตามตรง
+     ไม่ใช่ขึ้นหน้า "ส่งแล้ว" เหมือนเดิม */
+  const [noMail, setNoMail] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading || !email.trim()) return;
     setLoading(true);
-    window.setTimeout(() => {
-      setLoading(false);
+    try {
+      const r = await fetch('/api/auth/forgot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const j = (await r.json().catch(() => null)) as { data?: { mailConfigured?: boolean } } | null;
+      setNoMail(j?.data?.mailConfigured === false);
       setSent(true);
-    }, 500);
+    } catch {
+      /* ต่อเซิร์ฟเวอร์ไม่ได้ — อย่าขึ้นหน้า "ส่งแล้ว" เด็ดขาด */
+      setNoMail(true);
+      setSent(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const backToLogin = (
@@ -30,6 +50,24 @@ export function ForgotPassword() {
       </Link>
     </div>
   );
+
+  /* ระบบอีเมลยังไม่ได้ตั้งค่า — บอกทางออกที่ใช้ได้จริง แทนที่จะให้นั่งรอเมล
+     ที่ไม่มีวันมา */
+  if (sent && noMail) {
+    return (
+      <AuthShell>
+        <div data-fp-nomail style={{ width: 56, height: 56, borderRadius: 9999, background: '#FBF3E1', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#9A741C" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16h.01" /></svg>
+        </div>
+        <h2 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: 'var(--text)', letterSpacing: '-.01em' }}>ยังส่งอีเมลไม่ได้</h2>
+        <p style={{ margin: '10px 0 0', fontSize: 14, color: 'var(--muted)', lineHeight: 1.7 }}>
+          ระบบส่งอีเมลของที่นี่ยังไม่ได้ตั้งค่า ลิงก์ตั้งรหัสผ่านใหม่จึง<b style={{ color: 'var(--text)' }}>ยังไม่ถูกส่งออกไป</b>
+          <br /><br />กรุณาติดต่อเจ้าของระบบเพื่อขอรหัสผ่านชั่วคราว แล้วเข้าสู่ระบบเพื่อตั้งรหัสใหม่ด้วยตัวเอง
+        </p>
+        {backToLogin}
+      </AuthShell>
+    );
+  }
 
   if (sent) {
     return (

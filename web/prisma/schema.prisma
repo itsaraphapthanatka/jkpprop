@@ -55,7 +55,33 @@ model User {
   passwordChangedAt  DateTime?
   createdAt          DateTime  @default(now())
 
-  sessions Session[]
+  sessions       Session[]
+  passwordResets PasswordReset[]
+}
+
+/* ลิงก์ตั้งรหัสผ่านใหม่ที่ส่งไปทางอีเมล
+ *
+ * 29 ส.ค. 2569 · ตอนนั้นระบบยังไม่มีการส่งอีเมลเลยสักที่ หน้า "ลืมรหัสผ่าน"
+ * กดส่งแล้วรอครึ่งวินาที แล้วขึ้นว่า "เราได้ส่งลิงก์รีเซ็ตรหัสผ่านไปที่ … แล้ว"
+ * โดยไม่เคยยิงไปที่เซิร์ฟเวอร์ — บอกผู้ใช้ว่าส่งแล้วทั้งที่ไม่ได้ส่ง
+ * และการเชิญคนเข้าระบบก็โชว์รหัสชั่วคราวใน alert ครั้งเดียว ปิดแล้วหายถาวร
+ *
+ * เก็บเฉพาะค่าแฮชของโทเคน แบบเดียวกับ Session — ฐานข้อมูลที่รั่วจึงเปิดบัญชี
+ * ใครไม่ได้ · โทเคนตัวจริงอยู่ในอีเมลของเจ้าตัวเท่านั้น
+ */
+model PasswordReset {
+  tokenHash String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /* invite = ตั้งรหัสครั้งแรกตอนถูกเชิญ · reset = ลืมรหัสผ่าน
+     ใช้แยกข้อความในอีเมลและอายุของลิงก์ */
+  kind      String   @default("reset")
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Session {
